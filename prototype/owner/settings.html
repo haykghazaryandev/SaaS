@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball for fields · Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../player/styles.css">
+<link rel="stylesheet" href="owner.css">
+</head>
+<body>
+<script src="../player/common.js"></script>
+<script src="../player/data.js"></script>
+<script src="owner.js"></script>
+<script>
+I18N.add({
+  "se.kicker": ["Place, prices and rules", "Ակումբ, գներ և կանոններ", "Клуб, цены и правила"],
+  "se.profile": ["Place profile", "Ակումբի պրոֆիլ", "Профиль клуба"],
+  "se.profileNote": ["This is what players see in the Bookball app. To change the name or address, write to Bookball support (demo).", "Սա է, ինչ տեսնում են խաղացողները Bookball հավելվածում։ Անվանումը կամ հասցեն փոխելու համար գրեք Bookball-ի աջակցությանը (դեմո)։", "Это видят игроки в приложении Bookball. Чтобы изменить название или адрес, напишите в поддержку Bookball (демо)."],
+  "se.hours": ["Opening hours", "Աշխատանքային ժամեր", "Часы работы"],
+  "se.everyDay": ["every day", "ամեն օր", "ежедневно"],
+  "se.address": ["Address", "Հասցե", "Адрес"],
+  "se.rating": ["Rating", "Վարկանիշ", "Рейтинг"],
+  "se.fields": ["Fields and prices", "Դաշտեր և գներ", "Поля и цены"],
+  "se.fieldsNote": ["Price per hour. Prime time is evenings from 18:00 and all day on weekends. New prices are used for new bookings in both apps.", "Գինը մեկ ժամի համար։ Պիկ ժամերը՝ երեկոյան 18:00-ից և ամբողջ օրը հանգստյան օրերին։ Նոր գները կկիրառվեն երկու հավելվածների նոր ամրագրումների համար։", "Цена за час. Прайм-тайм: вечером с 18:00 и весь день в выходные. Новые цены действуют для новых броней в обоих приложениях."],
+  "se.day": ["Day, ֏/h", "Ցերեկ, ֏/ժ", "День, ֏/ч"],
+  "se.prime": ["Prime, ֏/h", "Պիկ, ֏/ժ", "Прайм, ֏/ч"],
+  "se.savePrices": ["Save prices", "Պահպանել գները", "Сохранить цены"],
+  "se.reset": ["Reset to default", "Վերականգնել սկզբնականը", "Сбросить"],
+  "se.pricesSaved": ["Prices saved", "Գները պահպանված են", "Цены сохранены"],
+  "se.tg": ["Telegram notifications", "Telegram ծանուցումներ", "Уведомления в Telegram"],
+  "se.bot": ["Connected to {phone}", "Միացված է {phone} համարին", "Подключён к {phone}"],
+  "se.botDemo": ["Demo connection, no real bot", "Դեմո միացում, իրական բոտ չկա", "Демо-подключение, настоящего бота нет"],
+  "se.nNew": ["New request → Telegram", "Նոր հայտ → Telegram", "Новая заявка → Telegram"],
+  "se.nNewS": ["Accept or decline right from the message", "Ընդունեք կամ մերժեք անմիջապես հաղորդագրությունից", "Принимайте или отклоняйте прямо из сообщения"],
+  "se.nDaily": ["Daily summary at 9:00", "Օրական ամփոփում 9:00-ին", "Сводка каждый день в 9:00"],
+  "se.nDailyS": ["Today's games, requests and expected revenue", "Այսօրվա խաղերը, հայտերը և սպասվող եկամուտը", "Игры на сегодня, заявки и ожидаемая выручка"],
+  "se.nCancel": ["Player cancelled a booking", "Խաղացողը չեղարկել է ամրագրումը", "Игрок отменил бронь"],
+  "se.nCancelS": ["So you can offer the time to others", "Որպեսզի ժամն առաջարկեք ուրիշներին", "Чтобы предложить время другим"],
+  "se.nRegs": ["Tournament sign-ups", "Մրցաշարի հայտեր", "Заявки на турниры"],
+  "se.nRegsS": ["When a team applies to your tournament", "Երբ թիմը դիմում է ձեր մրցաշարին", "Когда команда подаёт заявку на ваш турнир"],
+  "se.preview": ["Preview", "Նախադիտում", "Пример"],
+  "se.previewMsg": ["📨 New request: {name}, {field}, today {time}. Accept / Decline", "📨 Նոր հայտ՝ {name}, {field}, այսօր {time}։ Ընդունել / Մերժել", "📨 Новая заявка: {name}, {field}, сегодня {time}. Принять / Отклонить"],
+  "se.rules": ["Booking rules", "Ամրագրման կանոններ", "Правила бронирования"],
+  "se.auto": ["Auto-accept regular customers", "Ավտոմատ ընդունել մշտական հաճախորդներին", "Автоматически принимать постоянных клиентов"],
+  "se.autoS": ["Players with 3+ games here get confirmed at once", "Այստեղ 3+ խաղ ունեցող խաղացողները հաստատվում են անմիջապես", "Игроки с 3+ играми у вас подтверждаются сразу"],
+  "se.freeCancel": ["Free cancellation", "Անվճար չեղարկում", "Бесплатная отмена"],
+  "se.freeCancelS": ["Players can cancel for free until this time before the game", "Խաղացողները կարող են անվճար չեղարկել մինչև խաղից այսքան առաջ", "Игроки могут отменить бесплатно не позднее чем за это время"],
+  "se.notice": ["Minimum notice", "Նվազագույն ժամկետ", "Минимальный срок"],
+  "se.noticeS": ["How long before the start a request can be sent", "Մեկնարկից որքան առաջ կարելի է հայտ ուղարկել", "За сколько до начала можно отправить заявку"],
+  "se.ahead": ["Booking window", "Ամրագրման շրջանակ", "Бронирование вперёд"],
+  "se.aheadS": ["How far ahead players can book", "Որքան առաջ կարող են խաղացողներն ամրագրել", "На сколько вперёд игроки могут бронировать"],
+  "se.hBefore": ["{n} h before", "{n} ժ առաջ", "за {n} ч"],
+  "se.none": ["No limit", "Առանց սահմանափակման", "Без ограничений"],
+  "se.days": ["{n} days", "{n} օր", "{n} дней"],
+  "se.saved": ["Saved", "Պահպանված է", "Сохранено"],
+  "se.staff": ["Staff accounts", "Աշխատակիցներ", "Сотрудники"],
+  "se.staffNote": ["Staff sign in with their own phone and see the same schedule.", "Աշխատակիցները մուտք են գործում իրենց հեռախոսով և տեսնում նույն ժամանակացույցը։", "Сотрудники входят по своему телефону и видят то же расписание."],
+  "se.owner": ["Owner", "Սեփականատեր", "Владелец"],
+  "se.admin": ["Administrator", "Ադմինիստրատոր", "Администратор"],
+  "se.shift": ["Evening shift", "Երեկոյան հերթափոխ", "Вечерняя смена"],
+  "se.coach": ["Coach · view only", "Մարզիչ · միայն դիտում", "Тренер · только просмотр"],
+  "se.you": ["you", "դուք", "вы"],
+  "se.add": ["Add staff", "Ավելացնել աշխատակից", "Добавить сотрудника"],
+  "se.role": ["Role", "Դեր", "Роль"],
+  "se.invited": ["Invitation sent to Telegram (demo)", "Հրավերն ուղարկված է Telegram-ով (դեմո)", "Приглашение отправлено в Telegram (демо)"],
+  "se.remove": ["Remove", "Հեռացնել", "Удалить"],
+  "se.account": ["Account", "Հաշիվ", "Аккаунт"]
+});
+document.title = T("o.brand") + " · " + T("o.nav.settings");
+const main = OWNER.shell("settings"), v = OWNER.venue(), me = OWNER.me(), E = OWNER.esc;
+const DEF = { notifyNew: true, daily: true, notifyCancel: true, notifyRegs: true, autoAccept: false, freeCancel: 12, minNotice: 1, ahead: 30 };
+const S = Object.assign({}, DEF, STORE.get("ownerSettings", {}));
+const save = () => { STORE.set("ownerSettings", S); toast(T("se.saved")); };
+const DEMO_STAFF = [{ id: "st1", name: "Karen Manukyan", phone: "37494112233", role: "admin" }, { id: "st2", name: "Lilit Hakobyan", phone: "37455667788", role: "shift" }];
+const ROLES = { admin: "se.admin", shift: "se.shift", coach: "se.coach" };
+const toggle = (k, t, s) => `<div class="srow"><div><b>${T(t)}</b><small>${T(s)}</small></div><label class="switch"><input type="checkbox" data-k="${k}"${S[k] ? " checked" : ""} aria-label="${T(t)}"></label></div>`;
+const select = (k, t, s, opts) => `<div class="srow"><div><b>${T(t)}</b><small>${T(s)}</small></div><select class="input" data-k="${k}" style="width:auto;flex:none">${opts.map(([val, l]) => `<option value="${val}"${+S[k] === val ? " selected" : ""}>${l}</option>`).join("")}</select></div>`;
+const sm = OWNER.court(v, "small");
+
+function render() {
+  const staff = STORE.get("ownerStaff", DEMO_STAFF);
+  main.innerHTML = `${OWNER.title(T("se.kicker"), T("o.nav.settings"))}
+  <div class="sgrid">
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <section class="card panel">
+        <div class="sec-h"><h2>${T("se.profile")}</h2><span class="pill">${ICON("star", "sm")}${v.rating}</span></div>
+        <div style="position:relative;height:150px;border-radius:14px;overflow:hidden;background:#0c120e;margin-bottom:14px">${COURT_ART(v.courts[1].size)}</div>
+        <h3 style="font-size:20px">${E(v.name)}</h3>
+        <p class="muted" style="margin:6px 0 12px;font-size:14px">${E(tt(v.about))}</p>
+        <div class="kvs">
+          <div class="kv">${ICON("pin", "sm")}<span>${T("se.address")}</span><b>${E(tt(v.address))}, ${tt(KH.DISTRICTS[v.district])}</b></div>
+          <div class="kv">${ICON("clock", "sm")}<span>${T("se.hours")}</span><b>${FMT.time(v.open[0])}–${FMT.time(v.open[1])} · ${T("se.everyDay")}</b></div>
+          <div class="kv">${ICON("star", "sm")}<span>${T("se.rating")}</span><b>${v.rating} · ${v.reviews} ${T("reviews")}</b></div>
+        </div>
+        <div class="row wrapflex" style="gap:6px;margin-top:12px">${v.amenities.map(a => `<span class="pill">${ICON(KH.AMENITIES[a][0], "sm")}${tt(KH.AMENITIES[a][1])}</span>`).join("")}</div>
+        <p class="faint" style="font-size:12.5px;margin:12px 0 0">${T("se.profileNote")}</p>
+      </section>
+      <section class="card panel">
+        <div class="sec-h"><h2>${T("se.fields")}</h2></div>
+        <p class="muted" style="font-size:13px;margin:0">${T("se.fieldsNote")}</p>
+        ${v.courts.map(ct => { const p = KH.priceOf(ct); return `<div class="pfield" data-c="${ct.id}">
+          <div class="lbl"><span class="thumb" style="display:block">${COURT_SVG(ct.size)}</span><span style="font-size:12.5px;font-weight:800">${ct.format}<br><span class="faint" style="font-weight:600">${tt(KH.SURFACES[ct.surface])}${ct.indoor ? " · " + T("indoor") : ""}</span></span></div>
+          <div class="field"><label>${T("se.day")}</label><input class="input mono" data-p="day" inputmode="numeric" value="${p.day}"></div>
+          <div class="field"><label>${T("se.prime")}</label><input class="input mono" data-p="prime" inputmode="numeric" value="${p.prime}"></div></div>`; }).join("")}
+        <div class="row wrapflex" style="margin-top:14px;justify-content:flex-end"><button class="btn ghost sm" id="pr">${T("se.reset")}</button><button class="btn sm" id="ps">${T("se.savePrices")}</button></div>
+      </section>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <section class="card panel">
+        <div class="sec-h"><h2>${T("se.tg")}</h2></div>
+        <div class="bot"><span class="bi">${ICON("send")}</span><div style="min-width:0"><b>@BookballFieldsBot</b> <span class="pill warn">DEMO</span><div class="muted" style="font-size:12.5px">${T("se.bot", { phone: FMT.phone(me.phone) })} · ${T("se.botDemo")}</div></div></div>
+        ${toggle("notifyNew", "se.nNew", "se.nNewS")}${toggle("daily", "se.nDaily", "se.nDailyS")}${toggle("notifyCancel", "se.nCancel", "se.nCancelS")}
+        <div class="kicker" style="margin:10px 0 8px">${T("se.preview")}</div>
+        <div class="tg-hint" style="font-weight:600">${T("se.previewMsg", { name: "Narek H.", field: sm.format, time: "19:00" })}</div>
+      </section>
+      <section class="card panel">
+        <div class="sec-h"><h2>${T("se.rules")}</h2></div>
+        ${toggle("autoAccept", "se.auto", "se.autoS")}
+        ${select("freeCancel", "se.freeCancel", "se.freeCancelS", [2, 6, 12, 24, 48].map(n => [n, T("se.hBefore", { n })]))}
+        ${select("minNotice", "se.notice", "se.noticeS", [[0, T("se.none")], [1, "1 " + T("h")], [2, "2 " + T("h")], [4, "4 " + T("h")]])}
+        ${select("ahead", "se.ahead", "se.aheadS", [14, 30, 60, 90].map(n => [n, T("se.days", { n })]))}
+      </section>
+      <section class="card panel">
+        <div class="sec-h"><h2>${T("se.staff")}</h2><button class="btn ghost sm" id="sa">${ICON("plus", "sm")}${T("se.add")}</button></div>
+        <p class="muted" style="font-size:13px;margin:0 0 4px">${T("se.staffNote")}</p>
+        <div class="staff"><span class="avatar">${E(me.name.slice(0, 1))}</span><div><b>${E(me.name)} <span class="faint">(${T("se.you")})</span></b><small>${T("se.owner")} · ${FMT.phone(me.phone)}</small></div><span class="pill lime">${T("se.owner")}</span></div>
+        ${staff.map(s => `<div class="staff"><span class="avatar">${E(s.name.slice(0, 1))}</span><div><b>${E(s.name)}</b><small>${T(ROLES[s.role])} · ${FMT.phone(s.phone)}</small></div><button class="btn ghost sm hot" data-rm="${s.id}">${T("se.remove")}</button></div>`).join("")}
+      </section>
+      <section class="card panel">
+        <div class="sec-h"><h2>${T("se.account")}</h2></div>
+        <div class="row wrapflex"><span class="muted" style="flex:1">${E(me.name)} · ${FMT.phone(me.phone)}</span><button class="btn ghost sm" id="so2">${T("o.signOut")}</button></div>
+      </section>
+    </div>
+  </div>`;
+  main.querySelectorAll("input[data-k]").forEach(i => { i.onchange = () => { S[i.dataset.k] = i.checked; save(); }; });
+  main.querySelectorAll("select[data-k]").forEach(i => { i.onchange = () => { S[i.dataset.k] = +i.value; save(); }; });
+  main.querySelector("#ps").onclick = () => {
+    const pr = STORE.get("prices", {});
+    main.querySelectorAll(".pfield").forEach(f => {
+      const n = k => Math.max(0, +String(f.querySelector(`[data-p="${k}"]`).value).replace(/\D/g, "") || 0);
+      pr[f.dataset.c] = { day: n("day"), prime: n("prime") };
+    });
+    STORE.set("prices", pr); KH.clearCache(); toast(T("se.pricesSaved")); render();
+  };
+  main.querySelector("#pr").onclick = () => { const pr = STORE.get("prices", {}); v.courts.forEach(ct => delete pr[ct.id]); STORE.set("prices", pr); toast(T("se.pricesSaved")); render(); };
+  main.querySelector("#so2").onclick = OWNER.signOut;
+  main.querySelectorAll("[data-rm]").forEach(b => { b.onclick = () => { STORE.set("ownerStaff", staff.filter(s => s.id !== b.dataset.rm)); render(); }; });
+  main.querySelector("#sa").onclick = () => {
+    const s = OWNER.sheet(`<div class="row" style="margin-bottom:14px"><h3>${T("se.add")}</h3><button class="x" data-close aria-label="${T("close")}">${ICON("x")}</button></div>
+      <div class="field" style="margin-bottom:12px"><label for="an">${T("f.name")}</label><input class="input" id="an"></div>
+      <div class="field" style="margin-bottom:12px"><label for="ap">${T("v.phone")}</label><div class="row" style="gap:6px"><span class="input pre">+374</span><input class="input mono" id="ap" inputmode="tel" placeholder="91 234 567"></div></div>
+      <div class="field"><label for="ar">${T("se.role")}</label><select class="input" id="ar">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}">${T(l)}</option>`).join("")}</select></div>
+      <div class="ferr" id="ae"></div><button class="btn block" id="aok">${ICON("send", "sm")}${T("se.add")}</button>`);
+    s.el.querySelector("#aok").onclick = () => {
+      const name = s.el.querySelector("#an").value.trim(), ph = s.el.querySelector("#ap").value.replace(/\D/g, "");
+      if (!name || ph.length !== 8) { s.el.querySelector("#ae").textContent = T("v.badPhone"); return; }
+      STORE.set("ownerStaff", staff.concat([{ id: "st" + Date.now().toString(36), name, phone: "374" + ph, role: s.el.querySelector("#ar").value }]));
+      s.close(); toast(T("se.invited")); render();
+    };
+  };
+}
+render();
+</script>
+</body>
+</html>

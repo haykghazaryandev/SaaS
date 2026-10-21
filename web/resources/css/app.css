@@ -1,0 +1,4 @@
+/* Bookball: Tailwind utilities. The design system (ported from the prototype) is resources/css/bookball.css, imported in app.ts. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball · Tournaments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=1">
+<style>
+  body { overflow-x: hidden; }
+  .thero { position: relative; margin-top: 22px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: #0b110d; padding: 48px 44px; isolation: isolate; display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: center; }
+  .thero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(520px 300px at 85% 20%, rgba(200, 255, 61, .14), transparent 70%), radial-gradient(420px 260px at 60% 110%, rgba(92, 200, 255, .12), transparent 70%); }
+  .thero h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .thero p { color: var(--muted); font-size: 16.5px; max-width: 520px; margin: 14px 0 0; }
+  .thero .stats { display: flex; gap: 30px; margin-top: 24px; flex-wrap: wrap; }
+  .thero .stats b { font-family: var(--display); font-size: 24px; display: block; }
+  .thero .stats span { color: var(--muted); font-size: 12.5px; font-weight: 700; }
+  .cups { position: relative; height: 250px; }
+  .cups .court { position: absolute; width: 230px; filter: drop-shadow(0 22px 24px rgba(0, 0, 0, .6)); }
+  .cups .court svg { width: 100%; display: block; }
+  .cups .c1 { left: 4%; top: 10%; transform: perspective(600px) rotateX(55deg) rotateZ(-22deg); }
+  .cups .c2 { right: 2%; top: 0; transform: perspective(600px) rotateX(55deg) rotateZ(-22deg); opacity: .85; }
+  .cups .c3 { left: 22%; bottom: 0; transform: perspective(600px) rotateX(55deg) rotateZ(-22deg); opacity: .9; }
+  .cups .cup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -55%); width: 110px; height: 110px; border-radius: 30px; display: grid; place-items: center; background: rgba(10, 13, 11, .7); border: 1px solid rgba(255, 210, 90, .35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 0 60px -10px rgba(255, 210, 90, .45); }
+  .cups .cup .ico { width: 54px; height: 54px; color: #ffd25a; stroke-width: 1.6; }
+  @media (max-width: 900px) {
+    .thero { grid-template-columns: 1fr; padding: 8px 22px 26px; gap: 0; }
+    .cups { order: -1; height: 180px; margin: 0 -22px; }
+    .cups .court { width: 170px; }
+    .cups .cup { width: 84px; height: 84px; border-radius: 24px; }
+    .cups .cup .ico { width: 42px; height: 42px; }
+  }
+
+  /* filters */
+  .tfilters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .tfilters .chips { flex-wrap: wrap; overflow: visible; }
+  .tfilters .sep { width: 1px; height: 24px; background: var(--line-2); }
+  @media (max-width: 700px) { .tfilters .chips { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; } .tfilters { flex-direction: column; align-items: stretch; } }
+  .count-l { color: var(--faint); font-weight: 700; font-size: 13px; }
+
+  /* CTA for venues */
+  .vcta { position: relative; overflow: hidden; border-radius: 28px; border: 1px solid var(--line-2); padding: 38px 40px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 30px; align-items: center; background: linear-gradient(135deg, rgba(200, 255, 61, .09), rgba(92, 200, 255, .06) 60%, rgba(10, 13, 11, 0)); }
+  .vcta::after { content: ""; position: absolute; right: -120px; bottom: -160px; width: 420px; height: 420px; border-radius: 50%; background: var(--accent); filter: blur(120px); opacity: .12; pointer-events: none; }
+  .vcta h2 { margin: 10px 0 10px; font-size: clamp(24px, 3.2vw, 34px); }
+  .vcta p { color: var(--muted); margin: 0 0 22px; font-size: 15.5px; max-width: 480px; }
+  .vfeat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; position: relative; z-index: 1; }
+  .vfeat div { background: rgba(10, 13, 11, .6); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+  .vfeat .ico { color: var(--accent); }
+  .vfeat b { display: block; margin: 8px 0 2px; font-size: 14.5px; }
+  .vfeat small { color: var(--muted); font-size: 12.5px; font-weight: 600; display: block; line-height: 1.4; }
+  @media (max-width: 800px) { .vcta { grid-template-columns: 1fr; padding: 26px 20px; } }
+  @media (max-width: 420px) { .vfeat { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="thero">
+    <div>
+      <span class="kicker" id="kick"></span>
+      <h1 id="h1" style="margin-top:12px"></h1>
+      <p id="lead"></p>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="cups" aria-hidden="true" id="cups"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><span class="kicker" id="ak"></span><h2 id="ah"></h2></div><span class="count-l" id="cnt"></span></div>
+    <div class="tfilters"><div class="chips" id="fSize"></div><div class="chips" id="fStatus"></div></div>
+    <div class="grid c3" id="list"></div>
+  </section>
+
+  <section class="section">
+    <div class="vcta">
+      <div style="position:relative;z-index:1">
+        <span class="kicker" id="ck"></span>
+        <h2 id="ch"></h2>
+        <p id="cp"></p>
+        <a class="btn" id="cb"></a>
+      </div>
+      <div class="vfeat" id="cf"></div>
+    </div>
+  </section>
+</main>
+
+<script src="common.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="cards.js?v=1"></script>
+<script>
+I18N.add({
+  "tl.kick": ["Amateur football · 5×5 and 11×11", "Սիրողական ֆուտբոլ · 5×5 և 11×11", "Любительский футбол · 5×5 и 11×11"],
+  "tl.h1": ["Tournaments<br><em>in Yerevan</em>", "Մրցաշարեր<br><em>Երևանում</em>", "Турниры<br><em>в Ереване</em>"],
+  "tl.lead": ["Amateur cups and leagues for 5×5 and 11×11 teams. Send your team's request in a minute; the organiser confirms it in Telegram.", "Սիրողական գավաթներ և լիգաներ 5×5 և 11×11 թիմերի համար։ Ուղարկեք թիմի հայտը մեկ րոպեում, իսկ կազմակերպիչը կհաստատի այն Telegram-ով։", "Любительские кубки и лиги для команд 5×5 и 11×11. Отправьте заявку команды за минуту — организатор подтвердит её в Telegram."],
+  "tl.sOpen": ["open for sign-up", "գրանցումը բաց է", "открыта запись"],
+  "tl.sSoon": ["start soon", "շուտով կմեկնարկեն", "скоро старт"],
+  "tl.sPrize": ["in prizes", "մրցանակներ", "призовых"],
+  "tl.ak": ["Find your next cup", "Գտիր հաջորդ գավաթդ", "Найди свой кубок"],
+  "tl.ah": ["All tournaments", "Բոլոր մրցաշարերը", "Все турниры"],
+  "tl.allFields": ["All fields", "Բոլոր դաշտերը", "Все поля"],
+  "tl.any": ["Any status", "Ցանկացած", "Любой статус"],
+  "tl.open": ["Registration open", "Գրանցումը բաց է", "Идёт регистрация"],
+  "tl.closed": ["Starts soon", "Շուտով կմեկնարկի", "Скоро старт"],
+  "tl.done": ["Finished", "Ավարտված", "Завершённые"],
+  "tl.count": ["{n} tournaments", "{n} մրցաշար", "Турниров: {n}"],
+  "tl.none": ["No tournaments match this filter yet.", "Այս ընտրությամբ մրցաշարեր դեռ չկան։", "По этому фильтру турниров пока нет."],
+  "tl.ck": ["For fields and organisers", "Դաշտերի և կազմակերպիչների համար", "Для полей и организаторов"],
+  "tl.ch": ["Run your own tournament", "Անցկացրեք ձեր մրցաշարը", "Проведите свой турнир"],
+  "tl.cp": ["Create an amateur cup or league in five minutes. Bookball collects team requests, makes the draw and keeps the tables up to date.", "Ստեղծեք սիրողական գավաթ կամ լիգա հինգ րոպեում։ Bookball-ը կհավաքի թիմերի հայտերը, կանցկացնի վիճակահանությունը և կթարմացնի աղյուսակները։", "Создайте любительский кубок или лигу за пять минут. Bookball соберёт заявки команд, проведёт жеребьёвку и будет вести таблицы."],
+  "tl.cb": ["Open the venue app", "Բացել ակումբի հավելվածը", "Открыть приложение для клубов"],
+  "tl.f1": ["Team requests", "Թիմերի հայտեր", "Заявки команд"], "tl.f1s": ["Teams apply with a confirmed phone, you accept or decline.", "Թիմերը դիմում են հաստատված հեռախոսով, դուք ընդունում կամ մերժում եք։", "Команды подают заявку с подтверждённым номером, вы принимаете или отклоняете."],
+  "tl.f2": ["Brackets & tables", "Սխեմաներ և աղյուսակներ", "Сетки и таблицы"], "tl.f2s": ["Groups with playoff, knockout or league.", "Խմբեր փլեյ-օֆֆով, նոկաուտ կամ լիգա։", "Группы с плей-офф, на вылет или лига."],
+  "tl.f3": ["Fields blocked", "Դաշտերն ամրագրված են", "Поля заняты"], "tl.f3s": ["Match times go straight into your schedule.", "Խաղերի ժամերը անմիջապես հայտնվում են ձեր ժամանակացույցում։", "Время матчей сразу попадает в расписание."],
+  "tl.f4": ["Telegram updates", "Telegram ծանուցումներ", "Уведомления в Telegram"], "tl.f4s": ["Captains get the draw and match times in Telegram.", "Ավագները վիճակահանությունն ու խաղերի ժամերը ստանում են Telegram-ով։", "Капитаны получают жеребьёвку и время матчей в Telegram."]
+});
+renderChrome("tournaments");
+const $ = id => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+const S = { size: KH.SIZES[Q.get("size")] ? Q.get("size") : "", status: ["open", "closed", "done"].includes(Q.get("status")) ? Q.get("status") : "" };
+
+$("kick").textContent = T("tl.kick"); $("h1").innerHTML = T("tl.h1"); $("lead").textContent = T("tl.lead");
+const TS = KH.TOURNAMENTS;
+const prizeSum = TS.filter(t => t.status !== "done").reduce((a, t) => a + (t.prize || 0), 0);
+$("stats").innerHTML = `<div><b>${TS.filter(t => t.status === "open" || t.status === "soon").length}</b><span>${T("tl.sOpen")}</span></div><div><b style="color:var(--blue)">${TS.filter(t => t.status === "closed").length}</b><span>${T("tl.sSoon")}</span></div><div><b>${FMT.short(prizeSum)}</b><span>${T("tl.sPrize")}</span></div>`;
+$("cups").innerHTML = `<div class="court c1">${COURT_SVG("big")}</div><div class="court c2">${COURT_SVG("small")}</div><div class="court c3">${COURT_SVG("big", { color: "#2b7d3f" })}</div><div class="cup">${ICON("trophy")}</div>`;
+
+// ---------- list with filters ----------
+const ORDER = { open: 0, soon: 1, closed: 2, done: 3 };
+function drawList() {
+  $("ak").textContent = T("tl.ak"); $("ah").textContent = T("tl.ah");
+  $("fSize").innerHTML = `<button class="chip" data-s="" aria-pressed="${!S.size}">${T("tl.allFields")}</button>` + ["small", "big"].map(z => `<button class="chip" data-s="${z}" aria-pressed="${S.size === z}"><span class="sport-dot" style="background:${SIZE_COLOR[z]}"></span>${KH.SIZES[z].format}</button>`).join("");
+  $("fStatus").innerHTML = [["", "tl.any"], ["open", "tl.open"], ["closed", "tl.closed"], ["done", "tl.done"]].map(([k, l]) => `<button class="chip" data-st="${k}" aria-pressed="${S.status === k}">${T(l)}</button>`).join("");
+  const list = TS.filter(t => (!S.size || t.size === S.size) && (!S.status || (S.status === "open" ? t.status === "open" || t.status === "soon" : t.status === S.status)))
+    .sort((a, b) => ORDER[a.status] - ORDER[b.status] || (a.status === "done" ? b.start - a.start : a.start - b.start));
+  $("cnt").textContent = T("tl.count", { n: list.length });
+  $("list").innerHTML = list.length ? list.map(tourCard).join("") : `<div class="empty" style="grid-column:1/-1">${T("tl.none")}</div>`;
+  $("fSize").querySelectorAll("[data-s]").forEach(b => { b.onclick = () => { S.size = b.dataset.s; drawList(); }; });
+  $("fStatus").querySelectorAll("[data-st]").forEach(b => { b.onclick = () => { S.status = b.dataset.st; drawList(); }; });
+  const p = {}; if (S.size) p.size = S.size; if (S.status) p.status = S.status;
+  try { history.replaceState(null, "", link("tournaments.html", p)); } catch (e) {}
+}
+
+// tournaments are created by the Bookball team, not by field owners: no call-to-action for venues
+$("cb").closest("section").remove();
+drawList();
+</script>
+</body>
+</html>

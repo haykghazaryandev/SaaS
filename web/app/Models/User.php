@@ -1,0 +1,129 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\VenueRole;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
+use Illuminate\Contracts\Translation\HasLocalePreference;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+/**
+ * One phone number = one user. A user can be a player and also owner/staff of places (venue_users).
+ */
+class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasName
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable, SoftDeletes;
+
+    protected $fillable = [
+        'phone', 'name', 'username', 'locale', 'avatar_path', 'level', 'position', 'district', 'bio',
+        'telegram_chat_id', 'telegram_linked_at', 'phone_verified_at', 'registered_at', 'last_seen_at',
+    ];
+
+    protected $hidden = ['remember_token', 'telegram_chat_id'];
+
+    protected function casts(): array
+    {
+        return [
+            'is_admin' => 'boolean',
+            'telegram_chat_id' => 'integer',
+            'telegram_linked_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'registered_at' => 'datetime',
+            'blocked_until' => 'datetime',
+            'last_seen_at' => 'datetime',
+        ];
+    }
+
+    /** Places this user works for (owner or staff). */
+    public function venues(): BelongsToMany
+    {
+        return $this->belongsToMany(Venue::class, 'venue_users')->withPivot('role')->withTimestamps();
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function gamePlayers(): HasMany
+    {
+        return $this->hasMany(GamePlayer::class);
+    }
+
+    /** Accepted friends (both directions). */
+    public function friendIds(): array
+    {
+        return Friendship::query()->where('status', 'accepted')
+            ->where(fn ($q) => $q->where('user_id', $this->id)->orWhere('friend_id', $this->id))
+            ->get(['user_id', 'friend_id'])
+            ->map(fn ($f) => $f->user_id === $this->id ? $f->friend_id : $f->user_id)->all();
+    }
+
+    public function isFriendOf(User|int $other): bool
+    {
+        $id = $other instanceof User ? $other->id : $other;
+
+        return Friendship::between($this->id, $id)?->status === 'accepted';
+    }
+
+    public function isRegistered(): bool
+    {
+        return $this->registered_at !== null;
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->status === 'blocked' || ($this->blocked_until && $this->blocked_until->isFuture());
+    }
+
+    public function hasTelegram(): bool
+    {
+        return $this->telegram_chat_id !== null;
+    }
+
+    public function roleAt(Venue|int $venue): ?VenueRole
+    {
+        $id = $venue instanceof Venue ? $venue->id : $venue;
+        $role = $this->venues->firstWhere('id', $id)?->pivot->role;
+
+        return $role ? VenueRole::from($role) : null;
+    }
+
+    public function worksAt(Venue|int $venue): bool
+    {
+        return $this->roleAt($venue) !== null;
+    }
+
+    /** Admin panel (/admin, Filament): only the product owner (is_admin) can open it. */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->is_admin && ! $this->isBlocked();
+    }
+
+    public function getFilamentName(): string
+    {
+        return $this->name ?: \App\Support\Phone::format($this->phone);
+    }
+
+    /** Notifications (Telegram) are written in the user's language. */
+    public function preferredLocale(): string
+    {
+        return in_array($this->locale, config('app.locales', ['hy', 'ru', 'en']), true) ? $this->locale : 'hy';
+    }
+
+    /** Short name for lists: "Aram P." */
+    public function shortName(): string
+    {
+        $parts = preg_split('/\s+/', trim((string) $this->name));
+
+        return count($parts) > 1 ? $parts[0].' '.mb_substr($parts[1], 0, 1).'.' : ($parts[0] ?: '—');
+    }
+}

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball · Book a football field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=1">
+<style>
+  .hero { position: relative; margin-top: 22px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: #0b120d; min-height: 420px; display: grid; grid-template-columns: 1.05fr 1fr; }
+  .hero-copy { padding: 52px 44px; position: relative; z-index: 2; display: flex; flex-direction: column; gap: 18px; justify-content: center; }
+  .hero h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: var(--muted); font-size: 16.5px; max-width: 470px; margin: 0; }
+  .hero-art { position: relative; perspective: 900px; overflow: hidden; }
+  .hero-art .stage { position: absolute; inset: -10% -20% -10% -5%; transform: rotateX(56deg) rotateZ(-24deg); transform-style: preserve-3d; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-content: center; }
+  .hero-art .stage svg { width: 100%; filter: drop-shadow(0 30px 30px rgba(0, 0, 0, 0.6)); }
+  .hero-art::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, #0b120d 0%, rgba(11, 18, 13, 0) 35%), radial-gradient(400px 200px at 60% 0%, rgba(255, 255, 230, 0.12), transparent 70%); pointer-events: none; }
+  .finder { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 18px; padding: 8px; max-width: 640px; }
+  .finder .input { border: 0; background: var(--bg-2); }
+  .stats { display: flex; gap: 28px; margin-top: 6px; }
+  .stats b { font-family: var(--display); font-size: 22px; display: block; }
+  .stats span { color: var(--muted); font-size: 12.5px; font-weight: 700; }
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; min-height: 0; }
+    .hero-art { height: 210px; order: -1; }
+    .hero-art::before { background: linear-gradient(0deg, #0b120d 0%, rgba(11, 18, 13, 0) 45%); }
+    .hero-copy { padding: 8px 22px 26px; }
+    .finder { grid-template-columns: 1fr 1fr; }
+    .finder .wide { grid-column: 1 / -1; }
+  }
+  .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .size-tile { position: relative; overflow: hidden; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); padding: 20px; min-height: 168px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; text-align: left; color: var(--ink); transition: transform .18s, border-color .18s; }
+  .size-tile:hover { transform: translateY(-2px); border-color: var(--line-2); }
+  .size-tile[aria-pressed="true"] { border-color: var(--tc); box-shadow: inset 0 0 0 1px var(--tc); }
+  .size-tile .ic { width: 52px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--tc) 16%, transparent); color: var(--tc); font-family: var(--mono); font-size: 13px; font-weight: 700; position: relative; }
+  .size-tile b { font-family: var(--display); font-weight: 600; font-size: 19px; display: block; }
+  .size-tile small { color: var(--muted); font-weight: 700; font-size: 13px; display: block; margin-top: 2px; }
+  .size-tile > span { position: relative; }
+  .size-tile .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .size-tile svg.bgc { position: absolute; right: -50px; bottom: -40px; width: 300px; opacity: .2; transform: rotate(-12deg); pointer-events: none; }
+  @media (max-width: 700px) { .sizes { grid-template-columns: 1fr; } .size-tile { min-height: 140px; padding: 16px; } .size-tile svg.bgc { width: 230px; } }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .days { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .days::-webkit-scrollbar { display: none; }
+  .day { flex: none; border: 1px solid var(--line-2); background: var(--surface); border-radius: 14px; padding: 7px 0; width: 54px; text-align: center; color: var(--muted); }
+  .day b { display: block; font-size: 16px; color: var(--ink); }
+  .day small { font-size: 11px; font-weight: 800; text-transform: uppercase; }
+  .day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .day[aria-pressed="true"] b { color: var(--on-accent); }
+  .strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(300px, 1fr); gap: 16px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .strip::-webkit-scrollbar { display: none; }
+  .game { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .spots { display: flex; gap: 4px; flex-wrap: wrap; }
+  .spots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-3); }
+  .spots i.on { background: var(--tc); }
+  .how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .how .card { padding: 20px; }
+  .how .n { font-family: var(--mono); color: var(--accent); font-size: 13px; }
+  .how .card { min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+  @media (max-width: 800px) { .how { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  @media (max-width: 440px) { .how { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="kicker" id="kick"></span>
+      <h1 id="h1"></h1>
+      <p id="lead"></p>
+      <div class="finder">
+        <select class="input wide" id="fSize" aria-label="Field"></select>
+        <select class="input" id="fDistrict" aria-label="District"></select>
+        <select class="input" id="fTime" aria-label="Time"></select>
+        <button class="btn wide" id="fGo" style="grid-column:1/-1"></button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="hero-art" aria-hidden="true"><div class="stage" id="heroStage"></div></div>
+  </section>
+
+  <section class="section">
+    <div class="sizes" id="sizes"></div>
+  </section>
+
+  <section class="section" id="venuesSec">
+    <div class="section-head"><div><span class="kicker" id="vk"></span><h2 id="vh"></h2></div></div>
+    <div class="filters"><div class="days" id="days"></div><div class="chips" id="flt"></div></div>
+    <div class="grid c3" id="venues"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><span class="kicker" id="gk"></span><h2 id="gh"></h2></div><a class="see-all" id="gall"></a></div>
+    <div class="strip" id="games"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><span class="kicker" id="tk"></span><h2 id="th"></h2></div><a class="see-all" id="tall"></a></div>
+    <div class="strip" id="tours"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2 id="hh"></h2></div>
+    <div class="how" id="how"></div>
+  </section>
+</main>
+
+<script src="common.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="cards.js?v=1"></script>
+<script>
+I18N.add({
+  "home.kick": ["Yerevan · football 5×5 and 11×11", "Երևան · ֆուտբոլ 5×5 և 11×11", "Ереван · футбол 5×5 и 11×11"],
+  "home.h1": ["Find a field.<br><em>Play tonight.</em>", "Գտիր դաշտը։<br><em>Խաղա այսօր։</em>", "Найди поле.<br><em>Играй сегодня.</em>"],
+  "home.lead": ["Every football field in the city with its free hours. Send a request in a minute and the field confirms it in Telegram. Join open games and amateur tournaments.", "Քաղաքի բոլոր ֆուտբոլային դաշտերը՝ ազատ ժամերով։ Ուղարկեք հայտ մեկ րոպեում, և դաշտը կհաստատի այն Telegram-ով։ Միացեք բաց խաղերին և սիրողական մրցաշարերին։", "Все футбольные поля города со свободными часами. Отправьте заявку за минуту — поле подтвердит её в Telegram. Присоединяйтесь к открытым играм и любительским турнирам."],
+  "home.anySize": ["Any field", "Ցանկացած դաշտ", "Любое поле"],
+  "home.anyDistrict": ["Any district", "Ցանկացած թաղամաս", "Любой район"],
+  "home.anyTime": ["Any time", "Ցանկացած ժամ", "Любое время"],
+  "home.morning": ["Morning", "Առավոտ", "Утро"],
+  "home.day": ["Afternoon", "Ցերեկ", "День"],
+  "home.evening": ["Evening", "Երեկո", "Вечер"],
+  "home.find": ["Find a field", "Գտնել դաշտ", "Найти поле"],
+  "home.sVenues": ["places", "վայր", "мест"],
+  "home.sCourts": ["fields", "դաշտ", "полей"],
+  "home.sTours": ["tournaments", "մրցաշար", "турниров"],
+  "home.placesN": ["At {n} places", "{n} վայրում", "В {n} местах"],
+  "home.tonight": ["Free tonight at {n}", "Այսօր երեկոյան ազատ է {n}-ում", "Свободно вечером: {n}"],
+  "home.smallSub": ["10 players · indoor and outdoor · 1 to 2 hours", "10 խաղացող · փակ և բացօթյա · 1-ից 2 ժամ", "10 игроков · крытые и открытые · от 1 до 2 часов"],
+  "home.bigSub": ["22 players · full-size pitch · 1.5 or 2 hours", "22 խաղացող · լիաչափ դաշտ · 1,5 կամ 2 ժամ", "22 игрока · полноразмерное поле · 1,5 или 2 часа"],
+  "home.allFields": ["All fields", "Բոլոր դաշտերը", "Все поля"],
+  "home.vk": ["Book a field", "Ամրագրիր դաշտ", "Бронь поля"],
+  "home.vh": ["Places near you", "Վայրեր ձեր մոտ", "Места рядом"],
+  "home.none": ["No free fields for this choice. Try another day or time.", "Այս ընտրությամբ ազատ դաշտ չկա։ Փորձեք այլ օր կամ ժամ։", "Нет свободных полей. Попробуйте другой день или время."],
+  "home.gk": ["Short of players?", "Խաղացողներ չե՞ն բավականացնում", "Не хватает игроков?"],
+  "home.gh": ["Open games", "Բաց խաղեր", "Открытые игры"],
+  "home.noGames": ["No open games for this field size yet.", "Այս չափի դաշտի համար բաց խաղեր դեռ չկան։", "Для этого поля открытых игр пока нет."],
+  "home.tk": ["Amateur football", "Սիրողական ֆուտբոլ", "Любительский футбол"],
+  "home.th": ["Tournaments", "Մրցաշարեր", "Турниры"],
+  "home.noTours": ["No upcoming tournaments for this field size.", "Այս չափի դաշտի համար առաջիկա մրցաշարեր չկան։", "Для этого поля ближайших турниров нет."],
+  "home.hh": ["How it works", "Ինչպես է աշխատում", "Как это работает"],
+  "how.1": ["Choose a field", "Ընտրեք դաշտը", "Выберите поле"], "how.1s": ["Small 5×5 or big 11×11, near you.", "Փոքր 5×5 կամ մեծ 11×11՝ ձեր մոտ։", "Малое 5×5 или большое 11×11 рядом с вами."],
+  "how.2": ["See the free hours", "Տեսեք ազատ ժամերը", "Смотрите свободные часы"], "how.2s": ["Both fields of every place, with the price for each hour. Day hours are cheaper.", "Յուրաքանչյուր վայրի երկու դաշտերը՝ ամեն ժամի գնով։ Ցերեկային ժամերն ավելի էժան են։", "Оба поля каждого места с ценой за каждый час. Днём дешевле."],
+  "how.3": ["Send a request", "Ուղարկեք հայտ", "Отправьте заявку"], "how.3s": ["Name and phone, a code in Telegram the first time.", "Անուն և հեռախոս, առաջին անգամ՝ կոդ Telegram-ով։", "Имя и телефон, в первый раз — код в Telegram."],
+  "how.4": ["Get it confirmed", "Ստացեք հաստատում", "Получите подтверждение"], "how.4s": ["The field confirms in Telegram. Pay at the venue.", "Դաշտը հաստատում է Telegram-ով։ Վճարումը՝ տեղում։", "Поле подтверждает в Telegram. Оплата на месте."]
+});
+renderChrome("courts");
+const $ = id => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+const qs = Q.get("size");
+const S = { size: KH.SIZES[qs] ? qs : "", district: Q.get("district") || "", time: Q.get("time") || "", day: Math.max(0, Math.min(9, +(Q.get("d") || 0) || 0)) };
+
+$("kick").textContent = T("home.kick"); $("h1").innerHTML = T("home.h1"); $("lead").textContent = T("home.lead");
+$("fSize").innerHTML = `<option value="">${T("home.anySize")}</option>` + Object.values(KH.SIZES).map(z => `<option value="${z.id}">${tt(z.name)} ${z.format}</option>`).join("");
+$("fDistrict").innerHTML = `<option value="">${T("home.anyDistrict")}</option>` + Object.entries(KH.DISTRICTS).map(([k, v]) => `<option value="${k}">${tt(v)}</option>`).join("");
+$("fTime").innerHTML = [["", "home.anyTime"], ["morning", "home.morning"], ["day", "home.day"], ["evening", "home.evening"]].map(([v, k]) => `<option value="${v}">${T(k)}</option>`).join("");
+$("fGo").innerHTML = ICON("search") + T("home.find");
+$("fSize").value = S.size; $("fDistrict").value = S.district; $("fTime").value = S.time;
+const courtsN = KH.VENUES.reduce((a, v) => a + v.courts.length, 0);
+$("stats").innerHTML = `<div><b>${KH.VENUES.length}</b><span>${T("home.sVenues")}</span></div><div><b>${courtsN}</b><span>${T("home.sCourts")}</span></div><div><b>${KH.TOURNAMENTS.filter(t => t.status !== "done").length}</b><span>${T("home.sTours")}</span></div>`;
+$("heroStage").innerHTML = [COURT_SVG("big"), COURT_SVG("small"), COURT_SVG("small", { color: "#2a7f45" }), COURT_SVG("big", { color: "#2b7d3f" })].join("");
+
+function drawSizes() {
+  $("sizes").innerHTML = ["small", "big"].map(id => {
+    const z = KH.SIZES[id], c = SIZE_COLOR[id];
+    const tonight = KH.VENUES.filter(v => venueFreeSlots(v, id, 0, "evening", 1).length).length;
+    return `<button class="size-tile" style="--tc:${c}" data-z="${id}" aria-pressed="${S.size === id}">
+      ${COURT_SVG(id).replace("<svg", '<svg class="bgc"')}
+      <span class="ic">${z.format}</span>
+      <span><b>${tt(z.name)} · ${z.format}</b><small>${T(id === "small" ? "home.smallSub" : "home.bigSub")}</small></span>
+      <span class="tags"><span class="pill">${T("home.placesN", { n: KH.VENUES.length })}</span><span class="pill green">${T("home.tonight", { n: tonight })}</span><span class="pill">${T("from")} ${FMT.amd(Math.min(...KH.VENUES.map(v => KH.minPrice(v, id))))} ${T("perHour")}</span></span></button>`;
+  }).join("");
+  $("sizes").querySelectorAll("[data-z]").forEach(b => { b.onclick = () => { S.size = S.size === b.dataset.z ? "" : b.dataset.z; $("fSize").value = S.size; drawAll(); }; });
+}
+function drawDays() {
+  $("days").innerHTML = Array.from({ length: 10 }, (_, k) => { const d = DAY.date(k); return `<button class="day" data-k="${k}" aria-pressed="${S.day === k}" aria-label="${FMT.dateLong(d)}"><small>${k === 0 ? T("today").slice(0, 5) : FMT.day(d)}</small><b>${d.getDate()}</b></button>`; }).join("");
+  $("days").querySelectorAll(".day").forEach(b => { b.onclick = () => { S.day = +b.dataset.k; drawAll(); }; });
+  $("flt").innerHTML = `<button class="chip" data-z="" aria-pressed="${!S.size}">${T("home.allFields")}</button>` + ["small", "big"].map(id => `<button class="chip" data-z="${id}" aria-pressed="${S.size === id}"><span class="sport-dot" style="background:${SIZE_COLOR[id]}"></span>${KH.SIZES[id].format}</button>`).join("");
+  $("flt").querySelectorAll(".chip").forEach(b => { b.onclick = () => { S.size = b.dataset.z; $("fSize").value = S.size; drawAll(); }; });
+}
+function drawVenues() {
+  $("vk").textContent = T("home.vk"); $("vh").textContent = T("home.vh");
+  const sizes = S.size ? [S.size] : ["small", "big"];
+  const list = KH.VENUES.filter(v => !S.district || v.district === S.district)
+    .map(v => ({ v, slots: Object.fromEntries(sizes.map(z => [z, venueFreeSlots(v, z, S.day, S.time, S.size ? 6 : 4)])) }))
+    .filter(x => !S.time || sizes.some(z => x.slots[z].length));
+  $("venues").innerHTML = list.length ? list.map(({ v, slots }) => venueCard(v, { size: S.size, day: S.day, slots })).join("") : `<div class="empty" style="grid-column:1/-1">${T("home.none")}</div>`;
+}
+function drawGames() {
+  $("gk").textContent = T("home.gk"); $("gh").textContent = T("home.gh");
+  $("gall").href = link("games.html", S.size ? { size: S.size } : {}); $("gall").innerHTML = T("seeAll") + ICON("arrow", "sm");
+  const now = new Date(), nh = now.getHours() + now.getMinutes() / 60;
+  const gs = KH.GAMES.filter(g => (!S.size || g.size === S.size) && (g.day > 0 || g.start + g.dur / 60 > nh)).slice(0, 6);
+  $("games").innerHTML = gs.length ? gs.map(gameCard).join("") : `<div class="empty">${T("home.noGames")}</div>`;
+}
+function drawTours() {
+  $("tk").textContent = T("home.tk"); $("th").textContent = T("home.th");
+  $("tall").href = link("tournaments.html", S.size ? { size: S.size } : {}); $("tall").innerHTML = T("seeAll") + ICON("arrow", "sm");
+  const ORDER = { open: 0, soon: 1, closed: 2 };
+  const ts = KH.TOURNAMENTS.filter(t => t.status !== "done" && (!S.size || t.size === S.size)).sort((a, b) => ORDER[a.status] - ORDER[b.status] || a.start - b.start);
+  $("tours").innerHTML = ts.length ? ts.map(tourCard).join("") : `<div class="empty">${T("home.noTours")}</div>`;
+}
+function syncUrl() {
+  const p = {}; if (S.size) p.size = S.size; if (S.district) p.district = S.district; if (S.time) p.time = S.time; if (S.day) p.d = S.day;
+  try { history.replaceState(null, "", link("index.html", p)); } catch (e) {}
+}
+function drawAll() { drawSizes(); drawDays(); drawVenues(); drawGames(); drawTours(); syncUrl(); }
+$("fGo").onclick = () => { S.size = $("fSize").value; S.district = $("fDistrict").value; S.time = $("fTime").value; drawAll(); $("venuesSec").scrollIntoView({ behavior: "smooth" }); };
+$("hh").textContent = T("home.hh");
+$("how").innerHTML = [1, 2, 3, 4].map(i => `<div class="card"><div class="n">0${i}</div><h3 style="margin:8px 0 6px">${T("how." + i)}</h3><div class="muted" style="font-size:14px">${T("how." + i + "s")}</div></div>`).join("");
+drawAll();
+</script>
+</body>
+</html>

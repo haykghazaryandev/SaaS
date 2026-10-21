@@ -1,0 +1,30 @@
+<?php
+
+// My profile (/me/profile). Used in Vue as $t('profile.name').
+return [
+    'title' => 'My profile',
+    'kick' => 'Profile',
+    'lead' => 'Other players see this on your profile page.',
+    'name' => 'Name',
+    'username' => 'Username',
+    'usernameHint' => 'Latin letters, numbers, _ and . (3–32). Friends can find you by it.',
+    'level' => 'Level',
+    'position' => 'Position',
+    'district' => 'District',
+    'notSet' => 'Not set',
+    'bio' => 'About you',
+    'bioHint' => 'Up to 300 characters',
+    'bioPlaceholder' => 'For example: I play on weekday evenings, usually in midfield.',
+    'language' => 'Language',
+    'save' => 'Save',
+    'saved' => 'Profile saved.',
+    'public' => 'See my public profile',
+    'phone' => 'Phone',
+    'telegram' => 'Telegram',
+    'telegramOn' => 'Telegram is connected: codes and notifications come there.',
+    'blocked' => 'Blocked players',
+    'blockedEmpty' => 'You haven\'t blocked anyone.',
+    'logout' => 'Log out',
+    'positions' => ['goalkeeper' => 'Goalkeeper', 'defender' => 'Defender', 'midfielder' => 'Midfielder', 'forward' => 'Forward'],
+    'languages' => ['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'],
+];

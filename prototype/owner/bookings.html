@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball for fields · Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../player/styles.css">
+<link rel="stylesheet" href="owner.css">
+</head>
+<body>
+<script src="../player/common.js"></script>
+<script src="../player/data.js"></script>
+<script src="owner.js"></script>
+<script>
+I18N.add({
+  "s.kicker": ["Bookings", "Ամրագրումներ", "Брони"],
+  "s.day": ["Day", "Օր", "День"],
+  "s.week": ["Week", "Շաբաթ", "Неделя"],
+  "s.list": ["List", "Ցանկ", "Список"],
+  "s.showOff": ["Show declined and cancelled", "Ցույց տալ մերժվածներն ու չեղարկվածները", "Показать отклонённые и отменённые"],
+  "s.prev": ["Previous day", "Նախորդ օր", "Предыдущий день"],
+  "s.next": ["Next day", "Հաջորդ օր", "Следующий день"],
+  "s.booked": ["{h} h booked · {n} bookings", "{h} ժ ամրագրված · {n} ամրագրում", "{h} ч занято · броней: {n}"],
+  "s.hint": ["Tap an empty time to add a booking", "Հպեք ազատ ժամին՝ ամրագրում ավելացնելու համար", "Нажмите на свободное время, чтобы добавить бронь"],
+  "s.pendingN": ["{n} waiting", "{n} սպասող", "ждут ответа: {n}"],
+  "s.search": ["Search name, phone, team or code", "Որոնել անուն, հեռախոս, թիմ կամ կոդ", "Поиск по имени, телефону, команде или коду"],
+  "s.fPending": ["Pending", "Սպասող", "Ожидают"],
+  "s.fConfirmed": ["Confirmed", "Հաստատված", "Подтверждённые"],
+  "s.fCancelled": ["Cancelled", "Չեղարկված", "Отменённые"],
+  "s.fAll": ["All", "Բոլորը", "Все"],
+  "s.none": ["Nothing found", "Ոչինչ չի գտնվել", "Ничего не найдено"],
+  "s.range": ["Next 30 days, then the past week", "Հաջորդ 30 օրը, հետո անցած շաբաթը", "Ближайшие 30 дней, затем прошедшая неделя"],
+  "s.shown": ["Showing {n} of {m}", "Ցուցադրված է {n}՝ {m}-ից", "Показано {n} из {m}"],
+  "s.weekHint": ["Tap a day to open it", "Հպեք օրվան՝ բացելու համար", "Нажмите на день, чтобы открыть"],
+  "s.goto": ["Pick a date", "Ընտրել ամսաթիվ", "Выбрать дату"]
+});
+document.title = T("o.brand") + " · " + T("o.nav.schedule");
+const main = OWNER.shell("schedule"), v = OWNER.venue(), sm = OWNER.court(v, "small"), bg = OWNER.court(v, "big");
+const q = new URLSearchParams(location.search);
+const st = { view: q.get("view") || "day", day: q.has("day") ? +q.get("day") : 0, status: q.get("status") || "all", search: "", off: STORE.get("ownerShowOff", false) };
+const PX = 60; // pixels per hour
+const E = OWNER.esc;
+
+function saveUrl() {
+  const p = new URLSearchParams(location.search);
+  p.set("view", st.view); p.set("day", st.day); if (st.view === "list") p.set("status", st.status); else p.delete("status"); p.delete("id");
+  history.replaceState(null, "", "?" + p.toString());
+}
+
+function render() {
+  saveUrl();
+  main.innerHTML = `
+    ${OWNER.title(T("s.kicker") + " · " + E(v.name), T("o.nav.schedule"), `<button class="btn" id="nb">${ICON("plus", "sm")}${T("o.newBooking")}</button>`)}
+    <div class="toolbar">
+      <div class="seg" id="views">${[["day", "s.day", "calendar"], ["week", "s.week", "grid"], ["list", "s.list", "filter"]].map(([k, l, i]) => `<button data-v="${k}" aria-pressed="${st.view === k}">${ICON(i, "sm")}${T(l)}</button>`).join("")}</div>
+      <span class="grow"></span>
+      ${st.view === "day" ? `<label class="switch"><input type="checkbox" id="off"${st.off ? " checked" : ""}>${T("s.showOff")}</label>` : ""}
+    </div>
+    <div id="body"></div>`;
+  main.querySelector("#nb").onclick = () => OWNER.openForm({ day: Math.max(0, st.day) });
+  main.querySelectorAll("#views button").forEach(b => { b.onclick = () => { st.view = b.dataset.v; render(); }; });
+  const off = main.querySelector("#off"); if (off) off.onchange = () => { st.off = off.checked; STORE.set("ownerShowOff", st.off); render(); };
+  ({ day: dayView, week: weekView, list: listView })[st.view](main.querySelector("#body"));
+}
+
+// ---------- date bar ----------
+function dateBar() {
+  const days = []; for (let d = -7; d <= 27; d++) days.push(d);
+  const hasPend = d => v.courts.some(ct => KH.bookings(ct.id, d).some(b => b.status === "pending"));
+  return `<div class="datebar">
+    <button class="x" style="margin:0" id="dp" aria-label="${T("s.prev")}">${ICON("back", "sm")}</button>
+    <div class="chips" id="dchips">${days.map(d => { const dt = DAY.date(d); return `<button class="chip dchip" data-d="${d}" aria-pressed="${d === st.day}"><small>${d === 0 ? T("today") : FMT.day(dt)}</small><b>${dt.getDate()}</b>${hasPend(d) ? '<i class="dp"></i>' : ""}</button>`; }).join("")}</div>
+    <button class="x" style="margin:0;transform:scaleX(-1)" id="dn" aria-label="${T("s.next")}">${ICON("back", "sm")}</button>
+    <input class="input" type="date" id="dpick" value="${KH.iso(st.day)}" aria-label="${T("s.goto")}">
+  </div>`;
+}
+function bindDateBar(root) {
+  root.querySelectorAll(".dchip").forEach(c => { c.onclick = () => { st.day = +c.dataset.d; render(); }; });
+  root.querySelector("#dp").onclick = () => { st.day--; render(); };
+  root.querySelector("#dn").onclick = () => { st.day++; render(); };
+  root.querySelector("#dpick").onchange = e => { if (e.target.value) { st.day = KH.dayOfIso(e.target.value); render(); } };
+  const cur = root.querySelector('.dchip[aria-pressed="true"]'), strip = root.querySelector("#dchips");
+  if (cur) strip.scrollLeft = cur.offsetLeft - strip.offsetLeft - strip.clientWidth / 2 + cur.offsetWidth / 2;
+}
+
+// ---------- day view: two columns (small, big), rows by time ----------
+function dayView(el) {
+  const [o, c] = v.open, H = (c - o) * PX, now = OWNER.nowH();
+  const head = ct => { const list = KH.bookings(ct.id, st.day).filter(KH.active), h = list.reduce((s, b) => s + b.dur / 60, 0), p = list.filter(b => b.status === "pending").length;
+    return `<div class="colh"><span class="thumb">${COURT_SVG(ct.size)}</span><span style="min-width:0"><b>${OWNER.fieldName(ct)}</b><small>${T("s.booked", { h: +h.toFixed(1), n: list.length })}${p ? ` · <span style="color:var(--warn)">${T("s.pendingN", { n: p })}</span>` : ""}</small></span></div>`; };
+  const col = ct => {
+    let s = "";
+    for (let t = o; t < c; t += 0.5) {
+      const past = st.day < 0 || (st.day === 0 && t + 0.5 <= now);
+      s += `<button class="slot${t % 1 ? " half" : ""}${past ? " past" : ""}" style="top:${(t - o) * PX}px;height:${PX / 2}px" data-t="${t}"${past ? " tabindex=\"-1\"" : ` aria-label="${T("o.newBooking")} ${FMT.time(t)}"`}>${past ? "" : "+ " + FMT.time(t)}</button>`;
+    }
+    KH.bookings(ct.id, st.day).filter(b => st.off || KH.active(b)).forEach(b => {
+      const k = OWNER.kind(b), short = b.dur < 60;
+      s += `<div class="blk ${k}" role="button" tabindex="0" data-id="${E(b.id)}" style="top:${(b.start - o) * PX + 1}px;height:${b.dur / 60 * PX - 3}px">
+        <div class="bi"><div class="bt">${FMT.time(b.start)}–${FMT.time(b.start + b.dur / 60)}${k === "off" ? " · " + T("st." + b.status) : ""}</div><div class="bn">${E(b.team || b.name)}</div>${short ? "" : `<div class="bx">${b.team ? E(b.name) : b.phone ? FMT.phone(b.phone) : ""}</div>`}</div>
+        ${k === "pending" ? `<div class="ba"><button class="ok" data-a="ok" title="${T("a.accept")}">${ICON("check", "sm")}<span>${T("a.accept")}</span></button><button class="no" data-a="no" title="${T("a.decline")}">${ICON("x", "sm")}<span>${T("a.decline")}</span></button></div>` : ""}
+      </div>`;
+    });
+    if (st.day === 0 && now > o && now < c) s += `<div class="nowline" style="left:0;top:${(now - o) * PX}px"></div>`;
+    return `<div class="col" data-c="${ct.id}" style="height:${H}px">${s}</div>`;
+  };
+  let times = ""; for (let t = o; t <= c; t++) times += `<div style="top:${(t - o) * PX}px">${t < c ? FMT.time(t) : ""}</div>`;
+  el.innerHTML = `${dateBar()}
+    <h2 style="font-size:18px;margin:4px 0 12px">${FMT.rel(DAY.date(st.day))}${Math.abs(st.day) > 1 ? "" : " · " + FMT.dateLong(DAY.date(st.day))}</h2>
+    <div class="sched-wrap" id="sw"><div class="sched">
+      <div class="colh" style="padding:0"></div>${head(sm)}${head(bg)}
+      <div class="times" style="height:${H}px">${times}</div>${col(sm)}${col(bg)}
+    </div></div>
+    <div class="legend-row"><span><i class="pending"></i>${T("st.pending")}</span><span><i class="accepted"></i>${T("st.accepted")}</span><span><i class="owner"></i>${T("st.owner")}</span><span><i class="off"></i>${T("st.declined")} / ${T("st.cancelled")}</span><span class="faint" style="margin-left:auto">${T("s.hint")}</span></div>`;
+  bindDateBar(el);
+  el.querySelectorAll(".col").forEach(cl => {
+    cl.querySelectorAll(".slot:not(.past)").forEach(sl => { sl.onclick = () => OWNER.openForm({ court: cl.dataset.c, day: st.day, start: +sl.dataset.t }); });
+  });
+  el.querySelectorAll(".blk").forEach(bk => {
+    const id = bk.dataset.id;
+    bk.onclick = e => {
+      const a = e.target.closest("[data-a]");
+      if (a) { e.stopPropagation(); const b = KH.findBooking(id); a.dataset.a === "ok" ? OWNER.accept(b) : OWNER.askDecline(b); return; }
+      OWNER.openBooking(id);
+    };
+    bk.onkeydown = e => { if (e.key === "Enter" && e.target === bk) OWNER.openBooking(id); };
+  });
+  // scroll to the current time (today) or to the first booking
+  const sw = el.querySelector("#sw"), first = KH.bookings(sm.id, st.day).concat(KH.bookings(bg.id, st.day)).filter(KH.active).map(b => b.start).sort((a, b) => a - b)[0];
+  const target = st.day === 0 && now > o ? now - 1 : first != null ? first - 0.5 : o;
+  sw.scrollTop = Math.max(0, (target - o) * PX);
+}
+
+// ---------- week view: 7 days × 2 fields ----------
+function weekView(el) {
+  const [o, c] = v.open, span = c - o;
+  const cell = (ct, d) => {
+    const list = KH.bookings(ct.id, d).filter(b => st.off || KH.active(b)), act = list.filter(KH.active);
+    const h = act.reduce((s, b) => s + b.dur / 60, 0), p = act.filter(b => b.status === "pending").length;
+    return `<div class="wc" data-d="${d}"><div class="strip">${list.filter(KH.active).map(b => `<i class="${OWNER.kind(b)}" style="left:${(b.start - o) / span * 100}%;width:${b.dur / 60 / span * 100}%" title="${FMT.time(b.start)} ${E(b.team || b.name)}"></i>`).join("")}</div>
+      <div class="wmeta"><span>${Math.round(h / span * 100)}% · ${act.length}</span>${p ? `<span class="p">${T("s.pendingN", { n: p })}</span>` : ""}</div></div>`;
+  };
+  let rows = "";
+  for (let d = st.day; d < st.day + 7; d++) {
+    const dt = DAY.date(d);
+    rows += `<div class="wd${d === 0 ? " today" : ""}" data-d="${d}"><b>${d === 0 ? T("today") : FMT.day(dt)}</b><span class="muted">${FMT.date(dt)}</span></div>${cell(sm, d)}${cell(bg, d)}`;
+  }
+  const scale = `<div class="wscale">${[o, o + span / 4, o + span / 2, o + span * 3 / 4, c].map(t => `<span>${FMT.time(Math.round(t))}</span>`).join("")}</div>`;
+  el.innerHTML = `${dateBar()}
+    <div class="sched-wrap" style="max-height:none;min-height:0"><div class="week">
+      <div class="wh"></div><div class="wh"><i class="fdot s"></i>${OWNER.fieldName(sm)}</div><div class="wh"><i class="fdot b"></i>${OWNER.fieldName(bg)}</div>
+      ${rows}
+      <div></div><div>${scale}</div><div style="border-left:1px solid var(--line)">${scale}</div>
+    </div></div>
+    <div class="legend-row"><span><i class="pending"></i>${T("st.pending")}</span><span><i class="accepted"></i>${T("st.accepted")}</span><span><i class="owner"></i>${T("st.owner")}</span><span class="faint" style="margin-left:auto">${T("s.weekHint")}</span></div>`;
+  bindDateBar(el);
+  el.querySelectorAll("[data-d].wd, [data-d].wc").forEach(x => { x.onclick = () => { st.day = +x.dataset.d; st.view = "day"; render(); }; });
+}
+
+// ---------- list view: search + status filter ----------
+function listView(el) {
+  // upcoming first (soonest on top), then the past week (latest on top)
+  const isPast = b => { const d = KH.dayOfIso(b.date); return d < 0 || (d === 0 && b.start + b.dur / 60 < OWNER.nowH()); };
+  const cmp = (a, b) => a.date.localeCompare(b.date) || a.start - b.start;
+  const all = OWNER.range(v, -7, 30).sort((a, b) => isPast(a) - isPast(b) || (isPast(a) ? cmp(b, a) : cmp(a, b)));
+  const F = { pending: b => b.status === "pending", accepted: b => b.status === "accepted", cancelled: b => b.status === "declined" || b.status === "cancelled", all: () => true };
+  el.innerHTML = `<div class="toolbar">
+      <div class="search">${ICON("search")}<input class="input" id="sq" placeholder="${T("s.search")}" value="${E(st.search)}"></div>
+      <div class="chips" id="sf">${[["pending", "s.fPending"], ["accepted", "s.fConfirmed"], ["cancelled", "s.fCancelled"], ["all", "s.fAll"]].map(([k, l]) => `<button class="chip" data-s="${k}" aria-pressed="${st.status === k}">${T(l)} <span class="faint">${all.filter(F[k]).length}</span></button>`).join("")}</div>
+    </div>
+    <p class="faint" style="font-size:12.5px;margin:0 0 10px" id="cnt"></p>
+    <div class="card blist" id="bl"></div>`;
+  const draw = () => {
+    const s = st.search.toLowerCase().replace(/\s+/g, "");
+    const list = all.filter(F[st.status]).filter(b => !s || [b.name, b.phone, b.team, b.code].join(" ").toLowerCase().replace(/\s+/g, "").includes(s));
+    const shown = list.slice(0, 120);
+    el.querySelector("#cnt").textContent = T("s.range") + " · " + T("s.shown", { n: shown.length, m: list.length });
+    el.querySelector("#bl").innerHTML = shown.length ? shown.map(b => {
+      const ct = KH.COURTS[b.court], d = KH.dayOfIso(b.date), past = d < 0 || (d === 0 && b.start + b.dur / 60 < OWNER.nowH());
+      return `<div class="brow${past ? " past" : ""}" data-id="${E(b.id)}">
+        <div class="d"><b>${FMT.rel(DAY.date(d))}</b>${FMT.time(b.start)}–${FMT.time(b.start + b.dur / 60)}</div>
+        <div class="n"><b>${E(b.name)}</b><small>${b.team ? E(b.team) + " · " : ""}${b.phone ? FMT.phone(b.phone) : ""}</small></div>
+        <div class="f"><i class="fdot ${ct.size === "small" ? "s" : "b"}"></i><span>${OWNER.fieldName(ct)}<br><small class="mono">${E(b.code)}</small></span></div>
+        <div class="pr">${FMT.amd(OWNER.price(b))}</div>
+        <div class="acts">${b.status === "pending" && !past ? `<button class="btn sm" data-a="ok">${T("a.accept")}</button><button class="btn sm danger" data-a="no">${T("a.decline")}</button>` : OWNER.pill(b)}</div>
+      </div>`; }).join("") : `<div class="empty" style="border:0">${T("s.none")}</div>`;
+    el.querySelectorAll(".brow").forEach(r => {
+      r.onclick = e => {
+        const a = e.target.closest("[data-a]");
+        if (a) { const b = KH.findBooking(r.dataset.id); a.dataset.a === "ok" ? OWNER.accept(b) : OWNER.askDecline(b); return; }
+        OWNER.openBooking(r.dataset.id);
+      };
+    });
+  };
+  el.querySelector("#sq").oninput = e => { st.search = e.target.value; draw(); };
+  el.querySelectorAll("#sf .chip").forEach(c => { c.onclick = () => { st.status = c.dataset.s; el.querySelectorAll("#sf .chip").forEach(x => x.setAttribute("aria-pressed", x === c)); saveUrl(); draw(); }; });
+  draw();
+}
+
+render();
+if (q.get("id")) OWNER.openBooking(q.get("id"));
+</script>
+</body>
+</html>

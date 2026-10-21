@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball · Football field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=1">
+<style>
+  main.wrap { overflow-x: clip; }
+  .backlink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; margin: 20px 0 14px; }
+  .backlink:hover { color: var(--accent); }
+
+  /* header */
+  .vhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 32px; align-items: end; margin-bottom: 22px; }
+  .vhead h1 { font-size: clamp(28px, 4.2vw, 46px); margin: 6px 0 10px; }
+  .vmeta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; align-items: center; }
+  .vmeta span { display: inline-flex; align-items: center; gap: 6px; }
+  .vmeta .rating { font-size: 15px; }
+  .vtags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .vtags .pill { padding: 5px 11px; font-size: 12.5px; }
+  .vtags .amen { background: transparent; border: 1px solid var(--line-2); color: var(--muted); }
+  .vtags .amen .ico { width: 14px; height: 14px; }
+  .about { color: var(--muted); max-width: 700px; margin: 14px 0 0; font-size: 15px; }
+  .vcta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .vcta .price { font-size: 18px; }
+  @media (max-width: 760px) { .vhead { grid-template-columns: 1fr; } .vcta { flex-direction: row; justify-content: space-between; align-items: center; text-align: left; } }
+
+  /* court map + booking panel */
+  .bookgrid { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 18px; align-items: start; }
+  .courtsbox { padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .mhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .mhead h2 { margin: 2px 0 0; font-size: 22px; }
+  .when { border-radius: 999px; padding: 7px 13px; font-weight: 700; font-size: 13px; display: inline-flex; gap: 7px; align-items: center; background: var(--bg-2); border: 1px solid var(--line-2); }
+  .when .ico { color: var(--accent); }
+  .legend { display: flex; gap: 14px; font-size: 12px; font-weight: 700; color: var(--muted); flex-wrap: wrap; }
+  .legend span { display: inline-flex; gap: 6px; align-items: center; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tile { position: relative; text-align: left; padding: 0; border: 1px solid var(--line-2); border-radius: 18px; background: var(--surface-2); color: var(--ink); overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, border-color .15s, box-shadow .2s, opacity .2s; }
+  .tile:hover { transform: translateY(-2px); border-color: rgba(220, 255, 220, .3); }
+  .tile .art { position: relative; aspect-ratio: 16 / 9; background: radial-gradient(260px 120px at 50% 0%, rgba(255, 255, 230, .09), transparent 70%), #0c120e; display: grid; place-items: center; }
+  .tile .art svg { width: 82%; display: block; transition: filter .2s, opacity .2s; }
+  .tile .st { position: absolute; left: 10px; top: 10px; }
+  .tile .sp { position: absolute; right: 10px; top: 10px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .tile .tb { padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 3px; }
+  .tile .tb b { font-size: 15px; }
+  .tile .tb .m { font-size: 12.5px; color: var(--muted); }
+  .tile .tb .p { font-size: 13px; font-weight: 800; margin-top: 3px; }
+  .tile.s-free .st { background: var(--free-soft); color: var(--free); }
+  .tile.s-busy .art svg { filter: grayscale(.85) brightness(.55); }
+  .tile.s-busy .st { background: rgba(10, 13, 11, .8); color: var(--busy-ink); }
+  .tile.s-busy .tb .p { color: var(--muted); font-weight: 700; }
+  .tile.s-mine { border-color: rgba(92, 200, 255, .5); }
+  .tile.s-mine .st { background: var(--you-soft); color: var(--you); }
+  .tile.s-sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 14px 34px -14px rgba(200, 255, 61, .55); }
+  .tile.s-sel .st { background: var(--accent); color: var(--on-accent); }
+  .tile.s-sel .tb .p { color: var(--accent); }
+  .tile.s-off { opacity: .42; }
+  .tile.s-off:hover { opacity: .8; }
+  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .steps3 div { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .steps3 .ico { color: var(--accent); }
+  .steps3 b { font-size: 13.5px; }
+  .steps3 small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+  @media (max-width: 600px) { .steps3 { grid-template-columns: 1fr; } .steps3 div { flex-direction: row; align-items: center; padding: 10px 12px; } .steps3 small { display: none; } }
+  .panel { padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel h2 { margin: 2px 0 0; font-size: 22px; }
+  .plabel { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .days { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .days::-webkit-scrollbar { display: none; }
+  .day { flex: none; border: 1px solid var(--line-2); background: var(--surface); border-radius: 14px; padding: 7px 0; min-width: 54px; text-align: center; color: var(--muted); }
+  .day b { display: block; font-size: 16px; color: var(--ink); }
+  .day.td { padding: 7px 8px; }
+  .day small { font-size: 10.5px; font-weight: 800; text-transform: uppercase; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; }
+  .day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .day[aria-pressed="true"] b { color: var(--on-accent); }
+  .day.we:not([aria-pressed="true"]) small { color: var(--warn); }
+  .chips.wrapc { flex-wrap: wrap; overflow: visible; }
+  .seg { display: inline-flex; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: none; color: var(--muted); font-size: 11.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; text-transform: none; letter-spacing: 0; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink); }
+
+  .cell { border: 0; margin: 4px 1px; border-radius: 6px; padding: 0; background: rgba(94, 240, 168, .2); box-shadow: inset 0 0 0 1px rgba(94, 240, 168, .38); transition: background .12s; min-width: 0; }
+  .cell.hr { margin-left: 3px; }
+  .cell.s-free:hover, .cell.pre { background: rgba(94, 240, 168, .38); }
+  .cell.s-nofit { background: rgba(94, 240, 168, .08); box-shadow: inset 0 0 0 1px rgba(94, 240, 168, .18); }
+  .cell.s-busy { background: repeating-linear-gradient(135deg, #1f2520 0 4px, #171c18 4px 8px); box-shadow: none; cursor: not-allowed; }
+  .cell.s-mine { background: var(--you); box-shadow: none; }
+  .cell.s-minep { background: repeating-linear-gradient(135deg, var(--you) 0 4px, rgba(92, 200, 255, .35) 4px 8px); box-shadow: none; }
+  .cell.s-past { background: transparent; box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
+  .cell.sel { background: var(--accent) !important; box-shadow: 0 0 0 1px var(--accent), 0 0 14px -2px rgba(200, 255, 61, .6); }
+  .cell.sel.first { border-radius: 8px 3px 3px 8px; } .cell.sel.last { border-radius: 3px 8px 8px 3px; }
+  .tgl { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-top: 8px; }
+  .tgl span { display: inline-flex; gap: 5px; align-items: center; }
+  .tgl i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+  .flist { display: flex; flex-direction: column; gap: 12px; }
+  .flist .fr b { font-size: 13.5px; display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .flist .slots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .flist .slot-mini { border: 0; cursor: pointer; }
+  .flist .slot-mini.on { background: var(--accent); color: var(--on-accent); }
+  .flist .slot-mini.prime { color: var(--warn); background: var(--warn-soft); border-color: rgba(255,181,71,.25); }
+
+  /* summary */
+  .sum { background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--line-2); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .sum.empty-sum { color: var(--muted); font-size: 14px; flex-direction: row; align-items: center; gap: 12px; border-style: dashed; background: none; }
+  .sum h3 { font-size: 18px; margin: 4px 0 2px; }
+  .sum .thumb { width: 84px; flex: none; border-radius: 8px; overflow: hidden; }
+  .sum .thumb svg { width: 100%; display: block; }
+  .facts3 { display: grid; grid-template-columns: 1.3fr 1fr .8fr; gap: 6px; }
+  .facts3 div { background: var(--bg-2); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .facts3 span { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+  .facts3 b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .total { display: flex; justify-content: space-between; align-items: end; gap: 10px; }
+  .total .amt { font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+  .rate { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  .rate.prime { color: var(--warn); }
+  .note { font-size: 12px; color: var(--faint); display: flex; gap: 6px; align-items: flex-start; }
+  .note .ico { margin-top: 1px; }
+  .opt { display: grid; gap: 10px; }
+  .opt textarea.input { resize: vertical; min-height: 58px; }
+
+  @media (max-width: 1040px) { .bookgrid { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) {
+    .courtsbox, .panel { padding: 14px; }
+    .tiles { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tile .tb { padding: 9px 10px 11px; }
+    .tile .tb b { font-size: 14px; }
+    .tile .sp { display: none; }
+    .facts3 { grid-template-columns: 1fr 1fr; }
+    .facts3 div:first-child { grid-column: 1 / -1; }
+  }
+
+  /* lower sections */
+  .tabs { margin-bottom: 18px; }
+  .tabs .n { font-size: 11px; background: var(--surface-3); color: var(--muted); border-radius: 99px; padding: 1px 7px; }
+  .ccard { overflow: hidden; display: flex; flex-direction: column; }
+  .ccard .thumb { height: 128px; background: radial-gradient(240px 110px at 50% 0%, rgba(255,255,230,.1), transparent 70%), #0c120e; display: grid; place-items: center; }
+  .ccard .thumb svg { width: 58%; display: block; filter: drop-shadow(0 10px 14px rgba(0,0,0,.5)); }
+  .ccard .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .ccard .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .ccard .prices { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .ccard .prices div { background: var(--bg-2); border-radius: 10px; padding: 7px 10px; }
+  .ccard .prices span { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+  .ccard .prices b { font-size: 14.5px; }
+  .ccard .prices .pr b { color: var(--warn); }
+  .ccard .acts { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+  .game { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .spots { display: flex; gap: 4px; flex-wrap: wrap; }
+  .spots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-3); }
+  .spots i.on { background: var(--tc); }
+  .info { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .info .card { padding: 18px; }
+  .info h3 { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 16px; }
+  .info h3 .ico { color: var(--accent); }
+  .info ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--muted); font-size: 14px; }
+  .info li { display: flex; gap: 9px; align-items: flex-start; }
+  .info li .ico { margin-top: 2px; color: var(--free); }
+  .hours { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .hours:last-child { border: 0; }
+
+  /* confirmation */
+  .okhead { text-align: center; padding: 6px 0 4px; }
+  .okmark { width: 62px; height: 62px; border-radius: 50%; margin: 0 auto 12px; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; box-shadow: 0 10px 30px -8px rgba(200, 255, 61, .6); }
+  .okmark .ico { width: 30px; height: 30px; stroke-width: 3; }
+  .okcode { font-family: var(--mono); font-size: 26px; letter-spacing: .12em; background: var(--bg-2); border: 1px dashed var(--line-2); border-radius: 14px; padding: 10px; text-align: center; margin: 14px 0; }
+  .okcode small { display: block; font-family: var(--body); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+  .oklist { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 14px; margin: 0 0 16px; }
+  .oklist dt { color: var(--muted); font-weight: 700; }
+  .oklist dd { margin: 0; font-weight: 700; text-align: right; }
+  .okacts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .okacts .btn.block { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="backlink" id="back"></a>
+  <section class="vhead" id="vhead"></section>
+
+  <section class="bookgrid">
+    <div class="card courtsbox" id="map">
+      <div class="mhead"><div><span class="kicker" id="mapK"></span><h2 id="mapT"></h2></div><div class="when" id="when" aria-live="polite"></div></div>
+      <div class="legend" id="legend"></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="steps3" id="steps3"></div>
+    </div>
+
+    <aside class="card panel" id="panel">
+      <div><span class="kicker" id="bkK"></span><h2 id="bkT"></h2></div>
+      <div><div class="plabel" id="lDate"></div><div class="days" id="days"></div></div>
+      <div><div class="plabel" id="lField"></div><div class="chips wrapc" id="fields"></div></div>
+      <div><div class="plabel" id="lDur"></div><div class="chips" id="durs"></div></div>
+      <div>
+        <div class="plabel"><span id="lTime"></span></div>
+        <div id="times"></div>
+      </div>
+      <div id="sum"></div>
+    </aside>
+  </section>
+
+  <section class="section">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="tabBody"></div>
+  </section>
+</main>
+
+<script src="common.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="cards.js?v=1"></script>
+<script>
+I18N.add({
+  "vn.back": ["All fields", "Բոլոր դաշտերը", "Все поля"],
+  "vn.open": ["Open {a}–{b}", "Բաց է {a}–{b}", "Открыто {a}–{b}"],
+  "vn.book": ["Send a request", "Ուղարկել հայտ", "Отправить заявку"],
+  "vn.twoFields": ["Two fields · 5×5 and 11×11", "Երկու դաշտ · 5×5 և 11×11", "Два поля · 5×5 и 11×11"],
+  "map.k": ["Two fields", "Երկու դաշտ", "Два поля"],
+  "s3.1": ["Pick a time", "Ընտրեք ժամը", "Выберите время"], "s3.1s": ["Pick a free start time from the list.", "Ընտրեք ազատ ժամը ցուցակից։", "Выберите свободное время из списка."],
+  "s3.2": ["Send a request", "Ուղարկեք հայտ", "Отправьте заявку"], "s3.2s": ["The time is held for you while the field decides.", "Ժամը պահվում է ձեզ համար, մինչ դաշտը որոշում է։", "Время держится за вами, пока поле решает."],
+  "s3.3": ["Confirmed in Telegram", "Հաստատում Telegram-ով", "Подтверждение в Telegram"], "s3.3s": ["The bot sends the answer and any changes.", "Բոտը կուղարկի պատասխանը և բոլոր փոփոխությունները։", "Бот пришлёт ответ и все изменения."],
+  "map.t": ["Choose a field", "Ընտրեք դաշտը", "Выберите поле"],
+  "st.sel": ["Selected", "Ընտրված", "Выбрано"],
+  "st.myReq": ["Your request", "Ձեր հայտը", "Ваша заявка"],
+  "st.next": ["Free at {t}", "Ազատ է՝ {t}", "Свободно в {t}"],
+  "st.none": ["No free time this day", "Այս օրը ազատ ժամ չկա", "В этот день всё занято"],
+  "st.players": ["{n} players", "{n} խաղացող", "{n} игроков"],
+  "bk.k": ["Book online", "Առցանց ամրագրում", "Онлайн-бронь"],
+  "bk.title": ["Pick your time", "Ընտրեք ժամը", "Выберите время"],
+  "bk.date": ["Date", "Օր", "День"],
+  "bk.field": ["Field", "Դաշտ", "Поле"],
+  "bk.dur": ["Duration", "Տևողություն", "Длительность"],
+  "bk.time": ["Start time", "Սկզբի ժամը", "Время начала"],
+  "bk.list": ["List", "Ցանկ", "Список"],
+  "bk.prime": ["Prime time", "Պիկ ժամ", "Прайм-тайм"],
+  "bk.past": ["Past", "Անցած", "Прошло"],
+  "bk.noFit": ["Not enough free time here for {dur}", "Այստեղ {dur} ազատ ժամանակ չկա", "Здесь не хватает свободного времени на {dur}"],
+  "bk.noFree": ["No free start times this day", "Այս օրը ազատ ժամ չկա", "В этот день свободного времени нет"],
+  "bk.courtFull": ["{court} is fully booked this day", "{court}-ն այս օրը ամբողջությամբ զբաղված է", "{court}: на этот день всё занято"],
+  "bk.pick": ["Pick a field and a start time.", "Ընտրեք դաշտը և սկզբի ժամը։", "Выберите поле и время начала."],
+  "bk.your": ["Your request", "Ձեր հայտը", "Ваша заявка"],
+  "bk.when": ["Date", "Օր", "День"],
+  "bk.timeL": ["Time", "Ժամ", "Время"],
+  "bk.durL": ["Length", "Տևողություն", "Длит."],
+  "bk.total": ["Total", "Ընդամենը", "Итого"],
+  "bk.dayRate": ["Day rate · {p} / h", "Ցերեկային սակագին · {p} / ժ", "Дневной тариф · {p} / ч"],
+  "bk.primeRate": ["Prime time · {p} / h", "Պիկ ժամի սակագին · {p} / ժ", "Прайм-тайм · {p} / ч"],
+  "bk.mixed": ["{a} at day rate, {b} at prime time", "{a}՝ ցերեկային, {b}՝ պիկ ժամի սակագնով", "{a} по дневному тарифу, {b} — прайм-тайм"],
+  "bk.primeNote": ["Prime time is weekday evenings from 18:00 and all day at weekends.", "Պիկ ժամը՝ աշխատանքային օրերին 18:00-ից և հանգստյան օրերին ամբողջ օրը։", "Прайм-тайм — будни с 18:00 и весь день в выходные."],
+  "bk.save": ["Come before 18:00 on a weekday and pay {p}", "Եկեք աշխատանքային օրը մինչև 18:00 և վճարեք {p}", "Днём в будни до 18:00 — всего {p}"],
+  "bk.team": ["Team name (optional)", "Թիմի անունը (ըստ ցանկության)", "Название команды (необязательно)"],
+  "bk.teamPh": ["e.g. Friday Lads", "օր.՝ Ուրբաթի տղաներ", "напр. Пятничные"],
+  "bk.note": ["Note to the field (optional)", "Նշում դաշտի համար (ըստ ցանկության)", "Комментарий для поля (необязательно)"],
+  "bk.notePh": ["e.g. we need 10 bibs", "օր.՝ պետք է 10 մայկա", "напр. нужны 10 манишек"],
+  "bk.send": ["Send request · {p}", "Ուղարկել հայտը · {p}", "Отправить заявку · {p}"],
+  "bk.how": ["The field confirms your request in Telegram, usually within an hour. Pay at the venue. Free cancellation up to 6 h before.", "Դաշտը հաստատում է հայտը Telegram-ով, սովորաբար մեկ ժամվա ընթացքում։ Վճարումը՝ տեղում։ Անվճար չեղարկում՝ մինչև 6 ժամ առաջ։", "Поле подтверждает заявку в Telegram, обычно в течение часа. Оплата на месте. Бесплатная отмена за 6 ч."],
+  "bk.taken": ["Sorry, this time was just taken", "Ցավոք, այս ժամն արդեն զբաղված է", "Увы, это время только что заняли"],
+  "ok.title": ["Request sent", "Հայտն ուղարկված է", "Заявка отправлена"],
+  "ok.sub": ["The field confirms it in Telegram. You'll get a message from the Bookball bot.", "Դաշտը կհաստատի այն Telegram-ով։ Հաղորդագրություն կստանաք Bookball բոտից։", "Поле подтвердит её в Telegram. Вам напишет бот Bookball."],
+  "ok.status": ["Status", "Կարգավիճակ", "Статус"],
+  "ok.code": ["Request no.", "Հայտի համար", "Номер заявки"],
+  "ok.venue": ["Place", "Վայր", "Место"],
+  "ok.court": ["Field", "Դաշտ", "Поле"],
+  "ok.when": ["When", "Երբ", "Когда"],
+  "ok.where": ["Address", "Հասցե", "Адрес"],
+  "ok.team": ["Team", "Թիմ", "Команда"],
+  "ok.price": ["Pay at the venue", "Վճարել տեղում", "Оплата на месте"],
+  "ok.invite": ["Invite friends", "Հրավիրել ընկերներին", "Позвать друзей"],
+  "ok.tg": ["Telegram chat", "Telegram զրույց", "Чат в Telegram"],
+  "ok.copied": ["Invite copied — paste it in your group chat", "Հրավերը պատճենվեց․ տեղադրեք այն խմբային զրույցում", "Приглашение скопировано — вставьте его в общий чат"],
+  "ok.share": ["Football {when}, {time} at {venue} ({court}). Are you in? Address: {addr}.", "Ֆուտբոլ {when}, {time}՝ {venue} ({court})։ Գալի՞ս ես։ Հասցե՝ {addr}։", "Футбол {when}, {time} — {venue} ({court}). Ты с нами? Адрес: {addr}."],
+  "tab.courts": ["Fields", "Դաշտեր", "Поля"],
+  "tab.tours": ["Tournaments", "Մրցաշարեր", "Турниры"],
+  "tab.games": ["Open games", "Բաց խաղեր", "Открытые игры"],
+  "tab.info": ["Info", "Տեղեկություն", "Информация"],
+  "ct.day": ["Day", "Ցերեկ", "День"],
+  "ct.prime": ["Prime", "Պիկ", "Прайм"],
+  "ct.book": ["Pick a time", "Ընտրել ժամը", "Выбрать время"],
+  "ct.size": ["{w} × {h} m", "{w} × {h} մ", "{w} × {h} м"],
+  "none.tours": ["No tournaments at this place right now.", "Այս պահին այստեղ մրցաշարեր չկան։", "Сейчас здесь нет турниров."],
+  "none.games": ["No open games here yet. Book a field and invite players!", "Այստեղ դեռ բաց խաղեր չկան։ Ամրագրեք դաշտ և հրավիրեք խաղացողների։", "Здесь пока нет открытых игр. Забронируйте поле и позовите игроков!"],
+  "info.hours": ["Opening hours", "Աշխատանքային ժամեր", "Часы работы"],
+  "info.daily": ["Every day", "Ամեն օր", "Ежедневно"],
+  "info.addr": ["Address", "Հասցե", "Адрес"],
+  "info.city": ["Yerevan", "Երևան", "Ереван"],
+  "info.prices": ["Prices", "Գներ", "Цены"],
+  "info.weekday": ["Mon–Fri until 18:00", "Երկ–Ուրբ մինչև 18:00", "Пн–Пт до 18:00"],
+  "info.primeW": ["Mon–Fri from 18:00, Sat–Sun", "Երկ–Ուրբ 18:00-ից, Շբթ–Կիր", "Пн–Пт с 18:00, Сб–Вс"],
+  "info.rules": ["Rules", "Կանոններ", "Правила"],
+  "info.r1": ["A booking is a request until the field confirms it in Telegram.", "Ամրագրումը հայտ է, մինչև դաշտը այն հաստատի Telegram-ով։", "Бронь — это заявка, пока поле не подтвердит её в Telegram."],
+  "info.r2": ["Cancel for free up to 6 hours before the start.", "Չեղարկումն անվճար է մինչև մեկնարկից 6 ժամ առաջ։", "Бесплатная отмена — не позднее чем за 6 часов до начала."],
+  "info.r3": ["Turf boots or trainers only, no metal studs.", "Միայն արհեստական խոտի բուցեր կամ մարզական կոշիկ, առանց մետաղյա փշերի։", "Только бутсы для газона или кроссовки, без металлических шипов."],
+  "info.r4": ["Pay at the reception by card or cash.", "Վճարեք ընդունարանում՝ քարտով կամ կանխիկ։", "Оплата на ресепшене картой или наличными."],
+  "info.amen": ["At the place", "Տեղում", "На месте"]
+});
+
+renderChrome("courts");
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const Q = new URLSearchParams(location.search);
+const V = KH.VENUE[Q.get("v")] || KH.VENUE.zangak;
+const FIELD = { small: V.courts.find(c => c.size === "small"), big: V.courts.find(c => c.size === "big") };
+const qsize = KH.SIZES[Q.get("size")] ? Q.get("size") : null;
+const S = {
+  day: Math.max(0, Math.min(13, +(Q.get("d") || 0) || 0)),
+  court: null, start: null, dur: 60,
+  mode: "list",
+  tab: "courts", team: "", note: ""
+};
+document.title = `${V.name} · ${T("brand")}`;
+
+const cname = ct => `${KH.courtName(ct)} ${ct.format}`;
+const sizeOf = () => (KH.COURTS[S.court] || FIELD[qsize || "small"]).size;
+const durs = size => KH.SIZES[size].durations;
+const nowH = () => { const n = new Date(); return n.getHours() + n.getMinutes() / 60; };
+const isPast = t => S.day === 0 && t < nowH();
+const canStart = (ct, t) => KH.isFree(ct.id, S.day, t, S.dur);
+const steps = () => { const a = []; for (let t = V.open[0]; t < V.open[1]; t += 0.5) a.push(t); return a; };
+const range = (t, dur) => `${FMT.time(t)}–${FMT.time(t + dur / 60)}`;
+const pitchColor = ct => ct.surface === "grass" ? "#2b7d3f" : undefined;
+function slotState(ct, t) {
+  if (isPast(t)) return "past";
+  const b = KH.busy(ct.id, S.day).find(x => x.s <= t + 1e-6 && x.e > t + 1e-6);
+  if (b) return b.mine ? (b.status === "pending" ? "minep" : "mine") : "busy";
+  return canStart(ct, t) ? "free" : "nofit";
+}
+// make sure the duration is allowed on the selected field
+function fixDur(size) { if (!durs(size).includes(S.dur)) S.dur = KH.SIZES[size].defDur; }
+
+// ---------- header ----------
+$("back").href = link("index.html", Object.assign({}, qsize ? { size: qsize } : {}, S.day ? { d: S.day } : {}));
+$("back").innerHTML = ICON("back", "sm") + T("vn.back");
+$("vhead").innerHTML = `<div>
+    <span class="kicker">${tt(KH.DISTRICTS[V.district])} · ${T("vn.twoFields")}</span>
+    <h1>${V.name}</h1>
+    <div class="vmeta">
+      <span class="rating">${ICON("star", "sm")}${V.rating}</span><span>${V.reviews} ${T("reviews")}</span>
+      <span>${ICON("pin", "sm")}${tt(V.address)}, ${tt(KH.DISTRICTS[V.district])}</span>
+      <span>${ICON("clock", "sm")}${T("vn.open", { a: FMT.time(V.open[0]), b: FMT.time(V.open[1]) })}</span>
+    </div>
+    <div class="vtags">
+      ${["small", "big"].map(z => { const ct = FIELD[z]; return `<span class="pill" style="color:${SIZE_COLOR[z]};background:color-mix(in srgb, ${SIZE_COLOR[z]} 13%, transparent)">${ICON(ct.indoor ? "roof" : "sun", "sm")}${cname(ct)} · ${tt(KH.SURFACES[ct.surface])}</span>`; }).join("")}
+      ${V.amenities.map(a => `<span class="pill amen">${ICON(KH.AMENITIES[a][0])}${tt(KH.AMENITIES[a][1])}</span>`).join("")}
+    </div>
+    <p class="about">${tt(V.about)}</p>
+  </div>
+  <div class="vcta"><span class="price">${T("from")} ${FMT.amd(KH.minPrice(V))} <small>${T("perHour")}</small></span><a class="btn" href="#panel" id="ctaBook">${ICON("send", "sm")}${T("vn.book")}</a></div>`;
+$("steps3").innerHTML = [["clock", 1], ["send", 2], ["check", 3]].map(([ic, i]) => `<div>${ICON(ic)}<b>${T("s3." + i)}</b><small>${T("s3." + i + "s")}</small></div>`).join("");
+$("ctaBook").onclick = e => { e.preventDefault(); $("panel").scrollIntoView({ behavior: "smooth", block: "start" }); };
+
+// ---------- the two fields with their status at the chosen time ----------
+const stateText = st => st === "sel" ? T("st.sel") : st === "mine" ? T("yours") : st === "minep" ? T("st.myReq") : st === "busy" ? T("busy") : T("free");
+$("legend").innerHTML = [["var(--free)", "free"], ["var(--busy-ink)", "busy"], ["var(--you)", "yours"], ["var(--accent)", "st.sel"]].map(([c, k]) => `<span><i style="background:${c}"></i>${T(k)}</span>`).join("");
+function fieldState(ct) {
+  if (S.start == null) return steps().some(t => canStart(ct, t)) ? "free" : "busy";
+  const dur = durs(ct.size).includes(S.dur) ? S.dur : KH.SIZES[ct.size].defDur, end = S.start + dur / 60;
+  const bs = KH.busy(ct.id, S.day).filter(b => b.s < end - 1e-6 && b.e > S.start + 1e-6);
+  const mine = bs.find(b => b.mine);
+  if (mine) return mine.status === "pending" ? "minep" : "mine";
+  return KH.isFree(ct.id, S.day, S.start, dur) ? "free" : "busy";
+}
+function drawMap() {
+  const d = DAY.date(S.day);
+  $("mapK").textContent = T("map.k"); $("mapT").textContent = T("map.t");
+  $("when").innerHTML = `${ICON("clock", "sm")}${FMT.rel(d)}${S.start != null ? " · " + range(S.start, S.dur) : ""}`;
+  $("tiles").innerHTML = ["small", "big"].map(z => {
+    const ct = FIELD[z], fs = fieldState(ct), st = ct.id === S.court && S.start != null ? "sel" : fs;
+    const dur = durs(z).includes(S.dur) ? S.dur : KH.SIZES[z].defDur;
+    let line;
+    if (S.start == null) line = steps().some(t => KH.isFree(ct.id, S.day, t, dur)) ? "" : T("st.none");
+    else if (st !== "sel" && st !== "free") { const n = nearestStart(ct, S.start, dur); line = n != null ? T("st.next", { t: FMT.time(n) }) : T("st.none"); }
+    else line = `${FMT.amd(KH.priceFor(ct, S.day, S.start, dur))} · ${FMT.dur(dur)}`;
+    return `<button class="tile s-${st === "minep" ? "mine" : st}" data-court="${ct.id}" aria-pressed="${st === "sel"}">
+      <span class="art">${COURT_SVG(z, { color: pitchColor(ct) })}<span class="pill st">${stateText(st)}</span><span class="sp" style="color:${SIZE_COLOR[z]}">${z === "small" ? "5" : "11"}</span></span>
+      <span class="tb"><b>${cname(ct)}</b><span class="m">${tt(KH.SURFACES[ct.surface])} · ${ct.indoor ? T("indoor") : T("outdoor")} · ${T("st.players", { n: KH.SIZES[z].players })}</span>${line ? `<span class="p">${line}</span>` : ""}</span></button>`;
+  }).join("");
+  $("tiles").querySelectorAll(".tile").forEach(b => { b.onclick = () => pickCourt(b.dataset.court, true); });
+}
+
+// ---------- selection logic ----------
+function fitStart(ct, t) { // a start whose block contains the clicked half hour
+  for (let s = t; s > t - S.dur / 60 + 1e-6; s -= 0.5) if (canStart(ct, s)) return s;
+  return null;
+}
+function nearestStart(ct, t, dur) {
+  const all = steps().filter(s => KH.isFree(ct.id, S.day, s, dur || S.dur)); if (!all.length) return null;
+  if (t == null) return all[0];
+  return all.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a));
+}
+function choose(ct, t) { S.court = ct.id; S.start = t; draw(); }
+function pickCell(ct, t) {
+  if (ct.id !== S.court) { S.court = ct.id; fixDur(ct.size); }
+  const s = fitStart(ct, t);
+  if (s == null) { toast(T("bk.noFit", { dur: FMT.dur(S.dur) })); draw(); return; }
+  choose(ct, s);
+}
+function pickCourt(id, fromMap) {
+  const ct = KH.COURTS[id]; if (!ct) return;
+  fixDur(ct.size);
+  const t = S.start != null && canStart(ct, S.start) ? S.start : nearestStart(ct, S.start);
+  S.court = ct.id;
+  if (t == null) { toast(T("bk.courtFull", { court: cname(ct) })); S.start = null; draw(); return; }
+  choose(ct, t);
+  if (!fromMap) $("panel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+// first visit: the requested slot, or the earliest free one (evenings first on later days)
+function autoPick() {
+  const qc = KH.COURTS[Q.get("c")], qt = parseFloat(Q.get("t")), qd = +Q.get("dur");
+  const ct = qc && qc.venue === V.id ? qc : FIELD[qsize || "small"];
+  S.court = ct.id; S.dur = durs(ct.size).includes(qd) ? qd : KH.SIZES[ct.size].defDur;
+  if (qc && !isNaN(qt) && canStart(ct, qt)) { S.start = qt; return; }
+  const order = S.day === 0 ? steps() : steps().filter(t => t >= 18).concat(steps().filter(t => t < 18));
+  const first = order.find(t => canStart(ct, t));
+  S.start = first != null ? first : null;
+}
+// keep the choice valid after the date / duration / field changes
+function revalidate() {
+  const ct = KH.COURTS[S.court];
+  if (S.start != null && canStart(ct, S.start)) return;
+  S.start = nearestStart(ct, S.start);
+}
+
+// ---------- panel ----------
+function drawPanel() {
+  const ct = KH.COURTS[S.court];
+  $("bkK").textContent = T("bk.k"); $("bkT").textContent = T("bk.title");
+  $("lDate").textContent = T("bk.date"); $("lField").textContent = T("bk.field"); $("lDur").textContent = T("bk.dur"); $("lTime").textContent = T("bk.time");
+  $("days").innerHTML = Array.from({ length: 14 }, (_, k) => { const d = DAY.date(k), we = d.getDay() === 0 || d.getDay() === 6;
+    return `<button class="day${we ? " we" : ""}${k === 0 ? " td" : ""}" data-k="${k}" aria-pressed="${S.day === k}" aria-label="${FMT.dateLong(d)}"><small>${k === 0 ? T("today") : FMT.day(d)}</small><b>${d.getDate()}</b></button>`; }).join("");
+  $("days").querySelectorAll(".day").forEach(b => { b.onclick = () => { S.day = +b.dataset.k; revalidate(); draw(); }; });
+  $("fields").innerHTML = ["small", "big"].map(z => `<button class="chip" data-z="${z}" aria-pressed="${ct.size === z}"><span class="sport-dot" style="background:${SIZE_COLOR[z]}"></span>${cname(FIELD[z])}</button>`).join("");
+  $("fields").querySelectorAll(".chip").forEach(b => { b.onclick = () => { const c = FIELD[b.dataset.z]; S.court = c.id; fixDur(c.size); revalidate(); draw(); }; });
+  $("durs").innerHTML = durs(ct.size).map(m => `<button class="chip" data-m="${m}" aria-pressed="${S.dur === m}">${ICON("clock", "sm")}${FMT.dur(m)}</button>`).join("");
+  $("durs").querySelectorAll(".chip").forEach(b => { b.onclick = () => { S.dur = +b.dataset.m; revalidate(); draw(); }; });
+  drawList(); // start times as a simple list (the time grid was removed)
+  drawSummary();
+}
+
+function drawList() {
+  const ct = KH.COURTS[S.court], fr = steps().filter(t => canStart(ct, t));
+  $("times").innerHTML = `<div class="flist"><div class="fr"><b><span class="sport-dot" style="background:${SIZE_COLOR[ct.size]}"></span>${cname(ct)} <span class="faint" style="font-weight:600;font-size:12px">${FMT.dur(S.dur)} · ${ct.indoor ? T("indoor") : T("outdoor")}</span></b>
+      <div class="slots">${fr.length ? fr.map(t => `<button class="slot-mini${KH.isPrime(S.day, t) ? " prime" : ""}${Math.abs(t - S.start) < 1e-6 ? " on" : ""}" data-t="${t}">${FMT.time(t)}</button>`).join("") : `<span class="faint" style="font-size:13px">${T("bk.noFree")}</span>`}</div></div></div>`;
+  $("times").querySelectorAll(".slot-mini").forEach(b => { b.onclick = () => choose(ct, +b.dataset.t); });
+}
+
+function priceInfo(ct) {
+  const total = KH.priceFor(ct, S.day, S.start, S.dur);
+  let dayMin = 0, primeMin = 0;
+  for (let t = S.start; t < S.start + S.dur / 60 - 1e-6; t += 0.5) KH.isPrime(S.day, t) ? (primeMin += 30) : (dayMin += 30);
+  return { total, dayMin, primeMin };
+}
+function drawSummary() {
+  const ct = KH.COURTS[S.court];
+  if (!ct || S.start == null) {
+    $("sum").className = "sum empty-sum";
+    $("sum").innerHTML = `${ICON("calendar", "lg")}<span>${ct ? T("bk.courtFull", { court: cname(ct) }) : T("bk.pick")}</span>`;
+    return;
+  }
+  const p = priceInfo(ct), d = DAY.date(S.day), pr = KH.priceOf(ct);
+  const rate = p.primeMin && p.dayMin ? `<div class="rate prime">${ICON("bolt", "sm")}${T("bk.mixed", { a: FMT.dur(p.dayMin), b: FMT.dur(p.primeMin) })}</div>`
+    : p.primeMin ? `<div class="rate prime">${ICON("bolt", "sm")}${T("bk.primeRate", { p: FMT.amd(pr.prime) })}</div>` : `<div class="rate">${ICON("sun", "sm")}${T("bk.dayRate", { p: FMT.amd(pr.day) })}</div>`;
+  const wd = d.getDay() !== 0 && d.getDay() !== 6;
+  const save = p.primeMin && wd ? `<div class="note">${ICON("sun", "sm")}${T("bk.save", { p: FMT.amd(pr.day * S.dur / 60) })}</div>` : p.primeMin ? `<div class="note">${ICON("bolt", "sm")}${T("bk.primeNote")}</div>` : "";
+  $("sum").className = "sum";
+  $("sum").innerHTML = `
+    <div class="row between" style="align-items:flex-start">
+      <div style="min-width:0"><span class="kicker">${T("bk.your")}</span><h3>${cname(ct)}</h3>
+        <div class="muted" style="font-size:13px">${tt(KH.SURFACES[ct.surface])} · ${ct.indoor ? T("indoor") : T("outdoor")} · ${T("st.players", { n: KH.SIZES[ct.size].players })}</div></div>
+      <div class="thumb">${COURT_SVG(ct.size, { color: pitchColor(ct) })}</div>
+    </div>
+    <div class="facts3"><div><span>${T("bk.when")}</span><b>${FMT.rel(d)}${S.day > 1 ? "" : ", " + FMT.date(d)}</b></div><div><span>${T("bk.timeL")}</span><b>${range(S.start, S.dur)}</b></div><div><span>${T("bk.durL")}</span><b>${FMT.dur(S.dur)}</b></div></div>
+    <div class="total"><div>${rate}</div><div style="text-align:right"><div class="faint" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em">${T("bk.total")}</div><div class="amt">${FMT.amd(p.total)}</div></div></div>
+    ${save}
+    <div class="opt">
+      <div class="field"><label for="bkTeam">${T("bk.team")}</label><input class="input" id="bkTeam" maxlength="40" placeholder="${esc(T("bk.teamPh"))}" value="${esc(S.team)}"></div>
+      <div class="field"><label for="bkNote">${T("bk.note")}</label><textarea class="input" id="bkNote" rows="2" maxlength="200" placeholder="${esc(T("bk.notePh"))}">${esc(S.note)}</textarea></div>
+    </div>
+    <button class="btn block" id="bookBtn">${ICON("send", "sm")}${T("bk.send", { p: FMT.amd(p.total) })}</button>
+    <div class="note">${ICON("send", "sm")}<span>${T("bk.how")}</span></div>`;
+  $("bkTeam").oninput = e => { S.team = e.target.value; };
+  $("bkNote").oninput = e => { S.note = e.target.value; };
+  $("bookBtn").onclick = book;
+}
+
+function syncUrl() {
+  const p = { v: V.id };
+  if (qsize) p.size = qsize;
+  if (S.day) p.d = S.day;
+  if (S.court && S.start != null) { p.c = S.court; p.t = S.start; }
+  const ct = KH.COURTS[S.court];
+  if (ct && S.dur !== KH.SIZES[ct.size].defDur) p.dur = S.dur;
+  try { history.replaceState(null, "", link("venue.html", p)); } catch (e) {}
+}
+
+function draw() { drawPanel(); drawMap(); syncUrl(); }
+
+// ---------- booking request ----------
+function book() {
+  const ct = KH.COURTS[S.court], start = S.start, dur = S.dur, day = S.day, team = S.team.trim(), note = S.note.trim();
+  if (!ct || start == null) return;
+  verifyPhone(prof => {
+    KH.clearCache();
+    if (!KH.isFree(ct.id, day, start, dur)) { toast(T("bk.taken")); revalidate(); draw(); return; }
+    const rec = { venue: V.id, court: ct.id, date: KH.iso(day), start, dur, price: KH.priceFor(ct, day, start, dur), name: prof.name, phone: prof.phone, status: "pending", by: "player" };
+    if (team) rec.team = team;
+    if (note) rec.note = note;
+    const b = KH.addBooking(rec);
+    KH.notify(prof.phone, "tg.request", { venue: V.id, court: ct.id, date: b.date, start, dur });
+    S.team = ""; S.note = "";
+    draw();
+    confirmSheet(b);
+  });
+}
+function copyText(s) {
+  const fallback = () => { const ta = document.createElement("textarea"); ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.append(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} ta.remove(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).catch(fallback); else fallback();
+  toast(T("ok.copied"));
+}
+function confirmSheet(b) {
+  const ct = KH.COURTS[b.court], d = DAY.date(KH.dayOfIso(b.date)), when = FMT.dateLong(d), time = range(b.start, b.dur);
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="okT">
+    <div class="row"><button class="x" aria-label="${T("close")}">${ICON("x")}</button></div>
+    <div class="okhead"><div class="okmark">${ICON("send")}</div><h3 id="okT">${T("ok.title")}</h3><div class="muted" style="font-size:14px;margin-top:4px">${T("ok.sub")}</div></div>
+    <div class="okcode"><small>${T("ok.code")}</small>${b.code}</div>
+    <dl class="oklist">
+      <dt>${T("ok.status")}</dt><dd>${bookingStatusPill("pending")}</dd>
+      <dt>${T("ok.venue")}</dt><dd>${V.name}</dd>
+      <dt>${T("ok.court")}</dt><dd>${cname(ct)}</dd>
+      <dt>${T("ok.when")}</dt><dd>${when} · ${time}</dd>
+      <dt>${T("ok.where")}</dt><dd>${tt(V.address)}</dd>
+      ${b.team ? `<dt>${T("ok.team")}</dt><dd>${esc(b.team)}</dd>` : ""}
+      <dt>${T("ok.price")}</dt><dd>${FMT.amd(b.price)}</dd>
+    </dl>
+    <div class="okacts">
+      <button class="btn ghost" id="okInv">${ICON("share", "sm")}${T("ok.invite")}</button>
+      <a class="btn ghost" href="${link("my.html", { tab: "tg" })}">${ICON("send", "sm")}${T("ok.tg")}</a>
+      <a class="btn block" href="${link("my.html")}">${ICON("ticket", "sm")}${T("nav.my")}</a>
+    </div></div>`;
+  const close = () => scrim.remove();
+  scrim.onclick = e => { if (e.target === scrim) close(); };
+  scrim.querySelector(".x").onclick = close;
+  scrim.querySelector("#okInv").onclick = () => copyText(T("ok.share", { venue: V.name, court: cname(ct), when, time, addr: tt(V.address) }));
+  document.addEventListener("keydown", function escK(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", escK); } });
+  document.body.append(scrim);
+  scrim.querySelector("#okInv").focus();
+}
+
+// ---------- tabs ----------
+const tours = KH.TOURNAMENTS.filter(t => t.venue === V.id);
+const games = KH.GAMES.filter(g => g.venue === V.id);
+function drawTabs() {
+  const tabs = [["courts", "grid", V.courts.length], ["tours", "trophy", tours.length], ["games", "users", games.length], ["info", "pin", 0]];
+  $("tabs").innerHTML = tabs.map(([k, i, n]) => `<button role="tab" data-t="${k}" aria-selected="${S.tab === k}">${ICON(i, "sm")}${T("tab." + k)}${n ? `<span class="n">${n}</span>` : ""}</button>`).join("");
+  $("tabs").querySelectorAll("button").forEach(b => { b.onclick = () => { S.tab = b.dataset.t; drawTabs(); }; });
+  const B = $("tabBody");
+  if (S.tab === "courts") {
+    B.innerHTML = `<div class="grid c3">${V.courts.map(ct => { const z = KH.SIZES[ct.size], pr = KH.priceOf(ct); return `<div class="card ccard">
+      <div class="thumb">${COURT_SVG(ct.size, { color: pitchColor(ct) })}</div>
+      <div class="body">
+        <div class="row between"><h3>${KH.courtName(ct)}</h3><span class="pill" style="color:${SIZE_COLOR[ct.size]}">${ICON("ball", "sm")}${ct.format}</span></div>
+        <div class="pills"><span class="pill">${T("st.players", { n: z.players })}</span><span class="pill">${T("ct.size", { w: z.w, h: z.h })}</span><span class="pill">${tt(KH.SURFACES[ct.surface])}</span><span class="pill">${ct.indoor ? ICON("roof", "sm") + T("indoor") : ICON("sun", "sm") + T("outdoor")}</span></div>
+        <div class="prices"><div><span>${T("ct.day")} ${T("perHour")}</span><b>${FMT.amd(pr.day)}</b></div><div class="pr"><span>${T("ct.prime")} ${T("perHour")}</span><b>${FMT.amd(pr.prime)}</b></div></div>
+        <div class="acts"><button class="btn sm" data-pick="${ct.id}">${ICON("clock", "sm")}${T("ct.book")}</button></div>
+      </div></div>`; }).join("")}</div>`;
+    B.querySelectorAll("[data-pick]").forEach(b => { b.onclick = () => pickCourt(b.dataset.pick); });
+  } else if (S.tab === "tours") {
+    B.innerHTML = tours.length ? `<div class="grid c3">${tours.map(tourCard).join("")}</div>` : `<div class="empty">${T("none.tours")}</div>`;
+  } else if (S.tab === "games") {
+    B.innerHTML = games.length ? `<div class="grid c3">${games.map(gameCard).join("")}</div>` : `<div class="empty">${T("none.games")}</div>`;
+  } else {
+    const min = KH.minPrice(V), max = Math.max(...V.courts.map(c => KH.priceOf(c).prime));
+    B.innerHTML = `<div class="info">
+      <div class="card"><h3>${ICON("clock")}${T("info.hours")}</h3>
+        <div class="hours"><span class="muted">${T("info.daily")}</span><b>${FMT.time(V.open[0])} – ${FMT.time(V.open[1])}</b></div>
+        <div class="hours"><span class="muted">${T("info.weekday")}</span><b>${T("ct.day")}</b></div>
+        <div class="hours"><span class="muted">${T("info.primeW")}</span><b style="color:var(--warn)">${T("ct.prime")}</b></div></div>
+      <div class="card"><h3>${ICON("pin")}${T("info.addr")}</h3>
+        <div style="font-weight:700">${tt(V.address)}</div><div class="muted" style="font-size:14px">${tt(KH.DISTRICTS[V.district])}, ${T("info.city")}</div>
+        <h3 style="margin-top:18px">${ICON("wallet")}${T("info.prices")}</h3><div class="muted" style="font-size:14px">${FMT.amd(min)} – ${FMT.amd(max)} ${T("perHour")}</div></div>
+      <div class="card"><h3>${ICON("check")}${T("info.rules")}</h3><ul>${[1, 2, 3, 4].map(i => `<li>${ICON("check", "sm")}<span>${T("info.r" + i)}</span></li>`).join("")}</ul></div>
+      <div class="card"><h3>${ICON("star")}${T("info.amen")}</h3><ul>${V.amenities.map(a => `<li>${ICON(KH.AMENITIES[a][0], "sm")}<span>${tt(KH.AMENITIES[a][1])}</span></li>`).join("")}</ul></div>
+    </div>`;
+  }
+}
+
+autoPick();
+draw();
+drawTabs();
+</script>
+</body>
+</html>
