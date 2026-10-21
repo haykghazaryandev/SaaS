@@ -1,5 +1,5 @@
 # GitLab CI: runs the Pest tests on PostgreSQL 16 + Redis for every push and merge request.
-# Works whether the repository root is the Laravel app or the whole "bookball" folder (with the app in web/).
+# The repository root is the "bookball" folder; the Laravel app is in web/.
 
 stages: [test]
 
@@ -23,8 +23,8 @@ tests:
     npm_config_cache: "$CI_PROJECT_DIR/.npm"
   cache:
     key:
-      files: [composer.lock, package-lock.json, web/composer.lock, web/package-lock.json]
-    paths: [vendor/, web/vendor/, .npm/]
+      files: [web/composer.lock, web/package-lock.json]   # GitLab allows at most 2 files here
+    paths: [web/vendor/, .npm/]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH

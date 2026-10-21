@@ -137,7 +137,7 @@ DB_DATABASE=bookball_test_2 ./vendor/bin/pest     # another test database (e.g. 
 Notes:
 - Tests need `npm run build` once, because pages render the Vite manifest.
 - They need PostgreSQL and the `bookball_test` database. Tests never call Telegram (HTTP is faked).
-- **GitLab CI** runs the same tests on every push and merge request (`.gitlab-ci.yml`, using Postgres 16 and Redis services). The file must be in the **repository root**. There is a copy in `web/` (repository = the Laravel app) and one in the `bookball/` folder (repository = the whole folder). Keep the one at your root and delete the other. It finds the app in either layout.
+- **GitLab CI** runs the same tests on every push and merge request (`.gitlab-ci.yml`, using Postgres 16 and Redis services). The file is in the repository root (the `bookball` folder), and the app is in `web/`.
 
 **Code style:**
 ```bash
