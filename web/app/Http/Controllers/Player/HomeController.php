@@ -27,7 +27,7 @@ class HomeController extends Controller
         $shown = $district ? $venues->where('district', $district)->values() : $venues;
         $sizes = $size ? [$size] : ['small', 'big'];
 
-        $cards = collect($present->homeCards($shown, $day, $sizes, $time, $size ? 6 : 4));
+        $cards = collect($present->homeCards($shown, $day, $sizes, $time, 4));
         if ($time) {
             $cards = $cards->filter(fn ($c) => $c['free']);
         }

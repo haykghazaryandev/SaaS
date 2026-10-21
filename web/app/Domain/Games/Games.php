@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
  * 1. the creator invites friends → status "forming", only invited people see it;
  * 2. when ~30% of the players are in (creator + accepted friends) → "open": everyone sees it, the chat starts;
  * 3. players join until all places are taken → "full";
- * 4. a player books a field for the game; when the place accepts → "booked"; after the time → "played";
+ * 4. the creator books a field for the game; when the place accepts → "booked"; after the time → "played";
  * 5. "Play again" creates a new game and invites the same people.
  * A forming game that doesn't reach 30% in 48 hours is cancelled.
  */
@@ -38,7 +38,7 @@ class Games
 
     public function __construct(private Chat $chat) {}
 
-    /** $data: players_per_side (3–11), level?, district?, venue_id?, when_from?, when_to?, note? */
+    /** $data: players_per_side (3–11), district?, venue_id?, when_from?, when_to?, note? */
     public function create(User $creator, array $data, array $inviteIds, ?Game $previous = null): Game
     {
         $perSide = (int) ($data['players_per_side'] ?? 0);
@@ -62,7 +62,7 @@ class Games
         return DB::transaction(function () use ($creator, $data, $perSide, $total, $min, $invite, $previous) {
             $game = Game::create([
                 'creator_id' => $creator->id, 'players_per_side' => $perSide, 'total_players' => $total, 'min_to_open' => $min,
-                'level' => $data['level'] ?? null, 'district' => $data['district'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
+                'district' => $data['district'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
                 'when_from' => $data['when_from'] ?? null, 'when_to' => $data['when_to'] ?? null, 'note' => $data['note'] ?? null,
                 'status' => S::Forming, 'previous_game_id' => $previous?->id,
             ]);
@@ -200,10 +200,12 @@ class Games
         });
     }
 
-    /** A player books a field for the game: a normal booking request linked to the game. */
+    /** The creator books a field for the game: a normal booking request linked to the game (only the creator may book). */
     public function book(Game $game, User $by, Field $field, CarbonImmutable $start, int $minutes): Booking
     {
-        $this->mustBeIn($game, $by);
+        if ($game->creator_id !== $by->id) {
+            throw new SocialException('only_creator_books');
+        }
         if (! in_array($game->status->value, ['open', 'full'], true)) {
             throw new SocialException('game_closed');
         }
@@ -249,7 +251,7 @@ class Games
         $this->mustBeIn($game, $by);
         $others = $game->inPlayers()->where('user_id', '!=', $by->id)->pluck('user_id')->all();
 
-        return $this->create($by, ['players_per_side' => $game->players_per_side, 'level' => $game->level, 'district' => $game->district, 'venue_id' => $game->venue_id], $others, $game);
+        return $this->create($by, ['players_per_side' => $game->players_per_side, 'district' => $game->district, 'venue_id' => $game->venue_id], $others, $game);
     }
 
     // ---------- scheduler ----------

@@ -76,7 +76,6 @@ class UserResource extends Resource
                 TextInput::make('name')->label(__('admin.user.name'))->maxLength(60),
                 TextInput::make('username')->label(__('admin.user.username'))->maxLength(32)->regex('/^[a-z0-9_.]+$/')->unique(ignoreRecord: true),
                 Select::make('locale')->label(__('admin.user.locale'))->options(['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'])->required(),
-                Select::make('level')->label(__('admin.user.level'))->options(['beginner' => 'Beginner', 'mid' => 'Intermediate', 'pro' => 'Pro']),
                 Textarea::make('bio')->label(__('admin.user.bio'))->maxLength(300)->columnSpanFull(),
             ]),
         ]);

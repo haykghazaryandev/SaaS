@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import GameProgress from '@/components/games/GameProgress.vue';
 import GameStatusPill from '@/components/games/GameStatusPill.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
-import { hasRoute, todayYerevan, whenText, whereText } from '@/composables/useGames';
+import { hasRoute, sizeOf, todayYerevan, whenText, whereText } from '@/composables/useGames';
 import { dateRel, dur, wdName } from '@/composables/usePlayer';
 import { amd, hhmm } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { BookPlace, GameBooking, GameCard, GamePerson, GamePlayerRow } from '@/types/games';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // The game page: details, players, and what I can do (accept, join, leave, invite, book a field, cancel …).
@@ -27,11 +29,31 @@ const busy = ref(false);
 const chatUrl = computed(() => (props.conversationId && hasRoute('messages.show') ? route('messages.show', props.conversationId) : null));
 const spotsLeft = computed(() => g.value.total - g.value.in);
 const holding = computed(() => g.value.booking && ['pending', 'accepted'].includes(g.value.booking.status));
-const inviter = computed(() => g.value.creator.name);
-// anything for the actions card (accept / decline live in the invite banner)
-const hasActions = computed(() => !!chatUrl.value || Object.entries(props.can).some(([k, v]) => k !== 'respond' && v));
+const inviter = computed(() => g.value.invitedBy?.name ?? g.value.creator.name);
 
-function post(name: string, data: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) {
+// ---------- actions: ONE main (lime) action by state, the others outline; leave / cancel are text links ----------
+type Act = { key: string; label: string; icon: string; href?: string; run?: () => void };
+const actions = computed<Act[]>(() => {
+    const c = props.can;
+    const list: Act[] = [];
+    if (c.join) list.push({ key: 'join', label: trans('games.show.join', { n: String(spotsLeft.value) }), icon: 'plus', run: () => post('games.join') });
+    if (c.joinLogin) list.push({ key: 'login', label: trans('games.show.loginToJoin'), icon: 'user', href: route('login') });
+    if (c.book) list.push({ key: 'book', label: trans('games.show.book'), icon: 'calendar', run: openBook });
+    if (chatUrl.value) list.push({ key: 'chat', label: trans('games.show.chat'), icon: 'chat', href: chatUrl.value });
+    if (c.playAgain) list.push({ key: 'again', label: trans('games.show.playAgain'), icon: 'ball', run: () => post('games.playAgain') });
+    if (c.invite) list.push({ key: 'invite', label: trans('games.show.inviteMore'), icon: 'users', run: () => (inviting.value = true) });
+    return list;
+});
+const hasActions = computed(() => actions.value.length > 0 || props.can.leave || props.can.cancel);
+const showRule = ref(false);
+
+// ---------- per-row ⋯ menu (remove a player) ----------
+const rowMenu = ref<number | null>(null);
+function onDocClick(e: MouseEvent) {
+    if (rowMenu.value !== null && !(e.target as HTMLElement).closest?.('.menu-wrap')) rowMenu.value = null;
+}
+
+function post(name: string, data: Record<string, string | number | boolean> = {}, extra: Record<string, unknown> = {}) {
     busy.value = true;
     router.post(route(name, { game: g.value.id, ...extra }), data, {
         preserveScroll: true,
@@ -82,6 +104,7 @@ function sendInvites() {
 const booking = ref(false);
 const form = useForm({ place: null as number | null, field_id: null as number | null, date: '', minutes: 60, start: '' });
 const place = computed(() => props.places.find((p) => p.id === form.place) ?? null);
+const bookErr = computed(() => (form.errors as Record<string, string | undefined>).booking);
 const field = computed(() => place.value?.fields.find((f) => f.id === form.field_id) ?? null);
 const starts = ref<number[] | null>(null);
 const slotsLoading = ref(false);
@@ -140,9 +163,18 @@ function onKey(e: KeyboardEvent) {
     confirm.value = null;
     inviting.value = false;
     booking.value = false;
+    rowMenu.value = null;
 }
-onMounted(() => document.addEventListener('keydown', onKey));
-onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
+onMounted(() => {
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('click', onDocClick);
+    // "→ Book" from the chat's game bar opens the booking sheet right away
+    if (props.can.book && new URLSearchParams(window.location.search).get('book') === '1') openBook();
+});
+onBeforeUnmount(() => {
+    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('click', onDocClick);
+});
 const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.start}–${b.end}`;
 </script>
 
@@ -154,41 +186,42 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
         <!-- header -->
         <section :class="['card hero', `st-${g.status}`]">
             <div class="hl">
-                <div class="row wrapflex" style="gap: 6px">
+                <div class="tags">
+                    <span class="fmt"><i :class="['field-dot', sizeOf(g.perSide)]" />{{ g.format }} · {{ $t('games.show.totalPlayers', { n: String(g.total) }) }}</span>
                     <GameStatusPill :status="g.status" />
-                    <span class="pill"><Icon name="bolt" size="sm" />{{ g.level ? $t(`level.${g.level}`) : $t('games.anyLevel') }}</span>
-                    <span v-if="g.mine" class="pill lime"><Icon name="star" size="sm" />{{ $t('games.card.yours') }}</span>
+                    <span v-if="g.mine" class="mine">{{ $t('games.card.yours') }}</span>
                 </div>
-                <h1><span class="fmt">{{ g.format }}</span> <span class="sub">{{ $t('games.show.totalPlayers', { n: String(g.total) }) }}</span></h1>
+                <h1 class="page-title">
+                    <Link v-if="g.venue" :href="route('places.show', { venue: g.venue.slug })" class="ul">{{ g.venue.name }}</Link>
+                    <template v-else>{{ whereText(g) }}</template>
+                </h1>
                 <div class="facts">
-                    <span><Icon name="pin" size="sm" />
-                        <Link v-if="g.venue" :href="route('places.show', { venue: g.venue.slug })" class="ul">{{ g.venue.name }}</Link>
-                        <template v-else>{{ whereText(g) }}</template>
-                        <template v-if="g.venue && g.district && g.district !== g.venue.district"> · {{ $t(`player.district.${g.district}`) }}</template>
-                    </span>
-                    <span><Icon name="calendar" size="sm" />{{ whenText(g.window) }}</span>
-                    <span><Icon name="user" size="sm" />{{ $t('games.show.organiser', { name: g.creator.name }) }}</span>
+                    <span v-if="g.window" class="when"><Icon name="calendar" size="sm" />{{ whenText(g.window) }}</span>
+                    <span v-else class="tbd"><Icon name="clock" size="sm" />{{ $t('games.card.tbd') }}</span>
+                    <span v-if="g.venue && g.district && g.district !== g.venue.district"><Icon name="pin" size="sm" />{{ $t(`player.district.${g.district}`) }}</span>
+                    <span class="org"><Avatar :id="g.creator.id" :name="g.creator.name" :src="g.creator.avatar" size="xs" />{{ $t('games.show.organiser', { name: g.creator.name }) }}</span>
                 </div>
                 <p v-if="g.note" class="note">“{{ g.note }}”</p>
                 <Link v-if="g.previousId" class="faint prev" :href="route('games.show', g.previousId)"><Icon name="clock" size="sm" />{{ $t('games.show.previous') }}</Link>
             </div>
             <div class="hr">
-                <GameProgress :in-count="g.in" :total="g.total" :min-to-open="g.minToOpen" :status="g.status" />
-                <p v-if="g.status === 'forming'" class="small warnt">{{ $t('games.show.formingNote', { n: String(g.minToOpen), more: String(Math.max(0, g.minToOpen - g.in)) }) }}</p>
-                <p v-else-if="g.status === 'open'" class="small muted">{{ $t('games.show.openNote', { n: String(spotsLeft) }) }}</p>
+                <GameProgress :in-count="g.in" :total="g.total" :min-to-open="g.minToOpen" :status="g.status" big />
+                <p v-if="g.status === 'forming'" class="small muted">{{ $t('games.show.formingNote', { n: String(g.minToOpen), more: String(Math.max(0, g.minToOpen - g.in)) }) }}</p>
                 <p v-else-if="g.status === 'full'" class="small muted">{{ $t('games.show.fullNote') }}</p>
+                <button type="button" class="howbtn" :aria-expanded="showRule" @click="showRule = !showRule"><span class="i" aria-hidden="true">i</span>{{ $t('games.rule.title') }}</button>
+                <p v-if="showRule" class="small muted rule">{{ $t('games.rule.text') }}</p>
             </div>
         </section>
 
         <!-- invite banner -->
         <section v-if="can.respond" class="card banner">
-            <div class="bi"><Icon name="send" /></div>
+            <Avatar :id="g.invitedBy?.id ?? g.creator.id" :name="inviter" :src="(g.invitedBy ?? g.creator).avatar" size="md" />
             <div style="flex: 1; min-width: 0">
-                <b>{{ $t('games.show.invitedTitle', { name: inviter }) }}</b>
+                <b>{{ $t('games.card.invitedYou', { name: inviter }) }}</b>
                 <p class="small muted">{{ g.status === 'forming' ? $t('games.show.invitedForming', { n: String(g.minToOpen) }) : $t('games.show.invitedOpen') }}</p>
             </div>
-            <div class="row" style="gap: 8px">
-                <button type="button" class="btn ghost" :disabled="busy" @click="post('games.respond', { accept: false })">{{ $t('games.decline') }}</button>
+            <div class="row bact">
+                <button type="button" class="btn outline" :disabled="busy" @click="post('games.respond', { accept: false })">{{ $t('games.decline') }}</button>
                 <button type="button" class="btn" :disabled="busy" @click="post('games.respond', { accept: true })"><Icon name="check" size="sm" />{{ $t('games.accept') }}</button>
             </div>
         </section>
@@ -196,34 +229,34 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
         <div class="sgrid">
             <!-- players -->
             <section class="card blk">
-                <div class="row between">
-                    <h3>{{ $t('games.show.inGame') }} <span class="cnt">{{ players.in.length }}/{{ g.total }}</span></h3>
-                </div>
+                <h3>{{ $t('games.show.inGame') }} <span class="cnt">{{ players.in.length }}/{{ g.total }}</span></h3>
                 <ul class="plist">
                     <li v-for="p in players.in" :key="p.id">
-                        <span :class="['av', { c: p.creator }]">{{ p.initials }}</span>
+                        <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" />
                         <span class="nm">
-                            {{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template>
-                            <small>
-                                <template v-if="p.creator">{{ $t('games.show.organiserShort') }}</template>
-                                <template v-if="p.creator && p.level"> · </template>
-                                <template v-if="p.level">{{ $t(`level.${p.level}`) }}</template>
-                            </small>
+                            <span class="n1">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template></span>
+                            <small v-if="p.creator">{{ $t('games.show.organiserShort') }}</small>
                         </span>
-                        <button v-if="can.remove && !p.creator" type="button" class="btn ghost sm rm" :aria-label="$t('games.show.remove')" @click="askRemove(p)">
-                            <Icon name="x" size="sm" /><span>{{ $t('games.show.remove') }}</span>
-                        </button>
+                        <div v-if="can.remove && !p.creator" class="menu-wrap">
+                            <button type="button" class="menu-btn" aria-haspopup="menu" :aria-expanded="rowMenu === p.id" :aria-label="$t('games.show.more', { name: p.name })" @click.stop="rowMenu = rowMenu === p.id ? null : p.id">⋯</button>
+                            <div v-if="rowMenu === p.id" class="menu" role="menu">
+                                <button type="button" role="menuitem" class="danger" @click="(rowMenu = null), askRemove(p)"><Icon name="x" size="sm" />{{ $t('games.show.remove') }}</button>
+                            </div>
+                        </div>
                     </li>
-                    <li v-for="i in Math.max(0, Math.min(spotsLeft, 4))" :key="'e' + i" class="slot"><span class="av e">+</span><span class="faint">{{ $t('games.show.freeSpot') }}</span></li>
-                    <li v-if="spotsLeft > 4" class="slot faint small">{{ $t('games.show.moreSpots', { n: String(spotsLeft - 4) }) }}</li>
+                    <li v-if="spotsLeft > 0 && !['cancelled', 'played', 'archived'].includes(g.status)" class="slot">
+                        <span class="plus" aria-hidden="true">+{{ spotsLeft }}</span>
+                        <span class="nm">{{ $tChoice('games.show.freeSpots', spotsLeft, { n: String(spotsLeft) }) }}</span>
+                        <button v-if="can.invite" type="button" class="btn outline sm" @click="inviting = true">{{ $t('games.show.invite') }}</button>
+                    </li>
                 </ul>
 
                 <template v-if="players.invited.length">
                     <h4>{{ $t('games.show.invited') }} <span class="cnt">{{ players.invited.length }}</span></h4>
                     <ul class="plist dim">
                         <li v-for="p in players.invited" :key="p.id">
-                            <span class="av">{{ p.initials }}</span>
-                            <span class="nm">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template><small>{{ $t('games.show.waiting') }}</small></span>
+                            <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" />
+                            <span class="nm"><span class="n1">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template></span><small>{{ $t('games.show.waiting') }}</small></span>
                         </li>
                     </ul>
                 </template>
@@ -233,7 +266,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     <h4>{{ $t('games.show.declined') }} <span class="cnt">{{ players.declined.length }}</span></h4>
                     <ul class="plist dim">
                         <li v-for="p in players.declined" :key="p.id">
-                            <span class="av">{{ p.initials }}</span><span class="nm">{{ p.name }}</span>
+                            <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" /><span class="nm"><span class="n1">{{ p.name }}</span></span>
                         </li>
                     </ul>
                 </template>
@@ -241,22 +274,25 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
 
             <!-- actions -->
             <aside class="side">
-                <section v-if="hasActions || !can.respond" class="card blk">
-                    <h3>{{ $t('games.show.actions') }}</h3>
-                    <button v-if="can.join" type="button" class="btn block" :disabled="busy" @click="post('games.join')"><Icon name="plus" size="sm" />{{ $t('games.show.join', { n: String(spotsLeft) }) }}</button>
-                    <Link v-if="can.joinLogin" class="btn block" :href="route('login')"><Icon name="user" size="sm" />{{ $t('games.show.loginToJoin') }}</Link>
-                    <a v-if="chatUrl" class="btn block blue" :href="chatUrl"><Icon name="chat" size="sm" />{{ $t('games.show.chat') }}</a>
-                    <p v-else-if="conversationId === null && g.me && ['accepted', 'joined'].includes(g.me) && g.status === 'forming'" class="small faint">{{ $t('games.show.chatLater') }}</p>
-                    <button v-if="can.book" type="button" class="btn block" @click="openBook"><Icon name="calendar" size="sm" />{{ $t('games.show.book') }}</button>
-                    <button v-if="can.invite" type="button" class="btn ghost block" @click="inviting = true"><Icon name="users" size="sm" />{{ $t('games.show.inviteMore') }}</button>
-                    <button v-if="can.playAgain" type="button" class="btn block" :disabled="busy" @click="post('games.playAgain')"><Icon name="ball" size="sm" />{{ $t('games.show.playAgain') }}</button>
-                    <button v-if="can.leave" type="button" class="btn ghost block danger" @click="askLeave"><Icon name="logout" size="sm" />{{ $t('games.show.leave') }}</button>
-                    <button v-if="can.cancel" type="button" class="btn ghost block danger" @click="askCancel"><Icon name="x" size="sm" />{{ $t('games.show.cancel') }}</button>
+                <section v-if="hasActions || !can.respond" class="card blk acts">
+                    <template v-for="(a, i) in actions" :key="a.key">
+                        <Link v-if="a.href" :class="['btn block', { outline: i > 0 }]" :href="a.href"><Icon :name="a.icon" size="sm" />{{ a.label }}</Link>
+                        <button v-else type="button" :class="['btn block', { outline: i > 0 }]" :disabled="busy" @click="a.run?.()"><Icon :name="a.icon" size="sm" />{{ a.label }}</button>
+                    </template>
+                    <p v-if="!chatUrl && g.me && ['accepted', 'joined'].includes(g.me) && g.status === 'forming'" class="small faint">{{ $t('games.show.chatLater') }}</p>
                     <p v-if="!hasActions" class="small faint" style="margin: 0">
                         {{ g.status === 'cancelled' ? $t('games.show.cancelledNote') : g.me === 'removed' ? $t('social.error.removed') : $t('games.show.nothing') }}
                     </p>
+                    <div v-if="can.leave || can.cancel" class="links">
+                        <button v-if="can.leave" type="button" class="btn link" @click="askLeave">{{ $t('games.show.leave') }}</button>
+                        <button v-if="can.cancel" type="button" class="btn link danger" @click="askCancel">{{ $t('games.show.cancel') }}</button>
+                    </div>
                 </section>
 
+                <!-- only the creator books the field; the others see who will -->
+                <p v-if="!g.booking && !can.book && ['joined', 'accepted'].includes(g.me ?? '') && ['open', 'full'].includes(g.status)" class="card blk orgbook">
+                    <Icon name="calendar" size="sm" />{{ $t('games.show.organiserBooks', { name: g.creator.name }) }}
+                </p>
                 <section v-if="g.booking" :class="['card blk bk', { off: !holding }]">
                     <div class="row between">
                         <h3>{{ $t('games.show.field') }}</h3>
@@ -275,18 +311,8 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                         {{ g.booking.status === 'pending' ? $t('games.show.bookingPending') : g.booking.status === 'accepted' ? $t('games.show.bookingAccepted') : $t('games.show.bookingOff') }}
                     </p>
                 </section>
-
-                <section class="card blk howc desk">
-                    <b><Icon name="users" size="sm" /> {{ $t('games.rule.title') }}</b>
-                    <p class="small muted">{{ $t('games.rule.text') }}</p>
-                </section>
             </aside>
         </div>
-
-        <section class="card blk howc phone">
-                    <b><Icon name="users" size="sm" /> {{ $t('games.rule.title') }}</b>
-                    <p class="small muted">{{ $t('games.rule.text') }}</p>
-                </section>
 
         <!-- confirm -->
         <div v-if="confirm" class="scrim" @click.self="confirm = null">
@@ -297,8 +323,8 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                 </div>
                 <p class="muted">{{ $t(confirm.text, { name: removing?.name ?? '' }) }}</p>
                 <div class="row">
-                    <button type="button" class="btn ghost" style="flex: 1" @click="confirm = null">{{ $t('games.show.keep') }}</button>
-                    <button type="button" class="btn red" style="flex: 1" :disabled="busy" @click="confirm.run()">{{ $t(confirm.yes) }}</button>
+                    <button type="button" class="btn outline" style="flex: 1" @click="confirm = null">{{ $t('games.show.keep') }}</button>
+                    <button type="button" class="btn danger" style="flex: 1" :disabled="busy" @click="confirm.run()">{{ $t(confirm.yes) }}</button>
                 </div>
             </div>
         </div>
@@ -317,7 +343,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                         <li v-for="f in shownFriends" :key="f.id">
                             <label :class="{ on: picked.includes(f.id) }">
                                 <input type="checkbox" :checked="picked.includes(f.id)" @change="togglePick(f.id)" />
-                                <span class="av">{{ f.initials }}</span>
+                                <Avatar :id="f.id" :name="f.name" :src="f.avatar" size="sm" />
                                 <span class="nm">{{ f.name }}</span>
                                 <span class="tick"><Icon name="check" size="sm" /></span>
                             </label>
@@ -374,7 +400,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                         <span v-if="slotsLoading && !starts" class="faint small">{{ $t('games.show.loading') }}</span>
                     </div>
                 </div>
-                <div v-if="form.errors.booking" class="err">{{ form.errors.booking }}</div>
+                <div v-if="bookErr" class="err">{{ bookErr }}</div>
                 <div v-for="k in ['field_id', 'date', 'start', 'minutes'] as const" :key="k">
                     <div v-if="form.errors[k]" class="err">{{ form.errors[k] }}</div>
                 </div>
@@ -389,72 +415,72 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
 <style scoped>
 .back { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-weight: 700; font-size: 14px; margin-top: 22px; }
 .back:hover { color: var(--ink); }
-.hero { margin-top: 12px; padding: 24px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: center; position: relative; overflow: hidden; }
-.hero::before { content: ""; position: absolute; right: -80px; top: -120px; width: 380px; height: 300px; background: radial-gradient(closest-side, rgba(200, 255, 61, 0.12), transparent); pointer-events: none; }
-.hl { display: flex; flex-direction: column; gap: 10px; min-width: 0; position: relative; }
-.hr { display: flex; flex-direction: column; gap: 8px; background: var(--bg-2); border-radius: 16px; padding: 16px; position: relative; }
-.hero h1 { font-size: clamp(36px, 5vw, 56px); display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.hero .fmt { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.st-cancelled .fmt, .st-played .fmt, .st-archived .fmt { background: none; color: var(--muted); }
-.hero .sub { font-family: var(--body); font-size: 15px; color: var(--muted); font-weight: 700; letter-spacing: 0; }
-.facts { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 14px; }
+.hero { margin-top: 12px; padding: 22px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.hl { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.hr { display: flex; flex-direction: column; gap: 10px; background: var(--bg-2); border-radius: 16px; padding: 16px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fmt { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-2); font-weight: 800; font-size: 12.5px; white-space: nowrap; }
+.mine { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.hero h1 { overflow-wrap: anywhere; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 14px; align-items: center; }
 .facts span { display: inline-flex; gap: 6px; align-items: center; }
-.ul { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+.facts .when { color: var(--ink); font-weight: 700; }
+.tbd { padding: 2px 10px; border-radius: 999px; border: 1px dashed var(--line-2); font-weight: 700; font-size: 13px; }
 .ul:hover { color: var(--accent); }
 .note { margin: 0; color: var(--ink); font-size: 15px; overflow-wrap: anywhere; }
 .prev { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 700; }
 .small { font-size: 13px; margin: 0; }
-.warnt { color: var(--warn); }
-.okt { color: var(--free); }
+.okt { color: var(--st-confirmed); }
+.howbtn { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; color: var(--muted); font-weight: 700; font-size: 13px; padding: 2px 0; }
+.howbtn:hover { color: var(--ink); }
+.howbtn .i { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid currentColor; display: grid; place-items: center; font-size: 11px; font-weight: 800; font-style: italic; font-family: Georgia, serif; }
+.rule { line-height: 1.5; }
 @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 16px; } }
-.banner { margin-top: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-color: rgba(92, 200, 255, 0.3); background: linear-gradient(90deg, rgba(92, 200, 255, 0.08), var(--surface)); }
-.banner .bi { width: 42px; height: 42px; border-radius: 12px; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; flex: none; }
+.banner { margin-top: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-color: rgba(255, 181, 71, 0.3); }
 .banner p { margin-top: 2px; }
-@media (max-width: 600px) { .banner .row { width: 100%; } .banner .row .btn { flex: 1; } }
+.bact { gap: 8px; }
+@media (max-width: 600px) { .bact { width: 100%; } .bact .btn { flex: 1; } }
 .sgrid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
 @media (max-width: 860px) { .sgrid { grid-template-columns: minmax(0, 1fr); } .side { order: -1; } }
 .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.blk { padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.blk h3 { font-size: 16px; display: flex; gap: 8px; align-items: center; }
-.blk h4 { margin: 8px 0 0; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; display: flex; gap: 8px; align-items: center; }
-.cnt { font-family: var(--mono); font-size: 12px; background: var(--surface-3); color: var(--muted); border-radius: 99px; padding: 2px 8px; font-weight: 600; letter-spacing: 0; }
-.plist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
-.plist li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--bg-2); min-width: 0; }
-.plist .av { width: 34px; height: 34px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
-.plist .av.c { background: var(--grad); color: var(--on-accent); }
-.plist .av.e { background: none; border: 1.5px dashed var(--line-2); color: var(--faint); }
-.plist .slot { background: none; border: 1px dashed var(--line); }
-.plist .nm { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.plist .nm small { display: block; color: var(--faint); font-weight: 600; font-size: 12px; }
+.blk { padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.blk h3 { font-family: var(--body); font-size: 16px; font-weight: 800; letter-spacing: 0; display: flex; gap: 8px; align-items: center; }
+.blk h4 { margin: 6px 0 0; font-size: 13px; color: var(--muted); font-weight: 700; display: flex; gap: 8px; align-items: center; }
+.cnt { font-size: 12px; background: var(--surface-3); color: var(--muted); border-radius: 99px; padding: 2px 8px; font-weight: 700; }
+.plist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; }
+.plist li { display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 10px; border-radius: 12px; background: var(--bg-2); min-width: 0; min-height: 56px; }
+.plist .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.plist .n1 { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plist .nm small { color: var(--muted); font-weight: 600; font-size: 12px; }
 .plist.dim li { opacity: .75; }
-.rm { padding: 5px 9px; }
-.rm:hover { color: var(--hot); border-color: rgba(255, 107, 107, 0.4); }
-@media (max-width: 480px) { .rm span { display: none; } }
-.btn.danger:hover { color: var(--hot); border-color: rgba(255, 107, 107, 0.4); }
-.btn.red { background: var(--hot); color: #200606; }
-.bk .bname { font-family: var(--display); font-size: 17px; font-weight: 600; }
+.plist .slot { background: none; border: 1px dashed var(--line-2); padding-right: 10px; }
+.plist .slot .nm { color: var(--muted); font-weight: 700; font-size: 14px; }
+.plus { width: 40px; height: 40px; border-radius: 50%; border: 1.5px dashed var(--line-2); display: grid; place-items: center; color: var(--muted); font-size: 13px; font-weight: 800; flex: none; }
+.acts .links { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.acts .links .btn { padding-left: 0; padding-right: 0; font-size: 13.5px; }
+.acts .links .btn.danger { margin-left: auto; }
+.bk h3 { font-size: 15px; }
+.bk .bname { font-weight: 800; font-size: 16px; }
 .bk .bname:hover { color: var(--accent); }
-.bk .when { font-family: var(--display); font-weight: 600; }
+.bk .when { font-weight: 800; }
 .bk .code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); background: rgba(200, 255, 61, 0.08); border: 1px dashed rgba(200, 255, 61, 0.3); padding: 2px 8px; border-radius: 7px; letter-spacing: 0.06em; }
 .bk.off { opacity: .65; }
-.howc.phone { display: none; margin-top: 16px; }
-@media (max-width: 860px) { .howc.desk { display: none; } .howc.phone { display: flex; } }
-.howc b { display: flex; gap: 8px; align-items: center; font-size: 14px; }
 .sheet.wide { width: min(560px, 100%); }
 .sheet .days, .sheet .chips { max-width: 100%; }
-.day.we:not([aria-pressed="true"]) small { color: var(--warn); }
+.day.we:not([aria-pressed="true"]) small { color: var(--st-pending); }
 .starts { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; align-items: center; }
 .starts.dim { opacity: .5; }
 .st { font-family: var(--mono); font-size: 13px; padding: 6px 10px; border-radius: 9px; background: var(--free-soft); color: var(--free); border: 1px solid rgba(94, 240, 168, 0.2); }
 .st.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .err { color: var(--hot); font-size: 13px; font-weight: 700; margin-top: 10px; }
 .flist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow: auto; }
-.flist label { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
+.flist label { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
 .flist label:hover { background: var(--surface-2); }
 .flist label.on { background: rgba(200, 255, 61, 0.06); border-color: rgba(200, 255, 61, 0.25); }
 .flist input { position: absolute; opacity: 0; pointer-events: none; }
-.flist .av { width: 34px; height: 34px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
 .flist .nm { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .flist .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; color: transparent; flex: none; }
 .flist label.on .tick { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+.orgbook { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 14px; margin: 0; }
 </style>

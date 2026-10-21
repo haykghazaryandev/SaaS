@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'error.only_creator_books' => 'Only the organiser of the game can book a field for it.',
     'error.self' => 'You can\'t do this with yourself.',
     'error.blocked' => 'Not possible: one of you blocked the other.',
     'error.too_many_requests' => 'Too many friend requests today. Try tomorrow.',

@@ -2,9 +2,9 @@
 import Icon from '@/components/Icon.vue';
 import {
     accept,
-    addDays,
     askDecline,
     daysBetween,
+    decisions,
     dotOf,
     fdate,
     longDate,
@@ -13,7 +13,9 @@ import {
     pillOf,
     relDay,
     useOwner,
+    whoOf,
     type BookingRow,
+    type Kind,
 } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -21,7 +23,7 @@ import { router, usePoll } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// Schedule: day (fields side by side), week (7 days × fields) and list (search + status filter).
+// Schedule: day (fields side by side; one field at a time below 768px), week (7 days × fields) and list (search + status filter).
 interface Closure {
     id: number;
     field_id: number | null;
@@ -55,6 +57,7 @@ const props = defineProps<{
 }>();
 const owner = useOwner();
 const fields = computed(() => owner.value.fields);
+
 usePoll(30000, { only: ['day', 'week', 'list', 'pendingDays', 'owner', 'nowHour'] });
 
 const PX = 60; // pixels per hour
@@ -73,6 +76,32 @@ watch(showOff, (v) => {
         /* private mode */
     }
 });
+
+// below 768px one full-width lane with a 5×5 | 11×11 toggle
+const narrow = ref(false);
+let mq: MediaQueryList | undefined;
+const onMq = () => (narrow.value = !!mq?.matches);
+onMounted(() => {
+    mq = window.matchMedia('(max-width: 767px)');
+    onMq();
+    mq.addEventListener('change', onMq);
+});
+onBeforeUnmount(() => mq?.removeEventListener('change', onMq));
+const lane = ref(Number(read('bb.owner.lane', '0')) || 0);
+watch(lane, (v) => {
+    try {
+        localStorage.setItem('bb.owner.lane', String(v));
+    } catch {
+        /* private mode */
+    }
+});
+const shownFields = computed(() => {
+    if (!narrow.value) return fields.value;
+    const f = fields.value.find((x) => x.id === lane.value) ?? fields.value[0];
+    return f ? [f] : [];
+});
+const laneWaiting = (fid: number) =>
+    (props.day?.bookings ?? []).filter((b) => b.field_id === fid && b.kind === 'pending' && !decisions.hidden[b.id]).length;
 
 function go(params: { date?: string; view?: string }) {
     router.get(
@@ -117,13 +146,15 @@ const slots = computed(() => {
     for (let t = o; t < c; t += 0.5) out.push({ t, past: isPastDay.value || (isToday.value && t + 0.5 <= now.value) });
     return out;
 });
+// answered on this device but still inside the Undo window
+const kindOf = (b: BookingRow): Kind => (decisions.hidden[b.id] === 'accepted' ? 'accepted' : decisions.hidden[b.id] === 'declined' ? 'off' : b.kind);
 const blocksOf = (fid: number) =>
-    (props.day?.bookings ?? []).filter((b) => b.field_id === fid && b.date === props.date && (showOff.value || b.kind !== 'off'));
+    (props.day?.bookings ?? []).filter((b) => b.field_id === fid && b.date === props.date && (showOff.value || kindOf(b) !== 'off'));
 const closuresOf = (fid: number) => (props.day?.closures ?? []).filter((c) => c.field_id === null || c.field_id === fid);
 const top = (h: number) => (h - dayRange.value[0]) * PX;
 function headOf(fid: number) {
-    const list = (props.day?.bookings ?? []).filter((b) => b.field_id === fid && ['pending', 'accepted', 'completed', 'no_show'].includes(b.status));
-    return { h: +list.reduce((s, b) => s + b.minutes / 60, 0).toFixed(1), n: list.length, p: list.filter((b) => b.status === 'pending').length };
+    const list = (props.day?.bookings ?? []).filter((b) => b.field_id === fid && ['pending', 'accepted', 'owner', 'noshow'].includes(kindOf(b)));
+    return { h: +list.reduce((s, b) => s + b.minutes / 60, 0).toFixed(1), n: list.length, p: list.filter((b) => kindOf(b) === 'pending').length };
 }
 function scrollDay() {
     const el = sw.value;
@@ -135,6 +166,43 @@ function scrollDay() {
         .sort((a, b) => a - b)[0];
     const target = isToday.value && now.value > o ? now.value - 1 : first != null ? first - 0.5 : o;
     el.scrollTop = Math.max(0, (target - o) * PX);
+}
+// "Now": today's day view, scrolled so the now-line is in sight
+const wantNow = ref(false);
+function goNow() {
+    if (props.view !== 'day' || !isToday.value) {
+        wantNow.value = true;
+        go({ date: props.today, view: 'day' });
+        return;
+    }
+    scrollNow();
+}
+function scrollNow() {
+    const el = sw.value;
+    if (!el || !props.day) return;
+    el.scrollTop = Math.max(0, top(now.value) - el.clientHeight / 3);
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+watch(
+    () => props.day,
+    () => {
+        if (wantNow.value && isToday.value) {
+            wantNow.value = false;
+            nextTick(scrollNow);
+        }
+    },
+);
+// one calendar button: the native date picker of a hidden input
+const picker = ref<HTMLInputElement>();
+function openPicker() {
+    const el = picker.value;
+    if (!el) return;
+    try {
+        el.showPicker();
+    } catch {
+        el.focus();
+        el.click();
+    }
 }
 onMounted(scrollDay);
 watch(
@@ -164,9 +232,9 @@ const qs = new URLSearchParams(typeof window !== 'undefined' ? window.location.s
 const search = ref('');
 const status = ref<string>(['pending', 'accepted', 'cancelled', 'all'].includes(qs.get('status') || '') ? (qs.get('status') as string) : 'all');
 const FILTERS: Record<string, (b: BookingRow) => boolean> = {
-    pending: (b) => b.status === 'pending',
+    pending: (b) => b.kind === 'pending',
     accepted: (b) => b.status === 'accepted' || b.status === 'completed',
-    cancelled: (b) => ['declined', 'cancelled', 'expired', 'no_show'].includes(b.status),
+    cancelled: (b) => b.kind === 'expired' || ['declined', 'cancelled', 'expired', 'no_show'].includes(b.status),
     all: () => true,
 };
 const listAll = computed(() => props.list?.rows ?? []);
@@ -188,20 +256,21 @@ const legend = computed(() => [
     ['pending', trans('owner.st.pending')],
     ['accepted', trans('owner.st.accepted')],
     ['owner', trans('owner.st.owner')],
-    ['off', `${trans('owner.st.declined')} / ${trans('owner.st.cancelled')}`],
+    ['off', trans('owner.schedule.legend_off')],
     ['closed', trans('owner.schedule.closure')],
 ]);
+const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.hidden[b.id] ?? b.status });
 </script>
 
 <template>
-    <OwnerLayout :title="$t('owner.nav.schedule')">
+    <OwnerLayout :title="$t('owner.nav.schedule')" :new-booking="{ date: daysBetween(today, date) >= 0 ? date : today }">
         <div class="phead">
             <div>
                 <div class="kicker">{{ $t('owner.schedule.kicker') }} · {{ owner.venue.name }}</div>
                 <h1>{{ $t('owner.nav.schedule') }}</h1>
             </div>
             <div class="phead-r">
-                <button type="button" class="btn" data-test="new" @click="openForm({ date: daysBetween(today, date) >= 0 ? date : today })">
+                <button type="button" class="btn new" data-test="new" @click="openForm({ date: daysBetween(today, date) >= 0 ? date : today })">
                     <Icon name="plus" size="sm" />{{ $t('owner.new_booking') }}
                 </button>
             </div>
@@ -226,41 +295,52 @@ const legend = computed(() => [
             <label v-if="view === 'day'" class="switch"><input v-model="showOff" type="checkbox" />{{ $t('owner.schedule.show_off') }}</label>
         </div>
 
-        <!-- date bar -->
+        <!-- date bar: day strip, one calendar button, "Now" -->
         <div v-if="view !== 'list'" class="datebar">
-            <button
-                type="button"
-                class="x"
-                style="margin: 0"
-                :aria-label="$t('owner.schedule.prev')"
-                @click="go({ date: addDays(date, view === 'week' ? -7 : -1) })"
-            >
-                <Icon name="chevL" size="sm" />
-            </button>
-            <div ref="chips" class="chips">
+            <div ref="chips" class="chips fade">
                 <button v-for="d in strip" :key="d" type="button" class="chip dchip" :aria-pressed="d === date" @click="go({ date: d })">
                     <small>{{ d === today ? $t('owner.today') : fdate(d, { weekday: 'short' }) }}</small
                     ><b>{{ fdate(d, { day: 'numeric' }) }}</b
                     ><i v-if="pendingDays.includes(d)" class="dp" />
                 </button>
             </div>
-            <button
-                type="button"
-                class="x"
-                style="margin: 0"
-                :aria-label="$t('owner.schedule.next')"
-                @click="go({ date: addDays(date, view === 'week' ? 7 : 1) })"
-            >
-                <Icon name="chevR" size="sm" />
+            <span class="calbtn">
+                <button
+                    type="button"
+                    class="x"
+                    :title="$t('owner.schedule.calendar')"
+                    :aria-label="$t('owner.schedule.calendar')"
+                    @click="openPicker"
+                >
+                    <Icon name="calendar" size="sm" />
+                </button>
+                <input
+                    ref="picker"
+                    type="date"
+                    tabindex="-1"
+                    aria-hidden="true"
+                    :value="date"
+                    @change="(e) => (e.target as HTMLInputElement).value && go({ date: (e.target as HTMLInputElement).value })"
+                />
+            </span>
+            <button type="button" class="btn ghost sm nowbtn" data-test="now" @click="goNow">
+                <Icon name="clock" size="sm" />{{ $t('owner.schedule.now') }}
             </button>
-            <button v-if="date !== today" type="button" class="btn ghost sm" @click="go({ date: today })">{{ $t('owner.today') }}</button>
-            <input
-                class="input"
-                type="date"
-                :value="date"
-                :aria-label="$t('owner.schedule.goto')"
-                @change="(e) => (e.target as HTMLInputElement).value && go({ date: (e.target as HTMLInputElement).value })"
-            />
+        </div>
+
+        <!-- phones: one field at a time -->
+        <div v-if="narrow && view !== 'list' && fields.length > 1" class="seg lanesw" role="group" :aria-label="$t('owner.schedule.lanes')">
+            <button
+                v-for="f in fields"
+                :key="f.id"
+                type="button"
+                :aria-pressed="shownFields[0]?.id === f.id"
+                data-test="lane-toggle"
+                @click="lane = f.id"
+            >
+                <i :class="['fdot', dotOf(f.size)]" />{{ f.format
+                }}<span v-if="view === 'day' && laneWaiting(f.id)" class="lw">{{ laneWaiting(f.id) }}</span>
+            </button>
         </div>
 
         <!-- day -->
@@ -270,9 +350,12 @@ const legend = computed(() => [
             </h2>
             <div v-if="day.closed" class="closed-note"><Icon name="clock" size="sm" />{{ $t('owner.schedule.closed_day') }}</div>
             <div ref="sw" class="sched-wrap">
-                <div class="sched" :style="{ gridTemplateColumns: `58px repeat(${fields.length}, minmax(220px, 1fr))` }">
+                <div
+                    :class="['sched', { one: shownFields.length === 1 }]"
+                    :style="{ gridTemplateColumns: `58px repeat(${shownFields.length}, minmax(${narrow ? 0 : 220}px, 1fr))` }"
+                >
                     <div class="colh" style="padding: 0" />
-                    <div v-for="f in fields" :key="'h' + f.id" class="colh">
+                    <div v-for="f in shownFields" :key="'h' + f.id" class="colh">
                         <i :class="['fdot', dotOf(f.size)]" />
                         <span style="min-width: 0">
                             <b>{{ f.label }}</b>
@@ -290,7 +373,7 @@ const legend = computed(() => [
                         </div>
                     </div>
                     <div
-                        v-for="f in fields"
+                        v-for="f in shownFields"
                         :key="'c' + f.id"
                         class="col"
                         :data-field="f.id"
@@ -324,7 +407,7 @@ const legend = computed(() => [
                         <div
                             v-for="b in blocksOf(f.id)"
                             :key="b.id"
-                            :class="['blk', b.kind, { done: b.past && b.kind !== 'off' }]"
+                            :class="['blk', kindOf(b), { done: b.past && !['off', 'expired'].includes(kindOf(b)) }]"
                             role="button"
                             tabindex="0"
                             data-test="block"
@@ -335,16 +418,16 @@ const legend = computed(() => [
                             <div class="bi">
                                 <div class="bt">
                                     {{ hhmm(b.start) }}–{{ hhmm(b.end)
-                                    }}<template v-if="b.kind === 'off' || b.kind === 'noshow'"> · {{ pillOf(b).label }}</template>
+                                    }}<template v-if="['off', 'expired', 'noshow', 'owner'].includes(kindOf(b))"> · {{ rowPill(b).label }}</template>
                                 </div>
                                 <div class="bn">{{ b.team || b.name }}</div>
                                 <div v-if="b.minutes >= 60" class="bx">{{ b.team ? b.name : b.phone || '' }}</div>
                             </div>
-                            <div v-if="b.kind === 'pending' && !b.started" class="ba">
-                                <button type="button" class="ok" :title="$t('owner.a.accept')" data-test="block-accept" @click.stop="accept(b.id)">
+                            <div v-if="kindOf(b) === 'pending'" class="ba">
+                                <button type="button" class="ok" :title="$t('owner.a.accept')" data-test="block-accept" @click.stop="accept(b.id, b)">
                                     <Icon name="check" size="sm" /><span>{{ $t('owner.a.accept') }}</span>
                                 </button>
-                                <button type="button" class="no" :title="$t('owner.a.decline')" @click.stop="askDecline(b.id)">
+                                <button type="button" class="no" :title="$t('owner.a.decline')" @click.stop="askDecline(b.id, whoOf(b))">
                                     <Icon name="x" size="sm" /><span>{{ $t('owner.a.decline') }}</span>
                                 </button>
                             </div>
@@ -361,16 +444,16 @@ const legend = computed(() => [
         <!-- week -->
         <template v-else-if="view === 'week' && week">
             <div class="sched-wrap" style="max-height: none; min-height: 0">
-                <div class="week" :style="{ gridTemplateColumns: `96px repeat(${fields.length}, 1fr)` }">
+                <div :class="['week', { one: shownFields.length === 1 }]" :style="{ gridTemplateColumns: `96px repeat(${shownFields.length}, 1fr)` }">
                     <div class="wh" />
-                    <div v-for="f in fields" :key="'wh' + f.id" class="wh"><i :class="['fdot', dotOf(f.size)]" />{{ f.label }}</div>
+                    <div v-for="f in shownFields" :key="'wh' + f.id" class="wh"><i :class="['fdot', dotOf(f.size)]" />{{ f.label }}</div>
                     <template v-for="d in week.days" :key="d.date">
                         <div :class="['wd', { today: d.date === today }]" style="cursor: pointer" @click="go({ date: d.date, view: 'day' })">
                             <b>{{ d.date === today ? $t('owner.today') : fdate(d.date, { weekday: 'short' }) }}</b
                             ><span class="muted">{{ fdate(d.date, { day: 'numeric', month: 'short' }) }}</span>
                         </div>
                         <div
-                            v-for="f in fields"
+                            v-for="f in shownFields"
                             :key="d.date + f.id"
                             :class="['wc', { closedday: !d.hours }]"
                             data-test="week-cell"
@@ -396,7 +479,7 @@ const legend = computed(() => [
                         </div>
                     </template>
                     <div />
-                    <div v-for="(f, i) in fields" :key="'sc' + f.id" :style="i ? 'border-left: 1px solid var(--line)' : ''">
+                    <div v-for="(f, i) in shownFields" :key="'sc' + f.id" :style="i ? 'border-left: 1px solid var(--line)' : ''">
                         <div class="wscale">
                             <span v-for="s in scale" :key="s">{{ s }}</span>
                         </div>
@@ -404,7 +487,7 @@ const legend = computed(() => [
                 </div>
             </div>
             <div class="legend-row">
-                <span v-for="l in legend.slice(0, 3)" :key="l[0]"><i :class="l[0]" />{{ l[1] }}</span>
+                <span v-for="l in legend.slice(0, 4)" :key="l[0]"><i :class="l[0]" />{{ l[1] }}</span>
                 <span class="faint" style="margin-left: auto">{{ $t('owner.schedule.week_hint') }}</span>
             </div>
         </template>
@@ -448,11 +531,11 @@ const legend = computed(() => [
                     </div>
                     <div class="pr">{{ amd(b.price) }}</div>
                     <div class="acts">
-                        <template v-if="b.status === 'pending' && !b.started">
-                            <button type="button" class="btn sm" @click.stop="accept(b.id)">{{ $t('owner.a.accept') }}</button>
-                            <button type="button" class="btn sm danger" @click.stop="askDecline(b.id)">{{ $t('owner.a.decline') }}</button>
+                        <template v-if="kindOf(b) === 'pending'">
+                            <button type="button" class="btn sm" @click.stop="accept(b.id, b)">{{ $t('owner.a.accept') }}</button>
+                            <button type="button" class="btn sm danger" @click.stop="askDecline(b.id, whoOf(b))">{{ $t('owner.a.decline') }}</button>
                         </template>
-                        <span v-else :class="['pill', pillOf(b).cls]">{{ pillOf(b).label }}</span>
+                        <span v-else :class="['pill', rowPill(b).cls]">{{ rowPill(b).label }}</span>
                     </div>
                 </div>
                 <div v-if="!listShown.length" class="empty" style="border: 0">{{ $t('owner.schedule.none') }}</div>

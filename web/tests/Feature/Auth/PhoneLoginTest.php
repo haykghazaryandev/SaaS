@@ -12,7 +12,7 @@ it('logs in a new phone with the code and asks for a name', function () {
     $this->assertAuthenticated();
     expect(User::where('phone', '+37491234567')->first()->registered_at)->toBeNull();
 
-    $this->post('/welcome', ['name' => 'Aram Petrosyan', 'username' => 'Aram_10', 'level' => 'mid'])->assertRedirect('/');
+    $this->post('/welcome', ['name' => 'Aram Petrosyan', 'username' => 'Aram_10'])->assertRedirect('/');
     $user = User::where('phone', '+37491234567')->first();
     expect($user->registered_at)->not->toBeNull()->and($user->username)->toBe('aram_10');
 });

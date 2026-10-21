@@ -5,10 +5,12 @@ namespace App\Domain\Notifications\Listeners;
 use App\Domain\Booking\Events\BookingChanged;
 use App\Domain\Notifications\BookingNotification;
 use App\Models\User;
+use App\Notifications\Notice;
+use App\Support\LocalTime;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * BookingChanged → who gets a Telegram message:
+ * BookingChanged → who is told, by Telegram and in the app (bell + live toast):
  * - the player: requested, accepted (with the code), declined, changed (time/field/price), cancelled by the place or the system, expired
  * - owners and staff of the place: a new request (with Accept / Decline buttons), the player cancelled
  */
@@ -29,6 +31,15 @@ class SendBookingTelegram
             && ! ($type === 'changed' && ! array_intersect(array_keys($event->changes), self::PLAYER_CHANGE_KEYS));
         if ($toPlayer && $b->user?->telegram_chat_id) {
             $b->user->notify(new BookingNotification($b, $type, 'player', $event->changes));
+        }
+        // in the app: the answer of the place (not the player's own "request sent")
+        if ($toPlayer && $type !== 'requested' && $b->user) {
+            $t = $b->starts_at->toImmutable()->setTimezone(LocalTime::tz());
+            $b->user->notify(new Notice('booking_'.$type, [
+                'venue' => $b->venue->name, 'field' => $b->field->format, 'date' => $t->format('d.m'),
+                'time' => $t->format('H:i').'–'.$b->ends_at->toImmutable()->setTimezone(LocalTime::tz())->format('H:i'),
+                'code' => $b->code, 'reason' => $b->decline_reason ?? $b->cancel_reason ?? '',
+            ], '/me/bookings'));
         }
 
         $toOwners = $type === 'requested' || ($type === 'cancelled' && $cancelledBy === 'player');

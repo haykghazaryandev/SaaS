@@ -23,6 +23,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user ? [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'avatar' => $user->avatarUrl(),
                     'phone' => Phone::format($user->phone),
                     'username' => $user->username,
                     'registered' => $user->isRegistered(),
@@ -38,8 +39,14 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             // development only: the last login code, so you can log in without Telegram
-            'devCode' => fn () => config('app.debug') && config('services.otp_driver') === 'log' && $request->session()->get('otp_phone')
-                ? Cache::get('dev-otp:'.$request->session()->get('otp_phone')) : null,
+            'devCode' => function () use ($request) {
+                if (! config('app.debug')) {
+                    return null;
+                }
+                $key = $request->session()->get('otp_email') ?? (config('services.otp_driver') === 'log' ? $request->session()->get('otp_phone') : null);
+
+                return $key ? Cache::get('dev-otp:'.$key) : null;
+            },
         ];
     }
 }

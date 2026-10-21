@@ -42,8 +42,8 @@ composer run dev     # app :8000 + queue + Reverb :8080 + logs + Vite
 - Write natural Armenian and Russian.
 
 **Frontend:**
-- Use the design system in `resources/css/bookball.css`, ported from the prototype: dark theme with a lime accent. Classes include `.wrap .card .btn .btn.ghost .btn.sm .chip .pill .input .field .kicker .sheet .scrim .tabs .days .day`. Tailwind utilities are available for layout, with preflight off.
-- Components are in `resources/js/components`: `Icon`, `Logo`, `LangSwitch`, `Flash`, `CodeInput`.
+- Use the design system in `resources/css/bookball.css` (see "Design system" below). Tailwind utilities are available for layout, with preflight off.
+- Components are in `resources/js/components`: `Icon`, `Logo`, `Avatar`, `LangSwitch`, `Flash`, `CodeInput`.
 - Layouts are in `resources/js/layouts`: `PlayerLayout`, `AuthLayout`, and an owner layout.
 - Helpers are in `composables/useShared.ts`: `useShared()`, `hhmm()`, `amd()`.
 
@@ -75,3 +75,76 @@ composer run dev     # app :8000 + queue + Reverb :8080 + logs + Vite
   - `routes/chat.php`
 - **Errors:** `App\Domain\Social\SocialException($reason)`; the text is `__('social.error.<reason>')`.
 - **Demo data** (`SocialSeeder`): player **+374 93 000 100** has friends, two of their own games (one open with a chat, one forming), an invite and a direct chat.
+
+## Design system
+Dark theme with a lime accent, in `resources/css/bookball.css`. The class reference is also at the top of that file. The rules come from `../docs/ux-review-2026-10-22.md` (G1–G8).
+
+**Rules:**
+- Colors only through tokens, never raw hex:
+  - `--accent`: lime, only for the one main action
+  - `--field-small` / `--field-big`: field sizes
+  - `--st-pending` / `--st-confirmed` / `--st-manual` / `--st-off`: booking states, each with a `-soft` background variant
+- Fonts:
+  - `--display`: brand, page titles and big numbers only
+  - `--mono`: booking codes and picker times only
+- People are always shown with `<Avatar :id :name size="xs|sm|md|lg|xl" />`.
+- A disabled button always has its reason in a `.why` line right above it.
+
+**Classes:**
+- **Type:**
+  - `.kicker`: a sentence-case, muted 13px label above a title
+  - `.page-title`
+- **Buttons:**
+  - `.btn`: lime, the main action
+  - variants: `.btn.ghost`, `.btn.outline`, `.btn.danger`, `.btn.link`, `.btn.link.danger`
+  - sizes: `.btn.sm`, `.btn.lg`, `.btn.block`, `.btn.icon`
+  - `.btn.blue` is deprecated and renders as outline
+- **Chips:**
+  - `.chips > .chip[aria-pressed]` for filters and quick picks
+  - `.pill(.lime|.green|.blue|.warn|.hot)` for small labels
+- **Booking status:** `.status-pill.pending|.confirmed|.manual|.off`. Add `.outline` for the expired / outline look.
+- **Field size:**
+  - `.field-dot.small|.big`: a 9px dot
+  - `.c-small` / `.c-big`: text colors
+- **Forms:** `.field > label + .input`, with `.hint` and `.err`. Add `aria-invalid="true"` on an `.input` for a red border.
+- **Segmented control:** `.seg > button[aria-pressed="true"]` for 2–3 options. Use `.seg.block` for full width.
+- **Count badge:**
+  - `.badge-dot`: lime count
+  - `.badge-dot.warn`: amber count, for waiting
+  - `.badge-dot.sm`: a plain 8px dot
+  - `.badge-dot.ring`: a ring to separate it from the background
+- **Cards:**
+  - `.card`, `.card.pad` (padding) and `.card.hover` (lift on hover)
+  - `.list-row` with `.lr-main`: a 64px tappable row
+- **Empty state:** `.empty-state > .es-ico + h3 + p + .btn`. Use `.empty-state.plain` for no border.
+- **⋯ menu:** `.menu-wrap > button.menu-btn[aria-expanded] + .menu[role=menu] > button|a`.
+  - `.danger` marks a destructive item
+  - `.menu.up` opens upwards; `.menu.left` aligns to the left
+  - `hr` adds a separator
+- **Inline confirm:** `.confirm(.danger) > p + .confirm-actions > .btn.sm…`
+- **Sheet:** `.scrim > .sheet`, with `.sheet-head > h3 + .x`. It is a bottom sheet with a handle on phones.
+- **Tabs:**
+  - `.tabs > button[aria-selected]`
+  - or `.tabs > a[aria-current="page"]`
+- **Day strip:**
+  - `.days > .day[aria-pressed]`, containing `b` and `small`. The edge fade is automatic.
+  - `.day.any` is the "Any day" outline chip.
+- **Other:** `.toast` (`.toast.error`), `.bar > i` (progress), `.divider`, `.skeleton`, `.sr-only`
+
+**`PlayerLayout` props:**
+- `hide-tabbar`: no bottom tab bar on phones. Used by the place page.
+- `fullscreen`: at ≤ 900px there is no header, tab bar or footer. `<main>` is a flex column filling `100dvh`. Used by the chat page. Desktop keeps the header.
+- **CSS variables** on `.papp`:
+  - `--app-top`: the header height (`64px`, or `0px` in fullscreen on phones)
+  - `--app-bottom`: the tab bar height (`0px` without it)
+
+**Other layout behavior:**
+- The language switch and the footer are shown to guests only. Logged-in users change the language in Profile.
+- Header and tab bar badges come from the shared `counts` prop and from `GET /notifications`. The keys are:
+  - `notifications`
+  - `messages`: unread chats
+  - `friendRequests`
+  - `invites`: unanswered game invites
+  - `pendingBookings`: booking requests still waiting for the place
+
+  They are kept live by `composables/useSocial.ts`.

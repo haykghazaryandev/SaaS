@@ -12,4 +12,10 @@ return [
     'game_expired' => 'Ձեր :format խաղը չեղարկվեց․ 48 ժամում բավարար ընկերներ չընդունեցին',
     'game_booked' => '🏟 Դաշտն ամրագրված է ձեր խաղի համար՝ :venue :field, :date :time',
     'game_booking_declined' => 'Ակումբը չկարողացավ ընդունել ձեր խաղը՝ :venue, :date :time։ Զրույցում ընտրեք այլ ժամ։',
+    'booking_accepted' => '✅ Հաստատված է՝ :venue :field, :date :time։ Կոդ՝ :code։',
+    'booking_declined' => '❌ :venue-ը չի կարող ընդունել ձեր ամրագրումը՝ :date :time։ :reason Խորհուրդ․ դաշտի էջում սեղմեք զբաղված ժամը, և մենք կտեղեկացնենք, երբ այն ազատվի։',
+    'booking_changed' => '✏️ :venue-ը փոխել է ձեր ամրագրումը․ հիմա՝ :field, :date :time։',
+    'booking_cancelled' => '🚫 :venue-ը չեղարկել է ձեր ամրագրումը՝ :date :time։ :reason',
+    'booking_expired' => '⌛ :venue-ը ժամանակին չպատասխանեց :date :time-ի համար։ Ժամը կրկին ազատ է, փորձեք այլ դաշտ։',
+    'slot_free' => '🔔 :venue :field, :date :time-ն այժմ ազատ է։ Ամրագրեք, քանի դեռ ուրիշը չի զբաղեցրել։',
 ];

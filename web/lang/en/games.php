@@ -18,6 +18,13 @@ return [
     ],
 
     'index' => [
+        'all' => 'All',
+        'filters' => 'Filters',
+        'anyTime' => 'Any time',
+        'clear' => 'Clear',
+        'showGames' => 'Show games',
+        'emptyTitle' => 'No open games yet',
+        'emptyFilteredTitle' => 'Nothing matches',
         'kick' => 'Games · N vs N',
         'h1' => 'Find players for a game',
         'lead' => 'Join an open game near you, or start your own with friends. When enough people are in, book a field together.',
@@ -37,6 +44,11 @@ return [
     ],
 
     'card' => [
+        'tbd' => 'Time TBD',
+        'spotsLeft' => '{1} 1 spot left|[2,*] :n spots left',
+        'moreToOpen' => '{0} Ready to open|{1} 1 more to open|[2,*] :n more to open',
+        'isFull' => 'Full',
+        'invitedYou' => ':name invited you',
         'anyTime' => 'Time to agree in the chat',
         'anywhere' => 'Anywhere in Yerevan',
         'yours' => 'Your game',
@@ -63,6 +75,12 @@ return [
     ],
 
     'create' => [
+        'less' => 'Fewer players',
+        'more' => 'More players',
+        'anyDay' => 'Any day',
+        'anyTime' => 'Any time',
+        'noEnd' => 'No end time',
+        'pickMore' => '{1} Pick 1 more friend to create|[2,*] Pick :n more friends to create',
         'kick' => 'New game',
         'title' => 'Create a game',
         'lead' => 'Choose the size, invite your friends, and the game opens to everyone as soon as enough of them accept.',
@@ -96,8 +114,12 @@ return [
     ],
 
     'show' => [
+        'more' => 'More for :name',
+        'freeSpots' => '{1} 1 free spot|[2,*] :n free spots',
+        'invite' => 'Invite',
         'back' => 'All games',
         'totalPlayers' => ':n players',
+        'organiserBooks' => 'Only the organiser, :name, books the field. Agree on the day and time in the chat.',
         'organiser' => 'Organised by :name',
         'organiserShort' => 'Organiser',
         'previous' => 'Started from a previous game',

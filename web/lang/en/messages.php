@@ -2,7 +2,7 @@
 
 // Messages: the chat list and the chat screen (resources/js/pages/messages)
 return [
-    'title' => 'Messages',
+    'title' => 'Chats',
     'sub' => 'Game chats and chats with friends',
     'empty' => 'No chats yet',
     'emptyHint' => 'A game chat opens when your game opens. You can also write to your friends.',
@@ -48,4 +48,20 @@ return [
     'offline' => 'No live connection. Checking for new messages every few seconds…',
     'back' => 'All chats',
     'error' => 'Couldn\'t send. Check your connection and try again.',
+    'newMessage' => 'New message',
+    'findPlayers' => 'Find players',
+    'searchFriends' => 'Search friends',
+    'loading' => 'Loading…',
+    'noFriends' => 'Add friends to write to them. Game chats open by themselves when a game opens.',
+    'unreadN' => ':n unread',
+    // pinned game bar in a game chat
+    'bar' => [
+        'none' => 'field not booked',
+        'requested' => 'field requested',
+        'booked' => 'field booked',
+        'book' => 'Book',
+    ],
+    'emoji' => 'Emoji',
+    'emojiFootball' => 'Football',
+    'emojiReactions' => 'Reactions',
 ];

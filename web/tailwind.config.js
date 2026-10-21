@@ -3,6 +3,8 @@ export default {
     content: ['./resources/views/**/*.blade.php', './resources/js/**/*.{vue,js,ts}'],
     // the design system in bookball.css styles the base elements; keep Tailwind's reset minimal
     corePlugins: { preflight: false },
+    // design-system class names that clash with Tailwind utilities (e.g. .btn.outline would get outline-style: solid)
+    blocklist: ['outline', 'container', 'collapse'],
     theme: {
         extend: {
             colors: {

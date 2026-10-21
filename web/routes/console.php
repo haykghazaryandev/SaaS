@@ -27,3 +27,6 @@ Illuminate\Support\Facades\Schedule::call(function () {
     $chat->archiveQuiet();
     $chat->deleteExpired();
 })->hourly()->name('chats:archive-and-delete')->withoutOverlapping();
+
+// old "notify me if it frees up" alerts
+Illuminate\Support\Facades\Schedule::call(fn () => app(App\Domain\Booking\Alerts\SlotAlerts::class)->prune())->daily()->name('alerts:prune');

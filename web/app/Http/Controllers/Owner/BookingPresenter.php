@@ -19,11 +19,15 @@ final class BookingPresenter
     /** Statuses that count as "the field is used" for occupancy. */
     public const USED = ['pending', 'accepted', 'completed', 'no_show'];
 
-    /** Visual kind: pending (amber), accepted (green, from players), owner (blue, made by the place), noshow, off (declined/cancelled/expired). */
+    /**
+     * Visual kind: pending (amber), accepted (green, from players), owner (violet, made by the place), noshow,
+     * expired (grey outline: nobody answered, also a request whose start has passed before the job ran), off (declined/cancelled).
+     */
     public static function kind(Booking $b): string
     {
         return match ($b->status) {
-            BookingStatus::Pending => 'pending',
+            BookingStatus::Pending => $b->starts_at->isPast() ? 'expired' : 'pending',
+            BookingStatus::Expired => 'expired',
             BookingStatus::Accepted, BookingStatus::Completed => in_array($b->source, [BookingSource::Owner, BookingSource::Recurring], true) ? 'owner' : 'accepted',
             BookingStatus::NoShow => 'noshow',
             default => 'off',
@@ -57,7 +61,7 @@ final class BookingPresenter
             'weekly' => $b->series_id !== null,
             'started' => $b->starts_at->isPast(),
             'past' => $b->ends_at->isPast(),
-            'user' => $b->relationLoaded('user') && $b->user ? ['id' => $b->user->id, 'name' => $b->user->name, 'no_shows' => (int) $b->user->no_show_count] : null,
+            'user' => $b->relationLoaded('user') && $b->user ? ['id' => $b->user->id, 'name' => $b->user->name, 'avatar' => $b->user->avatarUrl(), 'no_shows' => (int) $b->user->no_show_count] : null,
             'sent_ago' => $b->created_at?->locale(app()->getLocale())->diffForHumans(),
         ];
     }

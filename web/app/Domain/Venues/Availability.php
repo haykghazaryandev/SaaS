@@ -172,6 +172,74 @@ class Availability
         return $out;
     }
 
+    /**
+     * Start times that fall inside opening hours and are not in the past (nor inside the minimum notice), but clash
+     * with a booking or closure. Together with freeStarts() this is every start time a player can see on a day.
+     */
+    public function takenStarts(Field $field, CarbonImmutable $day, int $minutes, bool $forPlayer = true, ?array $busy = null): array
+    {
+        $venue = $field->loadMissing('venue.openingHours')->venue;
+        $hours = $this->hours($venue, $day);
+        $now = LocalTime::now();
+        if (! $hours || ($forPlayer && $day->greaterThan($now->startOfDay()->addDays($venue->rule('horizon_days'))))) {
+            return [];
+        }
+        $step = $venue->rule('step_min') / 60;
+        $busy ??= $this->busy($field, $day);
+        $earliest = $forPlayer ? $now->addMinutes($venue->rule('min_notice_min')) : $now;
+        $out = [];
+        for ($h = $hours[0]; $h + $minutes / 60 <= $hours[1] + 1e-9; $h += $step) {
+            if (LocalTime::at($day, $h)->lessThan($earliest)) {
+                continue;
+            }
+            $end = $h + $minutes / 60;
+            foreach ($busy as [$a, $b]) {
+                if ($a < $end - 1e-9 && $b > $h + 1e-9) {
+                    $out[] = round($h, 2);
+                    break;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The first free start of each field on or after a local day, looking $days days ahead (two queries per day).
+     * $durations: [fieldId => [minutes, …]]; a field without an entry uses its default duration.
+     * Returns [fieldId => [minutes => ['date' => 'Y-m-d', 'start' => hours] | null]].
+     */
+    public function nextFreeMany(Collection $fields, CarbonImmutable $fromDay, array $durations = [], int $days = 14, bool $forPlayer = true): array
+    {
+        $out = [];
+        $todo = [];
+        foreach ($fields as $f) {
+            foreach ($durations[$f->id] ?? [$f->default_duration] as $m) {
+                $out[$f->id][(int) $m] = null;
+                $todo[$f->id][] = (int) $m;
+            }
+        }
+        $day = $fromDay->startOfDay();
+        for ($k = 0; $k < $days && $todo; $k++, $day = $day->addDay()) {
+            $pending = $fields->filter(fn ($f) => isset($todo[$f->id]))->values();
+            $busy = $this->busyMany($pending, $day);
+            foreach ($pending as $f) {
+                foreach ($todo[$f->id] as $i => $m) {
+                    $starts = $this->freeStarts($f, $day, $m, $forPlayer, $busy[$f->id] ?? []);
+                    if ($starts) {
+                        $out[$f->id][$m] = ['date' => $day->toDateString(), 'start' => $starts[0]];
+                        unset($todo[$f->id][$i]);
+                    }
+                }
+                if (! $todo[$f->id]) {
+                    unset($todo[$f->id]);
+                }
+            }
+        }
+
+        return $out;
+    }
+
     /** All bookings of a place for a local day (owner schedule), grouped by field id. */
     public function daySchedule(Venue $venue, CarbonImmutable $day, bool $withInactive = false): Collection
     {

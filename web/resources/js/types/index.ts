@@ -1,6 +1,7 @@
 export interface AuthUser {
     id: number;
     name: string | null;
+    avatar?: string | null;
     phone: string;
     username: string | null;
     registered: boolean;
@@ -23,4 +24,8 @@ export interface SocialCounts {
     notifications: number;
     messages: number;
     friendRequests: number;
+    /** game invites I have not answered */
+    invites: number;
+    /** my booking requests waiting for the place */
+    pendingBookings: number;
 }

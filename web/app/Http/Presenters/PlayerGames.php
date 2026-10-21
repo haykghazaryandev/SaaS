@@ -29,7 +29,7 @@ class PlayerGames
 
     public function person(User $u): array
     {
-        return ['id' => $u->id, 'name' => $u->name ?: '—', 'short' => $u->shortName(), 'initials' => self::initials($u->name), 'level' => $u->level];
+        return ['id' => $u->id, 'name' => $u->name ?: '—', 'short' => $u->shortName(), 'initials' => self::initials($u->name), 'avatar' => $u->avatarUrl()];
     }
 
     /** The preferred time window in local time: date, from, to (null when the game has none). */
@@ -75,14 +75,16 @@ class PlayerGames
         return [
             'id' => $g->id, 'format' => $g->format(), 'perSide' => $g->players_per_side, 'total' => $g->total_players, 'minToOpen' => $g->min_to_open,
             'in' => $in->count(), 'status' => $g->status->value,
-            'level' => $g->level, 'district' => $g->district,
+            'district' => $g->district,
             'venue' => $g->venue ? ['slug' => $g->venue->slug, 'name' => $g->venue->name, 'district' => $g->venue->district] : null,
             'window' => $this->window($g), 'note' => $g->note,
             'creator' => $this->person($g->creator),
-            'avatars' => $in->take(6)->map(fn (GamePlayer $p) => ['initials' => self::initials($p->user?->name), 'name' => $p->user?->name])->all(),
+            'avatars' => $in->take(6)->map(fn (GamePlayer $p) => ['id' => $p->user_id, 'initials' => self::initials($p->user?->name), 'name' => $p->user?->name, 'avatar' => $p->user?->avatarUrl()])->all(),
             'booking' => $g->booking && $g->booking->status->holdsTime() ? $this->booking($g->booking) : null,
             'me' => $mine ? $mine->status->value : null,
             'mine' => $me && $g->creator_id === $me->id,
+            // who invited me ("Aram invited you"): the inviter if they are in the game, else the organiser
+            'invitedBy' => $mine && $mine->status === P::Invited ? $this->person($g->players->firstWhere('user_id', $mine->invited_by)?->user ?? $g->creator) : null,
         ];
     }
 

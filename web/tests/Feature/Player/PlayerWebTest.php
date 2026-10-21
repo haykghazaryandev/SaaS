@@ -99,35 +99,10 @@ it('shows booking rule errors nicely', function () {
     ])->assertRedirect("/places/{$this->venue->slug}")->assertSessionHasErrors(['booking' => __('booking.error.taken')]);
 });
 
-it('lets a guest book with name, phone and a code, and keeps them logged in', function () {
-    $this->post('/bookings/code', ['name' => 'Davit Sargsyan', 'phone' => '093 55 66 77'])->assertSessionHasNoErrors();
-    $code = Cache::get('dev-otp:+37493556677');
-    expect($code)->toHaveLength(4);
-
-    // wrong code: nothing happens
-    $this->post('/bookings', ['field_id' => $this->big->id, 'date' => $this->date, 'start' => '19:00', 'minutes' => 90, 'code' => $code === '0000' ? '1111' : '0000'])
-        ->assertSessionHasErrors('code');
-    $this->assertGuest();
+it('asks a guest to log in before sending a request', function () {
+    $this->post('/bookings', ['field_id' => $this->small->id, 'date' => $this->date, 'start' => '19:00', 'minutes' => 60])
+        ->assertSessionHasErrors(['booking' => __('player.verify.loginFirst')]);
     expect(Booking::count())->toBe(0);
-
-    $this->post('/bookings', ['field_id' => $this->big->id, 'date' => $this->date, 'start' => '19:00', 'minutes' => 90, 'code' => $code])
-        ->assertSessionHasNoErrors()->assertRedirect();
-    $this->assertAuthenticated();
-    $user = User::where('phone', '+37493556677')->first();
-    expect($user->name)->toBe('Davit Sargsyan')->and($user->isRegistered())->toBeFalse();
-    $b = Booking::first();
-    expect($b->source)->toBe(BookingSource::WebGuest)->and($b->user_id)->toBe($user->id)->and($b->contact_name)->toBe('Davit Sargsyan')
-        ->and(\App\Models\OtpCode::first()->purpose)->toBe('booking');
-
-    // next time: no code needed
-    $this->post('/bookings', ['field_id' => $this->small->id, 'date' => $this->date, 'start' => '10:00', 'minutes' => 60])->assertSessionHasNoErrors();
-    expect(Booking::count())->toBe(2);
-});
-
-it('asks a guest for the code before booking', function () {
-    $this->post('/bookings', ['field_id' => $this->small->id, 'date' => $this->date, 'start' => '19:00', 'minutes' => 60])->assertSessionHasErrors('code');
-    $this->post('/bookings/code', ['name' => 'A', 'phone' => '093 55 66 77'])->assertSessionHasErrors('name');
-    $this->post('/bookings/code', ['name' => 'Aram', 'phone' => '12'])->assertSessionHasErrors(['phone' => __('auth.phone.invalid')]);
 });
 
 it('lists my bookings and lets me cancel my own', function () {
@@ -136,14 +111,15 @@ it('lists my bookings and lets me cancel my own', function () {
 
     $this->actingAs($player)->get('/me/bookings')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('player/MyBookings')
-        ->has('upcoming', 1)->has('past', 0)
-        ->where('upcoming.0.code', $b->code)->where('upcoming.0.canCancel', true)->where('stats.waiting', 1)
+        ->has('upcoming', 1)
+        ->where('upcoming.0.code', $b->code)->where('upcoming.0.canCancel', true)->where('upcoming.0.status', 'pending')
     );
 
     $this->post("/bookings/{$b->id}/cancel")->assertRedirect()->assertSessionHas('success');
     expect($b->fresh()->status)->toBe(BookingStatus::Cancelled)->and($b->fresh()->cancelled_by)->toBe('player');
 
-    $this->get('/me/bookings')->assertInertia(fn (Assert $page) => $page->has('upcoming', 0)->has('past', 1)->where('past.0.status', 'cancelled'));
+    // past and cancelled bookings are not listed (only what is still ahead)
+    $this->get('/me/bookings')->assertInertia(fn (Assert $page) => $page->has('upcoming', 0)->missing('past'));
 });
 
 it('does not let a player cancel somebody else\'s booking', function () {

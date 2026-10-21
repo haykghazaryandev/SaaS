@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import { useShared } from '@/composables/useShared';
 import { markRead, refresh, social } from '@/composables/useSocial';
@@ -25,6 +26,8 @@ function go(n: Notice) {
     open.value = false;
     if (n.link) router.visit(n.link);
 }
+// an icon for notices that are not about a person
+const iconOf = (n: Notice) => (n.type.startsWith('booking_') ? 'ticket' : n.type.startsWith('game_') ? 'ball' : n.type.startsWith('friend_') ? 'users' : 'bell');
 function goToast() {
     const link = social.toast?.link;
     social.toast = null;
@@ -63,7 +66,7 @@ watch(() => page.url, () => (open.value = false));
     <div ref="el" class="bell">
         <button type="button" class="bell-btn" :aria-expanded="open" aria-haspopup="true" :aria-label="$t('friends.bell.open')" :title="$t('friends.bell.open')" @click="toggle">
             <Icon name="bell" />
-            <span v-if="unread" class="bdg">{{ unread > 99 ? '99+' : unread }}</span>
+            <span v-if="unread" class="badge-dot bdg">{{ unread > 99 ? '99+' : unread }}</span>
         </button>
         <div v-if="open" class="bdrop" role="dialog" :aria-label="$t('friends.bell.title')">
             <div class="bhead">
@@ -72,11 +75,13 @@ watch(() => page.url, () => (open.value = false));
             </div>
             <div class="blist">
                 <button v-for="n in social.items" :key="n.id" type="button" :class="['bitem', { new: !n.read_at }]" @click="go(n)">
-                    <span class="dot" aria-hidden="true" />
+                    <Avatar v-if="n.name" :name="n.name" size="sm" />
+                    <span v-else class="bico" aria-hidden="true"><Icon :name="iconOf(n)" size="sm" /></span>
                     <span class="btxt">
                         <span>{{ n.text }}</span>
                         <small>{{ ago(n.created_at) }}</small>
                     </span>
+                    <span class="dot" aria-hidden="true" />
                 </button>
                 <p v-if="social.loaded && !social.items.length" class="bempty">{{ $t('friends.bell.empty') }}</p>
                 <p v-if="!social.loaded" class="bempty">…</p>
@@ -90,19 +95,21 @@ watch(() => page.url, () => (open.value = false));
 
 <style scoped>
 .bell { position: relative; }
-.bell-btn { position: relative; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-2); color: var(--ink); padding: 0; }
+.bell-btn { position: relative; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-2); color: var(--ink); padding: 0; }
 .bell-btn:hover, .bell-btn[aria-expanded="true"] { border-color: var(--accent); }
-.bdg { position: absolute; top: -5px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font-size: 10.5px; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--bg); line-height: 1; }
+.bdg { position: absolute; top: -5px; right: -6px; box-shadow: 0 0 0 2px var(--bg); }
 .bdrop { position: absolute; right: -50px; top: calc(100% + 8px); width: 360px; max-width: calc(100vw - 24px); background: var(--surface); border: 1px solid var(--line-2); border-radius: 16px; box-shadow: var(--shadow); z-index: 60; overflow: hidden; }
 .bhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .linkbtn { background: none; border: 0; color: var(--accent); font-weight: 700; font-size: 12.5px; padding: 0; }
 .blist { max-height: min(440px, 70vh); overflow-y: auto; padding: 4px; }
-.bitem { display: flex; gap: 10px; width: 100%; text-align: left; background: none; border: 0; padding: 10px; border-radius: 10px; color: var(--muted); font-size: 13.5px; }
+.bitem { display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; background: none; border: 0; padding: 10px; border-radius: 10px; color: var(--muted); font-size: 13.5px; }
 .bitem:hover { background: var(--surface-2); }
 .bitem.new { color: var(--ink); }
-.bitem .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex: none; background: transparent; }
+.bitem .dot { width: 8px; height: 8px; border-radius: 50%; margin: 6px 0 0 auto; flex: none; background: transparent; }
+.bico { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--surface-3); color: var(--muted); }
+.bitem.new .bico { color: var(--accent); }
 .bitem.new .dot { background: var(--accent); }
-.btxt { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.btxt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .btxt small { color: var(--faint); font-size: 11.5px; }
 .bempty { margin: 0; padding: 22px 14px; text-align: center; color: var(--muted); font-size: 13.5px; }
 .ntoast { position: fixed; right: 16px; top: 76px; z-index: 95; max-width: min(380px, calc(100vw - 32px)); display: flex; gap: 10px; align-items: flex-start; text-align: left; background: var(--surface-2); color: var(--ink); border: 1px solid rgba(200, 255, 61, 0.35); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); font-weight: 600; font-size: 13.5px; animation: nt-in 0.25s ease-out; }

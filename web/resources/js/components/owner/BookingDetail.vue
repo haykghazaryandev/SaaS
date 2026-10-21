@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
-import { act, askCancel, askDecline, dur, openForm, pillOf, relDay, useOwner, type BookingDetail } from '@/composables/useOwner';
+import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, ref } from 'vue';
@@ -35,7 +35,8 @@ function noShow() {
 }
 function accept() {
     if (!b.value) return;
-    act('accept', b.value.id, {}, () => emit('close'));
+    decide('accept', b.value.id, { who: whoOf(b.value) });
+    emit('close');
 }
 function edit() {
     if (b.value) openForm({ booking: b.value });
@@ -132,7 +133,7 @@ function edit() {
                     <button type="button" class="btn" data-test="accept" @click="accept">
                         <Icon name="check" size="sm" />{{ $t('owner.a.accept') }}
                     </button>
-                    <button type="button" class="btn danger" data-test="decline" @click="askDecline(b.id)">
+                    <button type="button" class="btn danger" data-test="decline" @click="askDecline(b.id, whoOf(b))">
                         <Icon name="x" size="sm" />{{ $t('owner.a.decline') }}
                     </button>
                 </template>

@@ -124,7 +124,7 @@ class BookingController extends OwnerController
         $this->ensureSameVenue($request, $booking);
         $this->attempt(fn () => $decide->accept($booking, $request->user()));
 
-        return back()->with('success', __('owner.flash.accepted'));
+        return $this->decided($request, 'accepted');
     }
 
     public function decline(Request $request, Booking $booking, DecideBooking $decide)
@@ -133,7 +133,7 @@ class BookingController extends OwnerController
         $data = $request->validate(['reason' => 'nullable|string|max:255']);
         $this->attempt(fn () => $decide->decline($booking, $request->user(), filled($data['reason'] ?? null) ? trim($data['reason']) : null));
 
-        return back()->with('success', __('owner.flash.declined'));
+        return $this->decided($request, 'declined');
     }
 
     public function cancel(Request $request, Booking $booking, CancelBooking $cancel)
@@ -154,6 +154,19 @@ class BookingController extends OwnerController
     }
 
     // ---------- helpers ----------
+
+    /**
+     * Accept/decline answer. The owner pages send it with fetch (JSON) once the 5-second "Undo" window of the toast is over,
+     * so the decision also reaches the server when the page is being closed; plain form posts get the usual redirect.
+     */
+    private function decided(Request $request, string $what)
+    {
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'message' => __('owner.flash.'.$what)]);
+        }
+
+        return back()->with('success', __('owner.flash.'.$what));
+    }
 
     private function timeRules(Venue $venue): array
     {

@@ -84,25 +84,41 @@ class PlayerVenues
         $busy = $this->availability->busyMany($fields, $day);
         $hours = $this->availability->hours($venue, $day);
 
+        $out = $fields->map(function (Field $f) use ($day, $busy, $hours, $minutes) {
+            $starts = [];
+            $taken = [];
+            foreach ($minutes ? [$minutes] : ($f->durations ?? []) as $m) {
+                $ok = in_array($m, $f->durations ?? [], true);
+                $starts[(string) $m] = $ok ? $this->availability->freeStarts($f, $day, $m, true, $busy[$f->id] ?? []) : [];
+                // taken start times are shown greyed out, so the player sees the whole day
+                $taken[(string) $m] = $ok ? $this->availability->takenStarts($f, $day, $m, true, $busy[$f->id] ?? []) : [];
+            }
+            // price per hour of every half hour (PriceCalculator charges each half hour by its own rule)
+            $rates = [];
+            if ($hours) {
+                for ($h = $hours[0]; $h < $hours[1] - 1e-9; $h += 0.5) {
+                    $rates[] = [round($h, 2), $this->prices->hourlyAt($f->priceRules, LocalTime::at($day, $h))];
+                }
+            }
+
+            return ['id' => $f->id, 'starts' => $starts, 'taken' => (object) $taken, 'next' => [], 'rates' => $rates];
+        });
+
+        // nothing free this day for a duration: the first free start on a later day ("Fully booked. Next free: Fri 18:00")
+        $need = [];
+        foreach ($out as $row) {
+            foreach ($row['starts'] as $m => $list) {
+                if (! $list) {
+                    $need[$row['id']][] = (int) $m;
+                }
+            }
+        }
+        $next = $need ? $this->availability->nextFreeMany($fields->whereIn('id', array_keys($need))->values(), $day->addDay(), $need, 13) : [];
+
         return [
             'date' => $day->toDateString(),
             'hours' => $hours,
-            'fields' => $fields->map(function (Field $f) use ($day, $busy, $hours, $minutes) {
-                $starts = [];
-                foreach ($minutes ? [$minutes] : ($f->durations ?? []) as $m) {
-                    $starts[(string) $m] = in_array($m, $f->durations ?? [], true)
-                        ? $this->availability->freeStarts($f, $day, $m, true, $busy[$f->id] ?? []) : [];
-                }
-                // price per hour of every half hour (PriceCalculator charges each half hour by its own rule)
-                $rates = [];
-                if ($hours) {
-                    for ($h = $hours[0]; $h < $hours[1] - 1e-9; $h += 0.5) {
-                        $rates[] = [round($h, 2), $this->prices->hourlyAt($f->priceRules, LocalTime::at($day, $h))];
-                    }
-                }
-
-                return ['id' => $f->id, 'starts' => (object) $starts, 'rates' => $rates];
-            })->all(),
+            'fields' => $out->map(fn ($row) => [...$row, 'starts' => (object) $row['starts'], 'next' => (object) array_filter($next[$row['id']] ?? [])])->all(),
         ];
     }
 
@@ -117,7 +133,10 @@ class PlayerVenues
 
         return [
             'id' => $b->id, 'code' => $b->code, 'status' => $b->status->value,
-            'venue' => ['slug' => $venue->slug, 'name' => $venue->name, 'district' => $venue->district, 'address' => $venue->tr('address')],
+            'venue' => [
+                'slug' => $venue->slug, 'name' => $venue->name, 'district' => $venue->district, 'address' => $venue->tr('address'),
+                'lat' => $venue->lat !== null ? (float) $venue->lat : null, 'lng' => $venue->lng !== null ? (float) $venue->lng : null, 'phone' => $venue->phone ?: null,
+            ],
             'field' => ['id' => $b->field_id, 'size' => $b->field->size->value, 'format' => $b->field->format ?: $b->field->size->format(), 'indoor' => (bool) $b->field->indoor, 'surface' => $b->field->surface],
             'date' => $start->toDateString(), 'start' => $start->format('H:i'), 'end' => $end->format('H:i') === '00:00' && ! $end->isSameDay($start) ? '24:00' : $end->format('H:i'),
             'startsAt' => $start->toIso8601String(), 'endsAt' => $end->toIso8601String(),
@@ -136,13 +155,19 @@ class PlayerVenues
     {
         $fields = $venues->flatMap(fn ($v) => $v->fields->where('active', true)->whereIn('size.value', $sizes));
         $free = $this->availability->freeStartsMany($fields, $day);
+        // fields with nothing free this day: the first free start on a later day ("Next free: Thu 19:00")
+        $empty = $time ? collect() : $fields->filter(fn ($f) => empty($free[$f->id]))->values();
+        $next = $empty->isEmpty() ? [] : $this->availability->nextFreeMany($empty, $day->addDay(), [], 13);
 
-        return $venues->map(function (Venue $v) use ($free, $sizes, $time, $perField, $day) {
+        return $venues->map(function (Venue $v) use ($free, $next, $sizes, $time, $perField, $day) {
             $hours = $this->availability->hours($v, $day);
-            $fields = $v->fields->where('active', true)->whereIn('size.value', $sizes)->values()->map(function (Field $f) use ($free, $time, $perField) {
+            $fields = $v->fields->where('active', true)->whereIn('size.value', $sizes)->values()->map(function (Field $f) use ($free, $next, $time, $perField) {
                 $starts = array_values(array_filter($free[$f->id] ?? [], fn ($h) => self::inTime($h, $time)));
 
-                return [...$this->field($f), 'starts' => array_slice($starts, 0, $perField), 'more' => max(0, count($starts) - $perField)];
+                return [
+                    ...$this->field($f), 'starts' => array_slice($starts, 0, $perField), 'more' => max(0, count($starts) - $perField),
+                    'next' => $next[$f->id][$f->default_duration] ?? null,
+                ];
             });
 
             return [

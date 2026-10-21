@@ -19,7 +19,6 @@ class ProfileController extends Controller
 {
     public const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward'];
 
-    public const LEVELS = ['beginner', 'mid', 'pro'];
 
     public function __construct(private Friends $friends, private PlayerCards $cards) {}
 
@@ -57,11 +56,11 @@ class ProfileController extends Controller
 
         return Inertia::render('profile/Edit', [
             'profile' => [
-                'name' => $u->name, 'username' => $u->username, 'level' => $u->level, 'position' => $u->position,
+                'name' => $u->name, 'username' => $u->username, 'position' => $u->position, 'avatar' => $u->avatarUrl(),
                 'district' => $u->district, 'bio' => $u->bio, 'locale' => app()->getLocale(),   // the language the page is shown in
                 'phone' => Phone::format($u->phone), 'telegram' => $u->hasTelegram(), 'url' => PlayerCards::url($u),
             ],
-            'options' => ['levels' => self::LEVELS, 'positions' => self::POSITIONS, 'districts' => self::districts(), 'locales' => config('app.locales')],
+            'options' => ['positions' => self::POSITIONS, 'districts' => self::districts(), 'locales' => config('app.locales')],
             'blocked' => fn () => $this->cards->cards($u, User::whereIn('id', UserBlock::where('blocker_id', $u->id)->select('blocked_id'))->orderBy('name')->get()),
         ]);
     }
@@ -76,7 +75,6 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name' => 'required|string|min:2|max:60',
             'username' => ['nullable', 'string', 'min:3', 'max:32', 'regex:/^[a-z0-9_.]+$/i', Rule::unique('users')->ignore($u->id)],
-            'level' => ['nullable', Rule::in(self::LEVELS)],
             'position' => ['nullable', Rule::in(self::POSITIONS)],
             'district' => ['nullable', Rule::in(self::districts())],
             'bio' => 'nullable|string|max:300',

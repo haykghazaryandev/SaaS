@@ -23,7 +23,7 @@ class Notice extends Notification implements ShouldQueue
     use Queueable;
 
     /** Types that also go to Telegram (people connected the bot to hear about these). */
-    public const TELEGRAM = ['friend_request', 'game_invite', 'game_opened', 'game_full', 'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed'];
+    public const TELEGRAM = ['slot_free', 'friend_request', 'game_invite', 'game_opened', 'game_full', 'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed'];
 
     public function __construct(public string $type, public array $params = [], public ?string $link = null) {}
 

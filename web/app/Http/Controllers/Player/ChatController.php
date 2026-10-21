@@ -6,6 +6,7 @@ use App\Domain\Chat\Chat;
 use App\Domain\Chat\ChatPresenter;
 use App\Domain\Social\SocialException;
 use App\Http\Controllers\Controller;
+use App\Http\Presenters\PlayerGames;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -25,7 +26,7 @@ class ChatController extends Controller
 {
     public const PAGE = 40;
 
-    public function __construct(private Chat $chat) {}
+    public function __construct(private Chat $chat, private PlayerGames $games) {}
 
     // ---------- pages ----------
 
@@ -35,7 +36,7 @@ class ChatController extends Controller
         $unread = $this->chat->unread($me);
         $chats = Conversation::query()
             ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at'))
-            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'latestMessage.user', 'participants.user'])
+            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'latestMessage.user', 'participants.user'])
             ->orderByDesc('last_message_at')->orderByDesc('id')
             ->get()
             ->map(fn (Conversation $c) => $this->item($c, $me, $unread[$c->id] ?? 0));
@@ -43,6 +44,9 @@ class ChatController extends Controller
         return Inertia::render('messages/Index', [
             'chats' => $chats->where('archived', false)->values()->all(),
             'archived' => $chats->where('archived', true)->values()->all(),
+            // "New message": friends to start a direct chat with (loaded when the picker opens)
+            'friends' => Inertia::optional(fn () => User::whereIn('id', $me->friendIds())->orderBy('name')->get()
+                ->map(fn (User $u) => ['id' => $u->id, 'name' => self::name($u), 'username' => $u->username, 'avatar' => $u->avatarUrl()])->values()->all()),
         ]);
     }
 
@@ -50,7 +54,7 @@ class ChatController extends Controller
     {
         $me = $request->user();
         $this->authorizeMember($conversation, $me);
-        $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'participants.user']);
+        $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'participants.user']);
         $msgs = $this->query($conversation)->limit(self::PAGE + 1)->get();
         $mine = $conversation->participants->firstWhere('user_id', $me->id);
 
@@ -173,7 +177,7 @@ class ChatController extends Controller
         $other = null;
         if ($c->type === 'direct') {
             $u = $c->participants->firstWhere('user_id', '!=', $me->id)?->user;
-            $other = $u ? ['id' => $u->id, 'name' => self::name($u), 'username' => $u->username] : null;
+            $other = $u ? ['id' => $u->id, 'name' => self::name($u), 'username' => $u->username, 'avatar' => $u->avatarUrl()] : null;
         }
         $g = $c->game;
         $last = $c->relationLoaded('latestMessage') ? $c->latestMessage : null;
@@ -190,6 +194,12 @@ class ChatController extends Controller
                 'players' => (int) ($g->in_players_count ?? 0),
                 'total' => (int) ($g->total_players ?: $g->players_per_side * 2),
                 'url' => Route::has('games.show') ? route('games.show', $g->id) : null,
+                'creatorId' => $g->creator_id,
+                // the pinned game bar of the chat: "Thu 21:00 · Zangak · field not booked → Book"
+                'window' => $this->games->window($g),
+                'place' => $g->venue?->name,
+                'district' => $g->district ?? $g->venue?->district,
+                'booking' => $g->relationLoaded('booking') && $g->booking && $g->booking->status->holdsTime() ? $this->games->booking($g->booking) : null,
             ] : null,
             'last' => $last ? ChatPresenter::message($last) : null,
             'unread' => $unread,

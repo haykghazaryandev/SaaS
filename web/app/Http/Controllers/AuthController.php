@@ -2,7 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Auth\EmailCodes;
 use App\Domain\Auth\PhoneCodes;
+use App\Domain\Auth\TelegramLoginFlow;
+use App\Domain\Notifications\TelegramBot;
+use App\Models\TelegramLogin;
+use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,21 +16,107 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
- * Login and registration are the same flow: phone → code from Telegram → (first time) name.
+ * Login = registration. Ways to log in:
+ * 1. "Log in with Telegram" (main, free): our bot gets the user's phone from Telegram → confirmed phone
+ * 2. email code (backup for people without Telegram, free)
+ * 3. phone + code (Telegram Gateway, paid ~$0.01): only when OTP_DRIVER=gateway, or in development (code on screen)
+ * New accounts finish on the welcome page (name; email accounts also add a phone).
  * Owners use the same login; their accounts are created by the admin.
  */
 class AuthController extends Controller
 {
-    public function show(Request $request)
+    public function show(Request $request, TelegramBot $bot)
     {
+        // ?redirect=/places/zangak?… brings the person back after logging in (only paths on this site)
+        $back = (string) $request->query('redirect');
+        if (str_starts_with($back, '/') && ! str_starts_with($back, '//')) {
+            $request->session()->put('url.intended', url($back));
+        }
+
         return Inertia::render('auth/Login', [
             'to' => $request->query('to'),
             'phone' => $request->session()->get('otp_phone') ? Phone::format($request->session()->get('otp_phone')) : null,
+            'email' => $request->session()->get('otp_email'),
+            'telegram' => ['bot' => config('services.telegram.bot_username'), 'simulate' => $this->canSimulate($bot)],
+            'phoneCode' => $this->phoneCodeEnabled(),
         ]);
     }
 
+    // ---------- 1. Log in with Telegram ----------
+
+    /** Starts a Telegram login; the browser opens the deep link and polls the status. */
+    public function telegramStart(Request $request, TelegramLoginFlow $flow, TelegramBot $bot)
+    {
+        $login = $flow->start();
+        $request->session()->put('tg_logins', [...array_slice($request->session()->get('tg_logins', []), -4), $login->token]);
+
+        return response()->json(['token' => $login->token, 'url' => $flow->deepLink($login), 'simulate' => $this->canSimulate($bot), 'expires_in' => TelegramLoginFlow::MINUTES * 60]);
+    }
+
+    public function telegramStatus(Request $request, string $token, TelegramLoginFlow $flow)
+    {
+        return response()->json(['status' => $flow->status($this->ownLogin($request, $token))]);
+    }
+
+    /** The bot approved the login: log this browser in. $request->context = 'booking' keeps the person on the page. */
+    public function telegramComplete(Request $request, string $token, TelegramLoginFlow $flow)
+    {
+        $user = $flow->complete($this->ownLogin($request, $token));
+        if (! $user) {
+            return response()->json(['error' => __('auth.telegram.expired')], 422);
+        }
+        if ($user->isBlocked()) {
+            return response()->json(['error' => __('auth.blocked')], 422);
+        }
+        $request->session()->put('tg_logins', array_values(array_diff($request->session()->get('tg_logins', []), [$token])));
+
+        $redirect = $this->landing($request, $user);   // logs in; the booking sheet stays on its page
+
+        return response()->json(['redirect' => $request->input('context') === 'booking' ? null : $redirect]);
+    }
+
+    /** Development only (no bot token): pretend the user shared this phone in Telegram. */
+    public function telegramSimulate(Request $request, string $token, TelegramLoginFlow $flow, TelegramBot $bot)
+    {
+        abort_unless($this->canSimulate($bot), 404);
+        $phone = Phone::normalize($request->input('phone'));
+        if (! $phone) {
+            throw ValidationException::withMessages(['phone' => __('auth.phone.invalid')]);
+        }
+        $flow->simulate($this->ownLogin($request, $token), $phone, $request->input('name') ?: null);
+
+        return response()->json(['status' => 'approved']);
+    }
+
+    // ---------- 2. email code ----------
+
+    public function emailSend(Request $request, EmailCodes $codes)
+    {
+        $data = $request->validate(['email' => 'required|email:rfc|max:120']);
+        $codes->send($data['email'], $request->ip());
+        $request->session()->put('otp_email', strtolower(trim($data['email'])));
+
+        return back();
+    }
+
+    public function emailVerify(Request $request, EmailCodes $codes)
+    {
+        $request->validate(['code' => 'required|digits:4']);
+        $email = $request->session()->get('otp_email');
+        if (! $email) {
+            throw ValidationException::withMessages(['code' => __('auth.code.expired')]);
+        }
+        $user = $codes->verify($email, $request->input('code'));
+        $request->session()->forget('otp_email');
+
+        return $this->finish($request, $user);
+    }
+
+    // ---------- 3. phone + code (Telegram Gateway; development shows the code) ----------
+
     public function sendCode(Request $request, PhoneCodes $codes)
     {
+        abort_unless($this->phoneCodeEnabled(), 404);
         $request->validate(['phone' => 'required|string|max:20']);
         $phone = Phone::normalize($request->input('phone'));
         if (! $phone) {
@@ -39,50 +130,36 @@ class AuthController extends Controller
 
     public function verify(Request $request, PhoneCodes $codes)
     {
+        abort_unless($this->phoneCodeEnabled(), 404);
         $request->validate(['code' => 'required|digits:4']);
         $phone = $request->session()->get('otp_phone');
         if (! $phone) {
             throw ValidationException::withMessages(['code' => __('auth.code.expired')]);
         }
         $user = $codes->verify($phone, $request->input('code'));
-        if ($user->isBlocked()) {
-            throw ValidationException::withMessages(['code' => __('auth.blocked')]);
-        }
-        Auth::login($user, remember: true);
-        $request->session()->regenerate();
         $request->session()->forget('otp_phone');
-        if ($request->input('to') === 'owner' && $user->venues()->exists()) {
-            return redirect()->route('owner.today');
-        }
-        // back to the admin panel (Filament, not an Inertia page): a full page load instead of an Inertia visit
-        $intended = (string) $request->session()->get('url.intended');
-        if ($user->is_admin && str_starts_with((string) parse_url($intended, PHP_URL_PATH), '/admin')) {
-            $request->session()->forget('url.intended');
 
-            return Inertia::location($intended);
-        }
-        if (! $user->isRegistered()) {
-            return redirect()->route('welcome');
-        }
-
-        return redirect()->intended(route('home'));
+        return $this->finish($request, $user);
     }
 
     public function changePhone(Request $request)
     {
-        $request->session()->forget('otp_phone');
+        $request->session()->forget(['otp_phone', 'otp_email']);
 
         return back();
     }
 
-    /** First login: name and username (registration). */
+    // ---------- welcome (registration) ----------
+
+    /** First login: name and username; email accounts also give their phone (not confirmed). */
     public function welcome(Request $request)
     {
-        if ($request->user()->isRegistered()) {
+        $user = $request->user();
+        if ($user->isRegistered() && $user->phone) {
             return redirect()->route('home');
         }
 
-        return Inertia::render('auth/Welcome', ['name' => $request->user()->name]);
+        return Inertia::render('auth/Welcome', ['name' => $user->name, 'needsPhone' => ! $user->phone]);
     }
 
     public function register(Request $request)
@@ -93,9 +170,22 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => 'required|string|min:2|max:60',
             'username' => ['nullable', 'string', 'min:3', 'max:32', 'regex:/^[a-z0-9_.]+$/i', Rule::unique('users')->ignore($user->id)],
-            'level' => 'nullable|in:beginner,mid,pro',
+            'phone' => [$user->phone ? 'nullable' : 'required', 'string', 'max:20'],
         ]);
-        $user->forceFill([...$data, 'username' => isset($data['username']) ? strtolower($data['username']) : null, 'registered_at' => now(), 'locale' => app()->getLocale()])->save();
+        $phone = null;
+        if (! $user->phone) {
+            $phone = Phone::normalize($data['phone'] ?? null);
+            if (! $phone) {
+                throw ValidationException::withMessages(['phone' => __('auth.phone.invalid')]);
+            }
+            if (User::withTrashed()->where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
+                throw ValidationException::withMessages(['phone' => __('auth.phone.taken')]);
+            }
+        }
+        $user->forceFill([
+            'name' => $data['name'],
+            'username' => $data['username'] ?? null, 'registered_at' => $user->registered_at ?? now(), 'locale' => app()->getLocale(),
+        ] + ($phone ? ['phone' => $phone] : []))->save();
 
         return redirect()->intended(route('home'))->with('success', __('auth.welcome_done'));
     }
@@ -107,5 +197,63 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('home');
+    }
+
+    // ---------- helpers ----------
+
+    /** Log in and go to the right page (Inertia redirect). */
+    private function finish(Request $request, User $user)
+    {
+        if ($user->isBlocked()) {
+            throw ValidationException::withMessages(['code' => __('auth.blocked')]);
+        }
+        $url = $this->landing($request, $user);
+        // the admin panel (Filament) is not an Inertia page: full page load
+        if (str_starts_with((string) parse_url($url, PHP_URL_PATH), '/admin')) {
+            return Inertia::location($url);
+        }
+
+        return redirect($url);
+    }
+
+    /** Logs the user in and returns where they should land. */
+    private function landing(Request $request, User $user): string
+    {
+        Auth::login($user, remember: true);
+        $request->session()->regenerate();
+        if ($request->input('to') === 'owner' && $user->venues()->exists()) {
+            return route('owner.today');
+        }
+        $intended = (string) $request->session()->pull('url.intended');
+        if (! $user->isRegistered() || ! $user->phone) {
+            if ($intended) {
+                $request->session()->put('url.intended', $intended);
+            }
+
+            return route('welcome');
+        }
+        if ($intended && (! str_starts_with((string) parse_url($intended, PHP_URL_PATH), '/admin') || $user->is_admin)) {
+            return $intended;
+        }
+
+        return route('home');
+    }
+
+    /** The login must have been started in this browser (its token is in this session). */
+    private function ownLogin(Request $request, string $token): TelegramLogin
+    {
+        abort_unless(in_array($token, $request->session()->get('tg_logins', []), true), 404);
+
+        return TelegramLogin::where('token', $token)->firstOrFail();
+    }
+
+    private function canSimulate(TelegramBot $bot): bool
+    {
+        return config('app.debug') && ! $bot->configured();
+    }
+
+    private function phoneCodeEnabled(): bool
+    {
+        return config('services.otp_driver') === 'gateway' || config('app.debug');
     }
 }

@@ -14,6 +14,7 @@ return [
     'searchHint' => 'Type at least 2 characters.',
     'noResults' => 'Nobody found. Check the spelling or try the phone number.',
     'empty' => [
+        'friendsTitle' => 'No friends yet',
         'friends' => 'No friends yet. Find the people you play with and add them.',
         'requests' => 'No requests right now.',
         'played' => 'When you play in a game, the other players appear here so you can add them.',
@@ -80,4 +81,8 @@ return [
     // short label for the phone tab bar
     'nav' => ['messages' => 'Messages'],
     'cancelBtn' => 'Cancel',
+    'findTitle' => 'Find players',
+    'filter' => 'Search friends',
+    'noMatch' => 'No friends match this search.',
+    'messageTo' => 'Write to :name',
 ];

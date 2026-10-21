@@ -1,27 +1,29 @@
 <script setup lang="ts">
 import '../../css/owner.css';
 
+import Avatar from '@/components/Avatar.vue';
 import Flash from '@/components/Flash.vue';
 import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import Logo from '@/components/Logo.vue';
 import OwnerSheets from '@/components/owner/OwnerSheets.vue';
-import { openForm, sheets, useOwner } from '@/composables/useOwner';
+import { decisions, openForm, sheets, useOwner, type FormOpts } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount } from 'vue';
 
 // Owner web: sidebar on desktop; top bar + bottom tabs on phones. Hosts the booking sheets for every owner page.
-defineProps<{ title?: string }>();
+// newBooking: the page offers "+ New booking" (its header button on desktop, this floating button on phones).
+// The language switch lives in Settings (G6: no language switch in the header for logged-in users).
+const props = defineProps<{ title?: string; newBooking?: FormOpts }>();
 const owner = useOwner();
 const { user } = useShared();
 const nav = computed(() => [
-    { name: 'owner.today', label: 'owner.nav.today', icon: 'home', badge: owner.value.pending },
+    { name: 'owner.today', label: 'owner.nav.today', icon: 'home', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
     { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
 const current = (name: string) => route().current(name);
-const initial = computed(() => (user.value?.name || '?').slice(0, 1).toUpperCase());
 
 function switchVenue(e: Event) {
     router.post(route('owner.venue'), { venue_id: Number((e.target as HTMLSelectElement).value) });
@@ -54,12 +56,11 @@ onBeforeUnmount(off);
                     ><span v-if="n.badge" class="nbadge">{{ n.badge }}</span>
                 </Link>
             </nav>
-            <button type="button" class="btn block" @click="openForm({})"><Icon name="plus" size="sm" />{{ $t('owner.new_booking') }}</button>
             <div class="oside-foot">
                 <LangSwitch />
                 <a class="olink" :href="route('home')"><Icon name="share" size="sm" />{{ $t('owner.player_site') }}</a>
                 <div class="ome">
-                    <span class="avatar">{{ initial }}</span>
+                    <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
                     <span
                         ><b>{{ user?.name }}</b
                         ><small>{{ user?.phone }}</small></span
@@ -87,6 +88,9 @@ onBeforeUnmount(off);
             /></a>
         </header>
         <main class="omain"><slot /></main>
+        <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" @click="openForm(props.newBooking)">
+            <Icon name="plus" /><span>{{ $t('owner.new_booking') }}</span>
+        </button>
         <nav class="tabbar">
             <Link v-for="n in nav" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">
                 <span class="tb-ico"

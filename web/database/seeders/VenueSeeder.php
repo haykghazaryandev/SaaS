@@ -45,6 +45,7 @@ class VenueSeeder extends Seeder
             $venue = Venue::updateOrCreate(['slug' => $slug], [
                 'name' => $name, 'district' => $district, 'address' => $address, 'description' => $about,
                 'lat' => $geo[0], 'lng' => $geo[1], 'rating_avg' => $rating, 'rating_count' => $reviews,
+                'phone' => sprintf('+37410%06d', 200000 + crc32($slug) % 700000),   // demo landline numbers
                 'amenities' => $amenities, 'rules' => [], 'status' => 'active',
             ]);
             $venue->openingHours()->delete();

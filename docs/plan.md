@@ -24,7 +24,7 @@
 | Web apps | **Player web** and **owner web**, plus an **admin panel** only for you |
 | Mobile app | **React Native (Expo)**, one app for Play Market and App Store. Players and owners log in to the same app, and **owners see a different UI** (their schedule). Comes after the web. |
 | Backend | **Laravel 12**, PostgreSQL, Redis, **Reverb** (WebSockets for chat) |
-| Accounts | Players **register / log in** with phone + Telegram code. **Owner accounts are created only by the admin (you)** in the admin panel. |
+| Accounts | Players **register / log in for free** with **"Log in with Telegram"**: our bot asks them to share their phone, so Telegram confirms the number. **Email code** is the backup for people without Telegram, and their phone is not confirmed. The paid Telegram Gateway code is not used. **Owner accounts are created only by the admin (you)** in the admin panel. |
 | Booking on web | Works **without an account**: name + phone + Telegram code. Behind the scenes we find or create the user by phone. |
 | Booking in mobile | Must be logged in |
 | Booking flow | The player sends a **request**, and the owner **accepts or declines**. The owner can also create and edit bookings. |
@@ -58,7 +58,7 @@
    - Before that only the invited friends see it, which stops people from creating games and waiting alone.
 4. A **game chat** starts (real-time, WebSockets) with the 3 accepted players.
 5. 7 more players find the game and join, and each one enters the chat. At **10/10** the game is **full**, and everybody gets a message.
-6. In the chat they agree on "Thursday 21:00 at Zangak". One of them taps **Book for this game**, which sends a normal booking request linked to the game. When the owner accepts, the chat shows "✅ Field booked: Zangak 5×5, Thu 21:00–22:00".
+6. In the chat they agree on "Thursday 21:00 at Zangak". The **creator (organiser)** taps **Book for this game**, which sends a normal booking request linked to the game. When the owner accepts, the chat shows "✅ Field booked: Zangak 5×5, Thu 21:00–22:00".
 7. After the game, players can **add each other as friends** ("Players you played with"), and next time invite them directly. **Play again** creates a new game with the same people invited.
 8. If nobody writes in the chat for **7 days** (and there is no upcoming booking), the chat becomes read-only, and it is deleted 30 days later.
 
@@ -314,7 +314,7 @@ notification_prefs  user_id, type, telegram bool, push bool
 
 ## 8. Notifications
 
-**Login codes:** Telegram Gateway API (about $0.01 per code). A number without Telegram can't log in for now.
+**Login (free, decided 2026-10-22):** "Log in with Telegram" through our bot, where the user shares their contact and Telegram confirms the phone. Email code as the backup. The Telegram Gateway (~$0.01/code) stays optional and switched off.
 
 **Telegram bot (@BookballBot):** the user connects it once (deep link `t.me/BookballBot?start=<token>`).
 
@@ -425,6 +425,6 @@ resources/js/  player/ · owner/ · shared/ (UI kit from the prototype, i18n, ec
 ## 12. Open questions (not blocking the start)
 1. Can players see **who is in an open game** before joining (names, levels)? Plan: yes, names + level.
 2. Should the creator **approve** each joiner, or is joining instant? Plan: instant, and the creator can remove someone.
-3. Who can tap **"Book for this game"**? Plan: any player in the game. Only one active booking per game.
+3. Who can tap **"Book for this game"**? **Decided (2026-10-22): only the creator (organiser).** Only one active booking per game.
 4. Does the price split matter in the app, or is it only "pay at the field"? Plan: show the price per player, nothing more.
 5. Owner invite: when you create an owner in the admin, should the bot send them the link, or do you send it yourself? Plan: the admin page shows a link to copy, and the bot also sends it if they connected.

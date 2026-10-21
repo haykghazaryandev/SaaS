@@ -193,3 +193,28 @@ it('authorizes the private channels for their owners and members only', function
     $this->chat->leave($this->dm, $this->b->id);
     expect($conv($this->b, $this->dm->id))->toBeFalse();
 });
+
+it('gives a game chat its pinned game bar: time, place and the field state (UX review item 9)', function () {
+    [$friend] = User::factory()->count(1)->create();
+    $creator = $this->a;
+    app(Friends::class)->accept($friend, app(Friends::class)->request($creator, $friend));
+    $game = app(\App\Domain\Games\Games::class)->create($creator, ['players_per_side' => 3, 'district' => 'arabkir'], [$this->b->id, $friend->id]);
+    app(\App\Domain\Games\Games::class)->respond($game, $this->b, true);
+    $conv = $game->fresh()->conversation;
+    expect($conv)->not->toBeNull();
+
+    $this->actingAs($this->a)->get(route('messages.show', $conv))->assertOk()->assertInertia(fn (Assert $p) => $p
+        ->where('chat.game.id', $game->id)
+        ->where('chat.game.window', null)
+        ->where('chat.game.district', 'arabkir')
+        ->where('chat.game.place', null)
+        ->where('chat.game.booking', null)
+    );
+});
+
+it('loads friends for the "New message" picker only when asked (UX review item 10)', function () {
+    $this->actingAs($this->a)->get('/messages')->assertInertia(fn (Assert $p) => $p->missing('friends'));
+    $this->actingAs($this->a)->get('/messages')->assertInertia(fn (Assert $p) => $p
+        ->reloadOnly('friends', fn (Assert $r) => $r->has('friends', 1)->where('friends.0.id', $this->b->id))
+    );
+});

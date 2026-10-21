@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             Illuminate\Support\Facades\Route::middleware('web')->group(base_path('routes/owner.php'));
             Illuminate\Support\Facades\Route::middleware('web')->group(base_path('routes/telegram.php'));
-            foreach (['social', 'games', 'chat'] as $file) {
+            foreach (['social', 'games', 'chat', 'alerts'] as $file) {
                 Illuminate\Support\Facades\Route::middleware('web')->group(base_path("routes/{$file}.php"));
             }
         },

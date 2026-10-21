@@ -23,7 +23,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'phone', 'name', 'username', 'locale', 'avatar_path', 'level', 'position', 'district', 'bio',
+        'phone', 'email', 'email_verified_at', 'name', 'username', 'locale', 'avatar_path', 'position', 'district', 'bio',
         'telegram_chat_id', 'telegram_linked_at', 'phone_verified_at', 'registered_at', 'last_seen_at',
     ];
 
@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'telegram_chat_id' => 'integer',
             'telegram_linked_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'email_verified_at' => 'datetime',
             'registered_at' => 'datetime',
             'blocked_until' => 'datetime',
             'last_seen_at' => 'datetime',
@@ -117,6 +118,13 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function preferredLocale(): string
     {
         return in_array($this->locale, config('app.locales', ['hy', 'ru', 'en']), true) ? $this->locale : 'hy';
+    }
+
+    /** Public URL of the uploaded photo (small square), or null. */
+    public function avatarUrl(): ?string
+    {
+        // a relative link works on every address the app is opened from (localhost, ngrok, the real domain)
+        return $this->avatar_path ? '/storage/'.ltrim($this->avatar_path, '/') : null;
     }
 
     /** Short name for lists: "Aram P." */

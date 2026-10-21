@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
-import { act } from '@/composables/useOwner';
+import { act, decide } from '@/composables/useOwner';
 import { ref } from 'vue';
 
 // Decline a request or cancel a booking, with an optional reason for the player.
-const props = defineProps<{ kind: 'decline' | 'cancel'; id: number }>();
+const props = defineProps<{ kind: 'decline' | 'cancel'; id: number; who?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const reason = ref('');
 const busy = ref(false);
 const QUICK = ['owner.reason.taken', 'owner.reason.maintenance', 'owner.reason.call'];
 
 function go() {
+    if (props.kind === 'decline') {
+        // declines wait 5 s with an "Undo" toast, like accepts
+        decide('decline', props.id, { reason: reason.value.trim() || null, who: props.who });
+        emit('close');
+        return;
+    }
     busy.value = true;
     act(props.kind, props.id, { reason: reason.value.trim() || null }, () => emit('close'));
     setTimeout(() => (busy.value = false), 600);

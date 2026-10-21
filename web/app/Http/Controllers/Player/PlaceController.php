@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Player;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerVenues;
 use App\Models\Booking;
+use App\Models\SlotAlert;
 use App\Models\Venue;
+use App\Support\LocalTime;
+use App\Support\Phone;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -40,6 +43,11 @@ class PlaceController extends Controller
                 'description' => $venue->tr('description'),
                 'amenities' => array_values($venue->amenities ?? []),
                 'week' => $present->weekHours($venue),
+                // "Open in Maps" and "Call" in the info list
+                'lat' => $venue->lat !== null ? (float) $venue->lat : null,
+                'lng' => $venue->lng !== null ? (float) $venue->lng : null,
+                'phone' => $venue->phone ?: null,
+                'phoneLabel' => $venue->phone ? Phone::format($venue->phone) : null,
                 'rules' => ['freeCancelHours' => (int) $venue->rule('free_cancel_hours'), 'minNoticeMin' => (int) $venue->rule('min_notice_min'), 'horizonDays' => (int) $venue->rule('horizon_days')],
             ],
             'fields' => $fields->map(fn ($f) => $present->field($f))->values()->all(),
@@ -52,6 +60,14 @@ class PlaceController extends Controller
             ],
             'slots' => $present->slots($venue, $day),
             'booked' => $booked,
+            // the player's "notify me if it frees up" times at this place (a bell on those taken times)
+            'alerts' => $request->user() ? SlotAlert::where('user_id', $request->user()->id)->where('venue_id', $venue->id)
+                ->where('starts_at', '>', now())->orderBy('starts_at')->get()
+                ->map(function (SlotAlert $a) {
+                    $t = $a->starts_at->toImmutable()->setTimezone(LocalTime::tz());
+
+                    return ['id' => $a->id, 'field' => $a->field_id, 'date' => $t->toDateString(), 'start' => $t->format('H:i'), 'minutes' => $a->minutes, 'notified' => $a->notified_at !== null];
+                })->values()->all() : [],
         ]);
     }
 

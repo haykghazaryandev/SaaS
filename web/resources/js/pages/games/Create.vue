@@ -1,25 +1,27 @@
 <script setup lang="ts">
+import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
+import { wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { GamePerson } from '@/types/games';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
+import { computed, nextTick, ref } from 'vue';
 
-// Create a game: N vs N, level, district / place, time window, note, and friends to invite.
+// Create a game: N vs N, district / place, time window, note, and friends to invite.
 const props = defineProps<{
     friends: GamePerson[];
     venues: { id: number; name: string; district: string }[];
     districts: string[];
     today: string;
+    days?: { date: string; k: number; wd: number; day: number; weekend: boolean }[];
     active: number;
     maxActive: number;
-    level: string | null;
     friendsUrl: string | null;
 }>();
 
 const form = useForm({
     players_per_side: 5,
-    level: props.level ?? '',
     district: '',
     venue_id: '' as number | '',
     date: '',
@@ -51,18 +53,49 @@ function toggleAll() {
     else form.invite = [...new Set([...form.invite, ...shown.value.map((f) => f.id)])];
 }
 const step = (d: number) => (form.players_per_side = Math.min(11, Math.max(3, form.players_per_side + d)));
+const QUICK = [5, 6, 7, 8, 11];
 const venuesShown = computed(() => (form.district ? props.venues.filter((v) => v.district === form.district) : props.venues));
-const maxDate = computed(() => {
-    const d = new Date(props.today + 'T00:00:00Z');
-    d.setUTCDate(d.getUTCDate() + 30);
-    return d.toISOString().slice(0, 10);
-});
 const limitReached = computed(() => props.active >= props.maxActive);
+// server errors that are not form fields ("game")
+const errs = computed(() => form.errors as Record<string, string | undefined>);
+// G2: why "Create" is disabled, shown right above it
+const why = computed(() => {
+    if (limitReached.value) return trans('social.error.too_many_games', { n: String(props.maxActive) });
+    if (tooMany.value) return trans('games.create.tooMany', { n: String(total.value - 1) });
+    if (!enough.value) return transChoice('games.create.pickMore', need.value - form.invite.length, { n: String(need.value - form.invite.length) });
+    return '';
+});
+
+// ---------- when: day chips, then "From" / "To" time chips (whole hours) ----------
+const dayList = computed(() => props.days ?? []);
+const pad = (h: number) => String(h).padStart(2, '0') + ':00';
+const nowHour = () => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Yerevan', hour: '2-digit', hour12: false }).format(new Date())) % 24;
+const fromHours = computed(() => {
+    const first = form.date === props.today ? Math.max(7, nowHour() + 1) : 7;
+    return Array.from({ length: Math.max(0, 24 - first) }, (_, i) => pad(first + i));
+});
+const toHours = computed(() => {
+    const start = form.from ? Number(form.from.slice(0, 2)) + 1 : 8;
+    return Array.from({ length: Math.max(0, 25 - start) }, (_, i) => pad(start + i));
+});
+function pickDay(d: string) {
+    form.date = d;
+    if (form.from && !fromHours.value.includes(form.from)) form.from = '';
+    if (form.to && !toHours.value.includes(form.to)) form.to = '';
+}
+function pickFrom(t: string) {
+    form.from = form.from === t ? '' : t;
+    if (form.to && (!form.from || form.to <= form.from)) form.to = '';
+    revealPicked();
+}
+// keep the picked time chips in view inside their scrolling rows
+function revealPicked() {
+    nextTick(() => document.querySelectorAll('.times .chip[aria-pressed="true"]').forEach((el) => el.scrollIntoView({ block: 'nearest', inline: 'center' })));
+}
 
 function submit() {
     form.transform((d) => ({
         ...d,
-        level: d.level || null,
         district: d.district || null,
         venue_id: d.venue_id || null,
         date: d.date || null,
@@ -78,8 +111,7 @@ function submit() {
         <Head :title="$t('games.create.title')" />
         <Link class="back" :href="route('games.index')"><Icon name="back" size="sm" />{{ $t('games.show.back') }}</Link>
         <section class="chead">
-            <span class="kicker">{{ $t('games.create.kick') }}</span>
-            <h1>{{ $t('games.create.title') }}</h1>
+            <h1 class="page-title">{{ $t('games.create.title') }}</h1>
             <p class="muted">{{ $t('games.create.lead') }}</p>
         </section>
 
@@ -90,19 +122,22 @@ function submit() {
 
         <form class="cgrid" @submit.prevent="submit">
             <div class="col">
-                <!-- size -->
+                <!-- size: stepper + quick chips -->
                 <section class="card blk">
                     <h3>{{ $t('games.create.perSide') }}</h3>
                     <div class="sizer">
-                        <button type="button" class="stp" :aria-label="'−'" :disabled="form.players_per_side <= 3" @click="step(-1)">−</button>
+                        <button type="button" class="stp" :aria-label="$t('games.create.less')" :disabled="form.players_per_side <= 3" @click="step(-1)">−</button>
                         <div class="big">
-                            <b>{{ form.players_per_side }}<span>×</span>{{ form.players_per_side }}</b>
+                            <b>{{ form.players_per_side }}×{{ form.players_per_side }}</b>
                             <small>{{ $t('games.create.total', { n: String(total) }) }}</small>
                         </div>
-                        <button type="button" class="stp" :aria-label="'+'" :disabled="form.players_per_side >= 11" @click="step(1)">+</button>
+                        <button type="button" class="stp" :aria-label="$t('games.create.more')" :disabled="form.players_per_side >= 11" @click="step(1)">+</button>
                     </div>
-                    <input v-model.number="form.players_per_side" type="range" min="3" max="11" step="1" class="range" :aria-label="$t('games.create.perSide')" />
-                    <div class="ticks"><span v-for="n in 9" :key="n">{{ n + 2 }}</span></div>
+                    <div class="chips quick" role="group" :aria-label="$t('games.create.perSide')">
+                        <button v-for="n in QUICK" :key="n" type="button" class="chip" :aria-pressed="form.players_per_side === n" @click="form.players_per_side = n">
+                            <i :class="['field-dot', n >= 7 ? 'big' : 'small']" />{{ n }}×{{ n }}
+                        </button>
+                    </div>
                     <div class="opens"><Icon name="users" size="sm" />{{ $t('games.create.needs', { n: String(minToOpen), f: String(need) }) }}</div>
                     <div v-if="form.errors.players_per_side" class="err">{{ form.errors.players_per_side }}</div>
                 </section>
@@ -112,40 +147,48 @@ function submit() {
                     <h3>{{ $t('games.create.details') }}</h3>
                     <div class="two">
                         <div class="field">
-                            <label for="lvl">{{ $t('games.level') }}</label>
-                            <select id="lvl" v-model="form.level" class="input">
-                                <option value="">{{ $t('games.anyLevel') }}</option>
-                                <option v-for="l in ['beginner', 'mid', 'pro']" :key="l" :value="l">{{ $t(`level.${l}`) }}</option>
-                            </select>
-                        </div>
-                        <div class="field">
                             <label for="dst">{{ $t('games.district') }}</label>
                             <select id="dst" v-model="form.district" class="input" @change="form.venue_id = ''">
                                 <option value="">{{ $t('player.home.anyDistrict') }}</option>
                                 <option v-for="d in districts" :key="d" :value="d">{{ $t(`player.district.${d}`) }}</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label for="ven">{{ $t('games.create.place') }}</label>
-                        <select id="ven" v-model="form.venue_id" class="input">
-                            <option value="">{{ $t('games.create.anyPlace') }}</option>
-                            <option v-for="v in venuesShown" :key="v.id" :value="v.id">{{ v.name }} · {{ $t(`player.district.${v.district}`) }}</option>
-                        </select>
-                        <div v-if="form.errors.venue_id" class="err">{{ form.errors.venue_id }}</div>
+                        <div class="field">
+                            <label for="ven">{{ $t('games.create.place') }}</label>
+                            <select id="ven" v-model="form.venue_id" class="input">
+                                <option value="">{{ $t('games.create.anyPlace') }}</option>
+                                <option v-for="v in venuesShown" :key="v.id" :value="v.id">{{ v.name }} · {{ $t(`player.district.${v.district}`) }}</option>
+                            </select>
+                            <div v-if="form.errors.venue_id" class="err">{{ form.errors.venue_id }}</div>
+                        </div>
                     </div>
                     <div class="field">
                         <label>{{ $t('games.create.when') }}</label>
-                        <div class="three">
-                            <input v-model="form.date" type="date" class="input" :min="today" :max="maxDate" :aria-label="$t('games.create.date')" />
-                            <input v-model="form.from" type="time" step="1800" class="input" :disabled="!form.date" :aria-label="$t('games.create.from')" />
-                            <input v-model="form.to" type="time" step="1800" class="input" :disabled="!form.date" :aria-label="$t('games.create.to')" />
+                        <div class="days" role="group" :aria-label="$t('games.create.date')">
+                            <button type="button" class="day any" :aria-pressed="!form.date" @click="(form.date = ''), (form.from = ''), (form.to = '')"><b>{{ $t('games.create.anyDay') }}</b></button>
+                            <button v-for="d in dayList" :key="d.date" type="button" :class="['day', { we: d.weekend }]" :aria-pressed="form.date === d.date" @click="pickDay(d.date)">
+                                <small>{{ d.k === 0 ? $t('player.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
+                            </button>
                         </div>
-                        <small class="hint">{{ $t('games.create.whenHint') }}</small>
-                        <div v-for="k in ['date', 'from', 'to'] as const" :key="k">
-                            <div v-if="form.errors[k]" class="err">{{ form.errors[k] }}</div>
-                        </div>
+                        <small v-if="!form.date" class="hint">{{ $t('games.create.whenHint') }}</small>
                     </div>
+                    <template v-if="form.date">
+                        <div class="field">
+                            <label>{{ $t('games.create.from') }}</label>
+                            <div class="chips times" role="group" :aria-label="$t('games.create.from')">
+                                <button type="button" class="chip" :aria-pressed="!form.from" @click="(form.from = ''), (form.to = '')">{{ $t('games.create.anyTime') }}</button>
+                                <button v-for="t in fromHours" :key="t" type="button" class="chip tm" :aria-pressed="form.from === t" @click="pickFrom(t)">{{ t }}</button>
+                            </div>
+                        </div>
+                        <div v-if="form.from" class="field">
+                            <label>{{ $t('games.create.to') }}</label>
+                            <div class="chips times" role="group" :aria-label="$t('games.create.to')">
+                                <button type="button" class="chip" :aria-pressed="!form.to" @click="form.to = ''">{{ $t('games.create.noEnd') }}</button>
+                                <button v-for="t in toHours" :key="t" type="button" class="chip tm" :aria-pressed="form.to === t" @click="(form.to = t), revealPicked()">{{ t }}</button>
+                            </div>
+                        </div>
+                    </template>
+                    <div v-if="form.errors.date || form.errors.from || form.errors.to" class="err">{{ form.errors.date || form.errors.from || form.errors.to }}</div>
                     <div class="field">
                         <label for="note">{{ $t('games.create.note') }}</label>
                         <textarea id="note" v-model="form.note" class="input" rows="2" maxlength="200" :placeholder="$t('games.create.notePh')" />
@@ -158,18 +201,14 @@ function submit() {
             <section class="card blk inv">
                 <div class="row between wrapflex" style="gap: 8px">
                     <h3>{{ $t('games.create.invite') }}</h3>
-                    <span :class="['counter', { ok: enough && !tooMany }]">
-                        <Icon :name="enough && !tooMany ? 'check' : 'users'" size="sm" />{{ $t('games.create.selected', { n: String(form.invite.length), need: String(need) }) }}
-                    </span>
+                    <span :class="['counter', { ok: enough && !tooMany }]">{{ $t('games.create.selected', { n: String(form.invite.length), need: String(need) }) }}</span>
                 </div>
-                <p v-if="tooMany" class="small" style="color: var(--hot)">{{ $t('games.create.tooMany', { n: String(total - 1) }) }}</p>
-                <p v-else class="muted small">{{ enough ? $t('games.create.enough') : $t('games.create.needMore', { n: String(need) }) }}</p>
 
-                <div v-if="!friends.length" class="nofr">
-                    <Icon name="users" size="lg" />
-                    <b>{{ $t('games.create.noFriends') }}</b>
-                    <p class="muted small">{{ $t('games.create.noFriendsText') }}</p>
-                    <Link v-if="friendsUrl" class="btn sm" :href="friendsUrl"><Icon name="search" size="sm" />{{ $t('games.create.findFriends') }}</Link>
+                <div v-if="!friends.length" class="empty-state plain">
+                    <span class="es-ico"><Icon name="users" /></span>
+                    <h3>{{ $t('games.create.noFriends') }}</h3>
+                    <p>{{ $t('games.create.noFriendsText') }}</p>
+                    <Link v-if="friendsUrl" class="btn sm" :href="friendsUrl + '?tab=find'"><Icon name="search" size="sm" />{{ $t('games.create.findFriends') }}</Link>
                 </div>
                 <template v-else>
                     <div class="row" style="gap: 8px">
@@ -177,14 +216,14 @@ function submit() {
                             <Icon name="search" size="sm" />
                             <input v-model="q" type="search" class="input" :placeholder="$t('games.create.search')" :aria-label="$t('games.create.search')" />
                         </div>
-                        <button type="button" class="btn ghost sm" :disabled="!shown.length" @click="toggleAll">{{ allShown ? $t('games.create.clear') : $t('games.create.all') }}</button>
+                        <button type="button" class="btn outline sm" :disabled="!shown.length" @click="toggleAll">{{ allShown ? $t('games.create.clear') : $t('games.create.all') }}</button>
                     </div>
                     <ul class="flist">
                         <li v-for="f in shown" :key="f.id">
                             <label :class="{ on: form.invite.includes(f.id) }">
                                 <input type="checkbox" :checked="form.invite.includes(f.id)" @change="toggle(f.id)" />
-                                <span class="av">{{ f.initials }}</span>
-                                <span class="nm">{{ f.name }}<small v-if="f.level">{{ $t(`level.${f.level}`) }}</small></span>
+                                <Avatar :id="f.id" :name="f.name" :src="f.avatar" size="sm" />
+                                <span class="nm">{{ f.name }}</span>
                                 <span class="tick"><Icon name="check" size="sm" /></span>
                             </label>
                         </li>
@@ -192,11 +231,14 @@ function submit() {
                     </ul>
                 </template>
                 <div v-if="form.errors.invite" class="err">{{ form.errors.invite }}</div>
-                <div v-if="form.errors.game" class="err">{{ form.errors.game }}</div>
-                <button type="submit" class="btn block" :disabled="form.processing || !enough || tooMany || limitReached">
-                    <Icon name="ball" size="sm" />{{ $t('games.create.submit', { f: form.players_per_side + '×' + form.players_per_side }) }}
-                </button>
-                <p class="faint small" style="margin: 0; text-align: center">{{ $t('games.create.after') }}</p>
+                <div v-if="errs.game" class="err">{{ errs.game }}</div>
+                <div class="submit">
+                    <p v-if="why" class="why"><Icon name="users" size="sm" />{{ why }}</p>
+                    <button type="submit" class="btn block" :disabled="form.processing || !!why">
+                        {{ $t('games.create.submit', { f: form.players_per_side + '×' + form.players_per_side }) }}
+                    </button>
+                    <p class="faint small after">{{ $t('games.create.after') }}</p>
+                </div>
             </section>
         </form>
     </PlayerLayout>
@@ -206,50 +248,48 @@ function submit() {
 .back { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-weight: 700; font-size: 14px; margin-top: 22px; }
 .back:hover { color: var(--ink); }
 .chead { margin: 12px 0 20px; }
-.chead h1 { font-size: clamp(28px, 4vw, 42px); margin-top: 6px; }
 .chead p { margin: 8px 0 0; max-width: 640px; }
-.alert { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--warn-soft); color: var(--warn); padding: 12px 14px; border-radius: 12px; font-weight: 700; font-size: 14px; margin-bottom: 16px; }
+.alert { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--st-pending-soft); color: var(--st-pending); padding: 12px 14px; border-radius: 12px; font-weight: 700; font-size: 14px; margin-bottom: 16px; }
 .alert .lnk { text-decoration: underline; margin-left: auto; }
 .cgrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .cgrid { grid-template-columns: minmax(0, 1fr); } }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .blk { padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.blk h3 { font-size: 16px; }
+.blk h3 { font-family: var(--body); font-size: 16px; font-weight: 800; letter-spacing: 0; }
 .small { font-size: 13px; margin: 0; }
 .sizer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .stp { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); font-size: 22px; font-weight: 700; flex: none; }
 .stp:disabled { opacity: .35; cursor: not-allowed; }
 .big { text-align: center; }
-.big b { font-family: var(--display); font-size: 46px; font-weight: 700; letter-spacing: -0.04em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1; }
-.big b span { font-size: 30px; margin: 0 4px; }
+.big b { font-family: var(--display); font-size: 44px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); line-height: 1; }
 .big small { display: block; color: var(--muted); font-weight: 700; margin-top: 6px; }
-.range { width: 100%; accent-color: var(--accent); }
-.ticks { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: -8px; padding: 0 2px; }
-.opens { display: flex; gap: 8px; align-items: center; background: var(--bg-2); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; color: var(--warn); }
+.quick { justify-content: center; flex-wrap: wrap; overflow: visible; }
+.quick .field-dot { width: 8px; height: 8px; }
+@media (max-width: 600px) { .quick { gap: 6px; flex-wrap: nowrap; } .quick .chip { padding: 7px 9px; font-size: 13px; gap: 5px; } .blk { padding: 16px; } }
+.opens { display: flex; gap: 8px; align-items: center; background: var(--bg-2); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; color: var(--muted); }
+.days, .times { max-width: 100%; }
+.day.we:not([aria-pressed="true"]) small { color: var(--st-pending); }
+.tm { font-family: var(--mono); font-size: 13px; padding: 7px 12px; }
+.submit { display: flex; flex-direction: column; gap: 0; margin-top: 4px; }
+.after { margin: 8px 0 0; text-align: center; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.three { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
-@media (max-width: 480px) { .two { grid-template-columns: 1fr; } .three { grid-template-columns: 1fr 1fr; } .three input:first-child { grid-column: 1 / -1; } }
-.three .input:disabled { opacity: .45; }
-.hint { color: var(--faint); font-size: 12.5px; }
+@media (max-width: 480px) { .two { grid-template-columns: 1fr; } }
 textarea.input { resize: vertical; min-height: 64px; }
 .err { color: var(--hot); font-size: 13px; font-weight: 700; }
-.counter { display: inline-flex; gap: 6px; align-items: center; padding: 5px 11px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-weight: 800; font-size: 13px; }
-.counter.ok { background: var(--free-soft); color: var(--free); }
+.counter { display: inline-flex; gap: 6px; align-items: center; padding: 4px 11px; border-radius: 999px; background: var(--st-pending-soft); color: var(--st-pending); font-weight: 800; font-size: 12.5px; }
+.counter.ok { background: var(--st-confirmed-soft); color: var(--st-confirmed); }
 .srch { position: relative; flex: 1; min-width: 0; }
 .srch .ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); }
 .srch .input { padding-left: 34px; }
 .flist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 380px; overflow: auto; }
-.flist label { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
+.flist label { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
 .flist label:hover { background: var(--surface-2); }
 .flist label.on { background: rgba(200, 255, 61, 0.06); border-color: rgba(200, 255, 61, 0.25); }
 .flist input { position: absolute; opacity: 0; pointer-events: none; }
 .flist label:has(input:focus-visible) { outline: 2px solid var(--accent); }
-.flist .av { width: 34px; height: 34px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
 .flist .nm { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .flist .nm small { display: block; color: var(--faint); font-weight: 600; font-size: 12px; }
 .flist .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; color: transparent; flex: none; }
 .flist label.on .tick { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.nofr { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 22px 12px; border: 1px dashed var(--line-2); border-radius: 16px; color: var(--muted); }
-.nofr b { color: var(--ink); }
 @media (min-width: 861px) { .inv { position: sticky; top: 80px; } }
 </style>

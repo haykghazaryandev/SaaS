@@ -3,9 +3,9 @@
 export interface GamePerson {
     id: number;
     name: string;
+    avatar?: string | null;
     short: string;
     initials: string;
-    level: string | null;
 }
 
 export interface GamePlayerRow extends GamePerson {
@@ -40,22 +40,24 @@ export interface GameCard {
     minToOpen: number;
     in: number;
     status: 'forming' | 'open' | 'full' | 'booked' | 'played' | 'cancelled' | 'archived';
-    level: string | null;
     district: string | null;
     venue: { slug: string; name: string; district: string } | null;
     window: GameWindow | null;
     note: string | null;
     creator: GamePerson;
-    avatars: { initials: string; name: string | null }[];
+    avatars: { id?: number; initials: string; name: string | null }[];
     booking: GameBooking | null;
     me: string | null;
     mine: boolean;
+    /** who invited me (only while my invite is open) */
+    invitedBy?: GamePerson | null;
 }
 
 export interface BookPlace {
     id: number;
     slug: string;
     name: string;
+    avatar?: string | null;
     district: string;
     fields: { id: number; size: string; format: string; durations: number[]; defaultDuration: number }[];
 }

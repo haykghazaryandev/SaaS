@@ -26,7 +26,7 @@ function webCrew(int $n): array
 function openGame(): array
 {
     [$c, $friends] = webCrew(2);
-    $game = app(Games::class)->create($c, ['players_per_side' => 3, 'level' => 'mid', 'district' => 'arabkir'], $friends->pluck('id')->all());
+    $game = app(Games::class)->create($c, ['players_per_side' => 3, 'district' => 'arabkir'], $friends->pluck('id')->all());
     app(Games::class)->respond($game, $friends[0], true);
 
     return [$game->fresh(), $c, $friends];
@@ -48,9 +48,9 @@ it('lists open games for everyone and hides forming games', function () {
         ->where('games.0.status', 'open')
         ->where('mine', null)
     );
-    // filters: size and level
+    // filters: size
     $this->get('/games?size=big')->assertInertia(fn (Assert $page) => $page->has('games', 0));
-    $this->get('/games?size=small&level=mid')->assertInertia(fn (Assert $page) => $page->has('games', 1)->where('filters.size', 'small'));
+    $this->get('/games?size=small')->assertInertia(fn (Assert $page) => $page->has('games', 1)->where('filters.size', 'small'));
     $this->get('/games?size=3')->assertInertia(fn (Assert $page) => $page->has('games', 1));
     $this->get('/games?district=kentron')->assertInertia(fn (Assert $page) => $page->has('games', 0));
     expect($forming->status)->toBe(GameStatus::Forming);
@@ -135,7 +135,7 @@ it('creates a game with invites and a time window', function () {
     $venue = makeVenue();
     $day = at(0)->toDateString();
     $res = $this->actingAs($c)->post('/games', [
-        'players_per_side' => 5, 'level' => 'mid', 'district' => 'arabkir', 'venue_id' => $venue->id,
+        'players_per_side' => 5, 'district' => 'arabkir', 'venue_id' => $venue->id,
         'date' => $day, 'from' => '19:00', 'to' => '22:00', 'note' => ' Friendly ', 'invite' => $friends->pluck('id')->all(),
     ]);
     $game = Game::latest('id')->first();
@@ -152,7 +152,7 @@ it('validates the create form', function () {
     // 5×5 needs 2 friends
     $this->actingAs($c)->post('/games', ['players_per_side' => 5, 'invite' => $friends->pluck('id')->all()])->assertSessionHasErrors('invite');
     $this->actingAs($c)->post('/games', ['players_per_side' => 12, 'invite' => []])->assertSessionHasErrors('players_per_side');
-    $this->actingAs($c)->post('/games', ['players_per_side' => 3, 'level' => 'god', 'invite' => $friends->pluck('id')->all()])->assertSessionHasErrors('level');
+    $this->actingAs($c)->post('/games', ['players_per_side' => 12, 'invite' => $friends->pluck('id')->all()])->assertSessionHasErrors('players_per_side');
     $this->actingAs($c)->post('/games', ['players_per_side' => 3, 'from' => '19:00', 'invite' => $friends->pluck('id')->all()])->assertSessionHasErrors('date');
     $this->actingAs($c)->post('/games', ['players_per_side' => 3, 'date' => at(0)->toDateString(), 'from' => '20:00', 'to' => '19:00', 'invite' => $friends->pluck('id')->all()])->assertSessionHasErrors('to');
     $this->actingAs($c)->post('/games', ['players_per_side' => 3, 'date' => LocalTime::now()->subDay()->toDateString(), 'invite' => $friends->pluck('id')->all()])->assertSessionHasErrors('date');
@@ -176,7 +176,7 @@ it('accepts an invite, opens the game and lets strangers join and leave', functi
     $this->actingAs($stranger)->post("/games/{$game->id}/join")->assertSessionHas('success');
     expect($game->fresh()->inCount())->toBe(3);
     $this->actingAs($stranger)->get("/games/{$game->id}")->assertInertia(fn (Assert $page) => $page
-        ->where('can.leave', true)->where('can.join', false)->where('can.book', true)->whereType('conversationId', 'integer')
+        ->where('can.leave', true)->where('can.join', false)->where('can.book', false)->whereType('conversationId', 'integer')   // only the creator books
     );
     $this->actingAs($stranger)->post("/games/{$game->id}/leave")->assertSessionHas('success');
     expect($game->fresh()->inCount())->toBe(2);
@@ -224,19 +224,21 @@ it('books a field for the game through the booking rules', function () {
     $small = $venue->fields->firstWhere('size.value', 'small');
     $date = at(0)->toDateString();
 
-    // not a player of the game
+    // only the organiser books: an outsider and a player of the game are refused
     $this->actingAs(User::factory()->create())->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '20:00', 'minutes' => 60])
-        ->assertSessionHasErrors(['booking' => __('social.error.not_member')]);
+        ->assertSessionHasErrors(['booking' => __('social.error.only_creator_books')]);
+    $this->actingAs($friends[0])->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '20:00', 'minutes' => 60])
+        ->assertSessionHasErrors(['booking' => __('social.error.only_creator_books')]);
     // a bad duration comes from the booking rules
-    $this->actingAs($friends[0])->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '20:00', 'minutes' => 45])
+    $this->actingAs($c)->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '20:00', 'minutes' => 45])
         ->assertSessionHasErrors('booking');
 
-    $this->actingAs($friends[0])->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '20:00', 'minutes' => 60])
+    $this->actingAs($c)->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '20:00', 'minutes' => 60])
         ->assertRedirect("/games/{$game->id}")->assertSessionHasNoErrors();
     $booking = Booking::where('game_id', $game->id)->first();
-    expect($booking)->not->toBeNull()->and($booking->user_id)->toBe($friends[0]->id)->and($game->fresh()->booking_id)->toBe($booking->id);
+    expect($booking)->not->toBeNull()->and($booking->user_id)->toBe($c->id)->and($game->fresh()->booking_id)->toBe($booking->id);
 
-    $this->actingAs($c)->get("/games/{$game->id}")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($friends[0])->get("/games/{$game->id}")->assertInertia(fn (Assert $page) => $page
         ->where('can.book', false)->where('game.booking.status', 'pending')->where('game.booking.start', '20:00')
     );
     $this->actingAs($c)->post("/games/{$game->id}/book", ['field_id' => $small->id, 'date' => $date, 'start' => '22:00', 'minutes' => 60])
@@ -252,4 +254,21 @@ it('plays again with the same people', function () {
     expect($new->id)->not->toBe($game->id)->and($new->previous_game_id)->toBe($game->id)
         ->and($new->players()->where('user_id', $friends[0]->id)->value('status')?->value)->toBe('invited');
     $this->actingAs(User::factory()->create())->post("/games/{$game->id}/play-again")->assertSessionHas('error');
+});
+
+it('says who invited me on invite cards (UX review item 6)', function () {
+    [$open, $c, $friends] = openGame();          // friends[1] is still invited by the creator
+    $this->actingAs($friends[1])->get('/games?tab=mine')->assertInertia(fn (Assert $page) => $page
+        ->where('mine.invites.0.invitedBy.id', $c->id)
+        ->where('mine.invites.0.avatars.0.id', $c->id)
+    );
+    // people already in the game have no inviter line
+    $this->actingAs($friends[0])->get('/games?tab=mine')->assertInertia(fn (Assert $page) => $page->where('mine.active.0.invitedBy', null));
+});
+
+it('gives the create page the day chips (UX review item 7)', function () {
+    [$c] = webCrew(2);
+    $this->actingAs($c)->get('/games/new')->assertInertia(fn (Assert $page) => $page
+        ->has('days', 14)->where('days.0.date', LocalTime::now()->toDateString())->where('days.0.k', 0)
+    );
 });

@@ -26,7 +26,6 @@ use Inertia\Inertia;
  */
 class GameController extends Controller
 {
-    public const LEVELS = ['beginner', 'mid', 'pro'];
 
     public const SIZES = ['small' => [3, 6], 'big' => [7, 11]];
 
@@ -44,7 +43,6 @@ class GameController extends Controller
         }
         $f = [
             'size' => $this->pick($request->query('size'), ['small', 'big', ...array_map('strval', range(3, 11))]),
-            'level' => $this->pick($request->query('level'), self::LEVELS),
             'district' => $this->pick($request->query('district'), $this->districts()),
             'day' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query('day')) ? $venues->pickDay($request->query('day'))->toDateString() : null,
             'time' => $this->pick($request->query('time'), ['morning', 'day', 'evening']),
@@ -60,7 +58,6 @@ class GameController extends Controller
                 [$a, $b] = self::SIZES[$size] ?? [(int) $size, (int) $size];
                 $q->whereBetween('players_per_side', [$a, $b]);
             })
-            ->when($f['level'], fn ($q, $l) => $q->where(fn ($w) => $w->where('level', $l)->orWhereNull('level')))
             ->when($f['district'], fn ($q, $d) => $q->where(fn ($w) => $w->where('district', $d)->orWhereHas('venue', fn ($v) => $v->where('district', $d))))
             ->when($f['day'], function ($q, $day) {
                 $from = LocalTime::day($day);
@@ -98,7 +95,7 @@ class GameController extends Controller
     }
 
     /** GET /games/new: the create form with my friends to invite. */
-    public function create(Request $request)
+    public function create(Request $request, PlayerVenues $venues)
     {
         if ($redirect = $this->needsRegistration($request, route('games.create'))) {
             return $redirect;
@@ -111,9 +108,9 @@ class GameController extends Controller
             'venues' => Venue::active()->orderBy('name')->get(['id', 'name', 'district'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'district' => $v->district])->all(),
             'districts' => $this->districts(),
             'today' => LocalTime::now()->toDateString(),
+            'days' => $venues->days(),
             'active' => Game::where('creator_id', $me->id)->whereIn('status', ['forming', 'open', 'full'])->count(),
             'maxActive' => Games::MAX_ACTIVE_PER_CREATOR,
-            'level' => in_array($me->level, self::LEVELS, true) ? $me->level : null,
             'friendsUrl' => \Illuminate\Support\Facades\Route::has('friends.index') ? route('friends.index') : null,
         ]);
     }
@@ -126,7 +123,6 @@ class GameController extends Controller
         }
         $data = $request->validate([
             'players_per_side' => 'required|integer|min:3|max:11',
-            'level' => ['nullable', Rule::in(self::LEVELS)],
             'district' => ['nullable', Rule::in($this->districts())],
             'venue_id' => ['nullable', 'integer', Rule::exists('venues', 'id')->where('status', 'active')],
             'date' => 'nullable|required_with:from,to|date_format:Y-m-d',
@@ -142,7 +138,7 @@ class GameController extends Controller
         try {
             $game = $this->games->create($request->user(), [
                 'players_per_side' => (int) $data['players_per_side'],
-                'level' => $data['level'] ?? null, 'district' => $data['district'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
+                'district' => $data['district'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
                 'note' => isset($data['note']) ? trim($data['note']) ?: null : null, ...$window,
             ], $data['invite'] ?? []);
         } catch (SocialException $e) {
@@ -185,7 +181,7 @@ class GameController extends Controller
             'remove' => $isCreator && in_array($status, S::ACTIVE, true),
             'invite' => $in && in_array($status, ['forming', 'open'], true),
             'cancel' => $isCreator && in_array($status, S::ACTIVE, true),
-            'book' => $in && in_array($status, ['open', 'full'], true) && ! $holding,
+            'book' => $isCreator && in_array($status, ['open', 'full'], true) && ! $holding,   // only the creator books the field
             'playAgain' => $in && in_array($status, ['played', 'archived'], true),
         ];
 

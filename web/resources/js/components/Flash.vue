@@ -21,7 +21,7 @@ watch(
 </script>
 
 <template>
-    <div v-if="msg" class="toast" :style="msg.error ? 'background: var(--hot); color: #fff' : ''" role="status">
+    <div v-if="msg" :class="['toast', { error: msg.error }]" :role="msg.error ? 'alert' : 'status'">
         <Icon :name="msg.error ? 'x' : 'check'" />{{ msg.text }}
     </div>
 </template>

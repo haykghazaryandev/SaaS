@@ -53,8 +53,8 @@ class PlayerCards
         return [
             'id' => $u->id,
             'name' => $u->name ?: '—',
+            'avatar' => $u->avatarUrl(),
             'username' => $u->username,
-            'level' => $u->level,
             'position' => $u->position,
             'district' => $u->district,
             'url' => self::url($u),

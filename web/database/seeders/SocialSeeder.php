@@ -47,7 +47,7 @@ class SocialSeeder extends Seeder
 
         // open 5×5 game of player 100 with a lively chat
         $friends = collect($me->friendIds());
-        $g1 = $games->create($me, ['players_per_side' => 5, 'level' => 'mid', 'district' => 'arabkir', 'note' => 'Friendly game, this week evenings'], $friends->take(4)->all());
+        $g1 = $games->create($me, ['players_per_side' => 5, 'district' => 'arabkir', 'note' => 'Friendly game, this week evenings'], $friends->take(4)->all());
         foreach ($friends->take(3) as $id) {
             $games->respond($g1->fresh(), User::find($id), true);
         }
@@ -61,17 +61,17 @@ class SocialSeeder extends Seeder
         }
 
         // forming 11×11 game of player 100 (waiting for friends)
-        $games->create($me, ['players_per_side' => 11, 'level' => 'pro', 'note' => 'Big pitch on Sunday morning'], $friends->take(8)->all());
+        $games->create($me, ['players_per_side' => 11, 'note' => 'Big pitch on Sunday morning'], $friends->take(8)->all());
 
         // other people's games: open ones player 100 can join, and an invite for player 100
-        foreach ([[30, 5, 'beginner', 'malatia'], [35, 7, 'mid', 'nornork'], [40, 3, 'pro', 'kentron'], [45, 10, 'mid', 'shengavit']] as [$i, $size, $level, $district]) {
+        foreach ([[30, 5, 'malatia'], [35, 7, 'nornork'], [40, 3, 'kentron'], [45, 10, 'shengavit']] as [$i, $size, $district]) {
             $host = $players[$i];
             $hf = collect($host->friendIds())->reject(fn ($id) => $id === $me->id)->values();
             $need = Game::minToOpen($size * 2);
             if ($hf->count() < $need) {
                 continue;
             }
-            $g = $games->create($host, ['players_per_side' => $size, 'level' => $level, 'district' => $district], $hf->take($need + 1)->all());
+            $g = $games->create($host, ['players_per_side' => $size, 'district' => $district], $hf->take($need + 1)->all());
             foreach ($hf->take($need - 1) as $id) {
                 $games->respond($g->fresh(), User::find($id), true);
             }
@@ -83,7 +83,7 @@ class SocialSeeder extends Seeder
         $friendOfMe = User::find($friends[5]);
         $ff = collect($friendOfMe->friendIds())->reject(fn ($id) => $id === $me->id)->values();
         if ($ff->count() >= 2) {
-            $inv = $games->create($friendOfMe, ['players_per_side' => 3, 'level' => 'mid'], [$me->id, ...$ff->take(2)->all()]);
+            $inv = $games->create($friendOfMe, ['players_per_side' => 3], [$me->id, ...$ff->take(2)->all()]);
             $games->respond($inv, User::find($ff[0]), true);
         }
 

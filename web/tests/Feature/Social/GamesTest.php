@@ -26,7 +26,7 @@ beforeEach(fn () => $this->g = app(Games::class));
 it('needs ~30% of the players: 5×5 opens with the creator + 2 friends', function () {
     expect(Game::minToOpen(10))->toBe(3)->and(Game::minToOpen(22))->toBe(7)->and(Game::minToOpen(6))->toBe(2);
     [$c, $friends] = crew(3);
-    $game = $this->g->create($c, ['players_per_side' => 5, 'level' => 'mid'], $friends->pluck('id')->all());
+    $game = $this->g->create($c, ['players_per_side' => 5], $friends->pluck('id')->all());
     expect($game->status)->toBe(GameStatus::Forming)->and($friends[0]->notifications()->where("data->type", "game_invite")->count())->toBe(1);
 
     $this->g->respond($game, $friends[0], true);
@@ -64,7 +64,8 @@ it('fills up, lets players book a field and follows the booking', function () {
 
     $venue = makeVenue();
     $field = $venue->fields->firstWhere('size.value', 'small');
-    $booking = $this->g->book($game, $friends[0], $field, at(20), 60);
+    $booking = $this->g->book($game, $c, $field, at(20), 60);
+    expect(fn () => $this->g->book($game->fresh(), $friends[0], $field, at(22), 60))->toThrow(SocialException::class);   // only the creator books
     expect($booking->game_id)->toBe($game->id)->and($game->fresh()->booking_id)->toBe($booking->id);
 
     app(DecideBooking::class)->accept($booking, User::factory()->create());

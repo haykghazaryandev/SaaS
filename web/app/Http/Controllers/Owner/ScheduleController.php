@@ -26,7 +26,7 @@ class ScheduleController extends OwnerController
 
         // date strip: a week back and four weeks ahead (around the chosen date when it is far away)
         $stripFrom = $date->lessThan($today->subDays(7)) || $date->greaterThan($today->addDays(27)) ? $date->subDays(7) : $today->subDays(7);
-        $pendingDays = Booking::query()->where('venue_id', $venue->id)->where('status', 'pending')
+        $pendingDays = Booking::query()->where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now())
             ->where('starts_at', '>=', $stripFrom->utc())->where('starts_at', '<', $stripFrom->addDays(35)->utc())
             ->pluck('starts_at')->map(fn ($t) => $t->setTimezone(LocalTime::tz())->toDateString())->unique()->values();
         $strip = collect(range(0, 34))->map(fn ($i) => $stripFrom->addDays($i)->toDateString());
@@ -105,7 +105,7 @@ class ScheduleController extends OwnerController
                     'blocks' => $holding->map(fn ($b) => BookingPresenter::row($b))
                         ->map(fn ($r) => ['id' => $r['id'], 'start' => $r['start'], 'end' => $r['end'], 'kind' => $r['kind'], 'name' => $r['team'] ?: $r['name']])->values(),
                     'count' => $holding->count(),
-                    'pending' => $holding->where('status.value', 'pending')->count(),
+                    'pending' => $holding->filter(fn (Booking $b) => BookingPresenter::kind($b) === 'pending')->count(),
                     'pct' => $stats->occupancy($venue, $f->id, $day, $bookings),
                 ];
             }

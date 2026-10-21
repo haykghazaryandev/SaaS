@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import Avatar from '@/components/Avatar.vue';
+import EmojiPicker from '@/components/EmojiPicker.vue';
 import Icon from '@/components/Icon.vue';
-import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, initials, sysText, userName } from '@/composables/useChat';
+import { whenShort } from '@/composables/useGames';
+import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
 import { echoConnected, echoState } from '@/lib/echo';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
@@ -29,8 +32,9 @@ const lastId = () => msgs.value.reduce((n, m) => Math.max(n, m.id), 0);
 const now = ref(Date.now());
 
 // ---------- list: days, runs of the same author, the "unread" divider ----------
-const dividerAfter = props.lastReadId ?? 0;
-const firstUnread = computed(() => (dividerAfter ? msgs.value.find((m) => m.id > dividerAfter && m.user?.id !== me.value)?.id : undefined));
+const dividerAfter = props.chat.lastReadId ?? 0;
+// fixed when the chat opens: messages that arrive while reading don't move the divider
+const firstUnread: number | undefined = dividerAfter ? props.messages.find((m) => m.id > dividerAfter && m.user?.id !== me.value)?.id : undefined;
 type Row = { m: ChatMessage; mine: boolean; head: boolean; tail: boolean };
 const groups = computed(() => {
     const out: { key: string; label: string; rows: Row[] }[] = [];
@@ -41,11 +45,26 @@ const groups = computed(() => {
         const next = msgs.value[i + 1];
         const same = (a?: ChatMessage, b?: ChatMessage) =>
             !!a && !!b && a.type !== 'system' && b.type !== 'system' && a.user?.id === b.user?.id && dayKey(a.created_at) === dayKey(b.created_at) && Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60e3;
-        out[out.length - 1].rows.push({ m, mine: m.user?.id === me.value, head: !same(prev, m) || m.id === firstUnread.value, tail: !same(m, next) });
+        out[out.length - 1].rows.push({ m, mine: m.user?.id === me.value, head: !same(prev, m) || m.id === firstUnread, tail: !same(m, next) });
     });
     return out;
 });
 const isGame = props.chat.type === 'game';
+
+// ---------- pinned game bar: "Thu 21:00 · Zangak · field not booked → Book" ----------
+const bar = computed(() => {
+    const g = props.chat.game;
+    if (!g || archived.value || ['cancelled', 'played', 'archived'].includes(g.status)) return null;
+    const b = g.booking ?? null;
+    const when = b ? whenShort({ date: b.date, from: b.start }) : g.window ? whenShort(g.window) : trans('games.card.tbd');
+    const where = b?.venue.name ?? g.place ?? (g.district ? trans(`player.district.${g.district}`) : trans('games.card.anywhere'));
+    const state = b ? (b.status === 'accepted' ? 'booked' : 'requested') : 'none';
+    // only the creator books the field for the game
+    const canBook = !b && ['open', 'full'].includes(g.status) && !!g.url && (g as { creatorId?: number }).creatorId === user.value?.id;
+    return { when, where, state, canBook, url: g.url };
+});
+// the counter shows only near the limit
+const showCount = computed(() => text.value.length > props.maxLength - 200);
 
 // ---------- scrolling ----------
 const scroller = ref<HTMLElement>();
@@ -117,7 +136,7 @@ async function loadOlder() {
 }
 
 // ---------- read receipts ----------
-let readSent = props.lastReadId ?? 0;
+let readSent = props.chat.lastReadId ?? 0;
 let readTimer: number | undefined;
 function markRead() {
     clearTimeout(readTimer);
@@ -196,6 +215,19 @@ const input = ref<HTMLTextAreaElement>();
 const len = computed(() => text.value.trim().length);
 const tooLong = computed(() => text.value.length > props.maxLength);
 
+// put the emoji where the cursor is, then keep typing
+function insertEmoji(e: string) {
+    const el = input.value;
+    const at = el?.selectionStart ?? text.value.length;
+    const end = el?.selectionEnd ?? at;
+    text.value = text.value.slice(0, at) + e + text.value.slice(end);
+    nextTick(() => {
+        if (!el) return;
+        el.focus();
+        el.selectionStart = el.selectionEnd = at + e.length;
+        grow();
+    });
+}
 function grow() {
     const el = input.value;
     if (!el) return;
@@ -318,7 +350,7 @@ onMounted(async () => {
     clockTimer = window.setInterval(() => (now.value = Date.now()), 1000);
     document.addEventListener('visibilitychange', onVisible);
     await nextTick();
-    const first = firstUnread.value && document.getElementById(`m${firstUnread.value}`);
+    const first = firstUnread && document.getElementById(`m${firstUnread}`);
     if (first && scroller.value) {
         scroller.value.scrollTop = Math.max(0, first.offsetTop - 80);
     } else await toBottom();
@@ -334,15 +366,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <PlayerLayout>
+    <PlayerLayout fullscreen>
         <Head :title="chatTitle(chat)" />
         <div class="chat">
             <header class="chead">
                 <Link class="back" :href="route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
-                <span :class="['cav', chat.type]">
-                    <Icon v-if="isGame" name="ball" />
-                    <template v-else>{{ initials(chat.other?.name) }}</template>
-                </span>
+                <span v-if="isGame" class="cav game"><Icon name="ball" /></span>
+                <Avatar v-else :id="chat.other?.id ?? null" :name="chat.other?.name" :src="chat.other?.avatar" size="md" />
                 <div class="ht">
                     <b>{{ chatTitle(chat) }}</b>
                     <span v-if="chat.game" class="hs">
@@ -350,8 +380,18 @@ onBeforeUnmount(() => {
                     </span>
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
-                <Link v-if="chat.game?.url" class="btn ghost sm" :href="chat.game.url"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.openGame') }}</span></Link>
+                <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.openGame')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.openGame') }}</span></Link>
             </header>
+
+            <div v-if="bar" class="gbar">
+                <Link :href="bar.url ?? '#'" class="gb-main">
+                    <Icon name="calendar" size="sm" />
+                    <span class="gb-t"
+                        ><b>{{ bar.when }} · {{ bar.where }}</b><span class="gb-dot"> · </span><span :class="['gb-s', bar.state]">{{ $t(`messages.bar.${bar.state}`) }}</span></span
+                    >
+                </Link>
+                <Link v-if="bar.canBook" :href="bar.url + '?book=1'" class="btn sm gb-book">{{ $t('messages.bar.book') }}<Icon name="arrow" size="sm" /></Link>
+            </div>
 
             <div v-if="archived" class="banner">
                 <Icon name="clock" size="sm" />
@@ -370,7 +410,7 @@ onBeforeUnmount(() => {
                             <span>{{ sysText(r.m.body, r.m.meta) }}</span>
                         </div>
                         <div v-else :id="`m${r.m.id}`" :class="['mrow', { mine: r.mine, head: r.head, tail: r.tail }]">
-                            <span v-if="!r.mine && isGame" class="mav" :aria-hidden="true">{{ r.tail ? initials(userName(r.m.user)) : '' }}</span>
+                            <span v-if="!r.mine && isGame" class="mav" :aria-hidden="true"><Avatar v-if="r.tail" :id="r.m.user?.id ?? null" :name="userName(r.m.user)" :src="r.m.user?.avatar" size="sm" /></span>
                             <div class="mcol">
                                 <span v-if="!r.mine && isGame && r.head" class="mname">{{ userName(r.m.user) }}</span>
                                 <div :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id }]" role="button" tabindex="0" :aria-label="$t('messages.actions')" @click="toggle(r.m)" @keydown.enter.prevent="toggle(r.m)">
@@ -415,6 +455,7 @@ onBeforeUnmount(() => {
                     <button type="button" class="x" :aria-label="$t('messages.cancel')" @click="cancelMode"><Icon name="x" size="sm" /></button>
                 </div>
                 <div class="box">
+                    <EmojiPicker :label="$t('messages.emoji')" :football-label="$t('messages.emojiFootball')" :reactions-label="$t('messages.emojiReactions')" @pick="insertEmoji" />
                     <textarea
                         ref="input"
                         v-model="text"
@@ -431,7 +472,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="cfoot">
                     <span class="err" role="alert">{{ error }}</span>
-                    <span :class="['count', { warn: text.length > maxLength - 100, over: tooLong }]">{{ text.length }}/{{ maxLength }}</span>
+                    <span v-if="showCount" :class="['count', { warn: text.length > maxLength - 100, over: tooLong }]">{{ text.length }}/{{ maxLength }}</span>
                 </div>
             </form>
         </div>
@@ -439,7 +480,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.chat { max-width: 820px; margin: 12px auto 0; display: flex; flex-direction: column; height: calc(100dvh - 64px - 24px); min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.chat { max-width: 820px; width: 100%; margin: 12px auto 0; display: flex; flex-direction: column; height: calc(100dvh - var(--app-top, 64px) - 24px); min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
 .chead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2); min-width: 0; }
 .back { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); flex: none; }
 .back:hover { background: var(--surface-2); color: var(--ink); }
@@ -448,15 +489,29 @@ onBeforeUnmount(() => {
 .ht { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ht b { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hs { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gbar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0; min-height: 44px; }
+.gb-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 13.5px; font-weight: 700; }
+.gb-main .ico { color: var(--muted); }
+.gb-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-t b { font-weight: 700; }
+@media (max-width: 600px) {
+    .gb-t { display: flex; flex-direction: column; line-height: 1.3; }
+    .gb-t > * { overflow: hidden; text-overflow: ellipsis; }
+    .gb-dot { display: none; }
+    .gb-s { font-size: 12px; }
+}
+.gb-s.none, .gb-s.requested { color: var(--st-pending); }
+.gb-s.booked { color: var(--st-confirmed); }
+.gb-book { flex: none; }
 .banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--warn-soft); color: var(--warn); font-size: 13px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .banner span { flex: 1; min-width: 200px; }
 
 .cbody { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 14px 6px; display: flex; flex-direction: column; overscroll-behavior: contain; }
 .older { align-self: center; margin: 4px 0 10px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--muted); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 700; }
 .none { text-align: center; color: var(--muted); margin: auto 0; }
-.dsep { text-align: center; margin: 12px 0 6px; position: sticky; top: -12px; z-index: 2; }
-.dsep span { display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); padding: 3px 10px; border-radius: 999px; }
-.newline { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--accent); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.dsep { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.dsep::before, .dsep::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.newline { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--accent); font-size: 12px; font-weight: 800; }
 .newline::before, .newline::after { content: ''; flex: 1; height: 1px; background: rgba(200, 255, 61, 0.35); }
 .sys { text-align: center; margin: 8px 0; }
 .sys span { display: inline-block; max-width: 92%; font-size: 12.5px; color: var(--muted); background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--line-2); border-radius: 12px; padding: 5px 12px; overflow-wrap: anywhere; }
@@ -464,8 +519,7 @@ onBeforeUnmount(() => {
 .mrow { display: flex; gap: 8px; align-items: flex-end; margin-top: 2px; min-width: 0; }
 .mrow.head { margin-top: 10px; }
 .mrow.mine { justify-content: flex-end; }
-.mav { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--surface-3); }
-.mav:empty { background: none; }
+.mav { width: 30px; height: 30px; flex: none; display: grid; }
 .mcol { display: flex; flex-direction: column; max-width: min(78%, 560px); min-width: 0; }
 .mine .mcol { align-items: flex-end; }
 .mname { font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 3px 10px; }
@@ -495,7 +549,7 @@ onBeforeUnmount(() => {
 .jump { position: absolute; left: 50%; transform: translateX(-50%); bottom: 26px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 12.5px; padding: 6px 14px; box-shadow: var(--shadow); z-index: 3; white-space: nowrap; }
 .offline { font-size: 12px; color: var(--warn); padding: 0 16px 4px; }
 
-.composer { border-top: 1px solid var(--line); padding: 8px 12px 6px; background: var(--bg-2); }
+.composer { border-top: 1px solid var(--line); padding: 8px 12px calc(6px + env(safe-area-inset-bottom)); background: var(--bg-2); }
 .mode { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; color: var(--accent-2); min-width: 0; }
 .mt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12.5px; }
 .mt b { color: var(--accent-2); }
@@ -505,20 +559,23 @@ onBeforeUnmount(() => {
 .box textarea { flex: 1; min-width: 0; resize: none; background: var(--surface); border: 1px solid var(--line-2); border-radius: 20px; padding: 9px 14px; font-size: 15px; line-height: 1.4; max-height: 150px; outline: none; }
 .box textarea:focus { border-color: rgba(200, 255, 61, 0.5); }
 .send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; }
-.send:disabled { opacity: 0.35; cursor: not-allowed; }
-.cfoot { display: flex; justify-content: space-between; gap: 10px; padding: 3px 6px 0; font-size: 11.5px; min-height: 18px; }
+.send:disabled { background: var(--surface-2); color: var(--faint); cursor: not-allowed; }
+.cfoot { display: flex; justify-content: space-between; gap: 10px; padding: 3px 6px 0; font-size: 11.5px; }
+.cfoot:has(.err:empty):not(:has(.count)) { display: none; }
 .err { color: var(--hot); }
 .count { color: var(--faint); flex: none; }
 .count.warn { color: var(--warn); }
 .count.over { color: var(--hot); font-weight: 800; }
 
+/* phones / tablets: the layout is fullscreen (no header, no tab bar), the chat fills it edge to edge */
 @media (max-width: 900px) {
-    .chat { height: calc(100dvh - 64px - 76px - 16px); margin-top: 8px; }
+    .chat { flex: 1 1 auto; height: auto; min-height: 0; margin: 0 -20px; width: auto; max-width: none; border-radius: 0; border: 0; }
+    .chead { padding-top: calc(10px + env(safe-area-inset-top)); }
 }
 @media (max-width: 600px) {
-    .chat { margin: 6px -16px 0; border-radius: 0; border-left: 0; border-right: 0; height: calc(100dvh - 64px - 76px - 6px); }
+    .chat { margin: 0 -16px; }
     .hide-sm { display: none; }
-    .chead { padding: 8px 10px; gap: 8px; }
+    .chead { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; gap: 8px; }
     .cbody { padding: 10px 10px 6px; }
     .mcol { max-width: 84%; }
 }

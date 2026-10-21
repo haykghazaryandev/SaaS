@@ -28,7 +28,7 @@ class ChatPresenter
                 'deleted' => $m->replyTo->trashed(),
                 'user' => $m->replyTo->relationLoaded('user') && $m->replyTo->user ? ['id' => $m->replyTo->user->id, 'name' => $m->replyTo->user->name, 'username' => $m->replyTo->user->username] : null,
             ] : null,
-            'user' => $m->user ? ['id' => $m->user->id, 'name' => $m->user->name, 'username' => $m->user->username] : null,
+            'user' => $m->user ? ['id' => $m->user->id, 'name' => $m->user->name, 'username' => $m->user->username, 'avatar' => $m->user->avatarUrl()] : null,
             'created_at' => $m->created_at?->toIso8601String(),
         ];
     }

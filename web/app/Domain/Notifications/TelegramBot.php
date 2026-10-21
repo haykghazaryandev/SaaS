@@ -29,6 +29,49 @@ class TelegramBot
         return $this->call('sendMessage', ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML', 'disable_web_page_preview' => true] + $this->markup($buttons));
     }
 
+    /** A message with a big "📱 Share my phone number" keyboard button (Telegram sends the user's own contact). */
+    public function askContact(int|string $chatId, string $text, string $button): array
+    {
+        return $this->call('sendMessage', ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML', 'reply_markup' => [
+            'keyboard' => [[['text' => $button, 'request_contact' => true]]], 'resize_keyboard' => true, 'one_time_keyboard' => true,
+        ]]);
+    }
+
+    /**
+     * A message that also removes the reply keyboard (after the contact was shared).
+     * $links: [[text, url], …] shown as buttons — only https links (Telegram refuses localhost), otherwise left out.
+     */
+    public function sendAndHideKeyboard(int|string $chatId, string $text, array $links = []): array
+    {
+        $links = array_values(array_filter($links, fn ($l) => str_starts_with($l[1], 'https://')));
+        $markup = $links ? ['inline_keyboard' => [array_map(fn ($l) => ['text' => $l[0], 'url' => $l[1]], $links)]] : ['remove_keyboard' => true];
+        if ($links) {
+            // a message can carry only one keyboard: remove the "share phone" keyboard first, quietly
+            $this->call('sendMessage', ['chat_id' => $chatId, 'text' => '✅', 'reply_markup' => ['remove_keyboard' => true], 'disable_notification' => true]);
+        }
+
+        return $this->call('sendMessage', ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML', 'disable_web_page_preview' => true, 'reply_markup' => $markup]);
+    }
+
+    /**
+     * A message with one row of link buttons (only https links; Telegram refuses localhost) and one row of callback buttons.
+     * $links: [[text, url], …]   $actions: [[text, callback_data], …]
+     */
+    public function sendWithButtons(int|string $chatId, string $text, array $links = [], array $actions = []): array
+    {
+        $rows = [];
+        $links = array_values(array_filter($links, fn ($l) => str_starts_with($l[1], 'https://')));
+        if ($links) {
+            $rows[] = array_map(fn ($l) => ['text' => $l[0], 'url' => $l[1]], $links);
+        }
+        if ($actions) {
+            $rows[] = array_map(fn ($a) => ['text' => $a[0], 'callback_data' => $a[1]], $actions);
+        }
+
+        return $this->call('sendMessage', ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML', 'disable_web_page_preview' => true]
+            + ($rows ? ['reply_markup' => ['inline_keyboard' => $rows]] : []));
+    }
+
     public function editMessageText(int|string $chatId, int $messageId, string $text, array $buttons = []): array
     {
         return $this->call('editMessageText', ['chat_id' => $chatId, 'message_id' => $messageId, 'text' => $text, 'parse_mode' => 'HTML']
@@ -53,7 +96,7 @@ class TelegramBot
 
             return ['ok' => true, 'logged' => true];
         }
-        $res = Http::asJson()->timeout(10)
+        $res = Http::asJson()->timeout($method === 'getUpdates' ? 40 : 10)
             ->post('https://api.telegram.org/bot'.config('services.telegram.bot_token').'/'.$method, $params);
         if ($res->failed()) {
             throw new RequestException($res);

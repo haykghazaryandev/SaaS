@@ -8,6 +8,7 @@ use App\Models\Closure;
 use App\Models\Field;
 use App\Models\OpeningHour;
 use App\Models\PriceRule;
+use App\Models\Venue;
 use App\Support\LocalTime;
 use App\Support\Phone;
 use Carbon\CarbonImmutable;
@@ -47,6 +48,7 @@ class SettingsController extends OwnerController
                 'address' => $venue->tr('address'),
                 'district' => $venue->district,
                 'phone' => $venue->phone ? Phone::format($venue->phone) : null,
+                'tel' => $venue->phone,
                 'status' => $venue->status,
             ],
             'prices' => $venue->fields->map(fn (Field $f) => [
@@ -80,22 +82,8 @@ class SettingsController extends OwnerController
     {
         $this->ensureOwner($request);
         $venue = $this->venue($request)->load('fields');
-        $data = $request->validate([
-            'prices' => 'required|array',
-            'prices.*.field_id' => ['required', 'integer', Rule::in($venue->fields->pluck('id')->all())],
-            'prices.*.day' => 'required|integer|min:0|max:1000000',
-            'prices.*.evening' => 'required|integer|min:0|max:1000000',
-            'prices.*.weekend' => 'required|integer|min:0|max:1000000',
-        ], ['prices.*.*' => __('owner.form.bad_price')]);
-        DB::transaction(function () use ($data) {
-            foreach ($data['prices'] as $p) {
-                PriceRule::where('field_id', $p['field_id'])->delete();
-                $base = ['field_id' => $p['field_id'], 'weekdays' => [1, 2, 3, 4, 5]];
-                PriceRule::create([...$base, 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => $p['day'], 'priority' => 1]);
-                PriceRule::create([...$base, 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => $p['evening'], 'priority' => 1]);
-                PriceRule::create(['field_id' => $p['field_id'], 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $p['weekend'], 'priority' => 2]);
-            }
-        });
+        $data = $request->validate($this->priceRules($venue), $this->priceMessages());
+        DB::transaction(fn () => $this->savePrices($data['prices']));
 
         return back()->with('success', __('owner.flash.prices_saved'));
     }
@@ -105,29 +93,9 @@ class SettingsController extends OwnerController
     {
         $this->ensureOwner($request);
         $venue = $this->venue($request);
-        $time = ['nullable', 'regex:/^(([01]\d|2[0-3]):(00|30)|24:00)$/'];
-        $data = $request->validate([
-            'hours' => 'required|array|size:7',
-            'hours.*.weekday' => 'required|integer|between:0,6|distinct',
-            'hours.*.open' => $time,
-            'hours.*.close' => $time,
-        ]);
-        foreach ($data['hours'] as $i => $h) {
-            $open = $h['open'] ?? null;
-            $close = $h['close'] ?? null;
-            if (($open === null) !== ($close === null) || ($open !== null && OpeningHour::toHours($close) <= OpeningHour::toHours($open)) || $open === '24:00') {
-                throw ValidationException::withMessages(["hours.$i.close" => __('owner.settings.hours_bad')]);
-            }
-        }
-        DB::transaction(function () use ($venue, $data) {
-            foreach ($data['hours'] as $h) {
-                if (empty($h['open'])) {
-                    OpeningHour::where('venue_id', $venue->id)->where('weekday', $h['weekday'])->delete();
-                } else {
-                    OpeningHour::updateOrCreate(['venue_id' => $venue->id, 'weekday' => $h['weekday']], ['opens_at' => $h['open'], 'closes_at' => $h['close']]);
-                }
-            }
-        });
+        $data = $request->validate($this->hourRules());
+        $this->checkHours($data['hours']);
+        DB::transaction(fn () => $this->saveHours($venue, $data['hours']));
 
         return back()->with('success', __('owner.flash.saved'));
     }
@@ -137,13 +105,132 @@ class SettingsController extends OwnerController
         $this->ensureOwner($request);
         $venue = $this->venue($request);
         $data = $request->validate(self::RULES);
+        $this->saveRules($venue, $data);
+
+        return back()->with('success', __('owner.flash.saved'));
+    }
+
+    /**
+     * One "Save changes" for the whole page: any of prices, hours, rules and the place phone, checked first and saved together.
+     * Errors keep the keys of the single endpoints ("prices.0.day", "hours.3.close", "rules.min_notice_min", "phone").
+     */
+    public function save(Request $request)
+    {
+        $this->ensureOwner($request);
+        $venue = $this->venue($request)->load('fields');
+        $rules = ['phone' => 'sometimes|nullable|string|max:20'];
+        if ($request->has('prices')) {
+            $rules += $this->priceRules($venue);
+        }
+        if ($request->has('hours')) {
+            $rules += $this->hourRules();
+        }
+        if ($request->has('rules')) {
+            $rules['rules'] = 'array';
+            foreach (self::RULES as $k => $r) {
+                $rules["rules.$k"] = $r;
+            }
+        }
+        $data = $request->validate($rules, $this->priceMessages());
+        if (isset($data['hours'])) {
+            $this->checkHours($data['hours']);
+        }
+        $phone = null;
+        if (array_key_exists('phone', $data) && filled($data['phone'])) {
+            $phone = Phone::normalize($data['phone']);
+            if (! $phone) {
+                throw ValidationException::withMessages(['phone' => __('owner.settings.bad_phone')]);
+            }
+        }
+        DB::transaction(function () use ($venue, $data, $phone) {
+            if (isset($data['prices'])) {
+                $this->savePrices($data['prices']);
+            }
+            if (isset($data['hours'])) {
+                $this->saveHours($venue, $data['hours']);
+            }
+            if (isset($data['rules'])) {
+                $this->saveRules($venue, $data['rules']);
+            }
+            if (array_key_exists('phone', $data)) {
+                $venue->forceFill(['phone' => $phone])->save();
+            }
+        });
+
+        return back()->with('success', __('owner.flash.settings_saved'));
+    }
+
+    // ---------- parts shared by the single endpoints and "Save changes" ----------
+
+    private function priceRules(Venue $venue): array
+    {
+        return [
+            'prices' => 'required|array',
+            'prices.*.field_id' => ['required', 'integer', Rule::in($venue->fields->pluck('id')->all())],
+            'prices.*.day' => 'required|integer|min:0|max:1000000',
+            'prices.*.evening' => 'required|integer|min:0|max:1000000',
+            'prices.*.weekend' => 'required|integer|min:0|max:1000000',
+        ];
+    }
+
+    private function priceMessages(): array
+    {
+        return ['prices.*.*' => __('owner.form.bad_price')];
+    }
+
+    private function savePrices(array $prices): void
+    {
+        foreach ($prices as $p) {
+            PriceRule::where('field_id', $p['field_id'])->delete();
+            $base = ['field_id' => $p['field_id'], 'weekdays' => [1, 2, 3, 4, 5]];
+            PriceRule::create([...$base, 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => $p['day'], 'priority' => 1]);
+            PriceRule::create([...$base, 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => $p['evening'], 'priority' => 1]);
+            PriceRule::create(['field_id' => $p['field_id'], 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $p['weekend'], 'priority' => 2]);
+        }
+    }
+
+    private function hourRules(): array
+    {
+        $time = ['nullable', 'regex:/^(([01]\d|2[0-3]):(00|30)|24:00)$/'];
+
+        return [
+            'hours' => 'required|array|size:7',
+            'hours.*.weekday' => 'required|integer|between:0,6|distinct',
+            'hours.*.open' => $time,
+            'hours.*.close' => $time,
+        ];
+    }
+
+    private function checkHours(array $hours): void
+    {
+        foreach ($hours as $i => $h) {
+            $open = $h['open'] ?? null;
+            $close = $h['close'] ?? null;
+            if (($open === null) !== ($close === null) || ($open !== null && OpeningHour::toHours($close) <= OpeningHour::toHours($open)) || $open === '24:00') {
+                throw ValidationException::withMessages(["hours.$i.close" => __('owner.settings.hours_bad')]);
+            }
+        }
+    }
+
+    private function saveHours(Venue $venue, array $hours): void
+    {
+        foreach ($hours as $h) {
+            if (empty($h['open'])) {
+                OpeningHour::where('venue_id', $venue->id)->where('weekday', $h['weekday'])->delete();
+            } else {
+                OpeningHour::updateOrCreate(['venue_id' => $venue->id, 'weekday' => $h['weekday']], ['opens_at' => $h['open'], 'closes_at' => $h['close']]);
+            }
+        }
+    }
+
+    private function saveRules(Venue $venue, array $data): void
+    {
+        $data = array_intersect_key($data, self::RULES);
         $data['auto_accept_regulars'] = (bool) $data['auto_accept_regulars'];
         foreach (['free_cancel_hours', 'min_notice_min', 'request_expire_min'] as $k) {
             $data[$k] = (int) $data[$k];
         }
         $venue->forceFill(['rules' => [...($venue->rules ?? []), ...$data]])->save();
-
-        return back()->with('success', __('owner.flash.saved'));
     }
 
     /** Close a field (or the whole place) for a time. Existing bookings are kept; the owner is told how many overlap. */

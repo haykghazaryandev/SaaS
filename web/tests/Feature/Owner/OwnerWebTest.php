@@ -256,3 +256,85 @@ it('adds and removes closures, which block the time', function () {
     $this->actingAs($this->owner)->delete("/owner/closures/{$c->id}")->assertSessionHas('success');
     expect(Closure::count())->toBe(1);
 });
+
+// ---------- UX review 2026-10-22: Today strip, conflicts, undo-friendly answers, expired, one "Save changes" ----------
+
+it('gives Today the lanes of today and flags requests that clash', function () {
+    // the same player asks for both fields at overlapping times, and once more later
+    $a = pendingRequest($this, 20);
+    $b = app(RequestBooking::class)->handle($this->player, $this->big, at(20.5), 90);
+    $now = Booking::create([
+        'code' => 'BB-901', 'venue_id' => $this->venue->id, 'field_id' => $this->big->id, 'starts_at' => now()->subMinutes(20), 'ends_at' => now()->addMinutes(40),
+        'status' => 'accepted', 'source' => 'owner', 'contact_name' => 'Walk-in', 'price' => 1000,
+    ]);
+    $this->actingAs($this->owner)->get('/owner')->assertOk()->assertInertia(fn (Assert $p) => $p
+        ->component('owner/Today')
+        ->has('requests', 2)
+        ->where('requests.0.id', $a->id)
+        ->where('requests.0.conflicts.0.id', $b->id)
+        ->where('requests.0.conflicts.0.field_id', $this->big->id)
+        ->where('requests.1.conflicts.0.id', $a->id)
+        ->where('lanes', fn ($lanes) => collect($lanes)->contains(fn ($r) => $r['id'] === $now->id && $r['kind'] === 'owner'))
+        ->missing('next'));
+    // a request of another player at another time does not clash
+    $other = User::factory()->create();
+    $c = app(RequestBooking::class)->handle($other, $this->small, at(10, 1), 60);
+    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p
+        ->where('requests', fn ($r) => collect($r)->firstWhere('id', $c->id)['conflicts'] === []));
+});
+
+it('answers requests with JSON for the Undo toast and refuses a second answer', function () {
+    $a = pendingRequest($this, 18);
+    $d = pendingRequest($this, 20);
+    $this->actingAs($this->owner)->postJson("/owner/bookings/{$a->id}/accept")->assertOk()->assertJson(['ok' => true]);
+    $this->actingAs($this->owner)->postJson("/owner/bookings/{$d->id}/decline", ['reason' => 'Rain'])->assertOk();
+    expect($a->fresh()->status)->toBe(BookingStatus::Accepted)->and($d->fresh()->status)->toBe(BookingStatus::Declined)->and($d->fresh()->decline_reason)->toBe('Rain');
+    $this->actingAs($this->owner)->postJson("/owner/bookings/{$a->id}/decline")->assertStatus(422)->assertJsonPath('errors.booking.0', __('booking.error.not_pending'));
+    $foreign = app(RequestBooking::class)->handle($this->player, $this->otherSmall, at(21), 60);
+    $this->actingAs($this->owner)->postJson("/owner/bookings/{$foreign->id}/accept")->assertForbidden();
+});
+
+it('shows unanswered requests whose time has passed as expired, before the job runs', function () {
+    $late = Booking::create([
+        'code' => 'BB-902', 'venue_id' => $this->venue->id, 'field_id' => $this->small->id, 'user_id' => $this->player->id,
+        'starts_at' => now()->subMinutes(10), 'ends_at' => now()->addMinutes(50), 'status' => 'pending', 'source' => 'player', 'contact_name' => 'Late', 'price' => 1,
+    ]);
+    $date = $late->starts_at->setTimezone(App\Support\LocalTime::tz())->toDateString();
+    $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
+        ->where('day.bookings', fn ($rows) => collect($rows)->firstWhere('id', $late->id)['kind'] === 'expired'));
+    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p->has('requests', 0)->where('kpi.pending', 0)
+        ->where('lanes', fn ($lanes) => ! collect($lanes)->contains('id', $late->id)));
+    $late->update(['status' => 'expired']);
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$late->id}")->assertJsonPath('kind', 'expired');
+});
+
+it('saves prices, hours, rules and the place phone with one "Save changes"', function () {
+    $prices = $this->venue->fields->map(fn ($f) => ['field_id' => $f->id, 'day' => 12000, 'evening' => 18000, 'weekend' => 21000])->all();
+    $hours = collect(range(0, 6))->map(fn ($wd) => ['weekday' => $wd, 'open' => '10:00', 'close' => '23:00'])->all();
+    $rules = ['free_cancel_hours' => 12, 'min_notice_min' => 60, 'request_expire_min' => 120, 'auto_accept_regulars' => false];
+    $this->actingAs($this->owner)->put('/owner/settings', ['prices' => $prices, 'hours' => $hours, 'rules' => $rules, 'phone' => '+374 99 12 34 56'])
+        ->assertSessionHasNoErrors()->assertSessionHas('success', __('owner.flash.settings_saved'));
+    $v = $this->venue->fresh();
+    expect($v->phone)->toBe('+37499123456')
+        ->and($v->rule('free_cancel_hours'))->toBe(12)->and($v->rule('request_expire_min'))->toBe(120)->and($v->rule('auto_accept_regulars'))->toBeFalse()
+        ->and(app(PriceCalculator::class)->price($this->small->fresh(), at(10), 60))->toBe(12000)
+        ->and(substr(OpeningHour::where('venue_id', $v->id)->where('weekday', 3)->value('opens_at'), 0, 5))->toBe('10:00');
+    $this->actingAs($this->owner)->get('/owner/settings')->assertInertia(fn (Assert $p) => $p->where('place.tel', '+37499123456')->where('place.phone', '+374 99 123 456'));
+
+    // only what changed is sent: a phone alone leaves the rest as it is; null removes it
+    $this->actingAs($this->owner)->put('/owner/settings', ['phone' => '091 00 00 00'])->assertSessionHasNoErrors();
+    expect($v->fresh()->phone)->toBe('+37491000000')->and(PriceRule::where('field_id', $this->small->id)->count())->toBe(3);
+    $this->actingAs($this->owner)->put('/owner/settings', ['phone' => null])->assertSessionHasNoErrors();
+    expect($v->fresh()->phone)->toBeNull();
+
+    // nothing is saved when one part is wrong
+    $bad = $hours;
+    $bad[2] = ['weekday' => 2, 'open' => '22:00', 'close' => '10:00'];
+    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => [...$rules, 'free_cancel_hours' => 2], 'hours' => $bad])->assertSessionHasErrors('hours.2.close');
+    $this->actingAs($this->owner)->put('/owner/settings', ['phone' => '12345'])->assertSessionHasErrors(['phone' => __('owner.settings.bad_phone')]);
+    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => ['free_cancel_hours' => 2]])->assertSessionHasErrors('rules.min_notice_min');
+    expect($v->fresh()->rule('free_cancel_hours'))->toBe(12)->and($v->fresh()->phone)->toBeNull();
+
+    // staff can't
+    $this->actingAs($this->staff)->put('/owner/settings', ['phone' => '091000000'])->assertForbidden();
+});

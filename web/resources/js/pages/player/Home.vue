@@ -2,13 +2,15 @@
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
 import { amd, hhmm } from '@/composables/useShared';
-import { SIZE_COLOR, pitchColor, wdName } from '@/composables/usePlayer';
+import { SIZE_COLOR, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { DayInfo, VenueCard } from '@/types/player';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 
 // Home: finder + size tiles + places with the next free start times of their two fields.
+// A free-time chip opens the place page with the field, day, duration and time chosen; a field with nothing free
+// that day shows "Next free: Thu 19:00" instead.
 interface Filters {
     date: string;
     time: string | null;
@@ -57,14 +59,18 @@ function toggleSize(z: 'small' | 'big') {
     go({ size: props.filters.size === z ? null : z });
 }
 
-const placeUrl = (v: VenueCard, fieldId?: number, start?: number) =>
-    route('places.show', {
+type CardField = VenueCard['fields'][number];
+const placeUrl = (v: VenueCard, f?: CardField, start?: number, date?: string) => {
+    const d = date ?? props.filters.date;
+    return route('places.show', {
         venue: v.slug,
-        date: props.filters.date !== props.days[0]?.date ? props.filters.date : undefined,
-        field: fieldId,
-        size: !fieldId && props.filters.size ? props.filters.size : undefined,
+        date: d !== props.days[0]?.date ? d : undefined,
+        field: f?.id,
+        minutes: f && start !== undefined ? f.defaultDuration : undefined,
+        size: !f && props.filters.size ? props.filters.size : undefined,
         start: start !== undefined ? hhmm(start) : undefined,
     });
+};
 const isToday = () => props.filters.date === props.days[0]?.date;
 const big = (v: VenueCard) => v.allFields.find((x) => x.size === 'big');
 const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
@@ -80,28 +86,38 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                 <h1>{{ $t('player.home.h1a') }}<br /><em>{{ $t('player.home.h1b') }}</em></h1>
                 <p>{{ $t('player.home.lead') }}</p>
                 <form class="finder" @submit.prevent="find">
-                    <select v-model="f.size" class="input wide" :aria-label="$t('player.place.field')">
-                        <option value="">{{ $t('player.home.anySize') }}</option>
-                        <option value="small">{{ $t('player.size.small') }} 5×5</option>
-                        <option value="big">{{ $t('player.size.big') }} 11×11</option>
-                    </select>
-                    <select v-model="f.district" class="input" :aria-label="$t('player.home.anyDistrict')">
-                        <option value="">{{ $t('player.home.anyDistrict') }}</option>
-                        <option v-for="d in districts" :key="d" :value="d">{{ $t(`player.district.${d}`) }}</option>
-                    </select>
-                    <select v-model="f.time" class="input" :aria-label="$t('player.place.time')">
-                        <option value="">{{ $t('player.home.anyTime') }}</option>
-                        <option value="morning">{{ $t('player.home.morning') }}</option>
-                        <option value="day">{{ $t('player.home.day') }}</option>
-                        <option value="evening">{{ $t('player.home.evening') }}</option>
-                        <option v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.startAt', { t }) }}</option>
-                    </select>
+                    <!-- a small label above each filter keeps the values short, so they fit in Armenian and Russian too -->
+                    <label class="fsel">
+                        <span>{{ $t('player.place.field') }}</span>
+                        <select v-model="f.size" class="input">
+                            <option value="">{{ $t('player.home.any') }}</option>
+                            <option value="small">{{ $t('player.size.small') }} 5×5</option>
+                            <option value="big">{{ $t('player.size.big') }} 11×11</option>
+                        </select>
+                    </label>
+                    <label class="fsel">
+                        <span>{{ $t('player.home.districtL') }}</span>
+                        <select v-model="f.district" class="input">
+                            <option value="">{{ $t('player.home.any') }}</option>
+                            <option v-for="d in districts" :key="d" :value="d">{{ $t(`player.district.${d}`) }}</option>
+                        </select>
+                    </label>
+                    <label class="fsel">
+                        <span>{{ $t('player.place.time') }}</span>
+                        <select v-model="f.time" class="input">
+                            <option value="">{{ $t('player.home.any') }}</option>
+                            <option value="morning">{{ $t('player.home.morning') }}</option>
+                            <option value="day">{{ $t('player.home.day') }}</option>
+                            <option value="evening">{{ $t('player.home.evening') }}</option>
+                            <option v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.startAt', { t }) }}</option>
+                        </select>
+                    </label>
                     <button class="btn wide" :disabled="loading"><Icon name="search" />{{ $t('player.home.find') }}</button>
                 </form>
                 <div class="stats">
-                    <div><b>{{ stats.venues }}</b><span>{{ $t('player.home.sVenues') }}</span></div>
-                    <div><b>{{ stats.fields }}</b><span>{{ $t('player.home.sFields') }}</span></div>
-                    <div><b>{{ stats.tonight }}</b><span>{{ $t('player.home.sTonight') }}</span></div>
+                    <div v-if="stats.venues"><b>{{ stats.venues }}</b><span>{{ $t('player.home.sVenues') }}</span></div>
+                    <div v-if="stats.fields"><b>{{ stats.fields }}</b><span>{{ $t('player.home.sFields') }}</span></div>
+                    <div v-if="stats.tonight"><b>{{ stats.tonight }}</b><span>{{ $t('player.home.sTonight') }}</span></div>
                 </div>
             </div>
             <div class="hero-art" aria-hidden="true">
@@ -129,8 +145,8 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         <small>{{ $t(z === 'small' ? 'player.home.smallSub' : 'player.home.bigSub') }}</small>
                     </span>
                     <span class="tags">
-                        <span class="pill">{{ $t('player.home.placesN', { n: tiles[z].places }) }}</span>
-                        <span class="pill green">{{ $t('player.home.tonight', { n: tiles[z].tonight }) }}</span>
+                        <span v-if="tiles[z].places" class="pill">{{ $t('player.home.placesN', { n: String(tiles[z].places) }) }}</span>
+                        <span v-if="tiles[z].tonight" class="pill green">{{ $t('player.home.tonight', { n: String(tiles[z].tonight) }) }}</span>
                         <span class="pill">{{ $t('player.from') }} {{ amd(tiles[z].from) }} {{ $t('player.perHour') }}</span>
                     </span>
                 </button>
@@ -189,10 +205,13 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                             <div v-for="fl in v.fields" :key="fl.id" class="fslots">
                                 <span class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ fl.format }}</span>
                                 <template v-if="fl.starts.length">
-                                    <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl.id, h)">{{ hhmm(h) }}</Link>
-                                    <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl.id)">{{ $t('player.home.more', { n: fl.more }) }}</Link>
+                                    <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl, h)" :aria-label="`${fl.format} ${hhmm(h)}`">{{ hhmm(h) }}</Link>
+                                    <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)">{{ $t('player.home.more', { n: String(fl.more) }) }}</Link>
                                 </template>
-                                <span v-else class="faint" style="font-size: 12.5px">
+                                <Link v-else-if="fl.next" class="next-free" :href="placeUrl(v, fl, fl.next.start, fl.next.date)">
+                                    {{ $t('player.home.nextFree', { t: nextLabel(fl.next.date, days[0]?.date ?? '', hhmm(fl.next.start), true) }) }}<Icon name="arrow" size="sm" />
+                                </Link>
+                                <span v-else class="muted" style="font-size: 12.5px">
                                     {{ filters.time ? $t('player.home.noFreeTime') : isToday() ? $t('player.home.noFreeToday') : $t('player.home.noFree') }}
                                 </span>
                             </div>
@@ -228,7 +247,9 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
 .hero-art .stage svg { width: 100%; filter: drop-shadow(0 30px 30px rgba(0, 0, 0, 0.6)); }
 .hero-art::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, #0b120d 0%, rgba(11, 18, 13, 0) 35%), radial-gradient(400px 200px at 60% 0%, rgba(255, 255, 230, 0.12), transparent 70%); pointer-events: none; }
 .finder { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 18px; padding: 8px; max-width: 640px; }
-.finder .input { border: 0; background-color: var(--bg-2); min-width: 0; }
+.finder .fsel { display: flex; flex-direction: column; gap: 3px; min-width: 0; background: var(--bg-2); border-radius: var(--r-sm); padding: 7px 4px 2px 12px; }
+.finder .fsel span { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.finder .input { border: 0; background-color: transparent; min-width: 0; padding: 2px 30px 7px 0; font-weight: 700; }
 .finder .btn { grid-column: 1 / -1; }
 .stats { display: flex; gap: 28px; margin-top: 6px; }
 .stats b { font-family: var(--display); font-size: 22px; display: block; }
@@ -239,7 +260,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
   .hero-art::before { background: linear-gradient(0deg, #0b120d 0%, rgba(11, 18, 13, 0) 45%); }
   .hero-copy { padding: 8px 22px 26px; }
   .finder { grid-template-columns: 1fr 1fr; }
-  .finder .wide { grid-column: 1 / -1; }
+  .finder .wide, .finder .fsel:first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 440px) { .finder { grid-template-columns: 1fr; } .stats { gap: 18px; } }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -260,6 +281,8 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
 .vcard h3 a:hover { color: var(--accent); }
 .slot-more { font-family: var(--mono); font-size: 12.5px; padding: 5px 7px; color: var(--muted); font-weight: 700; }
 .slot-more:hover { color: var(--ink); }
+.next-free { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink); padding: 4px 9px; border-radius: 8px; border: 1px solid var(--line-2); }
+.next-free:hover { border-color: var(--accent); color: var(--accent); }
 .grid.dim { opacity: .55; transition: opacity .15s; }
 .how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .how .card { padding: 20px; min-width: 0; overflow-wrap: break-word; hyphens: auto; }

@@ -44,7 +44,7 @@ class DemoSeeder extends Seeder
         // players: +374 93 000 100 …
         $players = collect(range(0, 59))->map(fn ($i) => User::updateOrCreate(['phone' => sprintf('+37493000%03d', 100 + $i)], [
             'name' => self::FIRST[$i % 20].' '.self::LAST[($i * 7) % 16], 'locale' => ['hy', 'ru', 'en'][$i % 3],
-            'level' => ['beginner', 'mid', 'pro'][$i % 3], 'phone_verified_at' => $now, 'registered_at' => $now,
+            'phone_verified_at' => $now, 'registered_at' => $now,
             'username' => strtolower(self::FIRST[$i % 20]).($i + 10),
         ]));
 

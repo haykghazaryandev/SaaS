@@ -2,6 +2,8 @@
 
 // Owner web (/owner). Vue: $t('owner.…'), PHP: __('owner.…'). Placeholders use :name.
 return [
+    'undo' => 'Undo', 'decided' => ['accepted' => 'Accepted: :who', 'declined' => 'Declined: :who'],
+    'add_booking_fab' => 'New booking',
     'brand' => 'Bookball for fields',
     'brand_short' => 'Fields',
     'no_access' => "You don't have access to any place. Ask Bookball to add you.",
@@ -22,7 +24,7 @@ return [
     'field' => ['small' => 'Small field', 'big' => 'Big field'],
     'surface' => ['turf' => 'Artificial turf', 'grass' => 'Natural grass'],
     'st' => [
-        'pending' => 'Request', 'accepted' => 'Confirmed', 'owner' => 'Added by you', 'declined' => 'Declined',
+        'pending' => 'Request', 'accepted' => 'Confirmed', 'owner' => 'Manual', 'declined' => 'Declined',
         'cancelled' => 'Cancelled', 'expired' => 'Expired', 'completed' => 'Played', 'no_show' => 'No-show',
     ],
     'source' => [
@@ -66,17 +68,23 @@ return [
         'created_n' => ':n bookings added', 'skipped' => 'busy dates skipped: :dates', 'weekly_none' => 'All these dates are busy. Nothing was added.',
         'prices_saved' => 'Prices saved', 'closure_added' => 'Closure added', 'closure_overlap' => ':n bookings in this time are kept: call the players',
         'closure_removed' => 'Closure removed',
+        'settings_saved' => 'Changes saved',
     ],
     'err' => ['generic' => 'Something went wrong. Try again.', 'owner_only' => 'Only the owner of the place can change this.'],
     'today_page' => [
         'hello' => 'Hello, :name', 'open_schedule' => 'Open schedule',
-        'k_today' => 'Bookings today', 'k_today_sub' => ':a confirmed · :p waiting',
-        'k_pending' => 'Requests waiting', 'k_pending_sub' => 'Players wait for your answer', 'k_pending_none' => 'All answered',
-        'k_occ' => 'Occupancy today', 'k_rev' => 'Revenue today', 'k_rev_sub' => 'This week (Mon–Sun):',
+        'k_today_sub' => ':a confirmed · :p waiting',
+        'k_pending_none' => 'All answered',
         'requests' => 'Requests waiting', 'no_requests' => 'No requests waiting. New ones from Bookball show up here.',
         'more' => '+:n more in the schedule', 'sent' => 'sent :ago',
         'next' => 'Next games today', 'no_next' => 'No more games today.',
         'chart' => 'Occupancy, next 7 days', 'chart_sub' => 'Share of opening hours that are booked or requested',
+        'k_today' => 'Bookings', 'k_pending' => 'Requests', 'k_occ' => 'Occupancy', 'k_rev' => 'Revenue', 'k_rev_sub' => 'This week: :sum',
+        'k_pending_sub' => 'Waiting for your answer',
+        'strip' => 'Today on the fields', 'now' => 'Now', 'free_rest' => 'Free until closing', 'closed_today' => 'Closed today',
+        'more_later' => '+:n more later today', 'lane_sub' => ':p% booked · :n bookings', 'ends' => 'until :t',
+        'conflict' => 'Conflicts with :name :time',
+        'tg_title' => 'Connect Telegram to get requests instantly', 'tg_sub' => 'New requests come to Telegram with Accept and Decline buttons, so players don’t wait.',
     ],
     'schedule' => [
         'kicker' => 'Bookings', 'day' => 'Day', 'week' => 'Week', 'list' => 'List', 'show_off' => 'Show declined and cancelled',
@@ -85,13 +93,14 @@ return [
         'closed_day' => 'The place is closed on this day (opening hours).', 'closed_short' => 'closed',
         'search' => 'Search name, phone, team or code', 'f_pending' => 'Pending', 'f_accepted' => 'Confirmed', 'f_cancelled' => 'Cancelled', 'f_all' => 'All',
         'none' => 'Nothing found', 'range' => 'Past week and the next 30 days', 'shown' => 'Showing :n of :m',
+        'now' => 'Now', 'calendar' => 'Pick a date', 'lanes' => 'Field', 'expired' => 'Expired', 'legend_off' => 'Expired, declined or cancelled',
     ],
     'settings' => [
         'kicker' => 'Place, prices and rules', 'readonly' => 'You can see the settings. Only the owner of the place can change them.',
         'profile' => 'Place profile', 'active' => 'Visible to players', 'address' => 'Address', 'fields' => 'Fields',
         'profile_note' => 'This is what players see. The name, address and fields are changed by the Bookball admin: write to support.',
         'prices' => 'Prices per hour', 'prices_note' => 'Weekdays before 18:00, weekday evenings from 18:00, and weekends all day. New prices are used for new bookings.',
-        'p_day' => 'Day, ֏', 'p_evening' => 'Evening, ֏', 'p_weekend' => 'Weekend, ֏', 'save_prices' => 'Save prices', 'indoor' => 'indoor',
+        'p_day' => 'Day', 'p_evening' => 'Evening', 'p_weekend' => 'Weekend', 'save_prices' => 'Save prices', 'indoor' => 'indoor',
         'hours' => 'Opening hours', 'opens' => 'Opens', 'closes' => 'Closes', 'closed' => 'Closed', 'open_day' => 'Open on this day',
         'copy_monday' => 'Same as Monday', 'hours_bad' => 'Closing time must be after the opening time.',
         'rules' => 'Booking rules', 'auto' => 'Auto-accept regular customers', 'auto_s' => 'Players who often play here are confirmed at once',
@@ -105,5 +114,9 @@ return [
         'closure_bad' => 'The end must be after the start.', 'closure_past' => 'This time has already passed.',
         'tg' => 'Telegram notifications', 'tg_note' => 'New requests come to your Telegram with Accept and Decline buttons, together with cancellations and changes.', 'tg_on' => 'Telegram is connected: new requests come there.',
         'account' => 'Account',
+        'save_bar' => 'You have unsaved changes', 'save_changes' => 'Save changes', 'discard' => 'Discard', 'saving' => 'Saving…',
+        'same_hours' => 'Same hours every day', 'same_hours_s' => 'Turn off to set each day separately', 'every_day' => 'Every day',
+        'add_phone' => 'Add phone', 'phone_s' => 'Players see it on your place page and can call you', 'bad_phone' => 'Phone: 8 digits after +374, or leave it empty',
+        'remove_phone' => 'Remove phone', 'language' => 'Language', 'per_hour' => '֏ per hour',
     ],
 ];

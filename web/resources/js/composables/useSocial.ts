@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/vue3';
 import type { SocialCounts } from '@/types';
 import type { Notice } from '@/types/social';
 import { reactive } from 'vue';
@@ -10,7 +11,7 @@ import { reactive } from 'vue';
  * otherwise we poll GET /notifications every 30 s.
  */
 export const social = reactive({
-    counts: { notifications: 0, messages: 0, friendRequests: 0 } as SocialCounts,
+    counts: { notifications: 0, messages: 0, friendRequests: 0, invites: 0, pendingBookings: 0 } as SocialCounts,
     items: [] as Notice[],
     loaded: false,
     toast: null as { text: string; link: string | null } | null,
@@ -100,7 +101,12 @@ async function onNotice(n: Record<string, unknown>) {
     await refresh();
     const item = social.items.find((i) => i.id === n.id);
     const text = item?.text || (typeof n.text === 'string' ? n.text : '');
-    if (text) showToast(text, item?.link ?? (typeof n.link === 'string' ? n.link : null));
+    const link = item?.link ?? (typeof n.link === 'string' ? n.link : null);
+    if (text) showToast(text, link);
+    // the place answered a booking while "My bookings" is open: show the new status at once
+    if (link?.startsWith('/me/bookings') && window.location.pathname.startsWith('/me/bookings')) {
+        router.reload();
+    }
 }
 
 /** Listen on the user's channels once per Echo connection (echo.ts makes a new one when the user changes). */

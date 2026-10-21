@@ -21,6 +21,7 @@ class NotificationController extends Controller
                 'type' => $type,
                 'text' => $type !== '' ? __('notice.'.$type, $params) : '',
                 'link' => $n->data['link'] ?? null,
+                'name' => ($params['name'] ?? '') !== '' ? $params['name'] : null,
                 'read_at' => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at->toIso8601String(),
             ];

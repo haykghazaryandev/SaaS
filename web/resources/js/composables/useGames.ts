@@ -1,6 +1,6 @@
 import type { GameCard, GameWindow } from '@/types/games';
 import { trans } from 'laravel-vue-i18n';
-import { dateRel } from './usePlayer';
+import { dateRel, dateShort, wdName, weekday } from './usePlayer';
 
 // Helpers for the games pages.
 
@@ -22,16 +22,28 @@ export function whereText(g: Pick<GameCard, 'venue' | 'district'>): string {
     return trans('games.card.anywhere');
 }
 
-/** colour of each game status pill */
-export const STATUS_LOOK: Record<string, [string, string]> = {
-    forming: ['warn', 'users'],
-    open: ['green', 'ball'],
-    full: ['lime', 'check'],
-    booked: ['blue', 'calendar'],
-    played: ['', 'trophy'],
-    cancelled: ['hot', 'x'],
-    archived: ['', 'clock'],
+/** status-pill colour of each game status (G1 tokens: waiting = pending, going on = confirmed, over = off) */
+export const STATUS_LOOK: Record<string, string> = {
+    forming: 'pending',
+    open: 'confirmed',
+    full: 'confirmed',
+    booked: 'confirmed',
+    played: 'off',
+    cancelled: 'off',
+    archived: 'off',
 };
+
+/** field size class of a game: up to 6 per side = small (5×5 field), else big */
+export const sizeOf = (perSide: number) => (perSide >= 7 ? 'big' : 'small');
+
+/** "Thu 21:00" / "Today 19:00" / "Thu" (short, for the chat bar and cards) */
+export function whenShort(w: { date: string; from: string | null } | null | undefined): string {
+    if (!w) return '';
+    const today = todayYerevan();
+    const diff = Math.round((Date.parse(w.date) - Date.parse(today)) / 864e5);
+    const day = diff <= 1 ? dateRel(w.date, today) : diff <= 6 ? wdName(weekday(w.date)) : dateShort(w.date);
+    return w.from ? `${day} ${w.from}` : day;
+}
 
 /** does the Messages page exist yet (built by another part)? */
 export function hasRoute(name: string): boolean {

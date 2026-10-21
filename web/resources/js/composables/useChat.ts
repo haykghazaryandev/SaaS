@@ -1,4 +1,4 @@
-import { dateLong, dateShort } from '@/composables/usePlayer';
+import { dateLong, dateShort, wdName, weekday } from '@/composables/usePlayer';
 import { xsrf } from '@/lib/echo';
 import { trans } from 'laravel-vue-i18n';
 
@@ -27,7 +27,19 @@ export interface ChatItem {
     type: 'direct' | 'game';
     archived: boolean;
     other: { id: number; name: string; username: string | null } | null;
-    game: { id: number; format: string; status: string; players: number; total: number; url: string | null } | null;
+    game: {
+        id: number;
+        format: string;
+        status: string;
+        players: number;
+        total: number;
+        url: string | null;
+        // pinned game bar (see ChatController::item)
+        window?: { date: string; from: string | null; to: string | null } | null;
+        place?: string | null;
+        district?: string | null;
+        booking?: { status: string; date: string; start: string; venue: { name: string } } | null;
+    } | null;
     last: ChatMessage | null;
     unread: number;
     at: string | null;
@@ -75,12 +87,12 @@ export function dayLabel(key: string): string {
     if (key === dayKey(new Date(Date.now() - 864e5))) return trans('messages.yesterday');
     return dateLong(key);
 }
-/** chat list: "21:05" today, "Yesterday", or "21 Oct" */
+/** chat list: "21:05" today, the weekday ("Mon") within the last 6 days, else "21 Oct" */
 export function shortWhen(iso: string | null): string {
     if (!iso) return '';
     const key = dayKey(iso);
     if (key === dayKey(new Date())) return clock(iso);
-    if (key === dayKey(new Date(Date.now() - 864e5))) return trans('messages.yesterday');
+    if (key > dayKey(new Date(Date.now() - 6 * 864e5))) return wdName(weekday(key));
     return dateShort(key);
 }
 

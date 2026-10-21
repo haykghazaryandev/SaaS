@@ -35,3 +35,9 @@ Route::middleware('auth')->group(function () {
     Route::get('notifications', [NotificationController::class, 'index'])->middleware('throttle:120,1')->name('notifications.index');
     Route::post('notifications/read', [NotificationController::class, 'read'])->middleware('throttle:120,1')->name('notifications.read');
 });
+
+// profile photo
+Route::middleware('auth')->group(function () {
+    Route::post('me/avatar', [App\Http\Controllers\Social\AvatarController::class, 'store'])->middleware('throttle:10,1')->name('me.avatar');
+    Route::delete('me/avatar', [App\Http\Controllers\Social\AvatarController::class, 'destroy'])->name('me.avatar.destroy');
+});

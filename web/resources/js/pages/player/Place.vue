@@ -1,20 +1,29 @@
 <script setup lang="ts">
-import CodeInput from '@/components/CodeInput.vue';
+import PlaceMap from '@/components/PlaceMap.vue';
+import TelegramLogin from '@/components/TelegramLogin.vue';
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { amd, hhmm, useShared } from '@/composables/useShared';
-import { SIZE_COLOR, dateLong, dateRel, dateShort, dur, pitchColor, toHours, wdName } from '@/composables/usePlayer';
+import { dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
-import type { SharedData } from '@/types';
 import type { DayInfo, FieldInfo, PlayerBooking, SlotsPayload } from '@/types/player';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// Place page: the two fields, a day, a duration and a free start time → price → "Send request".
-// Guests confirm their phone with a code once (then they stay logged in).
+// Place page: day → field → duration → start time (every start within the hours; taken ones greyed out),
+// then a summary with the total and one "Book" button. On phones there is no tab bar on this page, and a bar with
+// the time, price and the Book button appears at the bottom once a time is picked. Guests log in with Telegram in a sheet.
+interface SlotAlertInfo {
+    id: number;
+    field: number;
+    date: string;
+    start: string;
+    minutes: number;
+    notified: boolean;
+}
 interface VenueInfo {
     id: number;
     slug: string;
@@ -26,6 +35,10 @@ interface VenueInfo {
     description: string | null;
     amenities: string[];
     week: [number, number, number][];
+    lat: number | null;
+    lng: number | null;
+    phone: string | null;
+    phoneLabel: string | null;
     rules: { freeCancelHours: number; minNoticeMin: number; horizonDays: number };
 }
 const props = defineProps<{
@@ -35,8 +48,9 @@ const props = defineProps<{
     initial: { date: string; field: number | null; minutes: number | null; start: string | null };
     slots: SlotsPayload;
     booked: PlayerBooking | null;
+    /** the player's "notify me if it frees up" times at this place */
+    alerts: SlotAlertInfo[];
 }>();
-const page = usePage<SharedData>();
 const { user } = useShared();
 const today = computed(() => props.days[0]?.date);
 
@@ -47,7 +61,7 @@ const minutes = ref<number>(props.initial.minutes ?? 60);
 const start = ref<number | null>(null);
 const slots = ref<SlotsPayload>(props.slots);
 const loading = ref(false);
-const tab = ref<'fields' | 'info'>('fields');
+const showNote = ref(false);
 const notice = ref<string | null>(null);
 
 const field = computed(() => props.fields.find((f) => f.id === fieldId.value) ?? null);
@@ -55,6 +69,14 @@ const durFor = (f: FieldInfo) => (f.durations.includes(minutes.value) ? minutes.
 const startsFor = (f: FieldInfo | null, m: number) => (f ? (slots.value.fields.find((x) => x.id === f.id)?.starts[String(m)] ?? []) : []);
 const free = computed(() => startsFor(field.value, minutes.value));
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+const slotRow = computed(() => (field.value ? slots.value.fields.find((x) => x.id === field.value!.id) : undefined));
+/** every start time within the opening hours (past ones are not sent): free and taken, in order */
+const allStarts = computed(() => {
+    const taken = slotRow.value?.taken?.[String(minutes.value)] ?? [];
+    return [...free.value.map((t) => ({ t, taken: false })), ...taken.map((t) => ({ t, taken: true }))].sort((a, b) => a.t - b.t);
+});
+/** nothing free this day: the first free start on a later day */
+const nextFree = computed(() => (free.value.length ? null : (slotRow.value?.next?.[String(minutes.value)] ?? null)));
 
 // prices: every half hour is charged by its own hourly rate (same rule as PriceCalculator)
 function rateAt(f: FieldInfo, h: number): number {
@@ -78,25 +100,19 @@ const range = (s: number, m: number) => `${hhmm(s)}–${hhmm(s + m / 60)}`;
 const cname = (f: FieldInfo) => `${trans(`player.size.${f.size}`)} ${f.format}`;
 
 // ---------- choosing ----------
+// The time is never picked for the player: only a time from the link (?start=) is preselected, and only when it is free.
 function nearest(list: number[], t: number | null): number | null {
     if (!list.length) return null;
     if (t == null) return list[0];
     return list.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a));
 }
-/** first visit / new day: the asked time, else the first free one (evenings first on later days) */
-function autoPick(wanted: number | null) {
-    const list = free.value;
-    if (wanted != null && list.some((t) => same(t, wanted))) return (start.value = wanted);
-    if (wanted != null) return (start.value = nearest(list, wanted));
-    const order = date.value === today.value ? list : [...list.filter((t) => t >= 18), ...list.filter((t) => t < 18)];
-    start.value = order[0] ?? null;
-}
-/** keep the choice valid after the day / duration / field changes */
+const isFreeAt = (t: number) => free.value.some((x) => same(x, t));
+/** keep the choice only while it is still free (after the day / duration / field changes) */
 function revalidate() {
-    if (start.value != null && free.value.some((t) => same(t, start.value!))) return;
-    start.value = nearest(free.value, start.value);
+    if (start.value != null && !isFreeAt(start.value)) start.value = null;
 }
 function pickField(id: number) {
+    lostStart.value = null;
     const f = props.fields.find((x) => x.id === id);
     if (!f) return;
     fieldId.value = id;
@@ -107,23 +123,33 @@ function pickDur(m: number) {
     minutes.value = m;
     revalidate();
 }
-function pickDay(d: string) {
-    if (d === date.value) return;
-    date.value = d;
-    load().then(() => autoPick(start.value));
-}
-autoPick(props.initial.start ? toHours(props.initial.start) : null);
-// nothing free on the chosen field: when the visitor did not ask for a field, switch to one that has free times;
-// when nothing is free today at all, show tomorrow
-if (start.value == null && !props.initial.start) {
-    const asked = new URLSearchParams(window.location.search).has('field');
-    const other = asked ? null : props.fields.find((f) => startsFor(f, durFor(f)).length);
-    if (other) {
-        pickField(other.id);
-        autoPick(null);
-    } else if (!asked && date.value === today.value && props.days[1] && !new URLSearchParams(window.location.search).has('date')) {
-        setTimeout(() => pickDay(props.days[1].date));
+function pickDay(d: string, wanted: number | null = start.value) {
+    lostStart.value = null;
+    if (d === date.value) {
+        if (wanted != null && isFreeAt(wanted)) start.value = wanted;
+        return;
     }
+    date.value = d;
+    nextTick(() => document.querySelector('.flow .days .day[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }));
+    load().then(() => {
+        start.value = wanted != null && isFreeAt(wanted) ? wanted : null;
+    });
+}
+/** "Fully booked. Next free: Fri 18:00 →" */
+function goNext() {
+    const n = nextFree.value;
+    if (n) pickDay(n.date, n.start);
+}
+// a time from the link: keep it when it is free, else say it is gone
+if (props.initial.start) {
+    const t = toHours(props.initial.start);
+    if (isFreeAt(t)) start.value = t;
+    else if (free.value.length) notice.value = trans('player.place.refreshed');
+}
+// nothing free on the chosen field and the visitor did not ask for a field: show the field that has free times
+if (!free.value.length && !new URLSearchParams(window.location.search).has('field')) {
+    const other = props.fields.find((f) => startsFor(f, durFor(f)).length);
+    if (other) pickField(other.id);
 }
 
 // ---------- live free times ----------
@@ -139,7 +165,12 @@ async function load(quiet = false) {
         const before = start.value;
         slots.value = data;
         revalidate();
-        if (quiet && before != null && (start.value == null || !same(before, start.value))) notice.value = trans('player.place.refreshed');
+        if (quiet && before != null && (start.value == null || !same(before, start.value))) {
+            // the picked time was just taken: offer "notify me if it frees up" for exactly that time
+            const nowTaken = (slotRow.value?.taken?.[String(minutes.value)] ?? []).some((t) => same(t, before));
+            lostStart.value = nowTaken ? before : null;
+            notice.value = trans(nowTaken ? 'player.alert.justTaken' : 'player.place.refreshed');
+        }
     } catch {
         // offline: keep what we have
     } finally {
@@ -202,7 +233,6 @@ const tiles = computed(() =>
         return { f, st, line };
     }),
 );
-const stText = (st: St) => trans(st === 'sel' ? 'player.place.stSel' : st === 'free' ? 'player.place.stFree' : 'player.place.stBusy');
 
 // ---------- summary ----------
 const summary = computed(() => {
@@ -213,33 +243,43 @@ const summary = computed(() => {
     return { f, ...p, weekday: wd ? !wd.weekend : true };
 });
 const hoursToday = computed(() => slots.value.hours);
-const minPrice = computed(() => Math.min(...props.fields.map((f) => f.price.min)));
-const maxPrice = computed(() => Math.max(...props.fields.map((f) => f.price.max)));
+/** "Every day 08:00–24:00", or runs of days with the same hours: "Mon–Fri 08:00–24:00", "Sat–Sun 09:00–23:00" */
 const weekHours = computed(() => {
     const w = props.venue.week;
-    if (w.length === 7 && w.every((x) => x[1] === w[0][1] && x[2] === w[0][2])) return [{ label: null as string | null, open: w[0][1], close: w[0][2] }];
-    return [1, 2, 3, 4, 5, 6, 0].map((d) => {
-        const x = w.find((y) => y[0] === d);
-        return { label: wdName(d), open: x?.[1] ?? null, close: x?.[2] ?? null };
-    });
+    const span = (x?: [number, number, number]) => (x ? `${hhmm(x[1])}–${hhmm(x[2])}` : null);
+    if (w.length === 7 && w.every((x) => x[1] === w[0][1] && x[2] === w[0][2])) return [{ label: trans('player.place.everyDay'), text: span(w[0])! }];
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    const runs: { from: number; to: number; text: string | null }[] = [];
+    for (const d of order) {
+        const text = span(w.find((y) => y[0] === d));
+        const last = runs[runs.length - 1];
+        if (last && last.text === text) last.to = d;
+        else runs.push({ from: d, to: d, text });
+    }
+    return runs.map((r) => ({ label: r.from === r.to ? wdName(r.from) : `${wdName(r.from)}–${wdName(r.to)}`, text: r.text ?? trans('player.place.closed') }));
+});
+const dirs = computed(() => directionLinks({ ...props.venue }));
+const hasMap = computed(() => props.venue.lat != null && props.venue.lng != null);
+const mapHeight = ref(260);
+onMounted(() => {
+    if (window.matchMedia('(max-width: 600px)').matches) mapHeight.value = 220;
 });
 const AMEN_ICON: Record<string, string> = { parking: 'car', showers: 'shower', lockers: 'locker', cafe: 'coffee', lights: 'bolt', bibs: 'ball', stands: 'users' };
 
 // ---------- request ----------
-const form = useForm({ field_id: 0, date: '', start: '', minutes: 60, team_name: '', note: '', name: '', code: '' });
-const phoneForm = useForm({ name: '', phone: '' });
-const sheet = ref<null | 'phone' | 'code' | 'name'>(null);
-const codeBox = ref<InstanceType<typeof CodeInput>>();
+const form = useForm({ field_id: 0, date: '', start: '', minutes: 60, team_name: '', note: '', name: '' });
+// guests confirm who they are with Telegram (free) right in the sheet, then the request is sent
+const sheet = ref<null | 'login' | 'name' | 'taken'>(null);
 const okBooking = ref<PlayerBooking | null>(null);
-const phoneShown = ref('');
+const loginUrl = computed(() => route('login', { redirect: window.location.pathname + window.location.search }));
 
 function book() {
     if (!summary.value) return;
     form.clearErrors();
     notice.value = null;
     if (!user.value) {
-        phoneForm.clearErrors();
-        sheet.value = 'phone';
+        afterLogin.value = 'book';
+        sheet.value = 'login';
         return;
     }
     if (!user.value.name) {
@@ -259,34 +299,108 @@ function submit() {
         preserveState: true,
         onSuccess: () => {
             sheet.value = null;
-            form.reset('team_name', 'note', 'code');
+            form.reset('team_name', 'note');
         },
         onError: (e) => {
-            if (e.code) {
-                form.code = '';
-                codeBox.value?.clear();
-                return;
-            }
             sheet.value = null;
-            if (e.booking) load(true);
+            if ((e as Record<string, string>).booking) load(true);
         },
     });
 }
-function sendCode() {
-    phoneForm.post(route('bookings.code'), {
+// logged in through Telegram in the sheet: send the request (or the "notify me" alert) now
+function onLoggedIn() {
+    if (afterLogin.value === 'alert') watchTaken();
+    else submit();
+}
+
+// ---------- "notify me if it frees up" for a taken time ----------
+const takenAt = ref<number | null>(null);
+/** the time the player had picked, just taken by someone else (refresh or a "taken" error) */
+const lostStart = ref<number | null>(null);
+const hasTaken = computed(() => allStarts.value.some((x) => x.taken));
+// "find" the booked times: scroll to them with a short pulse
+const pulse = ref(false);
+function showTaken() {
+    document.querySelector('.flow .slots')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    pulse.value = true;
+    window.setTimeout(() => (pulse.value = false), 1600);
+}
+function watchLost() {
+    if (lostStart.value == null) return;
+    takenAt.value = lostStart.value;
+    alertError.value = null;
+    watchTaken();
+}
+// a one-time hint for logged-in players: "New: get notified when a booked time frees up"
+const HINT = 'bb.alertHint';
+const hintSeen = ref(true);
+onMounted(() => {
+    try {
+        hintSeen.value = window.localStorage.getItem(HINT) === '1';
+    } catch {
+        hintSeen.value = true; // storage blocked: don't nag every visit
+    }
+});
+function seeHint() {
+    hintSeen.value = true;
+    try {
+        window.localStorage.setItem(HINT, '1');
+    } catch {
+        /* storage blocked */
+    }
+}
+const showHint = computed(() => !!user.value && hasTaken.value && !hintSeen.value);
+const afterLogin = ref<'book' | 'alert'>('book');
+const alertBusy = ref(false);
+const alertError = ref<string | null>(null);
+const watchedAlert = (t: number) =>
+    field.value ? (props.alerts ?? []).find((a) => a.field === field.value!.id && a.date === date.value && same(toHours(a.start), t)) : undefined;
+function openTaken(t: number) {
+    seeHint();
+    takenAt.value = t;
+    alertError.value = null;
+    sheet.value = 'taken';
+}
+function watchTaken() {
+    if (!field.value || takenAt.value == null) return;
+    if (!user.value) {
+        afterLogin.value = 'alert';
+        sheet.value = 'login';
+        return;
+    }
+    alertBusy.value = true;
+    alertError.value = null;
+    router.post(
+        route('alerts.store'),
+        { field_id: field.value.id, date: date.value, start: hhmm(takenAt.value), minutes: minutes.value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                sheet.value = null;
+                lostStart.value = null;
+                notice.value = null;
+            },
+            onError: (e) => {
+                alertError.value = e.alert ?? Object.values(e)[0] ?? null;
+                sheet.value = 'taken';
+                // "this time is free now": show the fresh times
+                load(true);
+            },
+            onFinish: () => (alertBusy.value = false),
+        },
+    );
+}
+function unwatchTaken() {
+    const a = takenAt.value != null ? watchedAlert(takenAt.value) : undefined;
+    if (!a) return;
+    alertBusy.value = true;
+    router.delete(route('alerts.destroy', a.id), {
         preserveScroll: true,
         preserveState: true,
-        onSuccess: () => {
-            phoneShown.value = '+374 ' + phoneForm.phone.replace(/\D/g, '').slice(-8).replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3');
-            form.name = phoneForm.name;
-            form.clearErrors();
-            sheet.value = 'code';
-        },
+        onSuccess: () => (sheet.value = null),
+        onFinish: () => (alertBusy.value = false),
     });
-}
-function onCode(code: string) {
-    form.code = code;
-    submit();
 }
 watch(
     () => props.booked,
@@ -315,90 +429,52 @@ const canLinkTelegram = computed(() => {
         return false;
     }
 });
-function scrollToPanel() {
-    document.getElementById('panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function scrollToSummary() {
+    document.getElementById('summary')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+function toMap() {
+    document.getElementById('map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function pickStart(t: number) {
+    start.value = t;
+    notice.value = null;
+    lostStart.value = null;
+}
+const nextText = computed(() => (nextFree.value ? nextLabel(nextFree.value.date, today.value ?? '', hhmm(nextFree.value.start), true) : ''));
 const homeUrl = computed(() => route('home', date.value !== today.value ? { date: date.value } : {}));
 </script>
 
 <template>
-    <PlayerLayout>
+    <PlayerLayout hide-tabbar>
         <Head :title="venue.name" />
         <div class="pg">
             <Link class="backlink" :href="homeUrl"><Icon name="back" size="sm" />{{ $t('player.place.back') }}</Link>
 
-            <!-- header -->
+            <!-- header: the place only (no price, no button: booking starts below) -->
             <section class="vhead">
-                <div style="min-width: 0">
-                    <span class="kicker">{{ $t(`player.district.${venue.district}`) }} · {{ $t('player.place.twoFields') }}</span>
-                    <h1>{{ venue.name }}</h1>
-                    <div class="vmeta">
-                        <span v-if="venue.rating" class="rating"><Icon name="star" size="sm" />{{ venue.rating.toFixed(1) }}</span>
-                        <span v-if="venue.reviews">{{ $t('player.reviews', { n: venue.reviews }) }}</span>
-                        <span v-if="venue.address"><Icon name="pin" size="sm" />{{ venue.address }}, {{ $t(`player.district.${venue.district}`) }}</span>
-                        <span v-if="hoursToday"><Icon name="clock" size="sm" />{{ $t('player.place.open', { a: hhmm(hoursToday[0]), b: hhmm(hoursToday[1]) }) }}</span>
-                        <span v-else><Icon name="clock" size="sm" />{{ $t('player.place.closedDay') }}</span>
-                    </div>
-                    <div class="vtags">
-                        <span v-for="f in fields" :key="f.id" class="pill" :style="{ color: SIZE_COLOR[f.size], background: `color-mix(in srgb, ${SIZE_COLOR[f.size]} 13%, transparent)` }">
-                            <Icon :name="f.indoor ? 'roof' : 'sun'" size="sm" />{{ cname(f) }} · {{ $t(`player.surface.${f.surface}`) }}
-                        </span>
-                        <span v-for="a in venue.amenities" :key="a" class="pill amen"><Icon :name="AMEN_ICON[a] || 'check'" />{{ $t(`player.amenity.${a}`) }}</span>
-                    </div>
-                    <p v-if="venue.description" class="about">{{ venue.description }}</p>
+                <span class="kicker">{{ $t(`player.district.${venue.district}`) }} · {{ fields.map((f) => f.format).join(' · ') }}</span>
+                <h1>{{ venue.name }}</h1>
+                <!-- secondary actions at the top (outline, so the Book button stays the main one) -->
+                <div v-if="venue.phone || hasMap" class="vacts">
+                    <a v-if="venue.phone" class="btn outline sm" :href="`tel:${venue.phone}`" :title="venue.phoneLabel ?? undefined"><Icon name="phone" size="sm" />{{ $t('player.place.call') }}</a>
+                    <a v-if="hasMap" class="btn link sm" href="#map" @click.prevent="toMap"><Icon name="directions" size="sm" />{{ $t('player.my.directions') }}</a>
                 </div>
-                <div class="vcta">
-                    <span class="price">{{ $t('player.from') }} {{ amd(minPrice) }} <small>{{ $t('player.perHour') }}</small></span>
-                    <button type="button" class="btn" @click="scrollToPanel"><Icon name="send" size="sm" />{{ $t('player.place.book') }}</button>
+                <div class="vmeta">
+                    <span v-if="venue.rating" class="rating"><Icon name="star" size="sm" />{{ venue.rating.toFixed(1) }}</span>
+                    <span v-if="venue.reviews">{{ $t('player.reviews', { n: String(venue.reviews) }) }}</span>
+                    <span v-if="venue.address"><Icon name="pin" size="sm" />{{ venue.address }}</span>
+                    <span v-if="hoursToday"><Icon name="clock" size="sm" />{{ $t('player.place.open', { a: hhmm(hoursToday[0]), b: hhmm(hoursToday[1]) }) }}</span>
+                    <span v-else><Icon name="clock" size="sm" />{{ $t('player.place.closedDay') }}</span>
                 </div>
             </section>
 
             <section class="bookgrid">
-                <!-- the two fields with their status at the chosen time -->
-                <div class="card courtsbox">
-                    <div class="mhead">
-                        <div>
-                            <span class="kicker">{{ $t('player.place.mapK') }}</span>
-                            <h2>{{ $t('player.place.mapT') }}</h2>
-                        </div>
-                        <div class="when" aria-live="polite">
-                            <Icon name="clock" size="sm" />{{ dateRel(date, today) }}<template v-if="start != null"> · {{ range(start, minutes) }}</template>
-                        </div>
-                    </div>
-                    <div class="legend">
-                        <span><i style="background: var(--free)" />{{ $t('player.place.stFree') }}</span>
-                        <span><i style="background: var(--busy-ink)" />{{ $t('player.place.stBusy') }}</span>
-                        <span><i style="background: var(--accent)" />{{ $t('player.place.stSel') }}</span>
-                    </div>
-                    <div class="tiles">
-                        <button v-for="t in tiles" :key="t.f.id" type="button" :class="['tile', `s-${t.st}`]" :aria-pressed="t.st === 'sel'" @click="pickField(t.f.id)">
-                            <span class="art">
-                                <CourtSvg :size="t.f.size" :color="pitchColor(t.f.surface)" />
-                                <span class="pill st">{{ stText(t.st) }}</span>
-                                <span class="sp" :style="{ color: SIZE_COLOR[t.f.size] }">{{ t.f.size === 'small' ? '5' : '11' }}</span>
-                            </span>
-                            <span class="tb">
-                                <b>{{ cname(t.f) }}</b>
-                                <span class="m">{{ $t(`player.surface.${t.f.surface}`) }} · {{ t.f.indoor ? $t('player.indoor') : $t('player.outdoor') }} · {{ $t('player.players', { n: t.f.players }) }}</span>
-                                <span v-if="t.line" class="p">{{ t.line }}</span>
-                            </span>
-                        </button>
-                    </div>
-                    <div class="steps3">
-                        <div v-for="[ic, i] in [['clock', 1], ['send', 2], ['check', 3]] as const" :key="i">
-                            <Icon :name="ic" /><b>{{ $t(`player.place.s${i}`) }}</b><small>{{ $t(`player.place.s${i}s`) }}</small>
-                        </div>
-                    </div>
-                </div>
+                <!-- booking: day → field → duration → start time -->
+                <div id="panel" class="card flow">
+                    <h2>{{ $t('player.place.bookTitle') }}</h2>
 
-                <!-- booking panel -->
-                <aside id="panel" class="card panel">
-                    <div>
-                        <span class="kicker">{{ $t('player.place.k') }}</span>
-                        <h2>{{ $t('player.place.title') }}</h2>
-                    </div>
-                    <div>
-                        <div class="plabel">{{ $t('player.place.date') }}</div>
+                    <div class="step">
+                        <div class="plabel"><span><i class="n">1</i>{{ $t('player.place.date') }}</span></div>
                         <div class="days">
                             <button
                                 v-for="d in days"
@@ -413,89 +489,118 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             </button>
                         </div>
                     </div>
-                    <div>
-                        <div class="plabel">{{ $t('player.place.field') }}</div>
-                        <div class="chips wrapc">
-                            <button v-for="f in fields" :key="f.id" type="button" class="chip" :aria-pressed="fieldId === f.id" @click="pickField(f.id)">
-                                <span class="sport-dot" :style="{ background: SIZE_COLOR[f.size] }" />{{ cname(f) }}
+
+                    <div class="step">
+                        <div class="plabel"><span><i class="n">2</i>{{ $t('player.place.field') }}</span></div>
+                        <div class="fcards">
+                            <button v-for="t in tiles" :key="t.f.id" type="button" :class="['fcard', `s-${t.st}`]" :aria-pressed="fieldId === t.f.id" @click="pickField(t.f.id)">
+                                <span class="fthumb"><CourtSvg :size="t.f.size" :color="pitchColor(t.f.surface)" /></span>
+                                <span class="fbody">
+                                    <b>{{ cname(t.f) }}</b>
+                                    <span class="m">{{ t.f.indoor ? $t('player.indoor') : $t('player.outdoor') }} · {{ $t('player.players', { n: String(t.f.players) }) }}</span>
+                                    <span class="fp">{{ $t('player.place.fieldPrice', { p: amd(t.f.price.min) }) }}</span>
+                                </span>
+                                <span v-if="t.st === 'busy'" class="fbusy">{{ t.line }}</span>
                             </button>
                         </div>
                     </div>
-                    <div v-if="field">
-                        <div class="plabel">{{ $t('player.place.dur') }}</div>
+
+                    <div v-if="field" class="step">
+                        <div class="plabel"><span><i class="n">3</i>{{ $t('player.place.dur') }}</span></div>
                         <div class="chips">
                             <button v-for="m in field.durations" :key="m" type="button" class="chip" :aria-pressed="minutes === m" @click="pickDur(m)"><Icon name="clock" size="sm" />{{ dur(m) }}</button>
                         </div>
                     </div>
-                    <div v-if="field">
+
+                    <div v-if="field" class="step">
                         <div class="plabel">
-                            <span>{{ $t('player.place.time') }}</span>
+                            <span><i class="n">4</i>{{ $t('player.place.time') }}</span>
                             <span v-if="loading" class="faint" style="text-transform: none; letter-spacing: 0">{{ $t('player.place.loading') }}</span>
                         </div>
-                        <div :class="['flist', { dim: loading }]">
-                            <div class="fr">
-                                <b>
-                                    <span class="sport-dot" :style="{ background: SIZE_COLOR[field.size] }" />{{ cname(field) }}
-                                    <span class="faint" style="font-weight: 600; font-size: 12px">{{ dur(minutes) }} · {{ field.indoor ? $t('player.indoor') : $t('player.outdoor') }}</span>
-                                </b>
-                                <div class="slots">
-                                    <template v-if="free.length">
-                                        <button
-                                            v-for="t in free"
-                                            :key="t"
-                                            type="button"
-                                            :class="['slot-mini', { prime: isPrime(field, t), on: start != null && same(t, start) }]"
-                                            :aria-pressed="start != null && same(t, start)"
-                                            @click="start = t"
-                                        >
-                                            {{ hhmm(t) }}
-                                        </button>
-                                    </template>
-                                    <span v-else class="faint" style="font-size: 13px">{{ $t('player.place.noFree', { dur: dur(minutes) }) }}</span>
-                                </div>
-                                <div v-if="free.some((t) => isPrime(field!, t))" class="tgl"><span><i style="background: var(--warn-soft); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, 0.4)" />{{ $t('player.place.primeTag') }}</span></div>
-                            </div>
+                        <div v-if="!free.length" class="full">
+                            <span v-if="!hoursToday">{{ $t('player.place.closedDay') }}</span>
+                            <span v-else-if="allStarts.length">{{ $t('player.place.fullDay') }}</span>
+                            <span v-else>{{ $t('player.place.noFree', { dur: dur(minutes) }) }}</span>
+                            <span class="full-acts">
+                                <button v-if="nextFree" type="button" class="btn outline sm" @click="goNext">
+                                    {{ $t('player.place.nextFree', { t: nextText }) }} <Icon name="arrow" size="sm" />
+                                </button>
+                                <button v-if="hasTaken" type="button" class="btn link sm" @click="showTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.findBtn') }}</button>
+                            </span>
                         </div>
+                        <div v-if="showHint" class="newhint" role="status">
+                            <Icon name="bell" size="sm" /><span>{{ $t('player.alert.newHint') }}</span>
+                            <button type="button" class="x" :aria-label="$t('player.close')" @click="seeHint"><Icon name="x" size="sm" /></button>
+                        </div>
+                        <div v-if="allStarts.length" :class="['slots', { dim: loading, pulse }]">
+                            <template v-for="s in allStarts" :key="s.t">
+                                <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
+                                <button
+                                    v-if="s.taken"
+                                    type="button"
+                                    :class="['tslot taken', { watched: watchedAlert(s.t) }]"
+                                    aria-disabled="true"
+                                    aria-haspopup="dialog"
+                                    :title="watchedAlert(s.t) ? $t('player.alert.watching') : $t('player.place.taken')"
+                                    :aria-label="`${hhmm(s.t)} · ${$t('player.place.taken')}${watchedAlert(s.t) ? ' · ' + $t('player.alert.watching') : ''}`"
+                                    @click="openTaken(s.t)"
+                                >
+                                    <span class="tt">{{ hhmm(s.t) }}</span><Icon name="bell" size="sm" class="bell" />
+                                </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    :class="['tslot', { prime: isPrime(field, s.t), on: start != null && same(s.t, start) }]"
+                                    :aria-pressed="start != null && same(s.t, start)"
+                                    @click="pickStart(s.t)"
+                                >
+                                    {{ hhmm(s.t) }}
+                                </button>
+                            </template>
+                        </div>
+                        <div v-if="allStarts.length" class="tgl">
+                            <span v-if="free.some((t) => !isPrime(field!, t))"><i class="lg free" />{{ $t('player.place.stFree') }}</span>
+                            <span v-if="free.some((t) => isPrime(field!, t))"><i class="lg pk" />{{ $t('player.place.primeTag') }} · {{ amd(field.price.max) }} {{ $t('player.perHour') }}</span>
+                        </div>
+                        <p v-if="hasTaken" class="bell-hint"><Icon name="bell" size="sm" />{{ $t('player.alert.legend') }}</p>
                     </div>
+                </div>
 
-                    <div v-if="notice" class="err-box warn"><Icon name="clock" size="sm" /><span>{{ notice }}</span></div>
-                    <div v-if="form.errors.booking" class="err-box" role="alert"><Icon name="x" size="sm" /><span>{{ form.errors.booking }}</span></div>
-
-                    <div v-if="!summary" class="sum empty-sum">
-                        <Icon name="calendar" size="lg" /><span>{{ $t('player.place.pick') }}</span>
+                <!-- summary: what you book and the total, then one clear button -->
+                <aside id="summary" class="card sumcard">
+                    <div v-if="notice" class="err-box warn">
+                        <Icon name="clock" size="sm" />
+                        <span class="eb-main">
+                            {{ notice }}
+                            <button v-if="lostStart != null" type="button" class="eb-act" :disabled="alertBusy" @click="watchLost">
+                                <Icon name="bell" size="sm" />{{ $t('player.alert.btnAt', { t: hhmm(lostStart) }) }}
+                            </button>
+                        </span>
                     </div>
-                    <div v-else class="sum">
-                        <div class="row between" style="align-items: flex-start">
-                            <div style="min-width: 0">
-                                <span class="kicker">{{ $t('player.place.your') }}</span>
-                                <h3>{{ cname(summary.f) }}</h3>
-                                <div class="muted" style="font-size: 13px">
-                                    {{ $t(`player.surface.${summary.f.surface}`) }} · {{ summary.f.indoor ? $t('player.indoor') : $t('player.outdoor') }} · {{ $t('player.players', { n: summary.f.players }) }}
-                                </div>
-                            </div>
+                    <div v-if="(form.errors as Record<string, string>).booking && lostStart == null" class="err-box" role="alert"><Icon name="x" size="sm" /><span>{{ (form.errors as Record<string, string>).booking }}</span></div>
+
+                    <div v-if="!summary" class="empty-sum"><Icon name="calendar" size="lg" /><span>{{ $t('player.place.pick') }}</span></div>
+                    <template v-else>
+                        <div class="sumhead">
                             <div class="thumb"><CourtSvg :size="summary.f.size" :color="pitchColor(summary.f.surface)" /></div>
-                        </div>
-                        <div class="facts3">
-                            <div><span>{{ $t('player.place.whenL') }}</span><b>{{ dateRel(date, today) }}{{ date === today || dateRel(date, today) === $t('player.tomorrow') ? ', ' + dateShort(date) : '' }}</b></div>
-                            <div><span>{{ $t('player.place.timeL') }}</span><b>{{ range(start!, minutes) }}</b></div>
-                            <div><span>{{ $t('player.place.durL') }}</span><b>{{ dur(minutes) }}</b></div>
-                        </div>
-                        <div class="total">
-                            <div>
-                                <div v-if="summary.primeMin && summary.dayMin" class="rate prime"><Icon name="bolt" size="sm" />{{ $t('player.place.mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</div>
-                                <div v-else-if="summary.primeMin" class="rate prime"><Icon name="bolt" size="sm" />{{ $t('player.place.primeRate', { p: amd(summary.f.price.max) }) }}</div>
-                                <div v-else class="rate"><Icon name="sun" size="sm" />{{ $t('player.place.dayRate', { p: amd(summary.f.price.min) }) }}</div>
-                            </div>
-                            <div style="text-align: right">
-                                <div class="faint" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em">{{ $t('player.place.total') }}</div>
-                                <div class="amt">{{ amd(summary.total) }}</div>
+                            <div style="min-width: 0">
+                                <b class="sumtitle">{{ cname(summary.f) }}</b>
+                                <div class="muted sumwhen">{{ dateLong(date) }}</div>
+                                <div class="sumtime">{{ range(start!, minutes) }} <span class="faint">· {{ dur(minutes) }}</span></div>
                             </div>
                         </div>
-                        <div v-if="summary.primeMin && summary.weekday && summary.f.price.min < summary.f.price.max" class="note">
-                            <Icon name="sun" size="sm" />{{ $t('player.place.save', { p: amd((summary.f.price.min * minutes) / 60) }) }}
+                        <div class="totalrow">
+                            <span>{{ $t('player.place.total') }}</span>
+                            <b>{{ amd(summary.total) }}</b>
                         </div>
-                        <div v-else-if="summary.primeMin" class="note"><Icon name="bolt" size="sm" />{{ $t('player.place.primeNote') }}</div>
-                        <div class="opt">
+                        <div class="rate" :class="{ prime: summary.primeMin }">
+                            <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
+                            <template v-else-if="summary.primeMin">{{ $t('player.place.primeRate', { p: amd(summary.f.price.max) }) }}</template>
+                            <template v-else>{{ $t('player.place.dayRate', { p: amd(summary.f.price.min) }) }}</template>
+                        </div>
+
+                        <button v-if="!showNote" type="button" class="addnote" @click="showNote = true"><Icon name="plus" size="sm" />{{ $t('player.place.addNote') }}</button>
+                        <div v-else class="opt">
                             <div class="field">
                                 <label for="bkTeam">{{ $t('player.place.team') }}</label>
                                 <input id="bkTeam" v-model="form.team_name" class="input" maxlength="40" :placeholder="$t('player.place.teamPh')" />
@@ -505,125 +610,104 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 <textarea id="bkNote" v-model="form.note" class="input" rows="2" maxlength="200" :placeholder="$t('player.place.notePh')" />
                             </div>
                         </div>
-                        <div v-if="user && user.name" class="note"><Icon name="user" size="sm" /><span>{{ $t('player.place.as', { name: user.name, phone: user.phone }) }}</span></div>
-                        <button type="button" class="btn block" :disabled="form.processing" @click="book">
-                            <Icon name="send" size="sm" />{{ $t('player.place.send', { p: amd(summary.total) }) }}
-                        </button>
-                        <div class="note"><Icon name="send" size="sm" /><span>{{ $t('player.place.how', { h: venue.rules.freeCancelHours }) }}</span></div>
-                    </div>
+
+                        <!-- on phones the sticky bar has the Book button, so this one is hidden there -->
+                        <button type="button" class="btn block bookbtn" :disabled="form.processing" @click="book">{{ $t('player.place.bookBtn') }}</button>
+                        <ul class="perks">
+                            <li><Icon name="wallet" size="sm" />{{ $t('player.place.lPay') }}</li>
+                            <li><Icon name="check" size="sm" />{{ $t('player.place.lFree', { h: String(venue.rules.freeCancelHours) }) }}</li>
+                            <li><Icon name="send" size="sm" />{{ $t('player.place.lTg') }}</li>
+                        </ul>
+                        <p v-if="user && user.name" class="hint as"><Icon name="user" size="sm" />{{ $t('player.place.as', { name: user.name, phone: user.phone }) }}</p>
+                    </template>
                 </aside>
             </section>
 
-            <!-- lower sections -->
-            <section class="section">
-                <div class="tabs" role="tablist">
-                    <button role="tab" :aria-selected="tab === 'fields'" @click="tab = 'fields'"><Icon name="grid" size="sm" />{{ $t('player.place.tabFields') }}<span class="n">{{ fields.length }}</span></button>
-                    <!-- later: open games and tournaments of this place -->
-                    <button role="tab" :aria-selected="tab === 'info'" @click="tab = 'info'"><Icon name="pin" size="sm" />{{ $t('player.place.tabInfo') }}</button>
-                </div>
-                <div v-if="tab === 'fields'" class="grid c3">
-                    <div v-for="f in fields" :key="f.id" class="card ccard">
-                        <div class="thumb"><CourtSvg :size="f.size" :color="pitchColor(f.surface)" /></div>
-                        <div class="body">
-                            <div class="row between">
-                                <h3>{{ $t(`player.size.${f.size}`) }}</h3>
-                                <span class="pill" :style="{ color: SIZE_COLOR[f.size] }"><Icon name="ball" size="sm" />{{ f.format }}</span>
-                            </div>
-                            <div class="pills">
-                                <span class="pill">{{ $t('player.players', { n: f.players }) }}</span>
-                                <span class="pill">{{ $t(`player.surface.${f.surface}`) }}</span>
-                                <span class="pill"><Icon :name="f.indoor ? 'roof' : 'sun'" size="sm" />{{ f.indoor ? $t('player.indoor') : $t('player.outdoor') }}</span>
-                            </div>
-                            <div class="prices">
-                                <div><span>{{ $t('player.place.ctDay') }} {{ $t('player.perHour') }}</span><b>{{ amd(f.price.min) }}</b></div>
-                                <div class="pr"><span>{{ $t('player.place.ctPrime') }} {{ $t('player.perHour') }}</span><b>{{ amd(f.price.max) }}</b></div>
-                            </div>
-                            <div class="acts">
-                                <button type="button" class="btn sm" @click="pickField(f.id); scrollToPanel()"><Icon name="clock" size="sm" />{{ $t('player.place.ctBook') }}</button>
-                            </div>
-                        </div>
+            <!-- phones: the choice and the button stay at the bottom of the screen -->
+            <div v-if="summary && !okBooking && !sheet" class="bookbar">
+                <button type="button" class="bbinfo" @click="scrollToSummary">
+                    <b>{{ range(start!, minutes) }} · {{ amd(summary.total) }}</b>
+                    <small>{{ dateRel(date, today) }} · {{ cname(summary.f) }}</small>
+                </button>
+                <button type="button" class="btn" :disabled="form.processing" @click="book">{{ $t('player.place.bookBtn') }}</button>
+            </div>
+
+            <!-- about the place: one compact list -->
+            <section class="section about">
+                <h2 class="infoh">{{ $t('player.place.tabInfo') }}</h2>
+                <p v-if="venue.description" class="desc">{{ venue.description }}</p>
+                <dl class="ilist">
+                    <div>
+                        <dt><Icon name="clock" size="sm" />{{ $t('player.place.infoHours') }}</dt>
+                        <dd>
+                            <span v-for="(h, i) in weekHours" :key="i" class="hrow"><span class="muted">{{ h.label }}</span> {{ h.text }}</span>
+                        </dd>
                     </div>
-                </div>
-                <div v-else class="info">
-                    <div class="card">
-                        <h3><Icon name="clock" />{{ $t('player.place.infoHours') }}</h3>
-                        <div v-for="(h, i) in weekHours" :key="i" class="hours">
-                            <span class="muted">{{ h.label ?? '7/7' }}</span>
-                            <b>{{ h.open != null ? `${hhmm(h.open)} – ${hhmm(h.close!)}` : '—' }}</b>
-                        </div>
+                    <div>
+                        <dt><Icon name="wallet" size="sm" />{{ $t('player.place.infoPrices') }}</dt>
+                        <dd>
+                            <span v-for="f in fields" :key="f.id" class="hrow">
+                                <span class="fname"><i :class="['field-dot', f.size]" />{{ f.format }}</span>
+                                {{ f.price.min === f.price.max ? amd(f.price.min) : `${amd(f.price.min)} – ${amd(f.price.max)}` }} <span class="muted">{{ $t('player.perHour') }}</span>
+                            </span>
+                            <span class="muted small">{{ $t('player.place.primeTag') }}: {{ $t('player.place.primeWhen') }}</span>
+                        </dd>
                     </div>
-                    <div class="card">
-                        <h3><Icon name="pin" />{{ $t('player.place.infoAddr') }}</h3>
-                        <div style="font-weight: 700">{{ venue.address }}</div>
-                        <div class="muted" style="font-size: 14px">{{ $t(`player.district.${venue.district}`) }}, {{ $t('player.place.infoCity') }}</div>
-                        <h3 style="margin-top: 18px"><Icon name="wallet" />{{ $t('player.place.infoPrices') }}</h3>
-                        <div class="muted" style="font-size: 14px">{{ amd(minPrice) }} – {{ amd(maxPrice) }} {{ $t('player.perHour') }}</div>
+                    <div v-if="venue.address || hasMap" id="map">
+                        <dt><Icon name="pin" size="sm" />{{ $t('player.place.infoAddr') }}</dt>
+                        <dd>
+                            <span v-if="venue.address">{{ venue.address }}, {{ $t(`player.district.${venue.district}`) }}</span>
+                            <!-- Google / Yandex map with its own "Directions" button -->
+                            <PlaceMap v-if="hasMap" class="pmap" :lat="venue.lat!" :lng="venue.lng!" :name="venue.name" :height="mapHeight" />
+                            <span v-if="!hasMap && dirs.google" class="acts">
+                                <a class="btn outline sm" :href="dirs.google" target="_blank" rel="noopener"><Icon name="directions" size="sm" />{{ $t('player.place.google') }}</a>
+                            </span>
+                        </dd>
                     </div>
-                    <div class="card">
-                        <h3><Icon name="check" />{{ $t('player.place.infoRules') }}</h3>
-                        <ul>
-                            <li><Icon name="check" size="sm" /><span>{{ $t('player.place.r1') }}</span></li>
-                            <li><Icon name="check" size="sm" /><span>{{ $t('player.place.r2', { h: venue.rules.freeCancelHours }) }}</span></li>
-                            <li><Icon name="check" size="sm" /><span>{{ $t('player.place.r3', { m: venue.rules.minNoticeMin }) }}</span></li>
-                            <li><Icon name="check" size="sm" /><span>{{ $t('player.place.r4') }}</span></li>
-                        </ul>
+                    <div v-if="venue.amenities.length">
+                        <dt><Icon name="check" size="sm" />{{ $t('player.place.infoAmen') }}</dt>
+                        <dd class="amen">
+                            <span v-for="a in venue.amenities" :key="a"><Icon :name="AMEN_ICON[a] || 'check'" size="sm" />{{ $t(`player.amenity.${a}`) }}</span>
+                        </dd>
                     </div>
-                    <div v-if="venue.amenities.length" class="card">
-                        <h3><Icon name="star" />{{ $t('player.place.infoAmen') }}</h3>
-                        <ul>
-                            <li v-for="a in venue.amenities" :key="a"><Icon :name="AMEN_ICON[a] || 'check'" size="sm" /><span>{{ $t(`player.amenity.${a}`) }}</span></li>
-                        </ul>
+                    <div>
+                        <dt><Icon name="ticket" size="sm" />{{ $t('player.place.infoRules') }}</dt>
+                        <dd class="muted">{{ $t('player.place.r1') }} {{ $t('player.place.r3', { m: String(venue.rules.minNoticeMin) }) }}</dd>
                     </div>
-                </div>
+                </dl>
             </section>
         </div>
 
-        <!-- guest: name + phone → code -->
+        <!-- guest: log in with Telegram (free, confirms the phone), or with email on the login page -->
         <div v-if="sheet" class="scrim" @click.self="closeSheets">
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="vt">
-                <template v-if="sheet === 'phone'">
-                    <form @submit.prevent="sendCode">
-                        <div class="row" style="margin-bottom: 6px">
-                            <h3 id="vt">{{ $t('player.verify.title') }}</h3>
-                            <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
-                        </div>
-                        <p class="muted" style="margin: 0 0 18px; font-size: 14px">{{ $t('player.verify.sub') }}</p>
-                        <div class="field" style="margin-bottom: 12px">
-                            <label for="vn">{{ $t('player.verify.name') }}</label>
-                            <input id="vn" v-model="phoneForm.name" class="input" autocomplete="name" maxlength="60" :placeholder="$t('player.verify.namePh')" />
-                            <div v-if="phoneForm.errors.name" class="err">{{ phoneForm.errors.name }}</div>
-                        </div>
-                        <div class="field" style="margin-bottom: 6px">
-                            <label for="vp">{{ $t('player.verify.phone') }}</label>
-                            <div class="row" style="gap: 8px">
-                                <span class="input" style="width: auto; color: var(--muted)">+374</span>
-                                <input id="vp" v-model="phoneForm.phone" class="input mono" inputmode="tel" autocomplete="tel" placeholder="91 234 567" />
-                            </div>
-                            <div v-if="phoneForm.errors.phone" class="err">{{ phoneForm.errors.phone }}</div>
-                        </div>
-                        <div class="tg-note"><Icon name="send" size="sm" />{{ $t('player.verify.tgNote') }}</div>
-                        <button class="btn block" :disabled="phoneForm.processing || !phoneForm.name.trim() || !phoneForm.phone.trim()">{{ $t('player.verify.send') }}</button>
-                    </form>
-                </template>
-                <template v-else-if="sheet === 'code'">
+                <template v-if="sheet === 'login'">
                     <div class="row" style="margin-bottom: 6px">
-                        <button type="button" class="x" style="margin: 0" :aria-label="$t('player.back')" @click="sheet = 'phone'"><Icon name="back" /></button>
-                        <h3 id="vt" style="margin-left: 6px">{{ $t('player.verify.title') }}</h3>
+                        <h3 id="vt">{{ $t('player.verify.title') }}</h3>
                         <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
                     </div>
-                    <p class="muted" style="font-size: 14px">{{ $t('player.verify.enter', { phone: phoneShown }) }}</p>
-                    <CodeInput ref="codeBox" @complete="onCode" />
-                    <p v-if="page.props.devCode" style="text-align: center; margin: 14px 0 4px">
-                        <span class="pill lime">{{ $t('auth.devCode', { code: page.props.devCode }) }}</span>
-                    </p>
-                    <div v-if="form.processing" class="muted" style="text-align: center; font-size: 13px; margin-top: 8px">{{ $t('player.verify.sending') }}</div>
-                    <div v-if="form.errors.code" class="err" style="text-align: center">{{ form.errors.code }}</div>
-                    <div v-if="phoneForm.errors.phone" class="err" style="text-align: center">{{ phoneForm.errors.phone }}</div>
-                    <div class="row" style="justify-content: space-between; margin-top: 18px">
-                        <button type="button" class="btn ghost sm" @click="sheet = 'phone'"><Icon name="back" size="sm" />{{ $t('player.verify.change') }}</button>
-                        <button type="button" class="btn ghost sm" :disabled="phoneForm.processing" @click="sendCode">{{ $t('player.verify.resend') }}</button>
+                    <p class="muted" style="margin: 0 0 18px; font-size: 14px">{{ $t('auth.sub2') }}</p>
+                    <TelegramLogin context="booking" @done="onLoggedIn" />
+                    <div v-if="form.processing" class="muted" style="text-align: center; font-size: 13px; margin-top: 10px">{{ $t('player.verify.sending') }}</div>
+                    <Link :href="loginUrl" class="email-alt">{{ $t('auth.withEmail') }}</Link>
+                </template>
+                <template v-else-if="sheet === 'taken' && takenAt != null && field">
+                    <div class="row" style="margin-bottom: 6px">
+                        <h3 id="vt">{{ $t('player.alert.title', { t: hhmm(takenAt) }) }}</h3>
+                        <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
                     </div>
-                    <p class="faint" style="font-size: 12px; text-align: center; margin: 14px 0 0">{{ $t('player.verify.noTg') }}</p>
+                    <p class="muted" style="margin: 0 0 14px; font-size: 14px">
+                        {{ dateLong(date) }} · {{ cname(field) }} · {{ range(takenAt, minutes) }}
+                    </p>
+                    <div v-if="alertError" class="err-box" role="alert" style="margin-bottom: 12px"><Icon name="x" size="sm" /><span>{{ alertError }}</span></div>
+                    <template v-if="watchedAlert(takenAt)">
+                        <div class="watching"><Icon name="bell" size="sm" />{{ $t('player.alert.watching') }}</div>
+                        <button type="button" class="btn outline block" :disabled="alertBusy" @click="unwatchTaken">{{ $t('player.alert.stop') }}</button>
+                    </template>
+                    <template v-else>
+                        <p style="margin: 0 0 14px; font-size: 14px">{{ $t('player.alert.sub') }}</p>
+                        <button type="button" class="btn block" :disabled="alertBusy" @click="watchTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.btn') }}</button>
+                    </template>
                 </template>
                 <template v-else>
                     <form @submit.prevent="submit">
@@ -692,126 +776,128 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .backlink:hover { color: var(--accent); }
 
 /* header */
-.vhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 32px; align-items: end; margin-bottom: 22px; }
+.vhead { margin-bottom: 22px; }
 .vhead h1 { font-size: clamp(28px, 4.2vw, 46px); margin: 6px 0 10px; overflow-wrap: anywhere; }
 .vmeta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; align-items: center; }
 .vmeta span { display: inline-flex; align-items: center; gap: 6px; }
 .vmeta .rating { font-size: 15px; }
-.vtags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-.vtags .pill { padding: 5px 11px; font-size: 12.5px; }
-.vtags .amen { background: transparent; border: 1px solid var(--line-2); color: var(--muted); }
-.vtags .amen .ico { width: 14px; height: 14px; }
-.about { color: var(--muted); max-width: 700px; margin: 14px 0 0; font-size: 15px; }
-.vcta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-.vcta .price { font-size: 18px; }
-@media (max-width: 760px) { .vhead { grid-template-columns: 1fr; } .vcta { flex-direction: row; justify-content: space-between; align-items: center; text-align: left; } }
+.vacts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: -2px 0 12px; }
+#map { scroll-margin-top: 90px; }
 
-/* fields + booking panel */
-.bookgrid { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 18px; align-items: start; }
-.courtsbox { padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.mhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.mhead h2, .panel h2 { margin: 2px 0 0; font-size: 22px; }
-.when { border-radius: 999px; padding: 7px 13px; font-weight: 700; font-size: 13px; display: inline-flex; gap: 7px; align-items: center; background: var(--bg-2); border: 1px solid var(--line-2); }
-.when .ico { color: var(--accent); }
-.legend { display: flex; gap: 14px; font-size: 12px; font-weight: 700; color: var(--muted); flex-wrap: wrap; }
-.legend span { display: inline-flex; gap: 6px; align-items: center; }
-.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.tile { position: relative; text-align: left; padding: 0; border: 1px solid var(--line-2); border-radius: 18px; background: var(--surface-2); color: var(--ink); overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, border-color .15s, box-shadow .2s, opacity .2s; min-width: 0; }
-.tile:hover { transform: translateY(-2px); border-color: rgba(220, 255, 220, .3); }
-.tile .art { position: relative; aspect-ratio: 16 / 9; background: radial-gradient(260px 120px at 50% 0%, rgba(255, 255, 230, .09), transparent 70%), #0c120e; display: grid; place-items: center; }
-.tile .art svg { width: 82%; display: block; transition: filter .2s, opacity .2s; }
-.tile .st { position: absolute; left: 10px; top: 10px; }
-.tile .sp { position: absolute; right: 10px; top: 10px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); font-family: var(--mono); font-size: 12px; font-weight: 700; }
-.tile .tb { padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 3px; }
-.tile .tb b { font-size: 15px; }
-.tile .tb .m { font-size: 12.5px; color: var(--muted); }
-.tile .tb .p { font-size: 13px; font-weight: 800; margin-top: 3px; }
-.tile.s-free .st { background: var(--free-soft); color: var(--free); }
-.tile.s-busy .art svg { filter: grayscale(.85) brightness(.55); }
-.tile.s-busy .st { background: rgba(10, 13, 11, .8); color: var(--busy-ink); }
-.tile.s-busy .tb .p { color: var(--muted); font-weight: 700; }
-.tile.s-sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 14px 34px -14px rgba(200, 255, 61, .55); }
-.tile.s-sel .st { background: var(--accent); color: var(--on-accent); }
-.tile.s-sel .tb .p { color: var(--accent); }
-.steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.steps3 div { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.steps3 .ico { color: var(--accent); }
-.steps3 b { font-size: 13.5px; }
-.steps3 small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
-@media (max-width: 600px) { .steps3 { grid-template-columns: 1fr; } .steps3 div { flex-direction: row; align-items: center; padding: 10px 12px; } .steps3 small { display: none; } }
-.panel { padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.plabel { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+/* booking flow + summary */
+.bookgrid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
+.flow { padding: 20px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.flow h2 { margin: 0; font-size: 22px; }
+.plabel { font-size: 13.5px; font-weight: 700; color: var(--muted); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.plabel > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
+.plabel .n { font-style: normal; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-3); color: var(--accent); display: grid; place-items: center; font-family: var(--mono); font-size: 11px; letter-spacing: 0; }
 .day.td { padding: 7px 8px; }
 .day small { display: block; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; }
 .day.we:not([aria-pressed="true"]) small { color: var(--warn); }
-.chips.wrapc { flex-wrap: wrap; overflow: visible; }
-.flist { display: flex; flex-direction: column; gap: 12px; transition: opacity .15s; }
-.flist.dim { opacity: .5; }
-.flist .fr b { font-size: 13.5px; display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-.flist .slots { display: flex; gap: 6px; flex-wrap: wrap; }
-.flist .slot-mini { cursor: pointer; }
-.flist .slot-mini.prime { color: var(--warn); background: var(--warn-soft); border-color: rgba(255, 181, 71, .25); }
-.flist .slot-mini.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.tgl { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-top: 10px; }
-.tgl span { display: inline-flex; gap: 5px; align-items: center; }
-.tgl i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.fcards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fcard { position: relative; display: flex; gap: 12px; align-items: center; text-align: left; padding: 10px; border: 1px solid var(--line-2); border-radius: 16px; background: var(--surface-2); color: var(--ink); min-width: 0; transition: border-color .15s, box-shadow .2s, opacity .2s; }
+.fcard:hover { border-color: rgba(220, 255, 220, .3); }
+.fcard[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: rgba(200, 255, 61, .05); }
+.fcard.s-busy { opacity: .6; }
+.fthumb { width: 72px; flex: none; border-radius: 8px; overflow: hidden; }
+.fthumb svg { width: 100%; display: block; }
+.fbody { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fbody b { font-size: 15px; }
+.fbody .m { font-size: 12.5px; color: var(--muted); }
+.fbody .fp { font-size: 13px; font-weight: 800; color: var(--ink); margin-top: 2px; }
+.fbusy { position: absolute; right: 10px; top: 8px; font-size: 11px; font-weight: 800; color: var(--muted); }
+.slots { display: flex; gap: 6px; flex-wrap: wrap; transition: opacity .15s; }
+.slots.dim { opacity: .5; }
+.tslot { font-family: var(--mono); font-size: 14px; padding: 8px 0; width: 74px; text-align: center; border-radius: 9px; background: var(--free-soft); color: var(--free); border: 1px solid rgba(94, 240, 168, .22); }
+.tslot:hover { background: rgba(94, 240, 168, .22); }
+.tslot.prime { color: var(--warn); background: var(--warn-soft); border-color: rgba(255, 181, 71, .25); }
+.tslot.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.tslot.taken { background: transparent; color: var(--faint); border: 1px dashed var(--line-2); cursor: pointer; }
+.tslot.taken .tt { text-decoration: line-through; }
+.tslot.taken:hover { background: transparent; border-color: var(--muted); color: var(--muted); }
+.tslot.taken.watched { color: var(--muted); border-style: solid; }
+.tslot .bell { width: 11px; height: 11px; margin-left: 4px; vertical-align: -1px; color: var(--faint); }
+.tslot.taken:hover .bell { color: var(--muted); }
+.tslot.taken.watched .bell { color: var(--accent); }
+.slots.pulse .tslot.taken { animation: bb-pulse .8s ease-in-out 2; }
+@keyframes bb-pulse { 50% { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200, 255, 61, .18); } }
+@media (prefers-reduced-motion: reduce) { .slots.pulse .tslot.taken { animation: none; border-color: var(--accent); } }
+.bell-hint { display: flex; gap: 6px; align-items: center; margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.full-acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.newhint { display: flex; gap: 8px; align-items: center; padding: 7px 6px 7px 12px; margin-bottom: 10px; border-radius: 12px; background: rgba(200, 255, 61, .08); border: 1px solid rgba(200, 255, 61, .25); color: var(--ink); font-size: 13px; font-weight: 700; }
+.newhint > .ico { color: var(--accent); }
+.newhint span { flex: 1; }
+.newhint .x { flex: none; width: 26px; height: 26px; border: 0; border-radius: 8px; background: none; color: var(--muted); display: grid; place-items: center; }
+.eb-main { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.eb-act { display: inline-flex; gap: 6px; align-items: center; border: 1px solid currentColor; background: none; color: inherit; border-radius: 999px; padding: 5px 12px; font-weight: 800; font-size: 13px; }
+.watching { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--st-pending-soft); color: var(--st-pending); font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+.full { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 10px; border-radius: 12px; background: var(--surface-2); font-size: 14px; font-weight: 700; }
+.tgl { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; font-weight: 700; color: var(--muted); margin-top: 10px; }
+.tgl span { display: inline-flex; gap: 6px; align-items: center; }
+.tgl .lg { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.tgl .free { background: var(--free-soft); box-shadow: inset 0 0 0 1px rgba(94, 240, 168, .4); }
+.tgl .pk { background: var(--warn-soft); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, .4); }
 .err-box { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--hot-soft); color: var(--hot); font-size: 13.5px; font-weight: 700; }
 .err-box.warn { background: var(--warn-soft); color: var(--warn); }
 .err-box .ico { margin-top: 2px; }
 
-/* summary */
-.sum { background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--line-2); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-.sum.empty-sum { color: var(--muted); font-size: 14px; flex-direction: row; align-items: center; gap: 12px; border-style: dashed; background: none; }
-.sum h3 { font-size: 18px; margin: 4px 0 2px; }
-.sum .thumb { width: 84px; flex: none; border-radius: 8px; overflow: hidden; }
-.sum .thumb svg { width: 100%; display: block; }
-.facts3 { display: grid; grid-template-columns: 1.3fr 1fr .8fr; gap: 6px; }
-.facts3 div { background: var(--bg-2); border-radius: 10px; padding: 8px 10px; min-width: 0; }
-.facts3 span { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.facts3 b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-.total { display: flex; justify-content: space-between; align-items: end; gap: 10px; }
-.total .amt { font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
-.rate { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.sumcard { padding: 18px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 84px; min-width: 0; }
+.empty-sum { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.sumhead { display: flex; gap: 12px; align-items: center; }
+.sumhead .thumb { width: 76px; flex: none; border-radius: 8px; overflow: hidden; }
+.sumhead .thumb svg { width: 100%; display: block; }
+.sumtitle { font-size: 17px; display: block; }
+.sumwhen { font-size: 13.5px; }
+.sumtime { font-family: var(--mono); font-size: 16px; margin-top: 2px; }
+.totalrow { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--line); }
+.totalrow span { font-size: 14px; font-weight: 700; color: var(--muted); }
+.totalrow b { font-family: var(--display); font-size: 28px; font-weight: 600; letter-spacing: -.02em; }
+.rate { font-size: 12.5px; color: var(--muted); margin-top: -8px; }
 .rate.prime { color: var(--warn); }
-.note { font-size: 12px; color: var(--faint); display: flex; gap: 6px; align-items: flex-start; }
-.note .ico { margin-top: 1px; }
+.addnote { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--muted); font-size: 13px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
+.addnote:hover { color: var(--ink); }
 .opt { display: grid; gap: 10px; }
 .opt textarea.input { resize: vertical; min-height: 58px; }
-@media (max-width: 1040px) { .bookgrid { grid-template-columns: 1fr; } }
+.bookbtn { font-size: 16px; padding: 14px 20px; }
+.hint { margin: -4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.perks { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+.perks li { display: inline-flex; gap: 5px; align-items: center; }
+.perks .ico { color: var(--free); }
+.hint.as { display: flex; gap: 6px; align-items: center; margin-top: -8px; }
+
+/* bottom bar on phones */
+.bookbar { display: none; }
+@media (max-width: 1040px) {
+  .bookgrid { grid-template-columns: 1fr; }
+  .sumcard { position: static; }
+  .bookbtn { display: none; }
+  .bookbar { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 45; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; background: rgba(27, 33, 28, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); box-shadow: var(--shadow); }
+  .bbinfo { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; color: var(--ink); display: flex; flex-direction: column; }
+  .bbinfo b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bbinfo small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg { padding-bottom: 90px; }
+}
 @media (max-width: 600px) {
-  .courtsbox, .panel { padding: 14px; }
-  .tiles { gap: 10px; }
-  .tile .tb { padding: 9px 10px 11px; }
-  .tile .tb b { font-size: 14px; }
-  .tile .sp { display: none; }
-  .facts3 { grid-template-columns: 1fr 1fr; }
-  .facts3 div:first-child { grid-column: 1 / -1; }
+  .flow, .sumcard { padding: 14px; }
+  .fcards { grid-template-columns: 1fr; }
 }
 
-/* lower sections */
-.tabs { margin-bottom: 18px; }
-.tabs .n { font-size: 11px; background: var(--surface-3); color: var(--muted); border-radius: 99px; padding: 1px 7px; }
-.ccard { overflow: hidden; display: flex; flex-direction: column; }
-.ccard .thumb { height: 128px; background: radial-gradient(240px 110px at 50% 0%, rgba(255, 255, 230, .1), transparent 70%), #0c120e; display: grid; place-items: center; }
-.ccard .thumb svg { height: 80%; width: auto; max-width: 70%; display: block; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .5)); }
-.ccard .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
-.ccard .pills { display: flex; gap: 5px; flex-wrap: wrap; }
-.ccard .prices { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ccard .prices div { background: var(--bg-2); border-radius: 10px; padding: 7px 10px; }
-.ccard .prices span { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
-.ccard .prices b { font-size: 14.5px; }
-.ccard .prices .pr b { color: var(--warn); }
-.ccard .acts { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
-.info { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-.info .card { padding: 18px; min-width: 0; }
-.info h3 { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 16px; }
-.info h3 .ico { color: var(--accent); }
-.info ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; color: var(--muted); font-size: 14px; }
-.info li { display: flex; gap: 9px; align-items: flex-start; }
-.info li .ico { margin-top: 2px; color: var(--free); }
-.hours { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.hours:last-child { border: 0; }
+/* about the place: one compact list */
+.infoh { font-size: 22px; margin: 0 0 10px; }
+.desc { color: var(--muted); max-width: 760px; margin: 0 0 12px; font-size: 15px; }
+.ilist { margin: 0; border-top: 1px solid var(--line); max-width: 860px; }
+.ilist > div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.ilist dt { display: flex; gap: 8px; align-items: center; color: var(--muted); font-weight: 700; font-size: 14px; align-self: start; padding-top: 1px; }
+.ilist dd { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14.5px; min-width: 0; }
+.ilist .hrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.ilist .fname { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; min-width: 56px; }
+.ilist .small { font-size: 12.5px; }
+.ilist .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.ilist .pmap { margin-top: 8px; max-width: 640px; }
+.ilist .amen { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; }
+.ilist .amen span { display: inline-flex; gap: 6px; align-items: center; }
+.ilist .amen .ico { color: var(--muted); }
+@media (max-width: 600px) { .ilist > div { grid-template-columns: 1fr; } }
 
 /* sheets */
 .err { color: var(--hot); font-size: 13px; margin-top: 8px; }
@@ -819,8 +905,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .okhead { text-align: center; padding: 6px 0 4px; }
 .okmark { width: 62px; height: 62px; border-radius: 50%; margin: 0 auto 12px; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; box-shadow: 0 10px 30px -8px rgba(200, 255, 61, .6); }
 .okmark .ico { width: 30px; height: 30px; stroke-width: 3; }
+.email-alt { display: block; text-align: center; margin-top: 14px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.email-alt:hover { color: var(--ink); }
 .okcode { font-family: var(--mono); font-size: 26px; letter-spacing: .12em; background: var(--bg-2); border: 1px dashed var(--line-2); border-radius: 14px; padding: 10px; text-align: center; margin: 14px 0; }
-.okcode small { display: block; font-family: var(--body); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.okcode small { display: block; font-family: var(--body); font-size: 12.5px; letter-spacing: 0; color: var(--muted); font-weight: 700; }
 .oklist { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 14px; margin: 0 0 16px; }
 .oklist dt { color: var(--muted); font-weight: 700; }
 .oklist dd { margin: 0; font-weight: 700; text-align: right; }

@@ -1,4 +1,21 @@
 <script setup lang="ts">
+/**
+ * Player web layout: sticky header (logo, nav, bell, account menu), the page, and the bottom tab bar on phones.
+ *
+ * Props (all optional):
+ *   hideTabbar   no bottom tab bar on phones (e.g. the place page, which has its own sticky booking bar)
+ *   fullscreen   phones / tablets (≤ 900px): no header, no tab bar, no footer; <main> is a flex column that fills
+ *                100dvh, so the page can use `flex: 1` (the chat page). Desktop keeps the normal header.
+ *
+ * Rules: the language switch is always in the header (product owner's choice; also in Profile);
+ * the footer is shown to guests only (G7).
+ *
+ * CSS variables set on .papp for pages that size themselves to the screen:
+ *   --app-top     height taken by the header (64px, or 0px in fullscreen on phones)
+ *   --app-bottom  height taken by the tab bar (76px + safe area on phones when it is shown, else 0px)
+ *   e.g. `height: calc(100dvh - var(--app-top) - var(--app-bottom))`
+ */
+import Avatar from '@/components/Avatar.vue';
 import Flash from '@/components/Flash.vue';
 import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
@@ -10,7 +27,8 @@ import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// Player web: header with navigation, bell, language and account menu; bottom tab bar on phones (max 5 items).
+const props = withDefaults(defineProps<{ hideTabbar?: boolean; fullscreen?: boolean }>(), { hideTabbar: false, fullscreen: false });
+
 const { user } = useShared();
 const page = usePage<SharedData>();
 const has = (name: string) => {
@@ -21,15 +39,16 @@ const has = (name: string) => {
     }
 };
 
-type NavItem = { key: string; href: string; label: string; short: string; icon: string; match: string[]; badge?: number };
+// label: desktop nav (wide screens); short: narrow desktop nav; tab (or short): the phone tab bar (5 must fit in 390px)
+type NavItem = { key: string; href: string; label: string; short: string; tab?: string; icon: string; match: string[]; badge?: number; warn?: boolean };
 const nav = computed<NavItem[]>(() => {
+    const c = social.counts;
     const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'nav.fields', short: 'nav.fields', icon: 'grid', match: ['/', '/places'] }];
-    if (has('games.index')) items.push({ key: 'games', href: route('games.index'), label: 'nav.games', short: 'nav.games', icon: 'ball', match: ['/games'] });
+    if (has('games.index')) items.push({ key: 'games', href: route('games.index'), label: 'nav.games', short: 'nav.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
     if (user.value) {
-        if (has('messages.index'))
-            items.push({ key: 'messages', href: route('messages.index'), label: 'nav.messages', short: 'friends.nav.messages', icon: 'chat', match: ['/messages'], badge: social.counts.messages });
-        items.push({ key: 'friends', href: route('friends.index'), label: 'nav.friends', short: 'nav.friends', icon: 'users', match: ['/friends', '/u/'], badge: social.counts.friendRequests });
-        items.push({ key: 'bookings', href: route('me.bookings'), label: 'nav.bookingsShort', short: 'nav.bookingsShort', icon: 'ticket', match: ['/me/bookings'] });
+        if (has('messages.index')) items.push({ key: 'chats', href: route('messages.index'), label: 'nav.chats', short: 'nav.chats', icon: 'chat', match: ['/messages'], badge: c.messages });
+        items.push({ key: 'friends', href: route('friends.index'), label: 'nav.friends', short: 'nav.friends', icon: 'users', match: ['/friends', '/u/'], badge: c.friendRequests });
+        items.push({ key: 'bookings', href: route('me.bookings'), label: 'nav.bookings', short: 'nav.bookingsShort', tab: 'nav.tabBookings', icon: 'ticket', match: ['/me/bookings'], badge: c.pendingBookings, warn: true });
     }
     return items;
 });
@@ -38,6 +57,7 @@ const tabs = computed(() => [...nav.value, ...(user.value ? [] : [{ key: 'login'
 const path = computed(() => page.url.split('?')[0]);
 const active = (m: string[]) => m.some((p) => (p === '/' ? path.value === '/' : path.value === p || path.value.startsWith(p.endsWith('/') ? p : p + '/')));
 const badge = (n?: number) => (n ? (n > 99 ? '99+' : String(n)) : '');
+const showTabbar = computed(() => !props.hideTabbar && !props.fullscreen);
 
 // badges and live notices
 watch(() => page.props.counts, (c) => setCounts(c), { immediate: true });
@@ -46,7 +66,7 @@ watch(() => user.value?.id, (id) => startLive(id), { immediate: true });
 // account menu
 const menu = ref(false);
 const menuEl = ref<HTMLElement>();
-const initial = computed(() => (user.value?.name || user.value?.phone || '?').replace('+374', '').trim().slice(0, 1).toUpperCase());
+const who = computed(() => user.value?.name || user.value?.phone || '');
 function onDoc(e: MouseEvent) {
     if (menu.value && menuEl.value && !menuEl.value.contains(e.target as Node)) menu.value = false;
 }
@@ -65,74 +85,99 @@ watch(() => page.url, () => (menu.value = false));
 </script>
 
 <template>
-    <header class="top">
-        <div class="wrap">
-            <Link :href="route('home')" class="brand"><Logo /></Link>
-            <nav class="nav">
-                <Link v-for="n in nav" :key="n.key" :href="n.href" :aria-current="active(n.match) ? 'page' : undefined">
-                    <Icon :name="n.icon" /><span class="nl">{{ $t(n.label) }}</span><span class="ns">{{ $t(n.short) }}</span><span v-if="badge(n.badge)" class="nb">{{ badge(n.badge) }}</span>
-                </Link>
-            </nav>
-            <div class="top-right">
-                <Link v-if="user?.isOwner" class="btn ghost sm owner-btn" :href="route('owner.today')"><Icon name="chart" size="sm" /><span>{{ $t('nav.owner') }}</span></Link>
-                <LangSwitch />
-                <Link v-if="!user" class="btn sm" :href="route('login')">{{ $t('nav.login') }}</Link>
-                <template v-else>
-                    <NotifyBell />
-                    <div ref="menuEl" class="umenu">
-                        <button type="button" class="avatar" :aria-expanded="menu" aria-haspopup="menu" :title="user.name || user.phone" @click="menu = !menu">{{ initial }}</button>
-                        <div v-if="menu" class="udrop" role="menu">
-                            <div class="uhead">
-                                <b>{{ user.name || $t('player.menu.account') }}</b>
-                                <span class="mono">{{ user.username ? '@' + user.username : user.phone }}</span>
+    <div :class="['papp', { 'with-tabbar': showTabbar, fs: fullscreen, guest: !user }]">
+        <header class="top">
+            <div class="wrap">
+                <Link :href="route('home')" class="brand" :aria-label="'Bookball'"><Logo /></Link>
+                <nav class="nav" :aria-label="$t('nav.main')">
+                    <Link v-for="n in nav" :key="n.key" :href="n.href" :aria-current="active(n.match) ? 'page' : undefined">
+                        <Icon :name="n.icon" /><span class="nl">{{ $t(n.label) }}</span><span class="ns">{{ $t(n.short) }}</span
+                        ><span v-if="badge(n.badge)" :class="['badge-dot', { warn: n.warn }]">{{ badge(n.badge) }}</span>
+                    </Link>
+                </nav>
+                <div class="top-right">
+                    <LangSwitch />
+                    <template v-if="!user">
+                        <Link class="btn sm" :href="route('login')">{{ $t('nav.login') }}</Link>
+                    </template>
+                    <template v-else>
+                        <Link v-if="user.isOwner" class="btn outline sm owner-btn" :href="route('owner.today')"><Icon name="chart" size="sm" /><span>{{ $t('nav.owner') }}</span></Link>
+                        <NotifyBell />
+                        <div ref="menuEl" class="umenu">
+                            <button type="button" class="ubtn" :aria-expanded="menu" aria-haspopup="menu" :aria-label="$t('player.menu.account')" :title="who" @click="menu = !menu">
+                                <Avatar :id="user.id" :name="user.name || user.phone" :src="user.avatar" size="sm" />
+                            </button>
+                            <div v-if="menu" class="menu udrop" role="menu">
+                                <div class="uhead">
+                                    <Avatar :id="user.id" :name="user.name || user.phone" :src="user.avatar" size="md" />
+                                    <span class="uwho">
+                                        <b>{{ user.name || $t('player.menu.account') }}</b>
+                                        <span>{{ user.username ? '@' + user.username : user.phone }}</span>
+                                    </span>
+                                </div>
+                                <Link role="menuitem" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
+                                <Link role="menuitem" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('nav.bookings') }}</Link>
+                                <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my.finish') }}</Link>
+                                <Link v-if="user.isOwner" role="menuitem" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
+                                <hr />
+                                <Link role="menuitem" :href="route('logout')" method="post" as="button" class="out"><Icon name="logout" size="sm" />{{ $t('nav.logout') }}</Link>
                             </div>
-                            <Link role="menuitem" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                            <Link role="menuitem" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('nav.bookings') }}</Link>
-                            <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my.finish') }}</Link>
-                            <Link v-if="user.isOwner" role="menuitem" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
-                            <Link role="menuitem" :href="route('logout')" method="post" as="button" class="out"><Icon name="logout" size="sm" />{{ $t('nav.logout') }}</Link>
                         </div>
-                    </div>
-                </template>
+                    </template>
+                </div>
             </div>
-        </div>
-    </header>
-    <main class="wrap"><slot /></main>
-    <footer class="foot">
-        <div class="wrap">
-            <span>© 2026 Bookball · {{ $t('foot.city') }}</span>
-        </div>
-    </footer>
-    <nav class="tabbar">
-        <Link v-for="n in tabs" :key="n.key" :href="n.href" :aria-current="active(n.match) ? 'page' : undefined">
-            <span class="ti"><Icon :name="n.icon" size="lg" /><span v-if="badge(n.badge)" class="tb">{{ badge(n.badge) }}</span></span>
-            <span class="tl">{{ $t(n.short) }}</span>
-        </Link>
-    </nav>
+        </header>
+        <main class="wrap app-main"><slot /></main>
+        <footer v-if="!user" class="foot">
+            <div class="wrap">
+                <span>© 2026 Bookball · {{ $t('foot.city') }}</span>
+            </div>
+        </footer>
+        <nav v-if="showTabbar" class="tabbar" :aria-label="$t('nav.main')">
+            <Link v-for="n in tabs" :key="n.key" :href="n.href" :aria-current="active(n.match) ? 'page' : undefined">
+                <span class="ti"><Icon :name="n.icon" size="lg" /><span v-if="badge(n.badge)" :class="['badge-dot', 'tb', { warn: n.warn }]">{{ badge(n.badge) }}</span></span>
+                <span class="tl">{{ $t(n.tab ?? n.short) }}</span>
+            </Link>
+        </nav>
+    </div>
     <Flash />
 </template>
 
 <style scoped>
+.papp { --app-top: 64px; --app-bottom: 0px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.app-main { flex: 1 0 auto; width: 100%; padding-bottom: 40px; }
+.papp.guest .app-main { padding-bottom: 0; }
+@media (max-width: 900px) {
+    .papp.with-tabbar { --app-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    .app-main { padding-bottom: 24px; }
+    /* fullscreen (chat on phones): the page fills the screen */
+    .papp.fs { --app-top: 0px; height: 100dvh; min-height: 0; overflow: hidden; }
+    .papp.fs .top { display: none; }
+    .papp.fs .app-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding-bottom: 0; }
+}
+
 .brand { flex: none; }
 .nav a { position: relative; white-space: nowrap; }
 .nav .ns { display: none; }
+.nav .badge-dot { margin-left: 2px; }
 @media (max-width: 1120px) { .nav .nl { display: none; } .nav .ns { display: inline; } }
-.nb, .tb { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font-size: 10.5px; font-weight: 800; display: inline-grid; place-items: center; line-height: 1; }
 @media (max-width: 1240px) { .nav .ico { display: none; } .nav a { padding: 8px 10px; } }
 @media (max-width: 600px) { .owner-btn { display: none; } }
+
 .tabbar .ti { position: relative; display: grid; place-items: center; }
-.tabbar .tb { position: absolute; top: -6px; left: calc(100% - 8px); border: 2px solid rgb(12, 16, 13); height: 18px; }
+.tabbar .tb { position: absolute; top: -6px; left: calc(100% - 8px); box-shadow: 0 0 0 2px rgb(12, 16, 13); }
 .tabbar .tl { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tabbar a { min-width: 0; }
+
 .umenu { position: relative; }
-.umenu .avatar { cursor: pointer; color: var(--ink); padding: 0; }
-.umenu .avatar[aria-expanded="true"] { border-color: var(--accent); }
-.udrop { position: absolute; right: 0; top: calc(100% + 8px); min-width: 230px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 16px; box-shadow: var(--shadow); padding: 6px; z-index: 60; display: flex; flex-direction: column; }
-.uhead { padding: 10px 12px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; display: flex; flex-direction: column; gap: 2px; }
-.uhead b { font-size: 14.5px; }
-.uhead span { font-size: 12.5px; color: var(--muted); }
-.udrop a, .udrop button { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-weight: 700; font-size: 14px; color: var(--ink); background: none; border: 0; text-align: left; width: 100%; }
-.udrop a:hover, .udrop button:hover { background: var(--surface-2); }
+.ubtn { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 2px solid transparent; background: none; transition: border-color .15s; }
+.ubtn:hover { border-color: var(--line-2); }
+.ubtn[aria-expanded="true"] { border-color: var(--accent); }
+.udrop { min-width: 240px; }
+.uhead { padding: 8px 10px 10px; display: flex; align-items: center; gap: 10px; }
+.uwho { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.uwho b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uwho span { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .udrop .out { color: var(--muted); }
-.udrop .out:hover { color: var(--hot); }
+.udrop .out:hover { color: var(--hot); background: var(--hot-soft); }
 </style>

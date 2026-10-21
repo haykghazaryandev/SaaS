@@ -106,7 +106,14 @@ Without Reverb and the queue worker the app still works, but nothing is live: ch
 
 ## 4. Log in (demo data)
 
-**Login works with a phone number and a 4-digit code.** In development (`OTP_DRIVER=log`) the code is **shown on the login page** and written to `storage/logs/laravel.log`, so no Telegram is needed. Type only the 8 digits after +374.
+**How to log in:**
+- **"Log in with Telegram"** is the main way and it's free. Our bot asks the user to share their phone, and Telegram confirms it.
+  - Without a bot token (development), the login page shows a **"simulate"** box: type one of the phones below and press Confirm.
+  - With a real bot token, run `php artisan telegram:poll` (see section 7) and use Telegram on your phone.
+- **"Log in with email"** is the backup. In development the code is shown on the page and written to the log, since `MAIL_MAILER=log`.
+- **"Phone + code (development)"** is the old way, still available in development, with the code shown on the page.
+
+Type only the 8 digits after +374:
 
 | Who | Phone | Where |
 |---|---|---|
@@ -180,24 +187,30 @@ tools/share-proxy.mjs      share the app through ngrok with live chat (see below
 
 ## 7. Telegram (when you have the real bot)
 
-1. In Telegram, open **@BotFather**, send `/newbot`, name it *Bookball* with the username **@BookballBot** (or similar). Put the token in `.env`:
+The bot handles three things, all free:
+- **login:** "Log in with Telegram" confirms the phone
+- **notifications:** booking updates, game invites and so on
+- **owner buttons:** Accept / Decline right inside Telegram
+
+1. In Telegram, open **@BotFather** and send `/newbot`. Name it *Bookball* with the username **@BookballBot** (or similar). Put the token in `.env`:
    ```
    TELEGRAM_BOT_TOKEN=123456:ABC...
    TELEGRAM_BOT_USERNAME=BookballBot
    ```
-2. Set `TELEGRAM_WEBHOOK_SECRET` to a random string, e.g. `openssl rand -hex 32`.
-3. Telegram can only call **public https** addresses. Set `APP_URL` to one (production, or an ngrok address in development), then run:
+2. **Locally** (no public address needed), run:
    ```bash
-   php artisan config:clear && php artisan telegram:set-webhook
+   php artisan telegram:poll
    ```
-4. For real login codes:
-   - create an account at https://gateway.telegram.org and add a balance (about $0.01 per code)
-   - set `TELEGRAM_GATEWAY_TOKEN=...` and `OTP_DRIVER=gateway`
-5. Keep the queue worker running, because all messages are queued.
+   It asks Telegram for new messages every few seconds. Now "Log in with Telegram" on the login page opens your real bot.
+3. **On the server**, use a webhook instead:
+   - set `TELEGRAM_WEBHOOK_SECRET` to a random string (`openssl rand -hex 32`)
+   - set `APP_URL` to the public https address
+   - run `php artisan config:clear && php artisan telegram:set-webhook`
+4. Keep the queue worker running, because all messages are queued.
+5. **Optional, paid:** "phone + code" through the Telegram Gateway (about $0.01 per code). Set `TELEGRAM_GATEWAY_TOKEN` and `OTP_DRIVER=gateway`. We don't use it now, because Telegram login is free.
+6. **Email codes in production:** set the `MAIL_*` settings of a free provider, e.g. Resend (3,000 emails/month) or Brevo (300/day).
 
-Without a bot token every Telegram message is only written to the log, and the admin panel's *Notification log* shows them.
-
----
+Without a bot token, every Telegram message is only written to the log, and the admin panel's *Notification log* shows them.
 
 ## 8. Show it on a phone (ngrok)
 
@@ -222,7 +235,7 @@ ngrok http 8090                # gives an https address
 | Chat isn't live | Reverb and the queue worker must be running. After changing PHP code, run `php artisan queue:restart`. |
 | A page shows old texts after editing `lang/` | Rebuild the frontend (`npm run build`), or keep `npm run dev` running |
 | `Too many codes` on login | See section 4 (reset the limits) |
-| A change in `.env` has no effect | `php artisan config:clear` |
+| A change in `.env` has no effect | `php artisan config:clear`, then **restart `composer run dev`**. The queue worker keeps the old values otherwise; for example, Telegram messages are only logged after you add the bot token. |
 
 ---
 

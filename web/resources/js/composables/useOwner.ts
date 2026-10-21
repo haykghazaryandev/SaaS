@@ -1,3 +1,4 @@
+import { hhmm } from '@/composables/useShared';
 import { router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive } from 'vue';
@@ -24,7 +25,8 @@ export interface OwnerShared {
     nowHour: number;
 }
 
-export type Kind = 'pending' | 'accepted' | 'owner' | 'noshow' | 'off';
+/** Visual kind of a booking (BookingPresenter::kind): colors come from the --st-* tokens. */
+export type Kind = 'pending' | 'accepted' | 'owner' | 'noshow' | 'expired' | 'off';
 
 export interface BookingRow {
     id: number;
@@ -49,6 +51,11 @@ export interface BookingRow {
     past: boolean;
     user: { id: number; name: string | null; no_shows: number } | null;
     sent_ago: string | null;
+}
+
+/** A request on Today, with the other open requests it clashes with. */
+export interface RequestRow extends BookingRow {
+    conflicts: { id: number; field_id: number; name: string; start: number }[];
 }
 
 export interface BookingDetail extends BookingRow {
@@ -76,7 +83,7 @@ export function useOwner() {
 export const sheets = reactive({
     detail: null as number | null,
     form: null as FormOpts | null,
-    reason: null as { kind: 'decline' | 'cancel'; id: number } | null,
+    reason: null as { kind: 'decline' | 'cancel'; id: number; who?: string } | null,
     toast: null as string | null,
 });
 
@@ -92,9 +99,9 @@ export const openForm = (opts: FormOpts = {}) => {
     sheets.detail = null;
     sheets.form = opts;
 };
-export const askDecline = (id: number) => {
+export const askDecline = (id: number, who?: string) => {
     sheets.detail = null;
-    sheets.reason = { kind: 'decline', id };
+    sheets.reason = { kind: 'decline', id, who };
 };
 export const askCancel = (id: number) => {
     sheets.detail = null;
@@ -110,7 +117,107 @@ export function act(name: 'accept' | 'decline' | 'cancel' | 'no-show', id: numbe
         onError: (errors) => toastError(errors.booking || Object.values(errors)[0] || trans('owner.err.generic')),
     });
 }
-export const accept = (id: number) => act('accept', id);
+
+// ---------- accept / decline with "Undo" ----------
+// The answer is kept on this device for 5 seconds while a toast offers "Undo"; only then it is sent (fetch, JSON).
+// Nothing reaches the player until then, so Undo never has to take back a Telegram message. The answer is sent
+// at once when another one is given, or when the page is hidden or closed (keepalive), so it is never lost.
+export const UNDO_MS = 5000;
+interface Decision {
+    id: number;
+    kind: 'accept' | 'decline';
+    reason: string | null;
+    who: string;
+    until: number;
+    timer: number;
+}
+export const decisions = reactive({
+    current: null as Decision | null,
+    /** bookings answered on this device but not yet reloaded from the server: id -> new state */
+    hidden: {} as Record<number, 'accepted' | 'declined'>,
+});
+
+function xsrf(): string {
+    const m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+}
+
+/** "Narek · 20:30" for the toast. */
+export const whoOf = (b: { team?: string | null; name: string; start: number }) => `${b.team || b.name} · ${hhmm(b.start)}`;
+
+export function decide(kind: 'accept' | 'decline', id: number, opts: { reason?: string | null; who?: string } = {}) {
+    if (decisions.current?.id === id) return;
+    if (decisions.current) commit();
+    sheets.detail = null;
+    decisions.hidden[id] = kind === 'accept' ? 'accepted' : 'declined';
+    decisions.current = {
+        id,
+        kind,
+        reason: opts.reason ?? null,
+        who: opts.who ?? '',
+        until: Date.now() + UNDO_MS,
+        timer: window.setTimeout(commit, UNDO_MS),
+    };
+}
+
+export function undo() {
+    const d = decisions.current;
+    if (!d) return;
+    clearTimeout(d.timer);
+    delete decisions.hidden[d.id];
+    decisions.current = null;
+}
+
+/** Sends the waiting answer now. */
+export async function commit() {
+    const d = decisions.current;
+    if (!d) return;
+    clearTimeout(d.timer);
+    decisions.current = null;
+    try {
+        const r = await fetch(route(`owner.bookings.${d.kind}`, d.id), {
+            method: 'POST',
+            keepalive: true,
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-XSRF-TOKEN': xsrf() },
+            body: JSON.stringify(d.kind === 'decline' ? { reason: d.reason } : {}),
+        });
+        if (!r.ok) {
+            let msg = trans('owner.err.generic');
+            try {
+                const errs = ((await r.json()).errors ?? {}) as Record<string, string[]>;
+                msg = errs.booking?.[0] || Object.values(errs)[0]?.[0] || msg;
+            } catch {
+                /* not JSON */
+            }
+            toastError(msg);
+        }
+    } catch {
+        toastError(trans('owner.err.generic'));
+    }
+    // refresh the owner page (without cancelling a visit in progress), then forget the local state
+    const component = String(usePageSafe()?.component ?? '');
+    if (component.startsWith('owner/')) {
+        router.reload({ async: true, onFinish: () => delete decisions.hidden[d.id] } as Parameters<typeof router.reload>[0]);
+    } else {
+        delete decisions.hidden[d.id];
+    }
+}
+function usePageSafe() {
+    try {
+        return usePage();
+    } catch {
+        return null;
+    }
+}
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', () => commit());
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && commit());
+}
+
+/** Accept with Undo (the row gives the toast its "name · time"). */
+export const accept = (id: number, row?: { team?: string | null; name: string; start: number }) =>
+    decide('accept', id, { who: row ? whoOf(row) : '' });
 
 // ---------- formatting ----------
 const LOCALES: Record<string, string> = { hy: 'hy-AM', ru: 'ru-RU', en: 'en-GB' };
@@ -180,8 +287,8 @@ export function dur(minutes: number): string {
 
 /** Pill class and label of a booking. */
 export function pillOf(b: { kind: Kind; status: string }): { cls: string; label: string } {
-    const cls = { pending: 'warn', accepted: 'green', owner: 'blue', noshow: 'hot', off: '' }[b.kind];
-    const label = b.kind === 'owner' ? trans('owner.st.owner') : trans(`owner.st.${b.status}`);
+    const cls = { pending: 'warn', accepted: 'green', owner: 'manual', noshow: 'hot', expired: 'off', off: 'off' }[b.kind];
+    const label = b.kind === 'owner' ? trans('owner.st.owner') : b.kind === 'expired' ? trans('owner.st.expired') : trans(`owner.st.${b.status}`);
     return { cls, label };
 }
 

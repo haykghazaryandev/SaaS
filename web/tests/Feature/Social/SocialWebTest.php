@@ -161,11 +161,11 @@ it('opens a profile by username or by id', function () {
     makeFriends($this->me, $this->other);
     gameWith([$this->me, $this->other], 'full');
     gameWith([$this->other, $this->me], 'forming');   // forming games don't count
-    $this->other->update(['level' => 'pro', 'position' => 'forward', 'district' => 'arabkir', 'bio' => 'Left foot']);
+    $this->other->update(['position' => 'forward', 'district' => 'arabkir', 'bio' => 'Left foot']);
 
     $this->actingAs($this->me)->get('/u/davo')->assertOk()->assertInertia(fn (Assert $p) => $p
         ->component('profile/Show')
-        ->where('player.id', $this->other->id)->where('player.username', 'davo')->where('player.level', 'pro')
+        ->where('player.id', $this->other->id)->where('player.username', 'davo')
         ->where('player.position', 'forward')->where('player.bio', 'Left foot')
         ->where('player.games', 1)->where('player.friends', 1)->where('player.relation', 'friends')
         ->where('hidden', false)->where('canMessage', true)
@@ -246,14 +246,14 @@ it('shows and updates my profile', function () {
         ->component('profile/Edit')->where('profile.username', 'aram')->where('options.positions', ['goalkeeper', 'defender', 'midfielder', 'forward'])
         ->where('options.districts', fn ($d) => collect($d)->contains('arabkir'))
     );
-    $this->patch('/me/profile', ['name' => '  Aram P ', 'username' => 'Aram_10', 'level' => 'pro', 'position' => 'goalkeeper', 'district' => 'kentron', 'bio' => 'Hi', 'locale' => 'ru'])
+    $this->patch('/me/profile', ['name' => '  Aram P ', 'username' => 'Aram_10', 'position' => 'goalkeeper', 'district' => 'kentron', 'bio' => 'Hi', 'locale' => 'ru'])
         ->assertRedirect()->assertSessionHas('success')->assertSessionHas('locale', 'ru');
-    expect($this->me->fresh()->only(['name', 'username', 'level', 'position', 'district', 'bio', 'locale']))
-        ->toBe(['name' => 'Aram P', 'username' => 'aram_10', 'level' => 'pro', 'position' => 'goalkeeper', 'district' => 'kentron', 'bio' => 'Hi', 'locale' => 'ru']);
+    expect($this->me->fresh()->only(['name', 'username', 'position', 'district', 'bio', 'locale']))
+        ->toBe(['name' => 'Aram P', 'username' => 'aram_10', 'position' => 'goalkeeper', 'district' => 'kentron', 'bio' => 'Hi', 'locale' => 'ru']);
 
     // clear the optional ones
-    $this->patch('/me/profile', ['name' => 'Aram P', 'username' => '', 'level' => null, 'position' => null, 'district' => null, 'bio' => '', 'locale' => 'hy'])->assertSessionHasNoErrors();
-    expect($this->me->fresh()->only(['username', 'level', 'position', 'district', 'bio']))->toBe(['username' => null, 'level' => null, 'position' => null, 'district' => null, 'bio' => null]);
+    $this->patch('/me/profile', ['name' => 'Aram P', 'username' => '', 'position' => null, 'district' => null, 'bio' => '', 'locale' => 'hy'])->assertSessionHasNoErrors();
+    expect($this->me->fresh()->only(['username', 'position', 'district', 'bio']))->toBe(['username' => null, 'position' => null, 'district' => null, 'bio' => null]);
 });
 
 it('validates my profile', function (array $data, string $error) {
@@ -264,7 +264,6 @@ it('validates my profile', function (array $data, string $error) {
     'username taken' => [['username' => 'DAVO'], 'username'],
     'username chars' => [['username' => 'ara m!'], 'username'],
     'username short' => [['username' => 'ab'], 'username'],
-    'bad level' => [['level' => 'god'], 'level'],
     'bad position' => [['position' => 'striker'], 'position'],
     'bad district' => [['district' => 'paris'], 'district'],
     'long bio' => [['bio' => str_repeat('a', 301)], 'bio'],
@@ -317,7 +316,7 @@ it('shares header counts: notifications, chat messages and friend requests', fun
     $chat->send($c, $asker, 'Are you coming?');
 
     $this->actingAs($this->me)->get('/friends')->assertInertia(fn (Assert $p) => $p
-        ->where('counts', ['notifications' => 1, 'messages' => 2, 'friendRequests' => 1])
+        ->where('counts.notifications', 1)->where('counts.messages', 2)->where('counts.friendRequests', 1)
     );
 });
 

@@ -14,6 +14,6 @@ function set(l: string) {
 
 <template>
     <div class="lang" role="group" aria-label="Language">
-        <button v-for="(label, l) in LABELS" :key="l" type="button" :aria-pressed="locale === l" @click="set(l)">{{ label }}</button>
+        <button v-for="(label, l) in LABELS" :key="l" type="button" :lang="l" :aria-pressed="locale === l" @click="set(l)">{{ label }}</button>
     </div>
 </template>
