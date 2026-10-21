@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball for fields · Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../player/styles.css">
+<link rel="stylesheet" href="owner.css">
+</head>
+<body>
+<div class="login">
+  <section class="login-art">
+    <div class="stage" id="stage"></div>
+    <div class="row"><span class="logo-mark" id="lm"></span><b class="logo" id="lb"></b></div>
+    <div>
+      <div class="kicker" id="k1"></div>
+      <h1 id="h1"></h1>
+      <div class="perks" id="perks" style="margin-top:22px"></div>
+    </div>
+  </section>
+  <section class="login-form"><div class="box" id="box"></div></section>
+</div>
+<script src="../player/common.js"></script>
+<script src="../player/data.js"></script>
+<script src="owner.js"></script>
+<script>
+I18N.add({
+  "l.kicker": ["For football field owners", "Ֆուտբոլային դաշտերի սեփականատերերի համար", "Для владельцев футбольных полей"],
+  "l.h1": ["All your bookings, <em>one schedule</em>", "Բոլոր ամրագրումները <em>մեկ ժամանակացույցում</em>", "Все брони в <em>одном расписании</em>"],
+  "l.p1": ["Accept requests from the Bookball app in one tap", "Ընդունեք Bookball հավելվածի հայտերը մեկ հպումով", "Принимайте заявки из приложения Bookball в одно касание"],
+  "l.p2": ["Add phone calls and regular teams yourself", "Ինքներդ ավելացրեք զանգերը և մշտական թիմերը", "Сами добавляйте звонки и постоянные команды"],
+  "l.p3": ["Players get every change in Telegram", "Խաղացողները ամեն փոփոխություն ստանում են Telegram-ով", "Игроки получают каждое изменение в Telegram"],
+  "l.p4": ["See the week of both fields at a glance", "Տեսեք երկու դաշտերի շաբաթը մեկ հայացքով", "Вся неделя обоих полей на одном экране"],
+  "l.title": ["Sign in", "Մուտք", "Вход"],
+  "l.sub": ["Use the phone number of your place. We send a code to Telegram.", "Օգտագործեք ձեր ակումբի հեռախոսահամարը։ Կոդը կուղարկենք Telegram-ով։", "Используйте номер телефона вашего клуба. Код придёт в Telegram."],
+  "l.name": ["Your name", "Ձեր անունը", "Ваше имя"],
+  "l.place": ["Place", "Ակումբ", "Клуб"],
+  "l.enter": ["Enter the code from the Bookball bot in Telegram for {phone}", "Մուտքագրեք Bookball բոտի կոդը Telegram-ում {phone} համարի համար", "Введите код от бота Bookball в Telegram для {phone}"],
+  "l.go": ["Sign in", "Մուտք գործել", "Войти"],
+  "l.demoName": ["Armen Petrosyan", "Արմեն Պետրոսյան", "Армен Петросян"]
+});
+document.title = T("o.brand") + " · " + T("l.title");
+document.getElementById("lm").innerHTML = OWNER.LOGO;
+document.getElementById("lb").textContent = T("o.brand");
+document.getElementById("k1").textContent = T("l.kicker");
+document.getElementById("h1").innerHTML = T("l.h1");
+document.getElementById("stage").innerHTML = COURT_SVG("small") + COURT_SVG("big");
+document.getElementById("perks").innerHTML = [["check", "l.p1"], ["phone", "l.p2"], ["send", "l.p3"], ["calendar", "l.p4"]].map(([i, k]) => `<div>${ICON(i)}${T(k)}</div>`).join("");
+if (OWNER.me()) location.replace(link("index.html"));
+
+const box = document.getElementById("box");
+let data = { name: T("l.demoName"), phone: "", venue: "zangak" }, code = "";
+function step1() {
+  box.innerHTML = `<h2 style="margin:0">${T("l.title")}</h2><p class="muted" style="margin:0 0 6px">${T("l.sub")}</p>
+    <div class="field"><label for="n">${T("l.name")}</label><input class="input" id="n" value="${OWNER.esc(data.name)}" autocomplete="name"></div>
+    <div class="field"><label for="p">${T("v.phone")}</label><div class="row" style="gap:6px"><span class="input pre">+374</span><input class="input mono" id="p" inputmode="tel" placeholder="10 555 123" value="${data.phone.slice(-8)}"></div></div>
+    <div class="field"><label for="v">${T("l.place")}</label><select class="input" id="v">${KH.VENUES.map(v => `<option value="${v.id}"${v.id === data.venue ? " selected" : ""}>${v.name}</option>`).join("")}</select></div>
+    <div id="err" style="min-height:20px;color:var(--hot);font-size:13px;font-weight:700"></div>
+    <div class="tg-hint">${ICON("send", "sm")}${T("v.tgNote")}</div>
+    <button class="btn block big" id="go">${T("v.send")}</button>
+    <p class="faint" style="font-size:12.5px;text-align:center;margin:4px 0 0">${T("foot.demo")}</p>
+    <div style="display:flex;justify-content:center">${OWNER.langSwitch()}</div>`;
+  OWNER.bindLang(box);
+  box.querySelector("#go").onclick = () => {
+    data.name = box.querySelector("#n").value.trim(); data.venue = box.querySelector("#v").value;
+    const ph = box.querySelector("#p").value.replace(/\D/g, "");
+    if (!data.name || ph.length !== 8) { box.querySelector("#err").textContent = T("v.badPhone"); return; }
+    data.phone = "374" + ph; code = String(1000 + Math.floor(Math.random() * 9000)); step2();
+  };
+}
+function step2() {
+  box.innerHTML = `<div class="row"><button class="x" style="margin:0" id="b" aria-label="${T("back")}">${ICON("back")}</button><h2 style="margin:0">${T("v.title")}</h2></div>
+    <p class="muted" style="margin:0">${T("l.enter", { phone: FMT.phone(data.phone) })}</p>
+    <div class="code-inputs">${[0, 1, 2, 3].map(i => `<input inputmode="numeric" maxlength="1" aria-label="${i + 1}">`).join("")}</div>
+    <p style="text-align:center;margin:4px 0"><span class="pill lime">${T("v.demo", { code })}</span></p>
+    <div id="err" style="text-align:center;min-height:20px;color:var(--hot);font-size:13px;font-weight:700"></div>
+    <button class="btn ghost block" id="r">${T("v.resend")}</button>`;
+  box.querySelector("#b").onclick = step1;
+  box.querySelector("#r").onclick = () => { code = String(1000 + Math.floor(Math.random() * 9000)); step2(); };
+  const ins = [...box.querySelectorAll(".code-inputs input")];
+  ins.forEach((inp, i) => {
+    inp.oninput = () => {
+      inp.value = inp.value.replace(/\D/g, "").slice(-1);
+      if (inp.value && ins[i + 1]) ins[i + 1].focus();
+      const v = ins.map(x => x.value).join("");
+      if (v.length < 4) return;
+      if (v === code) { STORE.set("owner", { name: data.name, phone: data.phone, venue: data.venue }); location.href = link("index.html"); }
+      else { ins.forEach(x => { x.value = ""; }); ins[0].focus(); box.querySelector("#err").textContent = T("v.wrong", { n: 2 }); }
+    };
+    inp.onkeydown = e => { if (e.key === "Backspace" && !inp.value && ins[i - 1]) ins[i - 1].focus(); };
+  });
+  ins[0].focus();
+}
+step1();
+</script>
+</body>
+</html>

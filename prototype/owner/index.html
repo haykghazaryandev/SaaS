@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball for fields · Today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../player/styles.css">
+<link rel="stylesheet" href="owner.css">
+</head>
+<body>
+<script src="../player/common.js"></script>
+<script src="../player/data.js"></script>
+<script src="owner.js"></script>
+<script>
+I18N.add({
+  "d.hello": ["Hello, {name}", "Բարև, {name}", "Здравствуйте, {name}"],
+  "d.kToday": ["Bookings today", "Այսօրվա ամրագրումներ", "Брони сегодня"],
+  "d.kTodaySub": ["{a} confirmed · {p} waiting", "{a} հաստատված · {p} սպասող", "подтверждено: {a} · ждут: {p}"],
+  "d.kPending": ["Requests waiting", "Սպասող հայտեր", "Ждут ответа"],
+  "d.kPendingSub": ["Players wait for your answer", "Խաղացողները սպասում են ձեր պատասխանին", "Игроки ждут вашего ответа"],
+  "d.kPendingNone": ["All answered", "Բոլորին պատասխանված է", "На всё ответили"],
+  "d.kOcc": ["Occupancy today", "Զբաղվածություն այսօր", "Загрузка сегодня"],
+  "d.kRev": ["Revenue today", "Եկամուտ այսօր", "Выручка сегодня"],
+  "d.kRevSub": ["This week (Mon–Sun): {w}", "Այս շաբաթ (Երկ–Կիր)՝ {w}", "Эта неделя (Пн–Вс): {w}"],
+  "d.small": ["5×5", "5×5", "5×5"],
+  "d.big": ["11×11", "11×11", "11×11"],
+  "d.requests": ["Requests waiting", "Սպասող հայտեր", "Заявки ждут ответа"],
+  "d.noReq": ["No requests waiting. New ones from the Bookball app show up here.", "Սպասող հայտեր չկան։ Bookball հավելվածի նոր հայտերը կերևան այստեղ։", "Нет заявок. Новые из приложения Bookball появятся здесь."],
+  "d.more": ["+{n} more in the schedule", "+{n} ևս ժամանակացույցում", "+ещё {n} в расписании"],
+  "d.sent": ["sent {ago}", "ուղարկվել է {ago}", "отправлена {ago}"],
+  "d.next": ["Next games today", "Այսօրվա հաջորդ խաղերը", "Следующие игры сегодня"],
+  "d.noNext": ["No more games today.", "Այսօր այլ խաղեր չկան։", "Сегодня игр больше нет."],
+  "d.chart": ["Occupancy, next 7 days", "Զբաղվածություն, հաջորդ 7 օր", "Загрузка, следующие 7 дней"],
+  "d.chartSub": ["Share of opening hours that are booked or requested", "Աշխատանքային ժամերի բաժինը, որ ամրագրված կամ հայցված է", "Доля рабочих часов с бронями и заявками"],
+  "d.openSchedule": ["Open schedule", "Բացել ժամանակացույցը", "Открыть расписание"]
+});
+const main = OWNER.shell("today"), v = OWNER.venue(), now = OWNER.nowH();
+document.title = T("o.brand") + " · " + T("o.nav.today");
+const sm = OWNER.court(v, "small"), bg = OWNER.court(v, "big"), openH = v.open[1] - v.open[0];
+const occ = (ct, d) => Math.round(KH.bookings(ct.id, d).filter(KH.active).reduce((s, b) => s + b.dur / 60, 0) / openH * 100);
+const today = OWNER.range(v, 0, 0), todayAct = today.filter(KH.active);
+const pend = OWNER.pending(v);
+const wd = (DAY.TODAY.getDay() + 6) % 7; // 0 = Monday
+const revenue = (from, to) => OWNER.range(v, from, to).filter(b => b.status === "accepted").reduce((s, b) => s + OWNER.price(b), 0);
+const me = OWNER.me();
+
+main.innerHTML = `
+  ${OWNER.title(FMT.dateLong(DAY.TODAY) + " · " + OWNER.esc(v.name), T("d.hello", { name: OWNER.esc(me.name.split(" ")[0]) }),
+    `<a class="btn ghost" href="${link("bookings.html")}">${ICON("calendar", "sm")}${T("d.openSchedule")}</a><button class="btn" id="nb">${ICON("plus", "sm")}${T("o.newBooking")}</button>`)}
+  <div class="kpis">
+    <div class="card kpi"><div class="lbl">${ICON("calendar", "sm")}${T("d.kToday")}</div><div class="val">${todayAct.length}</div>
+      <div class="sub">${T("d.kTodaySub", { a: todayAct.filter(b => b.status === "accepted").length, p: todayAct.filter(b => b.status === "pending").length })}</div></div>
+    <div class="card kpi ${pend.length ? "warn" : ""}"><div class="lbl">${ICON("msg", "sm")}${T("d.kPending")}</div><div class="val">${pend.length}</div>
+      <div class="sub">${T(pend.length ? "d.kPendingSub" : "d.kPendingNone")}</div></div>
+    <div class="card kpi"><div class="lbl">${ICON("chart", "sm")}${T("d.kOcc")}</div>
+      <div class="occ">${[[sm, "s"], [bg, "b"]].map(([ct, c]) => { const p = occ(ct, 0); return `<div><span>${ct.format}</span><span class="bar ${c}"><i style="width:${p}%"></i></span><b>${p}%</b></div>`; }).join("")}</div></div>
+    <div class="card kpi"><div class="lbl">${ICON("wallet", "sm")}${T("d.kRev")}</div><div class="val">${FMT.short(revenue(0, 0))}</div>
+      <div class="sub">${T("d.kRevSub", { w: `<b style="white-space:nowrap;color:var(--muted)">${FMT.amd(revenue(-wd, 6 - wd))}</b>` })}</div></div>
+  </div>
+  <div class="dash">
+    <section class="card panel">
+      <div class="sec-h"><h2>${T("d.requests")} ${pend.length ? `<span class="pill warn">${pend.length}</span>` : ""}</h2>
+        ${pend.length ? `<a class="see-all" href="${link("bookings.html", { view: "list", status: "pending" })}">${T("seeAll")} ${ICON("arrow", "sm")}</a>` : ""}</div>
+      <div id="reqs"></div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:22px;min-width:0">
+      <section class="card panel games"><div class="sec-h"><h2>${T("d.next")}</h2></div><div id="next"></div></section>
+      <section class="card panel"><div class="sec-h" style="margin-bottom:4px"><h2>${T("d.chart")}</h2></div>
+        <p class="faint" style="margin:0 0 10px;font-size:12.5px">${T("d.chartSub")}</p>
+        <div class="legend" style="margin-bottom:8px"><span><i class="fdot s"></i>${T("o.small")} 5×5</span><span><i class="fdot b"></i>${T("o.big")} 11×11</span></div>
+        <div class="chart" id="chart"></div></section>
+    </div>
+  </div>`;
+main.querySelector("#nb").onclick = () => OWNER.openForm({});
+
+// requests
+const reqs = main.querySelector("#reqs");
+reqs.innerHTML = pend.length ? pend.slice(0, 6).map(b => { const ct = KH.COURTS[b.court]; return `
+  <div class="req" data-id="${OWNER.esc(b.id)}">
+    <div class="who"><b>${OWNER.esc(b.name)}</b>${b.team ? ` <span class="muted">· ${OWNER.esc(b.team)}</span>` : ""}
+      <div class="meta"><span><i class="fdot ${ct.size === "small" ? "s" : "b"}"></i>${OWNER.fieldName(ct)}</span><span>${ICON("calendar", "sm")}${OWNER.when(b)}</span>
+        <span>${ICON("wallet", "sm")}${FMT.amd(OWNER.price(b))}</span>${b.created ? `<span class="faint">${T("d.sent", { ago: OWNER.ago(b.created) })}</span>` : ""}</div></div>
+    <div class="acts"><button class="btn big" data-a="ok">${ICON("check", "sm")}${T("a.accept")}</button><button class="btn danger big" data-a="no">${ICON("x", "sm")}${T("a.decline")}</button></div>
+  </div>`; }).join("") + (pend.length > 6 ? `<p style="margin:12px 0 0"><a class="see-all" href="${link("bookings.html", { view: "list", status: "pending" })}">${T("d.more", { n: pend.length - 6 })}</a></p>` : "")
+  : `<div class="empty">${ICON("check", "lg")}<p style="margin:8px 0 0">${T("d.noReq")}</p></div>`;
+reqs.querySelectorAll(".req").forEach(el => {
+  const b = () => KH.findBooking(el.dataset.id);
+  el.querySelector(".who").onclick = () => OWNER.openBooking(el.dataset.id);
+  el.querySelector('[data-a="ok"]').onclick = () => OWNER.accept(b());
+  el.querySelector('[data-a="no"]').onclick = () => OWNER.askDecline(b());
+});
+
+// next games today
+const next = todayAct.filter(b => b.start + b.dur / 60 > now).sort((a, b) => a.start - b.start).slice(0, 7);
+main.querySelector("#next").innerHTML = next.length ? next.map(b => { const ct = KH.COURTS[b.court]; return `
+  <div class="g" data-id="${OWNER.esc(b.id)}"><div class="t">${FMT.time(b.start)}<small>${FMT.dur(b.dur)}</small></div>
+    <div style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${OWNER.esc(b.team || b.name)}</b>
+      <span class="muted" style="font-size:12.5px;display:inline-flex;gap:6px;align-items:center"><i class="fdot ${ct.size === "small" ? "s" : "b"}"></i>${OWNER.fieldName(ct)}</span></div>
+    ${OWNER.pill(b)}</div>`; }).join("") : `<p class="muted" style="margin:6px 0">${T("d.noNext")}</p>`;
+main.querySelectorAll(".g").forEach(el => { el.onclick = () => OWNER.openBooking(el.dataset.id); });
+
+// 7-day occupancy chart (grouped bars, inline SVG)
+(function () {
+  const W = 460, H = 210, L = 30, B = 34, T0 = 16, cw = (W - L) / 7, bw = Math.min(18, cw / 3.2), y = p => T0 + (H - B - T0) * (1 - p / 100);
+  let g = `<g class="grid">${[0, 25, 50, 75, 100].map(p => `<line x1="${L}" x2="${W}" y1="${y(p)}" y2="${y(p)}"/><text x="${L - 6}" y="${y(p) + 4}" text-anchor="end">${p}</text>`).join("")}</g>`;
+  for (let d = 0; d < 7; d++) {
+    const x0 = L + d * cw + cw / 2, date = DAY.date(d);
+    [[sm, "var(--c-small)", -1], [bg, "var(--c-big)", 1]].forEach(([ct, c, s]) => {
+      const p = occ(ct, d), x = s < 0 ? x0 - bw - 1 : x0 + 1, h = Math.max(2, y(0) - y(p));
+      g += `<a href="${link("bookings.html", { day: d })}"><rect class="m" x="${x}" y="${y(0) - h}" width="${bw}" height="${h}" rx="4" fill="${c}"><title>${FMT.dateLong(date)} · ${OWNER.fieldName(ct)}: ${p}%</title></rect></a>`;
+    });
+    g += `<text x="${x0}" y="${H - 16}" text-anchor="middle"${d === 0 ? ' style="fill:var(--accent)"' : ""}>${d === 0 ? T("today") : FMT.day(date)}</text><text x="${x0}" y="${H - 3}" text-anchor="middle" class="faint" style="font-weight:600;fill:var(--faint)">${date.getDate()}</text>`;
+  }
+  main.querySelector("#chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${T("d.chart")}">${g}</svg>`;
+})();
+</script>
+</body>
+</html>

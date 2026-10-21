@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball · Open games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=1">
+<style>
+  .head { margin-top: 28px; display: flex; align-items: end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .head h1 { font-size: clamp(28px, 4.4vw, 46px); margin-top: 8px; }
+  .head p { color: var(--muted); max-width: 560px; margin: 10px 0 0; }
+  .sum { display: flex; gap: 26px; margin-top: 18px; }
+  .sum b { font-family: var(--display); font-size: 22px; display: block; }
+  .sum span { color: var(--muted); font-size: 12.5px; font-weight: 700; }
+  .filters { margin: 26px 0 18px; display: flex; flex-direction: column; gap: 10px; }
+  .filters .lbl { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); width: 64px; flex: none; }
+  .frow { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .frow .chips { min-width: 0; }
+  @media (max-width: 600px) { .filters .lbl { display: none; } }
+  .day { flex: none; border: 1px solid var(--line-2); background: var(--surface); border-radius: 14px; padding: 6px 0; width: 54px; text-align: center; color: var(--muted); }
+  .day b { display: block; font-size: 15px; color: var(--ink); line-height: 1.2; }
+  .day small { font-size: 10.5px; font-weight: 800; text-transform: uppercase; }
+  .day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .day[aria-pressed="true"] b { color: var(--on-accent); }
+  .day.any { width: auto; padding: 6px 14px; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+
+  .game { padding: 0; display: flex; flex-direction: column; overflow: hidden; text-align: left; transition: transform .18s, border-color .18s; position: relative; cursor: pointer; }
+  .game:hover { transform: translateY(-3px); border-color: var(--line-2); }
+  .game .top-art { position: relative; height: 92px; overflow: hidden; background: #0c120e; }
+  .game .top-art .court-art svg { width: 70%; }
+  .game .top-art .badges { position: absolute; left: 12px; top: 12px; right: 12px; display: flex; justify-content: space-between; gap: 6px; z-index: 2; }
+  .game .top-art .pill { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .game .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .game h3 { font-size: 16.5px; }
+  .game .where { color: var(--muted); font-size: 13.5px; display: flex; align-items: center; gap: 5px; }
+  .game .note { color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .game .foot-row { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .game.yours { border-color: rgba(92, 200, 255, 0.4); }
+  .spots { display: flex; gap: 4px; flex-wrap: wrap; }
+  .spots i { width: 12px; height: 12px; border-radius: 50%; background: var(--surface-3); }
+  .spots i.on { background: var(--tc); }
+  .spots i.me { background: var(--you); box-shadow: 0 0 0 2px rgba(92, 200, 255, 0.3); }
+  .stack { display: flex; }
+  .stack span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; border: 2px solid var(--surface); margin-left: -8px; background: var(--surface-3); color: var(--ink); }
+  .stack span:first-child { margin-left: 0; }
+
+  /* detail sheet */
+  .gsheet { width: min(560px, 100%); padding: 0; overflow-x: hidden; }
+  .gsheet .banner { position: relative; height: 160px; overflow: hidden; background: #0c120e; border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .gsheet .banner .x { position: absolute; right: 14px; top: 14px; z-index: 3; background: var(--glass); color: var(--ink); }
+  .gsheet .banner .badges { position: absolute; left: 16px; bottom: 14px; z-index: 3; display: flex; gap: 6px; flex-wrap: wrap; }
+  .gsheet .banner .pill { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .gsheet .in { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
+  .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .facts div { background: var(--bg-2); border-radius: 12px; padding: 9px 11px; min-width: 0; }
+  .facts span { display: block; font-size: 10.5px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+  .facts b { font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 520px) { .facts { grid-template-columns: 1fr 1fr; } }
+  .quote { border-left: 3px solid var(--tc); padding: 4px 0 4px 12px; color: var(--ink); font-size: 14.5px; }
+  .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px 6px; }
+  .roster div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: var(--muted); text-align: center; min-width: 0; }
+  .roster div em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .roster .av { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; color: var(--ink); background: var(--surface-3); position: relative; }
+  .roster .av.host::after { content: "★"; position: absolute; right: -3px; bottom: -3px; width: 17px; height: 17px; border-radius: 50%; background: var(--warn); color: #241600; font-size: 10px; display: grid; place-items: center; border: 2px solid var(--surface); }
+  .roster .av.me { background: var(--you); color: #04121b; }
+  .roster .av.open { background: none; border: 1.5px dashed var(--line-2); color: var(--faint); }
+  .sec-t { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .actions .btn.grow { flex: 1; }
+  /* create sheet */
+  .csheet { width: min(560px, 100%); }
+  .csheet .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .csheet .grid2 { grid-template-columns: 1fr; } }
+  .est { display: flex; justify-content: space-between; align-items: center; background: var(--bg-2); border-radius: 12px; padding: 12px 14px; }
+  textarea.input { resize: vertical; min-height: 70px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="head">
+    <div>
+      <span class="kicker" id="kick"></span>
+      <h1 id="h1"></h1>
+      <p id="lead"></p>
+      <div class="sum" id="sum"></div>
+    </div>
+    <button class="btn" id="create"></button>
+  </section>
+
+  <section class="filters">
+    <div class="frow"><span class="lbl" id="lSize"></span><div class="chips" id="fSize"></div></div>
+    <div class="frow"><span class="lbl" id="lDay"></span><div class="chips" id="fDay"></div></div>
+    <div class="frow"><span class="lbl" id="lLevel"></span><div class="chips" id="fLevel"></div></div>
+  </section>
+
+  <div class="grid c3" id="list"></div>
+</main>
+
+<script src="common.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="cards.js?v=1"></script>
+<script>
+I18N.add({
+  "gm.kick": ["Short of players?", "Խաղացողներ չե՞ն բավականացնում", "Не хватает игроков?"],
+  "gm.h1": ["Open games", "Բաց խաղեր", "Открытые игры"],
+  "gm.lead": ["Football games in Yerevan that need a few more players, 5×5 and 11×11. Join with one tap and split the price of the field.", "Ֆուտբոլային խաղեր Երևանում, որոնց պակասում է մի քանի խաղացող՝ 5×5 և 11×11։ Միացեք մեկ հպումով և կիսեք դաշտի գինը։", "Футбольные игры в Ереване, где не хватает нескольких игроков, 5×5 и 11×11. Присоединяйтесь в одно касание и делите стоимость поля."],
+  "gm.create": ["Create a game", "Ստեղծել խաղ", "Создать игру"],
+  "gm.sGames": ["open games", "բաց խաղ", "открытых игр"],
+  "gm.sSpots": ["free spots", "ազատ տեղ", "свободных мест"],
+  "gm.sJoined": ["you joined", "դուք միացել եք", "вы в игре"],
+  "gm.size": ["Field", "Դաշտ", "Поле"],
+  "gm.allFields": ["All fields", "Բոլոր դաշտերը", "Все поля"],
+  "gm.day": ["Day", "Օր", "День"],
+  "gm.level": ["Level", "Մակարդակ", "Уровень"],
+  "gm.anyDay": ["Any day", "Ցանկացած օր", "Любой день"],
+  "gm.anyLevel": ["Any level", "Ցանկացած", "Любой"],
+  "gm.none": ["No open games for this choice yet. Create one and others will join.", "Այս ընտրությամբ բաց խաղեր դեռ չկան։ Ստեղծեք խաղ, և մյուսները կմիանան։", "Пока нет игр по этому фильтру. Создайте свою — другие присоединятся."],
+  "gm.yours": ["Your game", "Ձեր խաղը", "Ваша игра"],
+  "gm.full": ["Full", "Լրացված է", "Мест нет"],
+  "gm.time": ["Time", "Ժամ", "Время"],
+  "gm.price": ["Per player", "Մեկ խաղացող", "С игрока"],
+  "gm.left": ["Spots left", "Ազատ տեղեր", "Мест"],
+  "gm.who": ["Who's in", "Ովքեր են խաղում", "Кто в игре"],
+  "gm.of": ["{a} of {b}", "{a}-ը {b}-ից", "{a} из {b}"],
+  "gm.open": ["Open", "Ազատ", "Свободно"],
+  "gm.you": ["You", "Դուք", "Вы"],
+  "gm.join": ["Join for {p}", "Միանալ՝ {p}", "Присоединиться за {p}"],
+  "gm.leave": ["Leave game", "Դուրս գալ", "Выйти из игры"],
+  "gm.inToast": ["You're in! The host will see you in the list.", "Դուք խաղում եք։ Կազմակերպիչը կտեսնի ձեզ ցուցակում։", "Вы в игре! Организатор увидит вас в списке."],
+  "gm.leftToast": ["You left the game", "Դուք դուրս եկաք խաղից", "Вы вышли из игры"],
+  "gm.venue": ["Venue", "Ակումբ", "Клуб"],
+  "gm.share": ["Share", "Կիսվել", "Поделиться"],
+  "gm.copied": ["Link copied", "Հղումը պատճենված է", "Ссылка скопирована"],
+  "gm.payNote": ["You pay your share at the venue. Free to leave until 6 hours before.", "Ձեր մասը վճարում եք ակումբում։ Կարող եք անվճար դուրս գալ մինչև խաղից 6 ժամ առաջ։", "Свою долю вы оплачиваете в клубе. Выйти бесплатно можно до 6 часов до начала."],
+  "gm.hostIs": ["Hosted by {name}", "Կազմակերպիչ՝ {name}", "Организатор: {name}"],
+  // create
+  "gm.cTitle": ["Create a game", "Ստեղծել խաղ", "Создать игру"],
+  "gm.cSub": ["Pick a field and a time. We send the field a booking request, and the game appears in the list right away.", "Ընտրեք դաշտն ու ժամը։ Դաշտին կուղարկենք ամրագրման հայտ, իսկ խաղը անմիջապես կհայտնվի ցուցակում։", "Выберите поле и время. Мы отправим полю заявку на бронь, а игра сразу появится в списке."],
+  "gm.cVenue": ["Place", "Վայր", "Место"],
+  "gm.cDay": ["Day", "Օր", "День"],
+  "gm.cTime": ["Start", "Սկիզբ", "Начало"],
+  "gm.cDur": ["Duration", "Տևողություն", "Длительность"],
+  "gm.cNeed": ["Players in total", "Ընդհանուր խաղացողներ", "Всего игроков"],
+  "gm.cNeedV": ["{n} · {f}", "{n} · {f}", "{n} · {f}"],
+  "gm.cNote": ["Note for players", "Նշում խաղացողների համար", "Комментарий для игроков"],
+  "gm.cNotePh": ["e.g. friendly game, bring a dark shirt", "օր․՝ ընկերական խաղ, բերեք մուգ շապիկ", "напр.: дружеская игра, возьмите тёмную футболку"],
+  "gm.cBooked": ["booked", "զբաղված", "занято"],
+  "gm.cEst": ["Field price split per player", "Դաշտի գինը մեկ խաղացողի համար", "Цена поля на игрока"],
+  "gm.cGo": ["Publish game", "Հրապարակել խաղը", "Опубликовать игру"],
+  "gm.cDone": ["Game published. The field confirms the booking in Telegram.", "Խաղը հրապարակված է։ Դաշտը ամրագրումը կհաստատի Telegram-ով։", "Игра опубликована. Поле подтвердит бронь в Telegram."],
+  "gm.cTaken": ["Sorry, this time was just taken", "Ցավոք, այս ժամն արդեն զբաղված է", "Увы, это время только что заняли"],
+  "gm.booking": ["Field booking", "Դաշտի ամրագրում", "Бронь поля"],
+  "gm.openGame": ["Open game", "Բաց խաղ", "Открытая игра"],
+  "gm.cNoTime": ["No free start times this day", "Այս օրը ազատ ժամ չկա", "На этот день нет свободного времени"],
+  "gm.delete": ["Remove game", "Հեռացնել խաղը", "Удалить игру"],
+  "gm.deleted": ["Game removed", "Խաղը հեռացված է", "Игра удалена"]
+});
+renderChrome("games");
+const $ = id => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+const S = { size: KH.SIZES[Q.get("size")] ? Q.get("size") : "", day: Q.get("d") != null ? +Q.get("d") : null, level: "" };
+const FIRST = ["Aram", "Davit", "Narek", "Tigran", "Gor", "Hayk", "Arman", "Levon", "Vahe", "Ashot", "Karen", "Samvel", "Erik", "Ruben", "Mher", "Artur", "Anna", "Mariam", "Lilit", "Ani", "Nare", "Sona", "Elen", "Meri", "Arsen", "Edgar", "Garik", "Suren", "Vardan", "Hrach"];
+const HUES = ["#5ef0a8", "#ff9548", "#5cc8ff", "#e4ff4a", "#c79bff", "#ff7aa8", "#7ae0e0", "#ffd166"];
+const initials = n => n.split(/[\s/]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const nowH = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function myGames() {
+  return STORE.get("mygames", []).map(m => {
+    const ct = KH.COURTS[m.court]; if (!ct) return null;
+    return Object.assign({}, m, { venue: ct.venue, size: ct.size, format: ct.format, day: KH.dayOfIso(m.date), mine: true });
+  }).filter(Boolean);
+}
+function allGames() {
+  const nh = nowH();
+  return KH.GAMES.concat(myGames())
+    .filter(g => g.day > 0 || (g.day === 0 && g.start + g.dur / 60 > nh))
+    .sort((a, b) => a.day - b.day || a.start - b.start);
+}
+const joinedIds = () => STORE.get("joined", []);
+const isIn = g => g.mine || joinedIds().includes(g.id);
+
+// names of people already in a game: host first, then seeded names, then you
+function roster(g) {
+  const prof = STORE.get("profile", null), me = prof ? prof.name : T("gm.you");
+  if (g.mine) {
+    const r = RNG("ros" + g.id), out = [{ n: me, host: true, me: true }];
+    for (let i = 1; i < g.joined; i++) out.push({ n: FIRST[Math.floor(r() * FIRST.length)] });
+    return out;
+  }
+  const youIn = joinedIds().includes(g.id), r = RNG("ros" + g.id), out = [{ n: g.host, host: true }];
+  const others = g.joined - 1 - (youIn ? 1 : 0), used = new Set([g.host.split(" ")[0]]);
+  while (out.length < 1 + others) { const n = FIRST[Math.floor(r() * FIRST.length)]; if (!used.has(n)) { used.add(n); out.push({ n }); } }
+  if (youIn) out.push({ n: me, me: true });
+  return out;
+}
+
+function card(g) {
+  const v = KH.VENUE[g.venue], ct = KH.COURTS[g.court], c = SIZE_COLOR[ct.size], left = g.need - g.joined, inG = isIn(g), mineJ = joinedIds().includes(g.id);
+  const ros = roster(g);
+  const status = g.mine ? `<span class="pill blue">${ICON("star", "sm")}${T("gm.yours")}</span>`
+    : mineJ ? `<span class="pill blue">${ICON("check", "sm")}${T("card.joined")}</span>`
+    : left <= 0 ? `<span class="pill">${T("gm.full")}</span>`
+    : `<span class="pill ${left <= 2 ? "hot" : "green"}">${left === 1 ? T("card.spot1") : T("card.spots", { n: left })}</span>`;
+  return `<div class="card game${inG ? " yours" : ""}" role="button" tabindex="0" data-g="${g.id}" style="--tc:${c}">
+    <div class="top-art">${COURT_ART(ct.size)}<div class="badges"><span class="pill" style="color:${c}">${ICON("ball", "sm")}${ct.format} · ${tt(KH.SIZES[ct.size].name)}</span>${status}</div></div>
+    <div class="body">
+      <div><h3>${FMT.rel(DAY.date(g.day))} · ${FMT.time(g.start)}–${FMT.time(g.start + g.dur / 60)}</h3>
+        <div class="where">${ICON("pin", "sm")}${v.name} · ${tt(KH.DISTRICTS[v.district])}</div></div>
+      <div class="row" style="gap:6px"><span class="pill">${ICON("bolt", "sm")}${tt(KH.LEVELS[g.level])}</span><span class="pill">${ICON("clock", "sm")}${FMT.dur(g.dur)}</span></div>
+      ${g.note ? `<div class="note">${esc(tt(g.note))}</div>` : ""}
+      <div class="spots${g.need > 12 ? " many" : ""}">${Array.from({ length: g.need }, (_, i) => `<i class="${i < g.joined ? (ros[i] && ros[i].me ? "me" : "on") : ""}"></i>`).join("")}</div>
+      <div class="foot-row">
+        <div class="row" style="gap:8px"><div class="stack">${ros.slice(0, 4).map((p, i) => `<span style="${p.me ? "background:var(--you);color:#04121b" : `background:color-mix(in srgb, ${HUES[i % HUES.length]} 24%, var(--surface-3))`}">${initials(p.n)[0]}</span>`).join("")}</div>
+          <span class="faint" style="font-size:12.5px">${T("gm.of", { a: g.joined, b: g.need })}</span></div>
+        <span class="price">${FMT.amd(g.pricePer)} <small>${T("card.per")}</small></span>
+      </div>
+    </div></div>`;
+}
+
+function drawHead() {
+  $("kick").textContent = T("gm.kick"); $("h1").textContent = T("gm.h1"); $("lead").textContent = T("gm.lead");
+  $("create").innerHTML = ICON("plus") + T("gm.create");
+  const gs = allGames();
+  $("sum").innerHTML = `<div><b>${gs.length}</b><span>${T("gm.sGames")}</span></div><div><b>${gs.reduce((a, g) => a + Math.max(0, g.need - g.joined), 0)}</b><span>${T("gm.sSpots")}</span></div><div><b>${gs.filter(isIn).length}</b><span>${T("gm.sJoined")}</span></div>`;
+}
+function drawFilters() {
+  $("lSize").textContent = T("gm.size"); $("lDay").textContent = T("gm.day"); $("lLevel").textContent = T("gm.level");
+  $("fSize").innerHTML = `<button class="chip" data-s="" aria-pressed="${!S.size}">${T("gm.allFields")}</button>` + ["small", "big"].map(z => `<button class="chip" data-s="${z}" aria-pressed="${S.size === z}"><span class="sport-dot" style="background:${SIZE_COLOR[z]}"></span>${tt(KH.SIZES[z].name)} ${KH.SIZES[z].format}</button>`).join("");
+  $("fDay").innerHTML = `<button class="day any" data-k="" aria-pressed="${S.day === null}">${T("gm.anyDay")}</button>` + Array.from({ length: 8 }, (_, k) => { const d = DAY.date(k); return `<button class="day" data-k="${k}" aria-pressed="${S.day === k}"><small>${k === 0 ? T("today").slice(0, 5) : FMT.day(d)}</small><b>${d.getDate()}</b></button>`; }).join("");
+  $("fLevel").innerHTML = `<button class="chip" data-l="" aria-pressed="${!S.level}">${T("gm.anyLevel")}</button>` + Object.keys(KH.LEVELS).map(l => `<button class="chip" data-l="${l}" aria-pressed="${S.level === l}">${tt(KH.LEVELS[l])}</button>`).join("");
+  $("fSize").querySelectorAll(".chip").forEach(b => { b.onclick = () => { S.size = b.dataset.s; draw(); }; });
+  $("fDay").querySelectorAll(".day").forEach(b => { b.onclick = () => { S.day = b.dataset.k === "" ? null : +b.dataset.k; draw(); }; });
+  $("fLevel").querySelectorAll(".chip").forEach(b => { b.onclick = () => { S.level = b.dataset.l; draw(); }; });
+}
+function drawList() {
+  const gs = allGames().filter(g => (!S.size || KH.COURTS[g.court].size === S.size) && (S.day === null || g.day === S.day) && (!S.level || g.level === S.level));
+  $("list").innerHTML = gs.length ? gs.map(card).join("") : `<div class="empty" style="grid-column:1/-1">${ICON("users", "lg")}<p style="margin:10px 0 16px">${T("gm.none")}</p><button class="btn sm" id="emptyCreate">${ICON("plus", "sm")}${T("gm.create")}</button></div>`;
+  $("list").querySelectorAll("[data-g]").forEach(el => {
+    el.onclick = () => openGame(el.dataset.g);
+    el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGame(el.dataset.g); } };
+  });
+  const ec = $("emptyCreate"); if (ec) ec.onclick = openCreate;
+}
+function draw() { drawHead(); drawFilters(); drawList(); }
+
+function sheet(cls, html) {
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet ${cls}" role="dialog" aria-modal="true">${html}</div>`;
+  const close = () => { scrim.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  scrim.onclick = e => { if (e.target === scrim) close(); };
+  document.addEventListener("keydown", onKey);
+  document.body.append(scrim);
+  scrim.querySelectorAll(".x").forEach(b => { b.onclick = close; });
+  return { el: scrim, close };
+}
+function setUrl(id) {
+  const u = new URL(location.href); if (id) u.searchParams.set("g", id); else u.searchParams.delete("g");
+  try { history.replaceState(null, "", u.toString()); } catch (e) {}
+}
+
+function openGame(id) {
+  const g = allGames().find(x => x.id === id) || KH.GAMES.concat(myGames()).find(x => x.id === id); if (!g) return;
+  setUrl(id);
+  const v = KH.VENUE[g.venue], ct = KH.COURTS[g.court], c = SIZE_COLOR[ct.size], left = g.need - g.joined, mineJ = joinedIds().includes(g.id), ros = roster(g);
+  const bk = g.mine && g.booking ? KH.findBooking(g.booking) : null;
+  const slots = ros.map((p, i) => `<div><span class="av${p.host ? " host" : ""}${p.me ? " me" : ""}" style="${p.me ? "" : `background:color-mix(in srgb, ${HUES[i % HUES.length]} 26%, var(--surface-3))`}">${initials(p.n)}</span><em>${p.me ? T("gm.you") : esc(p.n.split(" ")[0])}</em></div>`).join("")
+    + Array.from({ length: Math.max(0, left) }, () => `<div><span class="av open">${ICON("plus", "sm")}</span><em>${T("gm.open")}</em></div>`).join("");
+  let action;
+  if (g.mine) action = `<button class="btn ghost grow" id="gDel">${ICON("x", "sm")}${T("gm.delete")}</button>`;
+  else if (mineJ) action = `<button class="btn blue grow" disabled style="opacity:1">${ICON("check", "sm")}${T("card.joined")}</button><button class="btn ghost" id="gLeave">${T("gm.leave")}</button>`;
+  else if (left <= 0) action = `<button class="btn grow" disabled>${T("gm.full")}</button>`;
+  else action = `<button class="btn grow" id="gJoin">${ICON("users", "sm")}${T("gm.join", { p: FMT.amd(g.pricePer) })}</button>`;
+  const s = sheet("gsheet", `
+    <div class="banner">${COURT_ART(ct.size)}<button class="x" aria-label="${T("close")}">${ICON("x")}</button>
+      <div class="badges"><span class="pill" style="color:${c}">${ICON("ball", "sm")}${ct.format} · ${tt(KH.SIZES[ct.size].name)}</span>${g.mine ? `<span class="pill blue">${T("gm.yours")}</span>` : ""}</div></div>
+    <div class="in" style="--tc:${c}">
+      <div><h3 style="font-size:21px">${FMT.rel(DAY.date(g.day))} · ${FMT.time(g.start)}–${FMT.time(g.start + g.dur / 60)}</h3>
+        <div class="muted" style="font-size:14px;margin-top:4px;display:flex;gap:5px;align-items:center">${ICON("pin", "sm")}${v.name} · ${KH.courtName(ct)} ${ct.format} · ${tt(KH.DISTRICTS[v.district])}</div></div>
+      ${bk ? `<div class="row wrapflex" style="gap:8px"><span class="faint" style="font-size:12.5px;font-weight:700">${T("gm.booking")}</span>${bookingStatusPill(bk.status)}</div>` : ""}
+      <div class="facts">
+        <div><span>${T("gm.time")}</span><b>${FMT.dur(g.dur)}</b></div>
+        <div><span>${T("gm.level")}</span><b>${tt(KH.LEVELS[g.level])}</b></div>
+        <div><span>${T("gm.price")}</span><b>${FMT.amd(g.pricePer)}</b></div>
+        <div><span>${T("gm.left")}</span><b style="color:${left <= 0 ? "var(--muted)" : left <= 2 ? "var(--hot)" : "var(--free)"}">${Math.max(0, left)} / ${g.need}</b></div>
+      </div>
+      ${g.note ? `<div class="quote">${esc(tt(g.note))}<div class="faint" style="font-size:12.5px;margin-top:4px">— ${T("gm.hostIs", { name: esc(g.mine ? T("gm.you") : g.host) })}</div></div>` : ""}
+      <div><div class="sec-t"><span>${T("gm.who")}</span><span>${T("gm.of", { a: g.joined, b: g.need })}</span></div><div class="roster">${slots}</div></div>
+      <div class="faint" style="font-size:12.5px">${T("gm.payNote")}</div>
+      <div class="actions">${action}</div>
+      <div class="actions"><a class="btn ghost sm" href="${link("venue.html", { v: v.id, size: ct.size })}">${ICON("eye", "sm")}${T("gm.venue")}</a><button class="btn ghost sm" id="gShare">${ICON("share", "sm")}${T("gm.share")}</button></div>
+    </div>`);
+  const origClose = s.close; s.close = () => { origClose(); setUrl(null); };
+  s.el.onclick = e => { if (e.target === s.el) s.close(); };
+  s.el.querySelectorAll(".x").forEach(b => { b.onclick = s.close; });
+  const j = s.el.querySelector("#gJoin");
+  if (j) j.onclick = () => verifyPhone(() => {
+    const a = joinedIds(); if (!a.includes(g.id)) { a.push(g.id); STORE.set("joined", a); }
+    const real = KH.GAMES.find(x => x.id === g.id); if (real) real.joined++;
+    s.el.remove(); draw(); openGame(g.id); toast(T("gm.inToast"));
+  });
+  const l = s.el.querySelector("#gLeave");
+  if (l) l.onclick = () => {
+    STORE.set("joined", joinedIds().filter(x => x !== g.id));
+    const real = KH.GAMES.find(x => x.id === g.id); if (real) real.joined--;
+    s.el.remove(); draw(); openGame(g.id); toast(T("gm.leftToast"));
+  };
+  const d = s.el.querySelector("#gDel");
+  if (d) d.onclick = () => {
+    STORE.set("mygames", STORE.get("mygames", []).filter(x => x.id !== g.id));
+    // removing your game also cancels its field booking request
+    if (bk && KH.active(bk)) { KH.updateBooking(bk.id, { status: "cancelled", cancelledAt: Date.now() }); KH.notify(bk.phone, "tg.youCancelled", { venue: bk.venue, court: bk.court, date: bk.date, start: bk.start, dur: bk.dur }); }
+    s.close(); draw(); toast(T("gm.deleted"));
+  };
+  s.el.querySelector("#gShare").onclick = () => {
+    const url = location.href;
+    if (navigator.share) navigator.share({ title: T("brand"), url }).catch(() => {});
+    else { try { navigator.clipboard.writeText(url); } catch (e) {} toast(T("gm.copied")); }
+  };
+}
+
+function openCreate() {
+  const C = { auto: true, size: S.size || "small", venue: "", day: S.day || 0, start: null, dur: 60, level: "mid" };
+  C.dur = KH.SIZES[C.size].defDur;
+  const s = sheet("csheet", `<div class="row" style="margin-bottom:4px"><h3>${T("gm.cTitle")}</h3><button class="x" aria-label="${T("close")}">${ICON("x")}</button></div>
+    <p class="muted" style="margin:0 0 16px;font-size:14px">${T("gm.cSub")}</p><div id="cf" style="display:flex;flex-direction:column;gap:14px"></div>`);
+  const box = s.el.querySelector("#cf");
+  const courtOf = () => KH.VENUE[C.venue].courts.find(c => c.size === C.size);
+  function times() {
+    const ct = courtOf(), v = KH.VENUE[ct.venue], out = [];
+    for (let t = v.open[0]; t + C.dur / 60 <= v.open[1]; t += 0.5) out.push({ t, free: KH.isFree(ct.id, C.day, t, C.dur) });
+    return out;
+  }
+  function render() {
+    if (!KH.VENUE[C.venue]) C.venue = KH.VENUES[0].id;
+    let ts = times();
+    if (C.auto && !ts.some(x => x.free)) {
+      // nothing free on the default choice: jump to the first place/day that has a free start
+      outer: for (let k = C.day; k < 10; k++) for (const v of KH.VENUES) { C.day = k; C.venue = v.id; ts = times(); if (ts.some(y => y.free)) break outer; }
+    }
+    C.auto = false;
+    if (C.start === null || !ts.some(x => x.t === C.start && x.free)) { const f = ts.find(x => x.free && x.t >= 18) || ts.find(x => x.free); C.start = f ? f.t : null; }
+    const ct = courtOf(), need = KH.SIZES[C.size].players;
+    const est = C.start !== null ? Math.round(KH.priceFor(ct, C.day, C.start, C.dur) / need / 100) * 100 : 0;
+    box.innerHTML = `
+      <div class="field"><label>${T("gm.size")}</label><div class="chips">${["small", "big"].map(z => `<button class="chip" data-z="${z}" aria-pressed="${C.size === z}"><span class="sport-dot" style="background:${SIZE_COLOR[z]}"></span>${tt(KH.SIZES[z].name)} ${KH.SIZES[z].format}</button>`).join("")}</div></div>
+      <div class="field"><label for="cVenue">${T("gm.cVenue")}</label><select class="input" id="cVenue">${KH.VENUES.map(v => `<option value="${v.id}"${v.id === C.venue ? " selected" : ""}>${v.name} · ${tt(KH.DISTRICTS[v.district])}</option>`).join("")}</select></div>
+      <div class="grid2">
+        <div class="field"><label for="cDay">${T("gm.cDay")}</label><select class="input" id="cDay">${Array.from({ length: 10 }, (_, k) => `<option value="${k}"${k === C.day ? " selected" : ""}>${FMT.rel(DAY.date(k))}${k > 1 ? "" : " · " + FMT.date(DAY.date(k))}</option>`).join("")}</select></div>
+        <div class="field"><label for="cDur">${T("gm.cDur")}</label><select class="input" id="cDur">${KH.SIZES[C.size].durations.map(d => `<option value="${d}"${d === C.dur ? " selected" : ""}>${FMT.dur(d)}</option>`).join("")}</select></div>
+        <div class="field"><label for="cStart">${T("gm.cTime")}</label>${ts.some(x => x.free) ? `<select class="input mono" id="cStart">${ts.map(x => `<option value="${x.t}"${x.t === C.start ? " selected" : ""}${x.free ? "" : " disabled"}>${FMT.time(x.t)}${x.free ? "" : " · " + T("gm.cBooked")}</option>`).join("")}</select>` : `<div class="input faint">${T("gm.cNoTime")}</div>`}</div>
+        <div class="field"><label>${T("gm.cNeed")}</label><div class="input mono">${T("gm.cNeedV", { n: need, f: KH.SIZES[C.size].format })}</div></div>
+      </div>
+      <div class="field"><label>${T("gm.level")}</label><div class="chips">${Object.keys(KH.LEVELS).map(l => `<button class="chip" data-lv="${l}" aria-pressed="${C.level === l}">${tt(KH.LEVELS[l])}</button>`).join("")}</div></div>
+      <div class="field"><label for="cNote">${T("gm.cNote")}</label><textarea class="input" id="cNote" maxlength="140" placeholder="${T("gm.cNotePh")}">${esc(C.note || "")}</textarea></div>
+      <div class="est"><span class="muted" style="font-size:13.5px">${T("gm.cEst")}</span><span class="price">${C.start !== null ? FMT.amd(est) : "—"}</span></div>
+      <button class="btn block" id="cGo"${C.start === null ? " disabled" : ""}>${ICON("send", "sm")}${T("gm.cGo")}</button>`;
+    const keepNote = () => { const n = box.querySelector("#cNote"); if (n) C.note = n.value; };
+    box.querySelectorAll("[data-z]").forEach(b => { b.onclick = () => { keepNote(); C.size = b.dataset.z; C.dur = KH.SIZES[C.size].defDur; C.start = null; C.auto = true; render(); }; });
+    box.querySelectorAll("[data-lv]").forEach(b => { b.onclick = () => { keepNote(); C.level = b.dataset.lv; render(); }; });
+    box.querySelector("#cVenue").onchange = e => { keepNote(); C.venue = e.target.value; render(); };
+    box.querySelector("#cDay").onchange = e => { keepNote(); C.day = +e.target.value; render(); };
+    box.querySelector("#cDur").onchange = e => { keepNote(); C.dur = +e.target.value; render(); };
+    const st = box.querySelector("#cStart"); if (st) st.onchange = e => { keepNote(); C.start = +e.target.value; render(); };
+    box.querySelector("#cGo").onclick = () => {
+      keepNote();
+      verifyPhone(prof => {
+        const ct = courtOf(); KH.clearCache();
+        if (!KH.isFree(ct.id, C.day, C.start, C.dur)) { toast(T("gm.cTaken")); C.start = null; render(); return; }
+        const note = (C.note || "").trim(), price = KH.priceFor(ct, C.day, C.start, C.dur);
+        // the host's game is also a booking request to the field
+        const b = KH.addBooking({ venue: ct.venue, court: ct.id, date: KH.iso(C.day), start: C.start, dur: C.dur, price, name: prof.name, phone: prof.phone,
+          note: T("gm.openGame") + (note ? ": " + note : ""), status: "pending", by: "player" });
+        KH.notify(prof.phone, "tg.request", { venue: ct.venue, court: ct.id, date: b.date, start: C.start, dur: C.dur });
+        const g = { id: "m" + Date.now().toString(36), court: ct.id, date: KH.iso(C.day), start: C.start, dur: C.dur, level: C.level, booking: b.id,
+          host: prof.name, joined: 1, need: KH.SIZES[C.size].players, note, pricePer: Math.round(price / KH.SIZES[C.size].players / 100) * 100, created: Date.now() };
+        STORE.push("mygames", g);
+        s.close(); S.day = null; S.size = ""; S.level = ""; draw(); toast(T("gm.cDone"));
+      });
+    };
+  }
+  render();
+}
+
+$("create").onclick = openCreate;
+draw();
+if (Q.get("g")) openGame(Q.get("g"));
+if (Q.get("create")) openCreate();
+</script>
+</body>
+</html>

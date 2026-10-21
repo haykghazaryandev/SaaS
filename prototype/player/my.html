@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball · My bookings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=1">
+<style>
+  .prof { margin-top: 26px; position: relative; overflow: hidden; padding: 24px; display: grid; grid-template-columns: auto 1fr auto; gap: 20px; align-items: center; }
+  .prof::before { content: ""; position: absolute; right: -80px; top: -120px; width: 360px; height: 300px; background: radial-gradient(closest-side, rgba(200, 255, 61, 0.14), transparent); pointer-events: none; }
+  .bigav { width: 72px; height: 72px; border-radius: 22px; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; font-family: var(--display); font-size: 26px; font-weight: 700; box-shadow: 0 10px 30px -10px rgba(200, 255, 61, 0.5); }
+  .prof h1 { font-size: clamp(22px, 3vw, 30px); }
+  .prof .ph { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+  .pstats { display: flex; gap: 10px; position: relative; }
+  .pstats div { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; min-width: 92px; }
+  .pstats b { display: block; font-family: var(--display); font-size: 19px; font-weight: 600; }
+  .pstats span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-size: 11px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+  @media (max-width: 860px) { .prof { grid-template-columns: auto 1fr; } .pstats { grid-column: 1 / -1; } .pstats div { flex: 1; min-width: 0; } }
+  @media (max-width: 480px) { .prof { padding: 18px; gap: 14px; } .bigav { width: 56px; height: 56px; font-size: 20px; border-radius: 17px; } .pstats { gap: 6px; } .pstats div { padding: 8px 10px; } .pstats b { font-size: 16px; } .pstats span { font-size: 9.5px; } }
+  .signout { background: none; border: 0; color: var(--muted); font-weight: 700; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; padding: 4px 0; }
+  .signout:hover { color: var(--hot); }
+
+  .tabs { margin: 26px 0 18px; }
+  .tabs .n { font-size: 11.5px; background: var(--surface-3); color: var(--muted); border-radius: 99px; padding: 1px 7px; }
+  .tabs button[aria-selected="true"] .n { background: var(--accent); color: var(--on-accent); }
+
+  .bk { display: grid; grid-template-columns: 150px 1fr auto; gap: 18px; padding: 14px; align-items: center; margin-bottom: 12px; position: relative; }
+  .bk .thumb { height: 110px; border-radius: 14px; overflow: hidden; background: #0c120e; position: relative; }
+  .bk .thumb .court-art svg { width: 92%; }
+  .bk h3 { font-size: 17px; }
+  .bk .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 13.5px; margin-top: 6px; }
+  .bk .meta span { display: inline-flex; gap: 5px; align-items: center; }
+  .bk .when { font-family: var(--display); font-size: 15px; font-weight: 600; margin-top: 8px; }
+  .bk .code { white-space: nowrap; font-family: var(--mono); font-size: 12.5px; color: var(--accent); background: rgba(200, 255, 61, 0.08); border: 1px dashed rgba(200, 255, 61, 0.3); padding: 2px 8px; border-radius: 7px; letter-spacing: 0.06em; }
+  .bk .side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .bk .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .ibtn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface-2); display: grid; place-items: center; color: var(--muted); }
+  .ibtn:hover { color: var(--ink); background: var(--surface-3); }
+  .ibtn.danger:hover { color: var(--hot); border-color: rgba(255, 107, 107, 0.4); }
+  .bk.off { opacity: 0.62; }
+  .bk.off .thumb { filter: grayscale(0.9); }
+  @media (max-width: 760px) {
+    .bk { grid-template-columns: 96px 1fr; gap: 14px; align-items: start; }
+    .bk .thumb { height: 84px; }
+    .bk .side { grid-column: 1 / -1; align-items: stretch; border-top: 1px solid var(--line); padding-top: 12px; }
+    .bk .pr { display: flex; justify-content: space-between; align-items: center; text-align: left !important; }
+    .bk .pr .row { margin-top: 0 !important; }
+    .bk .acts { justify-content: flex-start; }
+    .bk .acts .btn { margin-left: auto; }
+  }
+  .grow-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  @media (max-width: 400px) { .grow-row { grid-template-columns: 1fr; } }
+  .gm { padding: 16px; display: flex; gap: 14px; align-items: center; transition: border-color .18s; }
+  .gm:hover { border-color: var(--line-2); }
+  .gm .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--tc) 16%, transparent); color: var(--tc); }
+  .regcap { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin: 8px 4px 0; }
+  .emptyhero { margin-top: 26px; position: relative; overflow: hidden; display: grid; grid-template-columns: 1.1fr 1fr; min-height: 340px; }
+  .emptyhero .copy { padding: 40px; display: flex; flex-direction: column; gap: 14px; justify-content: center; position: relative; z-index: 2; }
+  .emptyhero .art { position: relative; }
+  .emptyhero .art::before { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(90deg, var(--surface) 0%, transparent 40%); }
+  @media (max-width: 760px) { .emptyhero { grid-template-columns: 1fr; } .emptyhero .art { height: 180px; order: -1; } .emptyhero .art::before { background: linear-gradient(0deg, var(--surface) 0%, transparent 50%); } .emptyhero .copy { padding: 6px 22px 26px; } }
+  .sum-box { background: var(--bg-2); border-radius: 14px; padding: 14px; display: flex; gap: 12px; align-items: center; margin: 14px 0; }
+  .policy { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; margin-bottom: 16px; }
+  .policy.ok { background: var(--free-soft); color: var(--free); }
+  .policy.late { background: var(--warn-soft); color: var(--warn); }
+  .btn.red { background: var(--hot); color: #200606; }
+  .btn.red:hover { box-shadow: 0 10px 26px -10px rgba(255, 107, 107, 0.6); }
+  .bk .extra { font-size: 13px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+  .bk .waitnote { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 700; color: var(--blue); margin-top: 8px; }
+  .regcap { flex-wrap: wrap; }
+  /* Telegram chat (simulated) */
+  .tg-latest { width: 100%; margin-top: 14px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; color: var(--ink); border-color: rgba(92, 200, 255, .22); }
+  .tg-latest small { display: block; font-size: 11.5px; font-weight: 800; color: var(--blue); text-transform: uppercase; letter-spacing: .06em; }
+  .tg-latest .tgl-txt { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tg-latest .see-all { flex: none; }
+  @media (max-width: 600px) { .tg-latest .see-all { display: none; } }
+  .tg-panel { max-width: 640px; border-radius: 20px; overflow: hidden; border: 1px solid var(--line-2); background: #0e1621; }
+  .tg-head { display: flex; gap: 12px; align-items: center; padding: 12px 16px; background: #17212b; border-bottom: 1px solid rgba(0, 0, 0, .3); }
+  .tg-head b { display: block; font-size: 15px; }
+  .tg-head small { color: #6d7f8f; font-size: 12.5px; font-weight: 600; }
+  .tg-ava { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #5cc8ff, #2a8bd8); color: #fff; }
+  .tg-ava.sm { width: 32px; height: 32px; }
+  .tg-body { padding: 14px 12px 16px; display: flex; flex-direction: column; gap: 6px; max-height: 560px; overflow-y: auto;
+    background: radial-gradient(circle at 20% 20%, rgba(92, 200, 255, .05) 0 2px, transparent 3px) 0 0 / 34px 34px, radial-gradient(circle at 70% 60%, rgba(200, 255, 61, .04) 0 2px, transparent 3px) 0 0 / 46px 46px, #0e1621; }
+  .tg-msg { display: flex; }
+  .tg-msg.out { justify-content: flex-end; }
+  .tg-b { max-width: min(82%, 460px); background: #182533; color: #e9eef3; padding: 7px 11px 7px 12px; border-radius: 14px 14px 14px 4px; font-size: 14.5px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tg-msg.out .tg-b { background: #2b5278; border-radius: 14px 14px 4px 14px; }
+  .tg-t { float: right; margin: 6px 0 -4px 10px; font-size: 11px; color: #6d8aa3; font-family: var(--body); }
+  .tg-day { text-align: center; margin: 8px 0 4px; }
+  .tg-day span { display: inline-block; background: rgba(23, 33, 43, .85); color: #c3d0dc; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+  .tg-empty { color: #6d7f8f; text-align: center; padding: 50px 20px; font-size: 14px; }
+  .tg-note { display: flex; gap: 8px; align-items: flex-start; padding: 12px 16px; background: #17212b; color: #8ea2b4; font-size: 12.5px; border-top: 1px solid rgba(0, 0, 0, .3); }
+  .tg-note .ico { margin-top: 2px; color: var(--blue); }
+</style>
+</head>
+<body>
+<main class="wrap" id="main"></main>
+
+<script src="common.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="cards.js?v=1"></script>
+<script>
+I18N.add({
+  "my.title": ["My bookings", "Իմ ամրագրումները", "Мои брони"],
+  "my.tgOn": ["Telegram connected", "Telegram-ը միացված է", "Telegram подключён"],
+  "my.signout": ["Sign out", "Դուրս գալ", "Выйти"],
+  "my.signedOut": ["Signed out. Your bookings stay on this device.", "Դուք դուրս եկաք։ Ամրագրումները մնում են այս սարքում։", "Вы вышли. Брони сохранены на этом устройстве."],
+  "my.sUp": ["Upcoming", "Առաջիկա", "Впереди"],
+  "my.sWait": ["Waiting", "Սպասման մեջ", "Ждут ответа"],
+  "my.sHours": ["Hours played", "Խաղաժամ", "Часов игры"],
+  "my.tUp": ["Upcoming", "Առաջիկա", "Предстоящие"],
+  "my.tPast": ["Past", "Անցած", "Прошедшие"],
+  "my.tGames": ["Games", "Խաղեր", "Игры"],
+  "my.tTours": ["Tournaments", "Մրցաշարեր", "Турниры"],
+  "my.tTg": ["Telegram", "Telegram", "Telegram"],
+  "my.noneTitle": ["Your bookings are here", "Ձեր ամրագրումներն այստեղ են", "Здесь будут ваши брони"],
+  "my.noneText": ["Send a request for a field once and confirm your phone in Telegram. Then every request, its status and the bot's messages show up on this page.", "Մեկ անգամ ուղարկեք դաշտի հայտ և հաստատեք հեռախոսը Telegram-ով։ Այնուհետև այս էջում կտեսնեք բոլոր հայտերը, դրանց կարգավիճակը և բոտի հաղորդագրությունները։", "Отправьте заявку на поле и подтвердите телефон в Telegram. После этого здесь появятся все заявки, их статус и сообщения бота."],
+  "my.find": ["Find a field", "Գտնել դաշտ", "Найти поле"],
+  "my.signin": ["I've booked before", "Ես արդեն ամրագրել եմ", "Я уже бронировал"],
+  "my.emptyUp": ["No upcoming bookings. Tonight's fields are waiting.", "Առաջիկա ամրագրումներ չկան։ Այսօրվա դաշտերը սպասում են։", "Нет предстоящих броней. Поля на вечер ждут."],
+  "my.emptyPast": ["Past, declined and cancelled bookings will show up here.", "Անցած, մերժված և չեղարկված ամրագրումները կհայտնվեն այստեղ։", "Здесь появятся прошедшие, отклонённые и отменённые брони."],
+  "my.emptyGames": ["You haven't joined any open games yet.", "Դուք դեռ չեք միացել բաց խաղերի։", "Вы ещё не присоединились ни к одной игре."],
+  "my.emptyTours": ["No team requests yet.", "Թիմային հայտեր դեռ չկան։", "Заявок команд пока нет."],
+  "my.browseGames": ["Browse open games", "Դիտել բաց խաղերը", "Смотреть игры"],
+  "my.browseTours": ["See tournaments", "Դիտել մրցաշարերը", "Смотреть турниры"],
+  "my.code": ["Code", "Կոդ", "Код"],
+  "my.req": ["Request", "Հայտ", "Заявка"],
+  "my.in": ["In {t}", "{t} հետո", "Через {t}"],
+  "my.now": ["Playing now", "Հիմա է", "Идёт сейчас"],
+  "my.played": ["Played", "Խաղացած", "Сыграно"],
+  "my.waitNote": ["The field will answer in Telegram", "Դաշտը կպատասխանի Telegram-ով", "Поле ответит в Telegram"],
+  "my.team": ["Team {n}", "Թիմ՝ {n}", "Команда {n}"],
+  "my.cancel": ["Cancel", "Չեղարկել", "Отменить"],
+  "my.share": ["Share", "Կիսվել", "Поделиться"],
+  "my.dir": ["Directions", "Ճանապարհ", "Маршрут"],
+  "my.again": ["Book again", "Կրկին ամրագրել", "Забронировать снова"],
+  "my.dirToast": ["Opening the map… (demo)", "Բացվում է քարտեզը… (դեմո)", "Открываем карту… (демо)"],
+  "my.copied": ["Booking details copied", "Ամրագրման տվյալները պատճենված են", "Детали брони скопированы"],
+  "my.cTitle": ["Cancel this booking?", "Չեղարկե՞լ ամրագրումը", "Отменить бронь?"],
+  "my.cTitleReq": ["Withdraw this request?", "Հետ կանչե՞լ հայտը", "Отозвать заявку?"],
+  "my.cFree": ["Free cancellation: more than 6 hours to go, nothing is charged.", "Անվճար չեղարկում․ մինչև խաղը 6 ժամից ավելի կա, ոչինչ չի գանձվի։", "Бесплатная отмена: до начала больше 6 часов, ничего не списывается."],
+  "my.cLate": ["Less than 6 hours to go. The field may ask for 50% ({p}).", "Մինչև խաղը 6 ժամից պակաս է մնացել։ Դաշտը կարող է պահանջել 50% ({p})։", "До начала меньше 6 часов. Поле может удержать 50% ({p})."],
+  "my.cReq": ["The field has not confirmed it yet, so nothing is charged.", "Դաշտը դեռ չի հաստատել այն, ուստի ոչինչ չի գանձվի։", "Поле ещё не подтвердило заявку, поэтому ничего не списывается."],
+  "my.cYes": ["Yes, cancel", "Այո, չեղարկել", "Да, отменить"],
+  "my.cKeep": ["Keep it", "Թողնել", "Оставить"],
+  "my.cDone": ["Cancelled. The field gets a message.", "Չեղարկված է։ Դաշտը կստանա հաղորդագրություն։", "Отменено. Поле получит сообщение."],
+  "my.host": ["You host", "Դուք եք կազմակերպում", "Вы организатор"],
+  "my.joinedG": ["Joined", "Միացել եք", "Вы в игре"],
+  "my.spots": ["{a}/{b} players", "{a}/{b} խաղացող", "{a}/{b} игроков"],
+  "my.regOn": ["Sent {d} · captain {c} · {n} players", "Ուղարկված է {d} · ավագ՝ {c} · {n} խաղացող", "Отправлено {d} · капитан {c} · игроков: {n}"],
+  "my.latest": ["Latest from the bot", "Բոտի վերջին հաղորդագրությունը", "Последнее от бота"],
+  "my.open": ["Open chat", "Բացել զրույցը", "Открыть чат"],
+  "tg.bot": ["Bookball bot", "Bookball բոտ", "Бот Bookball"],
+  "tg.botSub": ["bot · messages for {phone}", "բոտ · հաղորդագրություններ {phone}-ի համար", "бот · сообщения для {phone}"],
+  "tg.demo": ["Demo: in the real app these messages arrive in your Telegram from the Bookball bot. Here they are kept on this device.", "Դեմո․ իրական հավելվածում այս հաղորդագրությունները կգան ձեր Telegram-ին Bookball բոտից։ Այստեղ դրանք պահվում են այս սարքում։", "Демо: в настоящем приложении эти сообщения приходят в ваш Telegram от бота Bookball. Здесь они хранятся на этом устройстве."],
+  "tg.empty": ["No messages yet. Send a request for a field and the bot will write here.", "Հաղորդագրություններ դեռ չկան։ Ուղարկեք դաշտի հայտ, և բոտը կգրի այստեղ։", "Сообщений пока нет. Отправьте заявку на поле — бот напишет сюда."],
+  "tg.start": ["/start", "/start", "/start"],
+  "tg.hello": ["Hi, {name}! I'm the Bookball bot. I'll send your codes and tell you when a field answers your request.", "Բարև, {name}։ Ես Bookball բոտն եմ։ Կուղարկեմ ձեր կոդերը և կտեղեկացնեմ, երբ դաշտը պատասխանի ձեր հայտին։", "Привет, {name}! Я бот Bookball. Буду присылать коды и сообщать, когда поле ответит на заявку."]
+});
+renderChrome("my");
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const Q = new URLSearchParams(location.search);
+let tab = ["up", "past", "games", "tours", "tg"].includes(Q.get("tab")) ? Q.get("tab") : "up";
+
+const statusOf = b => b.status || (b.cancelled ? "cancelled" : "accepted"); // older records had no status
+const startOf = b => new Date(DAY.date(KH.dayOfIso(b.date)).getTime() + b.start * 3600e3);
+const endOf = b => new Date(startOf(b).getTime() + b.dur * 60e3);
+const initials = n => String(n).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+function untilText(ms) {
+  const m = Math.round(ms / 60e3), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (d >= 1) return `${d} ${I18N.lang === "en" ? (d === 1 ? "day" : "days") : I18N.lang === "hy" ? "օր" : I18N.plural(d, ["день", "дня", "дней"])}`;
+  return h ? `${h} ${T("h")} ${m % 60 ? (m % 60) + " " + T("min") : ""}`.trim() : `${m} ${T("min")}`;
+}
+// always read the current data: the field may have changed the time, field or price
+function bookings(prof) {
+  const now = Date.now();
+  const all = STORE.get("bookings", []).filter(b => KH.COURTS[b.court] && b.phone === prof.phone).map(b => Object.assign({}, b, { status: statusOf(b) }));
+  const isUp = b => KH.active(b) && endOf(b) > now;
+  const up = all.filter(isUp).sort((a, b) => startOf(a) - startOf(b));
+  const past = all.filter(b => !isUp(b)).sort((a, b) => startOf(b) - startOf(a));
+  return { all, up, past };
+}
+function myGames() {
+  const j = STORE.get("joined", []), nh = Date.now();
+  const mine = STORE.get("mygames", []).filter(m => KH.COURTS[m.court]).map(m => Object.assign({}, m, { venue: KH.COURTS[m.court].venue, size: KH.COURTS[m.court].size, day: KH.dayOfIso(m.date), mine: true }));
+  return KH.GAMES.filter(g => j.includes(g.id)).concat(mine)
+    .filter(g => DAY.date(g.day).getTime() + (g.start + g.dur / 60) * 3600e3 > nh)
+    .sort((a, b) => a.day - b.day || a.start - b.start);
+}
+const myRegs = prof => STORE.get("regs", []).filter(r => KH.TOURNAMENT[r.t] && r.phone === prof.phone).sort((a, b) => (+new Date(b.created) || 0) - (+new Date(a.created) || 0));
+
+function bookingCard(b) {
+  const ct = KH.COURTS[b.court], v = KH.VENUE[ct.venue], s = startOf(b), e = endOf(b), now = Date.now(), st = b.status;
+  const day = DAY.index(s), playing = st === "accepted" && s <= now && e > now, done = st === "accepted" && e <= now, off = st === "declined" || st === "cancelled";
+  const pill = playing ? `<span class="pill lime">${ICON("ball", "sm")}${T("my.now")}</span>` : done ? `<span class="pill">${ICON("check", "sm")}${T("my.played")}</span>`
+    : st === "pending" && e <= now ? bookingStatusPill("declined") : bookingStatusPill(st);
+  const countdown = KH.active(b) && s > now ? `<span class="pill blue">${ICON("clock", "sm")}${T("my.in", { t: untilText(s - now) })}</span>` : "";
+  const canCancel = KH.active(b) && s > now;
+  const extra = [b.team ? T("my.team", { n: esc(b.team) }) : "", b.note ? "“" + esc(b.note) + "”" : "", b.reason ? esc(b.reason) : ""].filter(Boolean);
+  return `<article class="card bk${off ? " off" : ""}">
+    <div class="thumb">${COURT_ART(ct.size, { color: ct.surface === "grass" ? "#2b7d3f" : undefined })}</div>
+    <div style="min-width:0">
+      <div class="row wrapflex" style="gap:6px;margin-bottom:6px">${pill}${countdown}</div>
+      <h3>${v.name}</h3>
+      <div class="meta"><span><span class="sport-dot" style="background:${SIZE_COLOR[ct.size]}"></span>${KH.courtName(ct)} ${ct.format}</span><span>${ICON("pin", "sm")}${tt(KH.DISTRICTS[v.district])}</span></div>
+      <div class="when">${day >= -1 && day <= 1 ? FMT.rel(s) + ", " + FMT.date(s) : FMT.dateLong(s)} · <span style="white-space:nowrap">${FMT.time(b.start)}–${FMT.time(b.start + b.dur / 60)}</span></div>
+      ${extra.length ? `<div class="extra">${extra.join(" · ")}</div>` : ""}
+      ${st === "pending" && e > now ? `<div class="waitnote">${ICON("send", "sm")}${T("my.waitNote")}</div>` : ""}
+    </div>
+    <div class="side">
+      <div class="pr" style="text-align:right"><div class="price" style="font-size:18px">${FMT.amd(b.price)}</div><div class="row" style="gap:6px;justify-content:flex-end;margin-top:4px"><span class="faint" style="font-size:12px">${T(st === "accepted" ? "my.code" : "my.req")}</span><span class="code">${esc(b.code || "")}</span></div></div>
+      <div class="acts">
+        ${canCancel ? `<button class="ibtn danger" data-a="cancel" data-id="${b.id}" title="${T("my.cancel")}" aria-label="${T("my.cancel")}">${ICON("x", "sm")}</button>` : ""}
+        <button class="ibtn" data-a="share" data-id="${b.id}" title="${T("my.share")}" aria-label="${T("my.share")}">${ICON("share", "sm")}</button>
+        ${KH.active(b) && e > now ? `<button class="ibtn" data-a="dir" data-id="${b.id}" title="${T("my.dir")}" aria-label="${T("my.dir")}">${ICON("pin", "sm")}</button>` : ""}
+        <a class="btn ghost sm" href="${link("venue.html", { v: v.id, size: ct.size })}">${ICON("calendar", "sm")}${T("my.again")}</a>
+      </div>
+    </div></article>`;
+}
+function gameRow(g) {
+  const v = KH.VENUE[g.venue], ct = KH.COURTS[g.court], c = SIZE_COLOR[ct.size];
+  return `<a class="card gm" href="${link("games.html", { g: g.id })}" style="--tc:${c}">
+    <span class="ic">${ICON("ball", "lg")}</span>
+    <div style="flex:1;min-width:0"><div class="row between" style="gap:8px"><b>${FMT.rel(DAY.date(g.day))} · ${FMT.time(g.start)}</b><span class="pill ${g.mine ? "lime" : "blue"}">${T(g.mine ? "my.host" : "my.joinedG")}</span></div>
+      <div class="muted" style="font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.name} · ${ct.format} · ${tt(KH.LEVELS[g.level])}</div>
+      <div class="row between" style="margin-top:6px;font-size:13px"><span class="faint">${T("my.spots", { a: g.joined, b: g.need })}</span><span class="price">${FMT.amd(g.pricePer)} <small>${T("card.per")}</small></span></div></div></a>`;
+}
+
+// ---------- Telegram chat with the bot (simulated) ----------
+// messages for this phone in the order they were sent (stable for equal times)
+const tgMsgs = phone => TG.list(phone).reverse();
+const hhmm = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+function tgChat(prof) {
+  const msgs = tgMsgs(prof.phone); // oldest first, like a chat
+  let lastDay = DAY.index(new Date(msgs.length ? msgs[0].at : Date.now())), body = "";
+  if (msgs.length) {
+    body += `<div class="tg-day"><span>${lastDay === 0 ? T("today") : FMT.dateLong(new Date(msgs[0].at))}</span></div><div class="tg-msg out"><div class="tg-b">${T("tg.start")}<span class="tg-t">${hhmm(new Date(msgs[0].at - 60e3))} ✓✓</span></div></div>
+      <div class="tg-msg"><div class="tg-b">${esc(T("tg.hello", { name: prof.name.split(" ")[0] }))}<span class="tg-t">${hhmm(new Date(msgs[0].at - 60e3))}</span></div></div>`;
+    msgs.forEach(m => {
+      const d = new Date(m.at), di = DAY.index(d);
+      if (di !== lastDay) { body += `<div class="tg-day"><span>${di === 0 ? T("today") : FMT.dateLong(d)}</span></div>`; lastDay = di; }
+      body += `<div class="tg-msg"><div class="tg-b">${esc(TG.text(m))}<span class="tg-t">${hhmm(d)}</span></div></div>`;
+    });
+  } else body = `<div class="tg-empty">${T("tg.empty")}</div>`;
+  return `<section class="tg-panel">
+    <div class="tg-head"><span class="tg-ava">${ICON("send")}</span><div><b>${T("tg.bot")}</b><small>${T("tg.botSub", { phone: FMT.phone(prof.phone) })}</small></div></div>
+    <div class="tg-body" id="tgBody">${body}</div>
+    <div class="tg-note">${ICON("send", "sm")}<span>${T("tg.demo")}</span></div>
+  </section>`;
+}
+
+function emptyBox(text, href, label) {
+  return `<div class="empty"><p style="margin:0 0 14px">${text}</p>${href ? `<a class="btn sm" href="${href}">${label}</a>` : ""}</div>`;
+}
+
+function draw() {
+  KH.clearCache();
+  const prof = STORE.get("profile", null);
+  if (!prof) {
+    $("main").innerHTML = `<section class="card emptyhero">
+      <div class="copy"><span class="kicker">${T("my.title")}</span><h1 style="font-size:clamp(26px,3.6vw,38px)">${T("my.noneTitle")}</h1><p class="muted" style="margin:0;max-width:430px">${T("my.noneText")}</p>
+        <div class="row wrapflex" style="margin-top:6px"><a class="btn" href="${link("index.html")}">${ICON("search", "sm")}${T("my.find")}</a><button class="btn ghost" id="signin">${ICON("send", "sm")}${T("my.signin")}</button></div></div>
+      <div class="art">${COURT_ART("big")}</div></section>`;
+    $("signin").onclick = () => verifyPhone(() => location.reload());
+    return;
+  }
+  const B = bookings(prof), G = myGames(), R = myRegs(prof), M = tgMsgs(prof.phone).reverse();
+  const playedMin = B.past.filter(b => b.status === "accepted").reduce((a, b) => a + b.dur, 0);
+  const waiting = B.up.filter(b => b.status === "pending").length + R.filter(r => (r.status || "pending") === "pending").length;
+  const tabs = [["up", "my.tUp", B.up.length, "calendar"], ["past", "my.tPast", B.past.length, "clock"], ["games", "my.tGames", G.length, "users"], ["tours", "my.tTours", R.length, "trophy"], ["tg", "my.tTg", M.length, "send"]];
+  let body = "";
+  if (tab === "up") body = B.up.length ? B.up.map(bookingCard).join("") : emptyBox(T("my.emptyUp"), link("index.html"), T("my.find"));
+  if (tab === "past") body = B.past.length ? B.past.map(bookingCard).join("") : emptyBox(T("my.emptyPast"));
+  if (tab === "games") body = G.length ? `<div class="grow-row">${G.map(gameRow).join("")}</div>` : emptyBox(T("my.emptyGames"), link("games.html"), T("my.browseGames"));
+  if (tab === "tours") body = R.length ? `<div class="grid c3">${R.map(r => `<div>${tourCard(KH.TOURNAMENT[r.t])}<div class="regcap">${ICON("users", "sm")}<span>${esc(r.name)} · ${T("my.regOn", { d: FMT.date(new Date(r.created)), c: esc(r.captain || ""), n: r.players || "?" })}</span></div></div>`).join("")}</div>` : emptyBox(T("my.emptyTours"), link("tournaments.html"), T("my.browseTours"));
+  if (tab === "tg") body = tgChat(prof);
+  const latest = M[0] && tab !== "tg" ? `<button class="card tg-latest" data-t="tg"><span class="tg-ava sm">${ICON("send", "sm")}</span><div style="min-width:0;flex:1;text-align:left"><small>${T("my.latest")} · ${hhmm(new Date(M[0].at))}</small><span class="tgl-txt">${esc(TG.text(M[0]))}</span></div><span class="see-all">${T("my.open")}${ICON("arrow", "sm")}</span></button>` : "";
+  $("main").innerHTML = `<section class="card prof">
+      <div class="bigav">${initials(prof.name)}</div>
+      <div style="min-width:0"><h1>${esc(prof.name)}</h1>
+        <div class="row wrapflex" style="gap:8px;margin-top:6px"><span class="ph">${FMT.phone(prof.phone)}</span>${prof.verified ? `<span class="pill blue">${ICON("send", "sm")}${T("my.tgOn")}</span>` : ""}</div>
+        <button class="signout" id="signout" style="margin-top:6px">${ICON("back", "sm")}${T("my.signout")}</button></div>
+      <div class="pstats"><div><span>${T("my.sUp")}</span><b>${B.up.length}</b></div><div><span>${T("my.sWait")}</span><b style="color:${waiting ? "var(--warn)" : "inherit"}">${waiting}</b></div><div><span>${T("my.sHours")}</span><b>${+(playedMin / 60).toFixed(1)}</b></div></div>
+    </section>
+    ${latest}
+    <div class="tabs" role="tablist">${tabs.map(([id, k, n, ic]) => `<button role="tab" data-t="${id}" aria-selected="${tab === id}">${ICON(ic, "sm")}${T(k)}<span class="n">${n}</span></button>`).join("")}</div>
+    <section id="body">${body}</section>`;
+  $("main").querySelectorAll("[data-t]").forEach(b => { b.onclick = () => { tab = b.dataset.t; const u = new URL(location.href); u.searchParams.set("tab", tab); try { history.replaceState(null, "", u.toString()); } catch (e) {} draw(); }; });
+  $("signout").onclick = () => { try { localStorage.removeItem("kh.profile"); } catch (e) {} toast(T("my.signedOut")); setTimeout(() => location.reload(), 900); };
+  const tb = $("tgBody"); if (tb) tb.scrollTop = tb.scrollHeight;
+  $("main").querySelectorAll("[data-a]").forEach(btn => {
+    const b = B.all.find(x => String(x.id) === btn.dataset.id);
+    btn.onclick = () => {
+      if (btn.dataset.a === "cancel") return cancelSheet(b);
+      if (btn.dataset.a === "dir") return toast(T("my.dirToast"));
+      const ct = KH.COURTS[b.court], v = KH.VENUE[ct.venue], s = startOf(b);
+      const text = `${T("brand")}: ${v.name}, ${KH.courtName(ct)} ${ct.format} · ${FMT.dateLong(s)} ${FMT.time(b.start)}–${FMT.time(b.start + b.dur / 60)} · ${tt(v.address)}`;
+      if (navigator.share) navigator.share({ title: T("brand"), text }).catch(() => {});
+      else { try { navigator.clipboard.writeText(text); } catch (e) {} toast(T("my.copied")); }
+    };
+  });
+}
+
+function cancelSheet(b) {
+  const ct = KH.COURTS[b.court], v = KH.VENUE[ct.venue], s = startOf(b), free = s - Date.now() > 6 * 3600e3, req = b.status === "pending";
+  const scrim = document.createElement("div"); scrim.className = "scrim";
+  scrim.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ct">
+    <div class="row"><h3 id="ct">${T(req ? "my.cTitleReq" : "my.cTitle")}</h3><button class="x" aria-label="${T("close")}">${ICON("x")}</button></div>
+    <div class="sum-box"><span class="sport-dot" style="background:${SIZE_COLOR[ct.size]};width:12px;height:12px"></span><div style="flex:1;min-width:0"><b>${v.name} · ${KH.courtName(ct)} ${ct.format}</b><div class="muted" style="font-size:13.5px">${FMT.dateLong(s)} · ${FMT.time(b.start)}–${FMT.time(b.start + b.dur / 60)}</div></div><span class="price">${FMT.amd(b.price)}</span></div>
+    <div class="policy ${req || free ? "ok" : "late"}">${ICON(req || free ? "check" : "clock", "sm")}<span>${req ? T("my.cReq") : free ? T("my.cFree") : T("my.cLate", { p: FMT.amd(b.price / 2) })}</span></div>
+    <div class="row"><button class="btn ghost" style="flex:1" id="keep">${T("my.cKeep")}</button><button class="btn red" style="flex:1" id="yes">${T("my.cYes")}</button></div></div>`;
+  const close = () => scrim.remove();
+  scrim.onclick = e => { if (e.target === scrim) close(); };
+  document.body.append(scrim);
+  scrim.querySelector(".x").onclick = close; scrim.querySelector("#keep").onclick = close;
+  scrim.querySelector("#yes").onclick = () => {
+    KH.updateBooking(b.id, { status: "cancelled", cancelledAt: Date.now() });
+    KH.notify(b.phone, "tg.youCancelled", { venue: ct.venue, court: b.court, date: b.date, start: b.start, dur: b.dur });
+    close(); draw(); toast(T("my.cDone"));
+  };
+}
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookball · Tournament</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=1">
+<style>
+  body { overflow-x: hidden; }
+  .crumbs { margin-top: 20px; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13.5px; font-weight: 700; }
+  .crumbs a:hover { color: var(--accent); }
+
+  /* ---------- header ---------- */
+  .th { position: relative; margin-top: 14px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: #0b110d; padding: 34px 34px 26px; isolation: isolate; }
+  .th .glow1 { position: absolute; z-index: -1; width: 520px; height: 520px; right: -140px; top: -260px; border-radius: 50%; background: var(--tc); filter: blur(110px); opacity: .22; }
+  .th .glow2 { position: absolute; z-index: -1; width: 380px; height: 380px; left: -160px; bottom: -260px; border-radius: 50%; background: var(--tc); filter: blur(100px); opacity: .1; }
+  .th .court { position: absolute; z-index: -1; right: -30px; top: 50%; width: 520px; transform: translateY(-50%) perspective(700px) rotateX(55deg) rotateZ(-18deg); opacity: .16; filter: saturate(.7); pointer-events: none; }
+  .th .court svg { width: 100%; display: block; }
+  .th-top { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .th h1 { font-size: clamp(28px, 4.6vw, 50px); margin: 14px 0 10px; max-width: 820px; }
+  .th .where { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-weight: 700; font-size: 14.5px; }
+  .th .where a, .th .where span { display: inline-flex; gap: 6px; align-items: center; }
+  .th .where a:hover { color: var(--accent); }
+  .th-main { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+  .facts6 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+  .facts6 > div { background: rgba(10, 13, 11, .55); border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); min-width: 0; }
+  .facts6 span { display: block; font-size: 11px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+  .facts6 b { display: block; font-size: 15px; margin-top: 2px; overflow-wrap: anywhere; }
+  .facts6 small { color: var(--muted); font-weight: 600; }
+  .cta { display: flex; flex-direction: column; gap: 10px; align-items: stretch; min-width: 250px; }
+  .cta .btn { padding: 14px 24px; font-size: 15.5px; }
+  .places { display: grid; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+  .places .row { justify-content: space-between; }
+  .reg-ok { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--free-soft); border: 1px solid rgba(94, 240, 168, .25); color: var(--free); font-weight: 800; }
+  .mt-row .sc.tot.w { color: var(--on-accent); background: var(--tc); border-radius: 6px; padding: 0 5px; }
+  .myreg { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; font-weight: 800; }
+  .myreg .ico { flex: none; margin-top: 2px; }
+  .myreg small { display: block; color: var(--muted); font-weight: 600; font-size: 12.5px; margin-top: 2px; }
+  .myreg small.tgh { display: flex; gap: 5px; align-items: center; color: var(--blue); }
+  .myreg.warn { background: var(--warn-soft); border: 1px solid rgba(255, 181, 71, .3); color: var(--warn); }
+  .myreg.ok { background: var(--free-soft); border: 1px solid rgba(94, 240, 168, .25); color: var(--free); }
+  .myreg.bad { background: var(--hot-soft); border: 1px solid rgba(255, 107, 107, .3); color: var(--hot); }
+  .reg-closed { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--blue-soft); border: 1px solid rgba(92, 200, 255, .25); color: var(--blue); }
+  .reg-closed b { display: block; }
+  .reg-closed small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+  .ent.req { border-style: dashed; }
+  .ent.req .pill { margin-left: auto; }
+  .chips.wrapc { flex-wrap: wrap; overflow: visible; }
+  .reg-ok small { display: block; color: var(--muted); font-weight: 600; }
+  .champ { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border-radius: 16px; background: linear-gradient(135deg, rgba(255, 210, 90, .16), rgba(255, 210, 90, .04)); border: 1px solid rgba(255, 210, 90, .3); }
+  .champ .ico { color: #ffd25a; width: 28px; height: 28px; }
+  .champ span { font-size: 11px; color: #ffd25a; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; display: block; }
+  .champ b { font-family: var(--display); font-weight: 600; font-size: 18px; }
+  @media (max-width: 980px) { .facts6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .th-main { grid-template-columns: 1fr; } .cta { min-width: 0; } }
+  @media (max-width: 600px) {
+    .th { padding: 22px 18px 18px; border-radius: 22px; }
+    .th .court { width: 340px; right: -120px; top: 30%; }
+    .facts6 { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .facts6 > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .cta #shareBtn { align-self: flex-start; padding: 9px 16px; font-size: 13.5px; }
+  }
+
+  /* avatar with initials */
+  .av { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #0b0f0c; background: var(--ac, var(--surface-3)); letter-spacing: .02em; }
+  .av.sm { width: 22px; height: 22px; font-size: 9.5px; }
+  .av.lg { width: 46px; height: 46px; font-size: 15px; }
+  .av.tbd { background: var(--surface-3); color: var(--faint); }
+
+  /* ---------- tabs ---------- */
+  .ttabs { margin-top: 26px; position: sticky; top: 64px; z-index: 30; background: rgba(10, 13, 11, .86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .ttabs .count { font-family: var(--mono); font-size: 11px; color: var(--faint); background: var(--surface-2); border-radius: 99px; padding: 1px 7px; }
+  .pane { padding: 26px 0 0; }
+
+  /* overview */
+  .ov { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+  .ov .card { padding: 22px; }
+  .ov h3 { margin-bottom: 12px; }
+  .ov p.about { font-size: 16px; margin: 0; color: #d7e0d5; }
+  .rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .rules li { display: flex; gap: 10px; font-size: 14.5px; color: #d2dbd0; }
+  .rules li .ico { color: var(--tc); margin-top: 2px; }
+  .tl { display: grid; gap: 0; }
+  .tl > div { display: grid; grid-template-columns: 18px 1fr; gap: 12px; position: relative; padding-bottom: 16px; }
+  .tl > div:last-child { padding-bottom: 0; }
+  .tl > div::before { content: ""; position: absolute; left: 8px; top: 16px; bottom: -2px; width: 2px; background: var(--line-2); }
+  .tl > div:last-child::before { display: none; }
+  .tl i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-2); background: var(--surface); margin-top: 2px; }
+  .tl .done i { background: var(--tc); border-color: var(--tc); }
+  .tl .now i { border-color: var(--hot); background: var(--hot); box-shadow: 0 0 0 5px var(--hot-soft); }
+  .tl b { display: block; font-size: 14.5px; }
+  .tl small { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .prizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .prizes div { border-radius: 12px; padding: 12px; background: var(--bg-2); text-align: center; }
+  .prizes span { font-size: 22px; display: block; }
+  .prizes b { font-size: 14.5px; display: block; }
+  .prizes small { color: var(--muted); font-weight: 700; font-size: 11.5px; }
+  .ov .vcard { margin-top: 0; padding: 0; }
+  @media (max-width: 900px) { .ov { grid-template-columns: 1fr; } }
+
+  /* ---------- bracket ---------- */
+  .bk-note { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13.5px; margin-bottom: 14px; flex-wrap: wrap; }
+  .bk-scroll { overflow-x: auto; margin: 0 -20px; padding: 6px 20px 18px; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+  .bk { display: flex; min-width: max-content; --g: 34px; --ln: rgba(220, 255, 220, .16); }
+  .bk-col { width: 206px; display: flex; flex-direction: column; flex: none; }
+  .bk-col + .bk-col { margin-left: var(--g); }
+  .bk-col.champ-col { width: 156px; }
+  .bk-rname { height: 54px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+  .bk-rname b { font-family: var(--display); font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; }
+  .bk-rname small { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+  .bk-body { flex: 1; display: flex; flex-direction: column; }
+  .pair { flex: 1; display: flex; flex-direction: column; position: relative; }
+  .slot { flex: 1; display: flex; align-items: center; position: relative; padding: 7px 0; min-height: 104px; }
+  .bk-col:not(:first-child) .slot { min-height: 0; }
+  .bk-col.has-next .slot::after { content: ""; position: absolute; left: 100%; top: 50%; width: calc(var(--g) / 2); border-top: 2px solid var(--ln); }
+  .bk-col:not(:first-child) .slot::before { content: ""; position: absolute; right: 100%; top: 50%; width: calc(var(--g) / 2); border-top: 2px solid var(--ln); }
+  .bk-col.has-next .pair::before, .bk-col.has-next .pair::after { content: ""; position: absolute; left: calc(100% + var(--g) / 2 - 1px); border-left: 2px solid var(--ln); }
+  .bk-col.has-next .pair::before { top: 25%; height: 25%; }
+  .bk-col .pair.single::before, .bk-col .pair.single::after { display: none; }
+  .bk-col.has-next .pair::after { top: 50%; height: 25%; }
+  .bk-col.has-next .slot.won::after, .bk-col:not(:first-child) .slot.fed::before { border-color: var(--tc); }
+  .bk-col.has-next .pair.wa::before, .bk-col.has-next .pair.wb::after { border-color: var(--tc); z-index: 1; }
+  .mt { width: 100%; background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px; overflow: hidden; position: relative; z-index: 2; }
+  .mt-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 13px; font-weight: 700; min-height: 34px; }
+  .mt-row + .mt-row { border-top: 1px solid var(--line); }
+  .mt-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cfd8cd; }
+  .mt-row.win .nm { color: var(--ink); }
+  .mt-row.lose .nm { color: var(--faint); }
+  .mt-row.tbd .nm { color: var(--faint); font-style: italic; font-weight: 600; }
+  .mt-row .sc { font-family: var(--mono); font-size: 13px; min-width: 20px; text-align: center; color: var(--muted); }
+  .mt-row .sc.w { color: var(--ink); }
+  .mt-row.me { background: var(--you-soft); }
+  .mt-foot { font-family: var(--mono); font-size: 11px; color: var(--faint); padding: 5px 10px; background: var(--bg-2); border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 6px; }
+  .trophy-box { width: 100%; text-align: center; padding: 18px 12px; border-radius: 18px; border: 1px dashed rgba(255, 210, 90, .35); background: radial-gradient(180px 90px at 50% 0%, rgba(255, 210, 90, .14), transparent 70%); position: relative; z-index: 2; }
+  .trophy-box .ico { width: 34px; height: 34px; color: #ffd25a; }
+  .trophy-box span { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #ffd25a; margin-top: 6px; }
+  .trophy-box b { display: block; font-family: var(--display); font-weight: 600; font-size: 15px; margin-top: 4px; }
+  .trophy-box.won { border-style: solid; background: radial-gradient(200px 100px at 50% 0%, rgba(255, 210, 90, .26), rgba(255, 210, 90, .04) 80%); }
+  @media (min-width: 1180px) { .swipe { visibility: hidden; } }
+  @media (max-width: 600px) { .bk-scroll { margin: 0 -16px; padding: 6px 16px 18px; } .bk { --g: 30px; } .bk-col { width: 206px; } .bk-col.champ-col { width: 160px; } }
+
+  /* ---------- tables ---------- */
+  .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 18px; }
+  .groups.one { grid-template-columns: 1fr; }
+  .groups.one .gm { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .gcard { padding: 0; overflow: hidden; }
+  .gcard-h { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px 10px; }
+  .gcard-h h3 { display: flex; gap: 10px; align-items: center; }
+  .gl { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, var(--tc) 18%, transparent); color: var(--tc); font-family: var(--display); font-size: 14px; }
+  table.st { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .st th { font-size: 11px; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; text-align: center; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  .st th.l, .st td.l { text-align: left; }
+  .st td { padding: 9px 6px; text-align: center; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; color: #cfd8cd; }
+  .st tr:last-child td { border-bottom: 0; }
+  .st td.pos { width: 44px; padding-left: 18px; font-family: var(--mono); color: var(--faint); position: relative; }
+  .st tr.q td.pos { color: var(--tc); }
+  .st tr.q td.pos::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--tc); }
+  .st tr.gold td.pos::before { background: #ffd25a; }
+  .st tr.gold td.pos { color: #ffd25a; }
+  .st td.tm { font-weight: 700; color: var(--ink); }
+  .st td.tm .in { display: flex; gap: 9px; align-items: center; min-width: 0; }
+  .st td.tm .in span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st td.pts { font-weight: 800; color: var(--ink); font-size: 14.5px; padding-right: 18px; }
+  .st tr.me td { background: var(--you-soft); }
+  .form { display: inline-flex; gap: 3px; }
+  .form i { width: 16px; height: 16px; border-radius: 4px; font-style: normal; font-size: 9.5px; font-weight: 800; display: grid; place-items: center; color: #0b0f0c; }
+  .form .W { background: var(--free); } .form .D { background: var(--muted); } .form .L { background: var(--hot); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 12.5px; font-weight: 700; padding: 10px 18px 14px; border-top: 1px solid var(--line); }
+  .legend span { display: inline-flex; gap: 7px; align-items: center; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--tc); }
+  .gm { padding: 4px 18px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+  .gm-t { padding: 0 18px; font-size: 11px; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; margin-top: 4px; }
+  .res { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; font-size: 12.5px; background: var(--bg-2); border-radius: 10px; padding: 6px 10px; }
+  .res span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-weight: 700; }
+  .res span.w { color: var(--ink); }
+  .res span:last-child { text-align: right; }
+  .res b { font-family: var(--mono); font-weight: 500; font-size: 12.5px; }
+  @media (max-width: 600px) { .hide-m { display: none; } .gm { grid-template-columns: 1fr; } .st td.pos { padding-left: 14px; width: 34px; } .st td.pts { padding-right: 14px; } .st td, .st th { padding-left: 4px; padding-right: 4px; } }
+
+  .pending { padding: 12px 18px; display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 13.5px; font-weight: 600; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+
+  /* entrants */
+  .ents { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .ent { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .ent .nm { font-weight: 800; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ent small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+  .ent small.in { color: var(--free); } .ent small.out { color: var(--faint); } .ent small.gold { color: #ffd25a; }
+  .ent .num { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .ent.me { border-color: rgba(92, 200, 255, .5); background: linear-gradient(135deg, var(--you-soft), var(--surface) 70%); }
+  .ent.open { border-style: dashed; border-color: var(--line-2); background: transparent; color: var(--faint); }
+  .ent.open .av { background: transparent; border: 1px dashed var(--line-2); color: var(--faint); }
+  .ent.open:hover { border-color: var(--tc); color: var(--ink); cursor: pointer; }
+  .ent-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+
+  /* schedule */
+  .sday { margin-bottom: 22px; }
+  .sday-h { display: flex; gap: 10px; align-items: baseline; margin-bottom: 10px; }
+  .sday-h b { font-family: var(--display); font-weight: 600; font-size: 16px; }
+  .sday-h small { color: var(--faint); font-weight: 700; }
+  .sday-h.today b { color: var(--accent); }
+  .smr { display: grid; grid-template-columns: 70px 1fr auto 1fr 150px; gap: 14px; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 6px; font-size: 14px; }
+  .smr .tm { font-family: var(--mono); color: var(--muted); }
+  .smr .a, .smr .b { font-weight: 700; display: flex; gap: 8px; align-items: center; min-width: 0; }
+  .smr .a span, .smr .b span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .smr .a { justify-content: flex-end; text-align: right; }
+  .smr .lose { color: var(--faint); }
+  .smr .tbd { color: var(--faint); font-style: italic; font-weight: 600; }
+  .smr .vs { font-family: var(--mono); min-width: 64px; text-align: center; padding: 3px 8px; border-radius: 8px; background: var(--bg-2); }
+  .smr .vs.up { color: var(--faint); }
+  .smr .stg { text-align: right; color: var(--muted); font-size: 12.5px; font-weight: 700; }
+  .smr.me { border-color: rgba(92, 200, 255, .45); }
+  .smr.rnd { grid-template-columns: 70px 1fr 150px; }
+  .sfilter { margin-bottom: 18px; }
+  @media (max-width: 700px) {
+    .smr { grid-template-columns: 1fr auto 1fr; gap: 6px 10px; padding: 10px 12px; }
+    .smr .tm, .smr .stg { grid-column: 1 / -1; text-align: left; font-size: 12px; }
+    .smr .tm { order: -2; display: flex; justify-content: space-between; }
+    .smr .stg { display: none; }
+    .smr .tm .stg-m { display: inline; }
+    .smr.rnd { grid-template-columns: 1fr; }
+  }
+  .stg-m { display: none; color: var(--muted); font-family: var(--body); font-weight: 700; }
+
+  /* registration sheet */
+  .reg-sum { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 14px; background: var(--bg-2); margin: 10px 0 16px; }
+  .reg-sum .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--tc) 18%, transparent); color: var(--tc); flex: none; }
+  .reg-sum b { display: block; font-size: 14.5px; line-height: 1.3; }
+  .reg-sum small { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+  .agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--muted); margin: 14px 0 4px; cursor: pointer; }
+  .agree input { width: 18px; height: 18px; accent-color: var(--accent); margin-top: 1px; flex: none; }
+  .fee-line { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 14px; border-top: 1px solid var(--line); margin-top: 12px; font-weight: 700; }
+  .fee-line b { font-size: 18px; font-family: var(--display); font-weight: 600; }
+  .ok-ic { width: 74px; height: 74px; margin: 6px auto 14px; border-radius: 50%; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; box-shadow: 0 14px 40px -10px rgba(200, 255, 61, .6); }
+  .ok-ic .ico { width: 36px; height: 36px; stroke-width: 3; }
+  .ticket { border: 1px dashed var(--line-2); border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px; font-size: 14px; margin: 16px 0; }
+  .ticket div { display: flex; justify-content: space-between; gap: 12px; }
+  .ticket span { color: var(--muted); font-weight: 600; }
+  .ticket b { text-align: right; }
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+
+<script src="common.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script src="cards.js?v=1"></script>
+<script>
+I18N.add({
+  "td.title": ["Tournament", "Մրցաշար", "Турнир"],
+  "td.all": ["All tournaments", "Բոլոր մրցաշարերը", "Все турниры"],
+  "td.format": ["Format", "Ձևաչափ", "Формат"],
+  "td.field": ["Field", "Դաշտ", "Поле"],
+  "td.entry": ["Entry fee", "Մուտքավճար", "Взнос"],
+  "td.prize": ["Prize fund", "Մրցանակային ֆոնդ", "Призовой фонд"],
+  "td.squad": ["Squad", "Կազմ", "Состав"],
+  "td.squadUp": ["up to {n} players", "մինչև {n} խաղացող", "до {n} игроков"],
+  "td.amateur": ["Amateur", "Սիրողական", "Любительский"],
+  "td.places": ["{a} of {b} places taken", "Զբաղված է {a}-ը {b}-ից", "Занято {a} из {b}"],
+  "td.left": ["{n} left", "մնաց {n}", "осталось {n}"],
+  "td.waitingN": ["{n} requests waiting", "{n} հայտ սպասման մեջ", "Заявок на рассмотрении: {n}"],
+  "td.full": ["Tournament is full", "Տեղեր չկան", "Мест нет"],
+  "td.regTeam": ["Register your team", "Գրանցել թիմը", "Подать заявку команды"],
+  "td.again": ["Apply again", "Կրկին դիմել", "Подать заявку снова"],
+  "td.closes": ["Registration closes {d}", "Գրանցումը փակվում է {d}", "Регистрация до {d}"],
+  "td.closed": ["Registration closed", "Գրանցումը փակ է", "Регистрация закрыта"],
+  "td.startsOn": ["First matches {d}", "Առաջին խաղերը՝ {d}", "Первые матчи {d}"],
+  "td.myPending": ["Your request is with the organiser", "Ձեր հայտը կազմակերպչի մոտ է", "Ваша заявка у организатора"],
+  "td.myAccepted": ["Your team is in", "Ձեր թիմը մասնակցում է", "Ваша команда в турнире"],
+  "td.myDeclined": ["Your request was not accepted", "Ձեր հայտը չի ընդունվել", "Ваша заявка не принята"],
+  "td.myTeam": ["{team} · captain {cap} · {n} players", "{team} · ավագ՝ {cap} · {n} խաղացող", "{team} · капитан {cap} · игроков: {n}"],
+  "td.tgHint": ["The answer comes to Telegram", "Պատասխանը կգա Telegram-ով", "Ответ придёт в Telegram"],
+  "td.champion": ["Champion", "Չեմպիոն", "Чемпион"],
+  "td.share": ["Share", "Կիսվել", "Поделиться"],
+  "td.copied": ["Link copied", "Հղումը պատճենված է", "Ссылка скопирована"],
+  "td.tOverview": ["Overview", "Ընդհանուր", "Обзор"],
+  "td.tBracket": ["Bracket", "Սխեմա", "Сетка"],
+  "td.tPlayoff": ["Playoff", "Փլեյ-օֆֆ", "Плей-офф"],
+  "td.tGroups": ["Groups", "Խմբեր", "Группы"],
+  "td.tStandings": ["Standings", "Աղյուսակ", "Таблица"],
+  "td.tTeams": ["Teams", "Թիմեր", "Команды"],
+  "td.tSchedule": ["Schedule", "Ժամանակացույց", "Расписание"],
+  "td.about": ["About", "Մրցաշարի մասին", "О турнире"],
+  "td.rules": ["Rules", "Կանոններ", "Правила"],
+  "td.keyDates": ["Key dates", "Կարևոր ամսաթվեր", "Ключевые даты"],
+  "td.kReg": ["Registration closes", "Գրանցման ավարտ", "Конец регистрации"],
+  "td.kDraw": ["Draw", "Վիճակահանություն", "Жеребьёвка"],
+  "td.kStart": ["First matches", "Առաջին խաղեր", "Первые матчи"],
+  "td.kGroups": ["Group stage", "Խմբային փուլ", "Групповой этап"],
+  "td.kPlayoff": ["Playoff starts", "Փլեյ-օֆֆի մեկնարկ", "Старт плей-офф"],
+  "td.kFinal": ["Final", "Եզրափակիչ", "Финал"],
+  "td.kSeason": ["Season", "Սեզոն", "Сезон"],
+  "td.kLast": ["Last matchday", "Վերջին տուր", "Последний тур"],
+  "td.prizes": ["Prizes", "Մրցանակներ", "Призы"],
+  "td.p1": ["1st", "1-ին", "1-е"], "td.p2": ["2nd", "2-րդ", "2-е"], "td.p3": ["3rd", "3-րդ", "3-е"],
+  "r.fee": ["The entry fee is paid at the venue before your first match.", "Մուտքավճարը վճարվում է տեղում՝ առաջին խաղից առաջ։", "Взнос оплачивается на месте до первого матча."],
+  "r.accept": ["A team is in when the organiser accepts its request. You get the answer in Telegram.", "Թիմը մասնակցում է, երբ կազմակերպիչն ընդունում է հայտը։ Պատասխանը կստանաք Telegram-ով։", "Команда участвует, когда организатор примет заявку. Ответ придёт в Telegram."],
+  "r.late": ["Come 20 minutes early. 10 minutes late counts as a forfeit.", "Եկեք 20 րոպե շուտ։ 10 րոպե ուշացումը համարվում է պարտություն։", "Приходите за 20 минут. Опоздание на 10 минут — техническое поражение."],
+  "r.f.groups": ["Win 3 points, draw 1. The top two of each group go to the playoff.", "Հաղթանակ՝ 3 միավոր, ոչ-ոքի՝ 1։ Յուրաքանչյուր խմբից փլեյ-օֆֆ են անցնում առաջին երկուսը։", "Победа — 3 очка, ничья — 1. Из группы в плей-офф выходят две лучшие."],
+  "r.f.knockout": ["Knockout: lose once and you are out. A draw goes to penalties.", "Նոկաուտ․ պարտվեցիր՝ դուրս ես։ Ոչ-ոքիի դեպքում՝ 11-մետրանոցներ։", "На вылет: одно поражение — и вы выбываете. При ничьей — пенальти."],
+  "r.f.league": ["Everyone plays everyone. 3 points for a win, 1 for a draw.", "Բոլորը խաղում են բոլորի հետ։ Հաղթանակ՝ 3 միավոր, ոչ-ոքի՝ 1։", "Каждый с каждым. За победу 3 очка, за ничью 1."],
+  "r.small": ["5×5: four players and a keeper on the field, rolling substitutions, no offside.", "5×5․ դաշտում չորս խաղացող և դարպասապահ, անսահմանափակ փոխարինումներ, առանց խաղից դուրս դիրքի։", "5×5: четверо в поле и вратарь, замены без ограничений, без офсайда."],
+  "r.big": ["11×11: full rules with offside, up to five substitutions, a referee for every match.", "11×11․ լրիվ կանոններ՝ խաղից դուրս դիրքով, մինչև հինգ փոխարինում, ամեն խաղին՝ մրցավար։", "11×11: полные правила с офсайдом, до пяти замен, судья на каждом матче."],
+  "r.boots": ["Turf boots or trainers only, no metal studs. Shin guards are a must.", "Միայն արհեստական խոտի բուցեր կամ մարզական կոշիկ, առանց մետաղյա փշերի։ Սրունքապաշտպանները պարտադիր են։", "Только бутсы для газона или кроссовки, без металлических шипов. Щитки обязательны."],
+  "td.r32": ["Round of 32", "1/16 եզրափակիչ", "1/16 финала"],
+  "td.r16": ["Round of 16", "1/8 եզրափակիչ", "1/8 финала"],
+  "td.qf": ["Quarter-finals", "Քառորդ եզրափակիչ", "Четвертьфинал"],
+  "td.sf": ["Semi-finals", "Կիսաեզրափակիչ", "Полуфинал"],
+  "td.final": ["Final", "Եզրափակիչ", "Финал"],
+  "td.tbd": ["TBD", "Կորոշվի", "Определится"],
+  "td.bye": ["Open place", "Ազատ տեղ", "Свободное место"],
+  "td.provisional": ["The draw is made when registration closes. Teams below are in sign-up order.", "Վիճակահանությունը կանցկացվի գրանցման ավարտին։ Թիմերը ներկայացված են գրանցման հերթականությամբ։", "Жеребьёвка пройдёт после закрытия регистрации. Команды указаны в порядке записи."],
+  "td.scroll": ["Swipe to see all rounds", "Սահեցրեք՝ բոլոր փուլերը տեսնելու համար", "Листайте, чтобы увидеть все раунды"],
+  "td.champTbd": ["Who lifts the cup?", "Ո՞վ կբարձրացնի գավաթը", "Кто поднимет кубок?"],
+  "td.playoffNote": ["The top two of each group go to the playoff.", "Յուրաքանչյուր խմբի առաջին երկուսն անցնում են փլեյ-օֆֆ։", "Две лучшие команды каждой группы выходят в плей-офф."],
+  "td.group": ["Group {g}", "Խումբ {g}", "Группа {g}"],
+  "td.groupX": ["Group {g}", "{g} խումբ", "Группа {g}"],
+  "td.team": ["Team", "Թիմ", "Команда"],
+  "td.P": ["P", "Խ", "И"], "td.W": ["W", "Հ", "В"], "td.D": ["D", "Ո", "Н"], "td.L": ["L", "Պ", "П"],
+  "td.GF": ["GF", "ԽԳ", "ЗМ"], "td.GA": ["GA", "ԲԳ", "ПМ"], "td.GD": ["+/−", "+/−", "+/−"], "td.Pts": ["Pts", "Միավ", "О"],
+  "td.form": ["Form", "Վերջին", "Форма"],
+  "td.qual": ["Goes to the playoff", "Անցնում է փլեյ-օֆֆ", "Выходит в плей-офф"],
+  "td.leagueWin": ["Champion", "Չեմպիոն", "Чемпион"],
+  "td.medals": ["Medal places", "Մեդալային տեղեր", "Призовые места"],
+  "td.results": ["Results", "Արդյունքներ", "Результаты"],
+  "td.fixturesT": ["Fixtures", "Խաղացուցակ", "Матчи"],
+  "td.groupsNone": ["The draw is made when registration closes.", "Վիճակահանությունը կանցկացվի գրանցման ավարտին։", "Жеребьёвка пройдёт после закрытия регистрации."],
+  "td.groupsNoneSub": ["Registration closes {d}. Then the teams are drawn into groups of four and the fixtures appear here.", "Գրանցումը փակվում է {d}։ Այնուհետև թիմերը կբաժանվեն չորսական խմբերի, և խաղացուցակը կհայտնվի այստեղ։", "Регистрация закрывается {d}. Затем команды распределят по группам по четыре, и здесь появится расписание."],
+  "td.registered": ["{n} teams in", "{n} թիմ", "Команд: {n}"],
+  "td.stillIn": ["Still in · {r}", "Մրցաշարում է · {r}", "В игре · {r}"],
+  "td.outIn": ["Out in {r}", "Դուրս է մնացել {r}", "Выбыл: {r}"],
+  "td.won": ["Champion", "Չեմպիոն", "Чемпион"],
+  "td.runner": ["Runner-up", "Փոխչեմպիոն", "Финалист"],
+  "td.posN": ["{n} place · {p} pts", "{n} տեղ · {p} միավ", "{n} место · {p} очк."],
+  "td.waiting": ["Waiting for the draw", "Սպասում է վիճակահանությանը", "Ждёт жеребьёвки"],
+  "td.inGroup": ["Group {g}", "{g} խումբ", "Группа {g}"],
+  "td.you": ["You", "Դուք", "Вы"],
+  "td.openSpot": ["Open place", "Ազատ տեղ", "Свободное место"],
+  "td.takeIt": ["Tap to apply", "Սեղմեք՝ դիմելու համար", "Нажмите, чтобы подать заявку"],
+  "td.captain": ["Captain {n}", "Ավագ՝ {n}", "Капитан {n}"],
+  "td.allMatches": ["All", "Բոլորը", "Все"],
+  "td.upcoming": ["Upcoming", "Առաջիկա", "Предстоящие"],
+  "td.finished": ["Results", "Արդյունքներ", "Результаты"],
+  "td.matchday": ["Matchday {n}", "{n}-րդ տուր", "{n}-й тур"],
+  "td.groupDay": ["Group stage · day {n}", "Խմբային փուլ · {n}-րդ օր", "Групповой этап · день {n}"],
+  "td.fixtures": ["Fixtures are published after the draw.", "Խաղացուցակը կհրապարակվի վիճակահանությունից հետո։", "Расписание опубликуют после жеребьёвки."],
+  "td.noMatches": ["No matches here yet.", "Այստեղ դեռ խաղեր չկան։", "Здесь пока нет матчей."],
+  // registration
+  "rg.title": ["Register your team", "Գրանցեք ձեր թիմը", "Заявка команды"],
+  "rg.sub": ["This is a request: the organiser checks it and confirms in Telegram.", "Սա հայտ է․ կազմակերպիչը կստուգի և կհաստատի Telegram-ով։", "Это заявка: организатор проверит её и подтвердит в Telegram."],
+  "rg.team": ["Team name", "Թիմի անունը", "Название команды"],
+  "rg.teamPh": ["e.g. Cascade Crew", "օր.՝ Cascade Crew", "напр. Cascade Crew"],
+  "rg.captain": ["Captain's name", "Ավագի անունը", "Имя капитана"],
+  "rg.playersN": ["Players in the squad", "Խաղացողների քանակը", "Игроков в составе"],
+  "rg.min": ["From {a} to {b} players, subs included", "{a}-ից {b} խաղացող՝ փոխարինողներով", "От {a} до {b} игроков, включая запасных"],
+  "rg.agree": ["I have read the rules and will pay the entry fee at the venue.", "Կարդացել եմ կանոնները և կվճարեմ մուտքավճարը տեղում։", "Я прочитал правила и оплачу взнос на месте."],
+  "rg.total": ["Entry fee", "Մուտքավճար", "Взнос"],
+  "rg.atVenue": ["paid at the venue", "վճարվում է տեղում", "оплата на месте"],
+  "rg.next": ["Send request", "Ուղարկել հայտը", "Отправить заявку"],
+  "rg.errName": ["Please enter the team and the captain", "Լրացրեք թիմի և ավագի անունները", "Укажите команду и капитана"],
+  "rg.errTaken": ["This team name is already taken", "Այս անունն արդեն զբաղված է", "Это название уже занято"],
+  "rg.errAgree": ["Please accept the rules", "Խնդրում ենք ընդունել կանոնները", "Подтвердите согласие с правилами"],
+  "rg.done": ["Request sent", "Հայտն ուղարկված է", "Заявка отправлена"],
+  "rg.doneSub": ["The organiser checks your team and answers in Telegram. You can follow the status here and in My bookings.", "Կազմակերպիչը կստուգի ձեր թիմը և կպատասխանի Telegram-ով։ Կարգավիճակը կարող եք տեսնել այստեղ և «Իմ ամրագրումները» բաժնում։", "Организатор проверит команду и ответит в Telegram. Статус виден здесь и в разделе «Мои брони»."],
+  "rg.status": ["Status", "Կարգավիճակ", "Статус"],
+  "rg.entry": ["Team", "Թիմ", "Команда"],
+  "rg.when": ["Starts", "Մեկնարկ", "Старт"],
+  "rg.where": ["Venue", "Վայր", "Место"],
+  "rg.pay": ["To pay at the venue", "Վճարել տեղում", "Оплата на месте"],
+  "rg.my": ["My bookings", "Իմ ամրագրումները", "Мои брони"],
+  "rg.ok": ["Great", "Լավ", "Отлично"]
+});
+
+renderChrome("tournaments");
+const Q = new URLSearchParams(location.search);
+const t = KH.TOURNAMENT[Q.get("t")] || KH.TOURNAMENTS[0];
+const V = KH.VENUE[t.venue], Z = KH.SIZES[t.size], TC = SIZE_COLOR[t.size];
+const FIELD = V.courts.find(c => c.size === t.size);
+const canReg = t.status === "open" || t.status === "soon";
+const minSquad = Z.players / 2;
+document.title = `${tt(t.name)} · ${T("brand")}`;
+document.body.style.setProperty("--tc", TC);
+const app = document.getElementById("app");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------- helpers ----------
+const mine = () => myRegFor(t);
+const isMe = name => { const r = mine(); return !!name && !!r && r.status === "accepted" && r.name === name; };
+const PAL = ["#c8ff3d", "#5ef0a8", "#5cc8ff", "#ff9548", "#ffb547", "#ff8fb1", "#b69cff", "#e4ff4a", "#7ce0d3"];
+function initials(n) {
+  const parts = String(n).split(/\s+/).filter(Boolean);
+  return (parts.length > 1 ? parts[0][0] + parts[1][0] : String(n).replace(/\W/g, "").slice(0, 2)).toUpperCase();
+}
+function avatar(n, cls) {
+  if (!n) return `<span class="av tbd ${cls || ""}">?</span>`;
+  let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `<span class="av ${cls || ""}" style="--ac:${PAL[h % PAL.length]}">${esc(initials(n))}</span>`;
+}
+const countOf = (n, en, ru, hy) => n + " " + (I18N.lang === "ru" ? I18N.plural(n, ru) : I18N.lang === "hy" ? hy : (n === 1 ? en[0] : en[1]));
+const matchesN = n => countOf(n, ["match", "matches"], ["матч", "матча", "матчей"], "խաղ");
+const playersN = n => countOf(n, ["player", "players"], ["игрок", "игрока", "игроков"], "խաղացող");
+const roundKey = n => ({ 1: "td.final", 2: "td.sf", 4: "td.qf", 8: "td.r16", 16: "td.r32" }[n] || "td.r32");
+const roundName = k => T(roundKey(t.bracket[k].length));
+const dayLabel = d => FMT.rel(DAY.date(d));
+const pending = () => t.regs.filter(r => r.status === "pending");
+
+// one-day knockout: every round is on the same day, so play the matches one after another on the field
+if (t.bracket && t.bracket.every(ms => ms.every(m => m.day === t.bracket[0][0].day))) {
+  let clock = t.bracket[0][0].hour;
+  t.bracket.forEach(ms => ms.forEach(m => { m.hour = clock; clock += 0.5; }));
+}
+
+// schedule from the draw (groups / league / bracket); placeholders before the draw
+function scheduleEvents() {
+  const ev = [];
+  if (t.groups) {
+    if (t.format === "league") {
+      const ms = t.groups[0].matches, per = Math.max(1, Math.round(ms.length / 7));
+      ms.forEach((m, j) => ev.push({ a: m.a, b: m.b, sa: m.sa, sb: m.sb, done: m.sa != null, day: t.start + Math.floor(j / per) * 7, hour: 19 + (j % per) * 1.5, stage: T("td.matchday", { n: Math.floor(j / per) + 1 }) }));
+    } else {
+      t.groups.forEach((g, gi) => g.matches.forEach((m, j) => ev.push({ a: m.a, b: m.b, sa: m.sa, sb: m.sb, done: m.sa != null, day: t.start + Math.floor(j / 2) * 7, hour: 19 + (j % 2) + (gi % 2) * 2, stage: T("td.groupX", { g: g.name }) })));
+    }
+  } else if (t.format === "groups") {
+    const ko = t.bracket ? t.bracket[0][0].day : t.end;
+    for (let d = t.start, n = 1; d < ko && n <= 4; d += 7, n++) ev.push({ round: true, tbdFix: true, day: d, hour: 19, stage: T("td.groupDay", { n }) });
+  }
+  if (t.bracket) t.bracket.forEach((ms, k) => ms.forEach((m, i) => ev.push({ a: m.a, b: m.b, sa: m.sa, sb: m.sb, done: !!m.winner, day: m.day, hour: m.hour, stage: roundName(k) + (ms.length > 1 ? " · " + (i + 1) : "") })));
+  return ev.sort((x, y) => x.day - y.day || x.hour - y.hour);
+}
+
+// ---------- header ----------
+function myBox() {
+  const r = mine(); if (!r) return "";
+  const k = { pending: ["td.myPending", "warn"], accepted: ["td.myAccepted", "ok"], declined: ["td.myDeclined", "bad"] }[r.status] || ["td.myPending", "warn"];
+  return `<div class="myreg ${k[1]}">${ICON(r.status === "accepted" ? "check" : r.status === "declined" ? "x" : "clock", "lg")}<div><b>${T(k[0])}</b>
+    <small>${T("td.myTeam", { team: esc(r.name), cap: esc(r.captain || ""), n: r.players || "?" })}</small>${r.status === "pending" ? `<small class="tgh">${ICON("send", "sm")}${T("td.tgHint")}</small>` : ""}</div></div>`;
+}
+function header() {
+  const n = t.entrants.length, r = mine(), full = n >= t.max, ch = tourChampion(t), pend = pending().length;
+  let cta = "";
+  if (canReg) {
+    const btn = r && r.status !== "declined" ? myBox()
+      : `${r ? myBox() : ""}<button class="btn" id="regBtn"${full ? " disabled" : ""}>${full ? T("td.full") : ICON("plus") + T(r ? "td.again" : "td.regTeam")}</button>`;
+    cta = `<div class="cta">${btn}
+      <div class="places"><div class="row"><span>${T("td.places", { a: n, b: t.max })}</span><span style="color:var(--tc)">${T("td.left", { n: Math.max(0, t.max - n) })}</span></div><div class="bar"><i style="width:${Math.min(100, Math.round(n / t.max * 100))}%"></i></div>
+      <span class="faint">${T("td.closes", { d: FMT.dateLong(DAY.date(t.regEnd)) })}${pend ? " · " + T("td.waitingN", { n: pend }) : ""}</span></div></div>`;
+  } else if (ch) {
+    cta = `<div class="cta"><div class="champ">${ICON("trophy")}<div><span>${T("td.champion")}</span><b>${esc(ch)}</b></div></div></div>`;
+  } else {
+    cta = `<div class="cta">${myBox()}<div class="reg-closed">${ICON("calendar", "lg")}<div><b>${T("td.closed")}</b><small>${T("td.startsOn", { d: FMT.dateLong(DAY.date(t.start)) })}</small></div></div><button class="btn ghost" id="shareBtn">${ICON("share", "sm")}${T("td.share")}</button></div>`;
+  }
+  return `<div class="crumbs"><a href="${link("tournaments.html")}">${ICON("back", "sm")} ${T("td.all")}</a></div>
+  <section class="th" style="--tc:${TC}">
+    <div class="glow1"></div><div class="glow2"></div><div class="court" aria-hidden="true">${COURT_SVG(t.size)}</div>
+    <div class="th-top"><span class="pill" style="color:${TC}">${ICON("ball", "sm")}${T("td.amateur")} · ${t.format5}</span>${tourStatusPill(t)}</div>
+    <div class="th-main"><div>
+      <h1>${tt(t.name)}</h1>
+      <div class="where"><a href="${link("venue.html", { v: V.id, size: t.size })}">${ICON("pin", "sm")}${V.name} · ${tt(KH.DISTRICTS[V.district])}</a><span>${ICON("calendar", "sm")}${tourDates(t)}</span></div>
+    </div>${cta}</div>
+    <div class="facts6">
+      <div><span>${T("td.format")}</span><b>${tt(KH.FORMATS[t.format])}</b></div>
+      <div><span>${T("td.field")}</span><b>${tt(Z.name)} ${Z.format}</b></div>
+      <div><span>${T("td.squad")}</span><b>${T("td.squadUp", { n: t.teamSize })}</b></div>
+      <div><span>${T("td.entry")}</span><b>${FMT.amd(t.fee)} <small>${T("card.perTeam")}</small></b></div>
+      <div><span>${T("td.prize")}</span><b>${t.prize ? FMT.amd(t.prize) : tt(t.prizeText)}</b></div>
+    </div>
+  </section>`;
+}
+
+// ---------- tabs ----------
+function tabsFor() {
+  const tabs = [["overview", "td.tOverview", "eye"]];
+  if (t.format === "groups") tabs.push(["groups", "td.tGroups", "grid"]);
+  if (t.format === "league") tabs.push(["groups", "td.tStandings", "chart"]);
+  if (t.bracket) tabs.push(["bracket", t.format === "groups" ? "td.tPlayoff" : "td.tBracket", "trophy"]);
+  tabs.push(["entrants", "td.tTeams", "users"]);
+  tabs.push(["schedule", "td.tSchedule", "calendar"]);
+  return tabs;
+}
+let TABS = tabsFor();
+let cur = (location.hash || "").slice(1);
+if (!TABS.some(x => x[0] === cur)) cur = TABS[0][0];
+function pane() { return { overview, groups: groupsPane, bracket: bracketPane, entrants: entrantsPane, schedule: schedulePane }[cur](); }
+
+// overview
+function overview() {
+  const rules = ["r.f." + t.format, "r." + t.size, "r.boots", "r.accept", "r.late", "r.fee"];
+  const tl = [], st = d => d < 0 ? "done" : d === 0 ? "now" : "";
+  tl.push([T("td.kReg"), FMT.dateLong(DAY.date(t.regEnd)), st(t.regEnd)]);
+  if (t.format !== "league") tl.push([T("td.kDraw"), FMT.dateLong(DAY.date(t.regEnd + 1)), t.groups || t.status === "closed" || t.status === "done" ? "done" : ""]);
+  if (t.format === "groups") {
+    const ko = t.bracket ? t.bracket[0][0].day : t.end;
+    tl.push([T("td.kGroups"), `${FMT.date(DAY.date(t.start))} – ${FMT.date(DAY.date(Math.max(t.start, ko - 1)))}`, ko - 1 < 0 ? "done" : t.start <= 0 ? "now" : ""]);
+    tl.push([T("td.kPlayoff"), FMT.dateLong(DAY.date(ko)), st(ko)]);
+  } else if (t.format === "league") {
+    tl.push([T("td.kSeason"), `${FMT.date(DAY.date(t.start))} – ${FMT.date(DAY.date(t.end))}`, t.end < 0 ? "done" : t.start <= 0 ? "now" : ""]);
+  } else {
+    tl.push([T("td.kStart"), FMT.dateLong(DAY.date(t.start)) + (t.bracket ? " · " + FMT.time(t.bracket[0][0].hour) : ""), st(t.start)]);
+  }
+  const fm = t.bracket ? t.bracket[t.bracket.length - 1][0] : null;
+  tl.push([t.format === "league" ? T("td.kLast") : T("td.kFinal"), fm ? FMT.dateLong(DAY.date(fm.day)) + " · " + FMT.time(fm.hour) : FMT.dateLong(DAY.date(t.end)), fm ? (fm.winner ? "done" : st(fm.day)) : (t.end < 0 ? "done" : "")]);
+  const prizes = t.prize ? `<div class="card"><h3>${T("td.prizes")}</h3><div class="prizes">
+      ${[[.5, "🥇", "td.p1"], [.3, "🥈", "td.p2"], [.2, "🥉", "td.p3"]].map(([f, e, k]) => `<div><span>${e}</span><b>${FMT.amd(t.prize * f)}</b><small>${T(k)}</small></div>`).join("")}</div></div>`
+    : `<div class="card"><h3>${T("td.prizes")}</h3><div class="row" style="gap:12px"><span style="font-size:28px">🏆</span><b>${tt(t.prizeText)}</b></div></div>`;
+  return `<div class="ov">
+    <div class="grid" style="gap:20px">
+      <div class="card"><h3>${T("td.about")}</h3><p class="about">${tt(t.about)}</p></div>
+      <div class="card"><h3>${T("td.rules")}</h3><ul class="rules">${rules.map(k => `<li>${ICON("check", "sm")}<span>${T(k)}</span></li>`).join("")}</ul></div>
+    </div>
+    <div class="grid" style="gap:20px">
+      <div class="card"><h3>${T("td.keyDates")}</h3><div class="tl">${tl.map(([a, b, c]) => `<div class="${c}"><i></i><div><b>${a}</b><small>${b}</small></div></div>`).join("")}</div></div>
+      ${prizes}
+      ${venueCard(V, { size: t.size, day: Math.max(0, t.start) })}
+    </div></div>`;
+}
+
+// bracket
+function matchCard(m, k) {
+  const row = side => {
+    const n = m[side];
+    let cls = !n ? "tbd" : m.winner ? (m.winner === n ? "win" : "lose") : "";
+    if (isMe(n)) cls += " me";
+    const label = n ? esc(n) : (k === 0 && t.format === "knockout" && canReg ? T("td.bye") : T("td.tbd"));
+    const sc = m.winner ? `<span class="sc tot${(side === "a" ? m.sa > m.sb : m.sb > m.sa) ? " w" : ""}">${side === "a" ? m.sa : m.sb}</span>` : "";
+    return `<div class="mt-row ${cls}">${avatar(n, "sm")}<span class="nm" title="${esc(n || "")}">${label}</span>${sc}</div>`;
+  };
+  return `<div class="mt">${row("a")}${row("b")}<div class="mt-foot"><span>${m.winner ? FMT.date(DAY.date(m.day)) : dayLabel(m.day)}</span><span>${FMT.time(m.hour)}</span></div></div>`;
+}
+function bracketPane() {
+  const R = t.bracket, fin = R[R.length - 1][0];
+  const cols = R.map((ms, k) => {
+    const days = [...new Set(ms.map(m => m.day))].sort((a, b) => a - b);
+    const slots = ms.map(m => `<div class="slot${m.winner ? " won" : ""}${k > 0 && (m.a || m.b) ? " fed" : ""}">${matchCard(m, k)}</div>`);
+    let body = "";
+    if (ms.length === 1) body = `<div class="pair single${fin.winner ? " wa" : ""}">${slots[0]}</div>`;
+    else for (let i = 0; i < ms.length; i += 2) {
+      const nx = R[k + 1] && R[k + 1][i / 2];
+      const wa = ms[i].winner && nx && nx.a === ms[i].winner, wb = ms[i + 1].winner && nx && nx.b === ms[i + 1].winner;
+      body += `<div class="pair${wa ? " wa" : ""}${wb ? " wb" : ""}">${slots[i]}${slots[i + 1]}</div>`;
+    }
+    return `<div class="bk-col has-next"><div class="bk-rname"><b>${roundName(k)}</b><small>${days.map(d => FMT.date(DAY.date(d))).join(" · ")}</small></div><div class="bk-body">${body}</div></div>`;
+  }).join("");
+  const champ = `<div class="bk-col champ-col"><div class="bk-rname"><b>${T("td.champion")}</b><small>${FMT.date(DAY.date(fin.day))}</small></div><div class="bk-body"><div class="pair single"><div class="slot${fin.winner ? " fed" : ""}">
+    <div class="trophy-box${fin.winner ? " won" : ""}">${ICON("trophy")}<span>${T("td.champion")}</span><b>${fin.winner ? esc(fin.winner) : T("td.champTbd")}</b></div></div></div></div></div>`;
+  const note = t.format === "groups" ? `<div class="bk-note">${ICON("trophy", "sm")}${T("td.playoffNote")}</div>` : canReg ? `<div class="bk-note">${ICON("clock", "sm")}${T("td.provisional")}</div>` : "";
+  return `${note}<div class="bk-scroll"><div class="bk" style="--tc:${TC}">${cols}${champ}</div></div>
+    <div class="faint swipe" style="font-size:12.5px;display:flex;gap:6px;align-items:center">${ICON("arrow", "sm")}${T("td.scroll")}</div>`;
+}
+
+// groups / league tables
+function formOf(team, matches) {
+  return matches.filter(m => (m.a === team || m.b === team) && m.sa != null).slice(-5).map(m => { const my = m.a === team ? m.sa : m.sb, ot = m.a === team ? m.sb : m.sa; return my > ot ? "W" : my < ot ? "L" : "D"; });
+}
+function groupsPane() {
+  if (!t.groups) return `<div class="empty">${ICON("grid", "lg")}<h3 style="margin:10px 0 6px">${T("td.groupsNone")}</h3><p class="muted" style="margin:0 auto;max-width:460px;font-size:14px">${T("td.groupsNoneSub", { d: FMT.dateLong(DAY.date(t.regEnd)) })}</p></div>`;
+  const league = t.format === "league", played = t.groups.some(g => g.matches.some(m => m.sa != null)), done = t.status === "done";
+  const res = m => m.sa != null ? `<div class="res"><span class="${m.sa > m.sb ? "w" : ""}">${esc(m.a)}</span><b>${m.sa}–${m.sb}</b><span class="${m.sb > m.sa ? "w" : ""}">${esc(m.b)}</span></div>`
+    : `<div class="res"><span>${esc(m.a)}</span><b class="faint">vs</b><span>${esc(m.b)}</span></div>`;
+  return `<div class="groups${t.groups.length === 1 ? " one" : ""}">${t.groups.map(g => `<div class="card gcard">
+    <div class="gcard-h"><h3>${league ? `<span class="gl">${ICON("chart", "sm")}</span>${T("td.tStandings")}` : `<span class="gl">${g.name}</span>${T("td.group", { g: g.name })}`}</h3><span class="faint" style="font-size:12.5px;font-weight:700">${matchesN(g.matches.length)}</span></div>
+    <table class="st"><thead><tr><th class="l">#</th><th class="l">${T("td.team")}</th><th>${T("td.P")}</th><th>${T("td.W")}</th><th>${T("td.D")}</th><th>${T("td.L")}</th><th class="hide-m">${T("td.GF")}</th><th class="hide-m">${T("td.GA")}</th><th>${T("td.GD")}</th><th class="hide-m">${T("td.form")}</th><th>${T("td.Pts")}</th></tr></thead>
+    <tbody>${g.rows.map((r, i) => {
+      const isQ = played && (league ? i < 3 : i < 2), gd = r.gf - r.ga;
+      return `<tr class="${isQ ? "q" : ""}${league && done && i === 0 ? " gold" : ""}${isMe(r.team) ? " me" : ""}"><td class="pos l">${played ? i + 1 : "–"}</td><td class="tm l"><div class="in">${avatar(r.team, "sm")}<span>${esc(r.team)}</span></div></td>
+        <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td class="hide-m">${r.gf}</td><td class="hide-m">${r.ga}</td><td>${gd > 0 ? "+" + gd : gd}</td>
+        <td class="hide-m"><span class="form">${formOf(r.team, g.matches).map(x => `<i class="${x}">${T("td." + x)}</i>`).join("")}</span></td><td class="pts">${r.pts}</td></tr>`;
+    }).join("")}</tbody></table>
+    <div class="legend"><span><i></i>${league ? T("td.medals") : T("td.qual")}</span>${league ? `<span><i style="background:#ffd25a"></i>${T("td.leagueWin")}</span>` : ""}</div>
+    <div class="gm-t">${played ? T("td.results") : T("td.fixturesT")}</div>
+    <div class="gm">${(league ? g.matches.slice(played ? -8 : 0, played ? undefined : 8) : g.matches).map(res).join("")}</div>
+  </div>`).join("")}</div>`;
+}
+
+// teams
+function entrantStatus(n) {
+  if (t.bracket && t.status === "done") {
+    let lastK = -1, lostK = -1;
+    t.bracket.forEach((ms, k) => ms.forEach(m => { if (m.a === n || m.b === n) { lastK = k; if (m.winner && m.winner !== n) lostK = k; } }));
+    const fin = t.bracket[t.bracket.length - 1][0];
+    if (fin.winner === n) return [T("td.won"), "gold"];
+    if (lostK === t.bracket.length - 1) return [T("td.runner"), "in"];
+    if (lostK >= 0) return [T("td.outIn", { r: roundName(lostK) }), "out"];
+    if (lastK >= 0) return [T("td.stillIn", { r: roundName(lastK) }), "in"];
+  }
+  if (t.groups && t.format === "league" && t.status === "done") { const i = t.groups[0].rows.findIndex(r => r.team === n); if (i >= 0) return [T("td.posN", { n: i + 1, p: t.groups[0].rows[i].pts }), i === 0 ? "gold" : ""]; }
+  if (t.groups && t.format === "groups") { const g = t.groups.find(g => g.rows.some(r => r.team === n)); if (g) return [T("td.inGroup", { g: g.name }), "in"]; }
+  const r = t.regs.find(x => x.name === n && x.status === "accepted");
+  if (r) return [`${T("td.captain", { n: esc(r.captain || "") })} · ${playersN(r.players || t.teamSize)}`, "in"];
+  return [canReg ? T("td.waiting") : T("td.amateur"), ""];
+}
+function entrantsPane() {
+  const n = t.entrants.length, open = canReg ? Math.max(0, t.max - n) : 0, r = mine();
+  const list = t.entrants.map((e, i) => { const [s, c] = entrantStatus(e); return `<div class="ent${isMe(e) ? " me" : ""}">${avatar(e)}<div style="min-width:0"><div class="nm">${esc(e)}${isMe(e) ? ` <span class="pill blue">${T("td.you")}</span>` : ""}</div><small class="${c}">${s}</small></div><span class="num">${String(i + 1).padStart(2, "0")}</span></div>`; }).join("");
+  // your request that is not accepted (yet) shows at the top with its status
+  const own = r && r.status !== "accepted" ? `<div class="ent me req">${avatar(r.name)}<div style="min-width:0"><div class="nm">${esc(r.name)}</div><small>${T("td.captain", { n: esc(r.captain || "") })} · ${playersN(r.players || t.teamSize)}</small></div>${regStatusPill(r.status)}</div>` : "";
+  const opens = Array.from({ length: open }, () => `<div class="ent open" data-reg role="button" tabindex="0"><span class="av">${ICON("plus", "sm")}</span><div><div class="nm">${T("td.openSpot")}</div><small>${r && r.status !== "declined" ? "" : T("td.takeIt")}</small></div></div>`).join("");
+  return `<div class="ent-head"><h2 style="margin:0">${T("td.tTeams")}</h2><span class="pill lime">${T("td.registered", { n })} / ${t.max}</span></div>
+    ${own ? `<div class="ents" style="margin-bottom:10px">${own}</div>` : ""}
+    <div class="ents">${list}${opens}</div>`;
+}
+
+// schedule
+let schedF = "all";
+function schedulePane() {
+  const ev = scheduleEvents();
+  const hasBoth = ev.some(e => e.done) && ev.some(e => !e.done && !e.round);
+  const list = ev.filter(e => schedF === "all" || (schedF === "done" ? e.done : !e.done));
+  const byDay = {}; list.forEach(e => { (byDay[e.day] = byDay[e.day] || []).push(e); });
+  const row = e => {
+    if (e.round) return `<div class="smr rnd"><span class="tm">${FMT.time(e.hour)}</span><span style="font-weight:700">${e.stage}</span><span class="stg">${T("td.tbd")}</span></div>`;
+    const nm = (n, side) => { const cls = !n ? "tbd" : e.done && ((side === "a" && e.sa < e.sb) || (side === "b" && e.sb < e.sa)) ? "lose" : ""; return `<span class="${cls}">${n ? esc(n) : T("td.tbd")}</span>`; };
+    const sc = e.done ? `<span class="vs">${e.sa}–${e.sb}</span>` : `<span class="vs up">vs</span>`;
+    return `<div class="smr${isMe(e.a) || isMe(e.b) ? " me" : ""}"><span class="tm">${FMT.time(e.hour)}<span class="stg-m">${e.stage}</span></span>
+      <span class="a">${nm(e.a, "a")}${avatar(e.a, "sm")}</span>${sc}<span class="b">${avatar(e.b, "sm")}${nm(e.b, "b")}</span><span class="stg">${e.stage}</span></div>`;
+  };
+  const days = Object.keys(byDay).map(Number).sort((a, b) => a - b);
+  const filt = hasBoth ? `<div class="chips sfilter">${[["all", "td.allMatches"], ["up", "td.upcoming"], ["done", "td.finished"]].map(([k, l]) => `<button class="chip" data-sf="${k}" aria-pressed="${schedF === k}">${T(l)}</button>`).join("")}</div>` : "";
+  const fixNote = ev.some(e => e.tbdFix) ? `<div class="bk-note">${ICON("clock", "sm")}${T("td.fixtures")}</div>` : "";
+  const fieldNote = `<div class="bk-note">${ICON("pin", "sm")}${V.name} · ${KH.courtName(FIELD)} ${FIELD.format}</div>`;
+  return `${filt}${fieldNote}${fixNote}${days.length ? days.map(d => `<div class="sday"><div class="sday-h${d === 0 ? " today" : ""}"><b>${dayLabel(d)}</b><small>${d === 0 || d === 1 ? FMT.dateLong(DAY.date(d)) + " · " : ""}${matchesN(byDay[d].filter(e => !e.round).length || byDay[d].length)}</small></div>${byDay[d].map(row).join("")}</div>`).join("") : `<div class="empty">${T("td.noMatches")}</div>`}`;
+}
+
+// ---------- team registration (a request the Bookball team accepts) ----------
+function openReg() {
+  const r0 = mine();
+  if ((r0 && r0.status !== "declined") || !canReg || t.entrants.length >= t.max) return;
+  const prof = STORE.get("profile", null);
+  const sc = document.createElement("div"); sc.className = "scrim"; sc.style.setProperty("--tc", TC);
+  const close = () => sc.remove();
+  sc.onclick = e => { if (e.target === sc) close(); };
+  sc.onkeydown = e => { if (e.key === "Escape") close(); };
+  let count = Math.min(t.teamSize, minSquad + 2);
+  const sizes = []; for (let k = minSquad; k <= t.teamSize; k++) sizes.push(k);
+  const field = (id, label, val, ph) => `<div class="field" style="margin-bottom:12px"><label for="${id}">${label}</label><input class="input" id="${id}" value="${esc(val || "")}" placeholder="${esc(ph || "")}" autocomplete="off" maxlength="40"></div>`;
+  sc.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rgt">
+    <div class="row"><h3 id="rgt">${T("rg.title")}</h3><button class="x" aria-label="${T("close")}">${ICON("x")}</button></div>
+    <p class="muted" style="font-size:13.5px;margin:6px 0 0">${T("rg.sub")}</p>
+    <div class="reg-sum"><span class="ic">${ICON("ball", "lg")}</span><div><b>${tt(t.name)}</b><small>${tourDates(t)} · ${V.name} · ${Z.format}</small></div></div>
+    ${field("rgTeam", T("rg.team"), r0 ? r0.name : "", T("rg.teamPh"))}${field("rgCap", T("rg.captain"), prof ? prof.name : "")}
+    <div class="field"><label>${T("rg.playersN")}</label><div class="chips wrapc" id="rgCount">${sizes.map(k => `<button class="chip" data-n="${k}" aria-pressed="${k === count}">${k}</button>`).join("")}</div><small class="faint" style="font-size:12px">${T("rg.min", { a: minSquad, b: t.teamSize })}</small></div>
+    <label class="agree"><input type="checkbox" id="rgAgree"><span>${T("rg.agree")}</span></label>
+    <div id="rgErr" style="font-size:12.5px;color:var(--hot);min-height:20px"></div>
+    <div class="fee-line"><span class="muted">${T("rg.total")} <small class="faint">· ${T("rg.atVenue")}</small></span><b>${FMT.amd(t.fee)} <small class="muted" style="font-family:var(--body);font-size:13px">${T("card.perTeam")}</small></b></div>
+    <button class="btn block" id="rgGo">${ICON("send", "sm")}${T("rg.next")}</button></div>`;
+  document.body.append(sc);
+  sc.querySelector(".x").onclick = close;
+  sc.querySelectorAll("#rgCount .chip").forEach(b => { b.onclick = () => { count = +b.dataset.n; sc.querySelectorAll("#rgCount .chip").forEach(x => x.setAttribute("aria-pressed", x === b)); }; });
+  sc.querySelector("#rgTeam").focus();
+  sc.querySelector("#rgGo").onclick = () => {
+    const err = m => { sc.querySelector("#rgErr").textContent = m; };
+    const team = sc.querySelector("#rgTeam").value.trim(), captain = sc.querySelector("#rgCap").value.trim();
+    if (!team || !captain) return err(T("rg.errName"));
+    const taken = t.entrants.concat(t.regs.filter(x => x.status === "pending" && x !== r0).map(x => x.name));
+    if (taken.some(e => e.toLowerCase() === team.toLowerCase())) return err(T("rg.errTaken"));
+    if (!sc.querySelector("#rgAgree").checked) return err(T("rg.errAgree"));
+    close();
+    verifyPhone(profile => {
+      const reg = { id: "r" + Date.now().toString(36) + Math.floor(Math.random() * 1e3), t: t.id, name: team, captain, phone: profile.phone, players: count, created: Date.now(), status: "pending" };
+      STORE.push("regs", reg);
+      KH.notify(profile.phone, "tg.regSent", { t: t.id, team });
+      t.regs.push(reg);
+      draw(); success(reg);
+    });
+  };
+}
+function success(reg) {
+  const sc = document.createElement("div"); sc.className = "scrim";
+  const close = () => sc.remove();
+  sc.onclick = e => { if (e.target === sc) close(); };
+  sc.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" style="text-align:center">
+    <div class="ok-ic">${ICON("send")}</div>
+    <h3 style="font-size:24px">${T("rg.done")}</h3>
+    <p class="muted" style="margin:8px 0 0;font-size:14px">${T("rg.doneSub")}</p>
+    <div class="ticket" style="text-align:left">
+      <div><span>${T("rg.status")}</span><b>${regStatusPill(reg.status)}</b></div>
+      <div><span>${T("rg.entry")}</span><b>${esc(reg.name)} · ${reg.players}</b></div>
+      <div><span>${T("td.title")}</span><b>${tt(t.name)}</b></div>
+      <div><span>${T("rg.when")}</span><b>${FMT.dateLong(DAY.date(t.start))}</b></div>
+      <div><span>${T("rg.where")}</span><b>${V.name}</b></div>
+      <div><span>${T("rg.pay")}</span><b>${FMT.amd(t.fee)} ${T("card.perTeam")}</b></div>
+    </div>
+    <div class="row" style="gap:8px"><a class="btn ghost" style="flex:1" href="${link("my.html", { tab: "tours" })}">${T("rg.my")}</a><button class="btn" style="flex:1" id="okDone">${T("rg.ok")}</button></div></div>`;
+  document.body.append(sc);
+  sc.querySelector("#okDone").onclick = close;
+}
+
+// ---------- draw ----------
+function setTab(k) { cur = k; try { history.replaceState(null, "", "#" + k); } catch (e) {} draw(); }
+function draw() {
+  TABS = tabsFor();
+  const n = t.entrants.length;
+  app.innerHTML = header() +
+    `<div class="tabs ttabs" id="tabs" role="tablist">${TABS.map(([k, l, ic]) => `<button role="tab" data-tab="${k}" aria-selected="${k === cur}">${ICON(ic, "sm")}${T(l)}${k === "entrants" ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
+    <section class="pane" id="pane" style="--tc:${TC}">${pane()}</section>`;
+  app.querySelectorAll("[data-tab]").forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
+  const rb = document.getElementById("regBtn"); if (rb) rb.onclick = openReg;
+  app.querySelectorAll("[data-reg]").forEach(b => { b.onclick = openReg; b.onkeydown = e => { if (e.key === "Enter") openReg(); }; });
+  app.querySelectorAll("[data-sf]").forEach(b => { b.onclick = () => { schedF = b.dataset.sf; draw(); }; });
+  const sb = document.getElementById("shareBtn");
+  if (sb) sb.onclick = () => { try { navigator.clipboard.writeText(location.href); } catch (e) {} toast(T("td.copied")); };
+}
+window.addEventListener("hashchange", () => { const k = location.hash.slice(1); if (k !== cur && TABS.some(x => x[0] === k)) { cur = k; draw(); } });
+draw();
+</script>
+</body>
+</html>
