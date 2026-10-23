@@ -1,0 +1,80 @@
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Test Case
+|--------------------------------------------------------------------------
+|
+| The closure you provide to your test functions is always bound to a specific PHPUnit test
+| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
+| need to change it using the "pest()" function to bind a different classes or traits.
+|
+*/
+
+pest()->extend(Tests\TestCase::class)
+    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('Feature');
+
+/*
+|--------------------------------------------------------------------------
+| Expectations
+|--------------------------------------------------------------------------
+|
+| When you're writing tests, you often need to check that values meet certain conditions. The
+| "expect()" function gives you access to a set of "expectations" methods that you can use
+| to assert different things. Of course, you may extend the Expectation API at any time.
+|
+*/
+
+expect()->extend('toBeOne', function () {
+    return $this->toBe(1);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Functions
+|--------------------------------------------------------------------------
+|
+| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
+| project that you don't want to repeat in every file. Here you can also expose helpers as
+| global functions to help you to reduce the number of lines of code in your test files.
+|
+*/
+
+function something()
+{
+    // ..
+}
+
+/*
+| Bookball helpers
+*/
+
+/** A place open 08:00–24:00 every day with a small (15 000 / 20 000 ֏) and a big field (40 000 / 50 000 ֏). */
+function makeVenue(array $rules = []): App\Models\Venue
+{
+    $venue = App\Models\Venue::create([
+        'slug' => 'test-'.uniqid(), 'name' => 'Test Park', 'district' => 'arabkir',
+        'address' => ['en' => '1 Test St', 'hy' => 'Թեստ 1', 'ru' => 'Тест 1'], 'amenities' => [], 'rules' => $rules, 'status' => 'active',
+    ]);
+    foreach (range(0, 6) as $wd) {
+        App\Models\OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '08:00', 'closes_at' => '24:00']);
+    }
+    foreach ([['small', 15000, 20000, [60, 90, 120], 60], ['big', 40000, 50000, [90, 120], 90]] as $i => [$size, $day, $prime, $durations, $def]) {
+        $field = App\Models\Field::create(['venue_id' => $venue->id, 'size' => $size, 'format' => $size === 'small' ? '5×5' : '11×11',
+            'max_players' => $size === 'small' ? 10 : 22, 'durations' => $durations, 'default_duration' => $def, 'sort' => $i]);
+        App\Models\PriceRule::create(['field_id' => $field->id, 'weekdays' => [1, 2, 3, 4, 5], 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => $day, 'priority' => 1]);
+        App\Models\PriceRule::create(['field_id' => $field->id, 'weekdays' => [1, 2, 3, 4, 5], 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => $prime, 'priority' => 1]);
+        App\Models\PriceRule::create(['field_id' => $field->id, 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $prime, 'priority' => 2]);
+    }
+
+    return $venue->load('fields', 'openingHours');
+}
+
+/** Next Wednesday (a weekday) at a local hour, e.g. at(17.5) = 17:30. */
+function at(float $hour, int $plusDays = 0): Carbon\CarbonImmutable
+{
+    $wed = App\Support\LocalTime::now()->startOfDay()->next(Carbon\CarbonInterface::WEDNESDAY)->addDays($plusDays);
+
+    return App\Support\LocalTime::at($wed, $hour);
+}

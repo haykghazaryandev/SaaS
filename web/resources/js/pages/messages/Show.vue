@@ -1,0 +1,525 @@
+<script setup lang="ts">
+import Icon from '@/components/Icon.vue';
+import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, initials, sysText, userName } from '@/composables/useChat';
+import { useShared } from '@/composables/useShared';
+import { echoConnected, echoState } from '@/lib/echo';
+import PlayerLayout from '@/layouts/PlayerLayout.vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+
+// A chat screen (direct or game chat). Live over Reverb: private-conversation.{id} ".message" {action, message}
+// and the "typing" whisper; when the socket is down it polls /history?after=<last id> every 5 s.
+const props = defineProps<{
+    chat: ChatItem & { members: number; lastReadId: number | null };
+    messages: ChatMessage[];
+    hasMore: boolean;
+    editMinutes: number;
+    maxLength: number;
+    canReport: boolean;
+}>();
+const { user } = useShared();
+const me = computed(() => user.value?.id ?? 0);
+const cid = props.chat.id;
+const archived = computed(() => props.chat.archived);
+
+const msgs = ref<ChatMessage[]>([...props.messages]);
+const more = ref(props.hasMore);
+const lastId = () => msgs.value.reduce((n, m) => Math.max(n, m.id), 0);
+const now = ref(Date.now());
+
+// ---------- list: days, runs of the same author, the "unread" divider ----------
+const dividerAfter = props.lastReadId ?? 0;
+const firstUnread = computed(() => (dividerAfter ? msgs.value.find((m) => m.id > dividerAfter && m.user?.id !== me.value)?.id : undefined));
+type Row = { m: ChatMessage; mine: boolean; head: boolean; tail: boolean };
+const groups = computed(() => {
+    const out: { key: string; label: string; rows: Row[] }[] = [];
+    msgs.value.forEach((m, i) => {
+        const key = dayKey(m.created_at);
+        if (!out.length || out[out.length - 1].key !== key) out.push({ key, label: dayLabel(key), rows: [] });
+        const prev = msgs.value[i - 1];
+        const next = msgs.value[i + 1];
+        const same = (a?: ChatMessage, b?: ChatMessage) =>
+            !!a && !!b && a.type !== 'system' && b.type !== 'system' && a.user?.id === b.user?.id && dayKey(a.created_at) === dayKey(b.created_at) && Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60e3;
+        out[out.length - 1].rows.push({ m, mine: m.user?.id === me.value, head: !same(prev, m) || m.id === firstUnread.value, tail: !same(m, next) });
+    });
+    return out;
+});
+const isGame = props.chat.type === 'game';
+
+// ---------- scrolling ----------
+const scroller = ref<HTMLElement>();
+const newBelow = ref(0);
+const nearBottom = () => {
+    const el = scroller.value;
+    return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+};
+async function toBottom(smooth = false) {
+    await nextTick();
+    const el = scroller.value;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    newBelow.value = 0;
+}
+function onScroll() {
+    if (nearBottom()) {
+        newBelow.value = 0;
+        markRead();
+    }
+    if (scroller.value && scroller.value.scrollTop < 80 && more.value && !loadingOlder.value) loadOlder();
+}
+
+// ---------- merge messages (from the server, the socket or polling) ----------
+function upsert(list: ChatMessage[]) {
+    let added = 0;
+    for (const m of list) {
+        if (m.conversation_id !== cid) continue;
+        const i = msgs.value.findIndex((x) => x.id === m.id);
+        if (i >= 0) msgs.value[i] = m;
+        else {
+            const at = msgs.value.findIndex((x) => x.id > m.id);
+            if (at < 0) msgs.value.push(m);
+            else msgs.value.splice(at, 0, m);
+            if (m.user?.id !== me.value) added++;
+            if (m.user) delete typers.value[m.user.id];
+        }
+        // quotes of this message follow its edits / deletion
+        for (const x of msgs.value) if (x.reply?.id === m.id) x.reply = { ...x.reply, body: m.body, deleted: m.deleted };
+    }
+    return added;
+}
+async function receive(list: ChatMessage[]) {
+    const stick = nearBottom();
+    const added = upsert(list);
+    if (!added) return;
+    if (stick) await toBottom(true);
+    else newBelow.value += added;
+    markRead();
+}
+
+// ---------- older messages ----------
+const loadingOlder = ref(false);
+async function loadOlder() {
+    if (!more.value || loadingOlder.value || !msgs.value.length) return;
+    loadingOlder.value = true;
+    const el = scroller.value;
+    const before = el ? el.scrollHeight - el.scrollTop : 0;
+    try {
+        const r = await api<{ messages: ChatMessage[]; hasMore: boolean }>('GET', route('messages.history', { conversation: cid, before: msgs.value[0].id }));
+        upsert(r.messages);
+        more.value = r.hasMore;
+        await nextTick();
+        if (el) el.scrollTop = el.scrollHeight - before; // keep the view where it was
+    } catch {
+        /* try again on the next scroll */
+    } finally {
+        loadingOlder.value = false;
+    }
+}
+
+// ---------- read receipts ----------
+let readSent = props.lastReadId ?? 0;
+let readTimer: number | undefined;
+function markRead() {
+    clearTimeout(readTimer);
+    readTimer = window.setTimeout(() => {
+        const id = lastId();
+        if (document.visibilityState !== 'visible' || id <= readSent || !nearBottom()) return;
+        readSent = id;
+        api('POST', route('messages.read', cid), { id }).catch(() => (readSent = 0));
+    }, 400);
+}
+function onVisible() {
+    if (document.visibilityState === 'visible') {
+        markRead();
+        if (!echoConnected()) poll();
+    }
+}
+
+// ---------- live ----------
+const typers = ref<Record<number, { name: string; until: number }>>({});
+const typingText = computed(() => {
+    const names = Object.values(typers.value)
+        .filter((t) => t.until > now.value)
+        .map((t) => t.name);
+    if (!names.length) return '';
+    if (names.length === 1) return trans('messages.typing1', { name: names[0] });
+    if (names.length === 2) return trans('messages.typing2', { a: names[0], b: names[1] });
+    return trans('messages.typingMany');
+});
+let subscribed = false;
+const channelName = `conversation.${cid}`;
+function subscribe() {
+    if (subscribed || !window.Echo) return;
+    subscribed = true;
+    window.Echo.private(channelName)
+        .listen('.message', (e: { action: string; message: ChatMessage }) => receive([e.message]))
+        .listenForWhisper('typing', (e: { id: number; name: string }) => {
+            if (e.id !== me.value) typers.value[e.id] = { name: e.name, until: Date.now() + 4000 };
+        });
+}
+let lastWhisper = 0;
+function whisperTyping() {
+    if (!window.Echo || !subscribed || Date.now() - lastWhisper < 2500) return;
+    lastWhisper = Date.now();
+    try {
+        window.Echo.private(channelName).whisper('typing', { id: me.value, name: user.value?.name || trans('messages.player') });
+    } catch {
+        /* not subscribed yet */
+    }
+}
+// fallback + catching up after a reconnect
+let polling = false;
+async function poll() {
+    if (polling) return;
+    polling = true;
+    try {
+        const r = await api<{ messages: ChatMessage[] }>('GET', route('messages.history', { conversation: cid, after: lastId() }));
+        await receive(r.messages);
+    } catch {
+        /* offline: next tick */
+    } finally {
+        polling = false;
+    }
+}
+watch(echoState, (s, old) => {
+    subscribe();
+    if (s === 'connected' && old && old !== 'connected') poll();
+});
+
+// ---------- composer ----------
+const text = ref('');
+const sending = ref(false);
+const error = ref('');
+const replying = ref<ChatMessage | null>(null);
+const editing = ref<ChatMessage | null>(null);
+const input = ref<HTMLTextAreaElement>();
+const len = computed(() => text.value.trim().length);
+const tooLong = computed(() => text.value.length > props.maxLength);
+
+function grow() {
+    const el = input.value;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+}
+function onInput() {
+    grow();
+    error.value = '';
+    if (text.value.trim()) whisperTyping();
+}
+function onKey(e: KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        submit();
+    } else if (e.key === 'Escape') {
+        cancelMode();
+    }
+}
+function cancelMode() {
+    if (editing.value) text.value = '';
+    editing.value = null;
+    replying.value = null;
+    nextTick(grow);
+}
+async function submit() {
+    const body = text.value.trim();
+    if (!body || tooLong.value || sending.value) return;
+    sending.value = true;
+    error.value = '';
+    try {
+        if (editing.value) {
+            const r = await api<{ message: ChatMessage }>('PATCH', route('messages.update', editing.value.id), { body });
+            upsert([r.message]);
+            editing.value = null;
+        } else {
+            const r = await api<{ message: ChatMessage }>('POST', route('messages.send', cid), { body, reply_to: replying.value?.id ?? null });
+            upsert([r.message]);
+            replying.value = null;
+            toBottom(true);
+        }
+        text.value = '';
+        await nextTick();
+        grow();
+    } catch (e) {
+        error.value = (e as Error).message;
+    } finally {
+        sending.value = false;
+        input.value?.focus();
+    }
+}
+
+// ---------- message actions ----------
+const active = ref<number | null>(null);
+const confirmDelete = ref(false);
+const reported = ref<number[]>([]);
+const canChange = (m: ChatMessage) => !archived.value && m.type === 'text' && !m.deleted && m.user?.id === me.value && now.value - new Date(m.created_at).getTime() < props.editMinutes * 60e3;
+function toggle(m: ChatMessage) {
+    if (m.deleted || m.type === 'system') return;
+    active.value = active.value === m.id ? null : m.id;
+    confirmDelete.value = false;
+}
+function reply(m: ChatMessage) {
+    editing.value = null;
+    replying.value = m;
+    active.value = null;
+    input.value?.focus();
+}
+function edit(m: ChatMessage) {
+    replying.value = null;
+    editing.value = m;
+    text.value = m.body ?? '';
+    active.value = null;
+    nextTick(() => {
+        grow();
+        input.value?.focus();
+    });
+}
+async function remove(m: ChatMessage) {
+    if (!confirmDelete.value) {
+        confirmDelete.value = true;
+        return;
+    }
+    try {
+        const r = await api<{ message: ChatMessage }>('DELETE', route('messages.destroy', m.id));
+        upsert([r.message]);
+    } catch (e) {
+        error.value = (e as Error).message;
+    }
+    active.value = null;
+    confirmDelete.value = false;
+}
+async function report(m: ChatMessage) {
+    try {
+        await api('POST', route('reports.store'), { type: 'message', id: m.id, target_type: 'message', target_id: m.id, reason: 'chat message' });
+        reported.value.push(m.id);
+    } catch (e) {
+        error.value = (e as Error).message;
+    }
+    active.value = null;
+}
+function jumpTo(id: number) {
+    const el = document.getElementById(`m${id}`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('flash');
+    window.setTimeout(() => el.classList.remove('flash'), 1200);
+}
+const quoteText = (r: NonNullable<ChatMessage['reply']>) => (r.deleted ? trans('messages.deleted') : r.type === 'system' ? sysText(r.body, r.meta) : (r.body ?? ''));
+
+// ---------- lifecycle ----------
+let pollTimer: number | undefined;
+let clockTimer: number | undefined;
+onMounted(async () => {
+    subscribe();
+    pollTimer = window.setInterval(() => {
+        subscribe();
+        if (!echoConnected() && document.visibilityState === 'visible') poll();
+    }, 5000);
+    clockTimer = window.setInterval(() => (now.value = Date.now()), 1000);
+    document.addEventListener('visibilitychange', onVisible);
+    await nextTick();
+    const first = firstUnread.value && document.getElementById(`m${firstUnread.value}`);
+    if (first && scroller.value) {
+        scroller.value.scrollTop = Math.max(0, first.offsetTop - 80);
+    } else await toBottom();
+    markRead();
+});
+onBeforeUnmount(() => {
+    clearInterval(pollTimer);
+    clearInterval(clockTimer);
+    clearTimeout(readTimer);
+    document.removeEventListener('visibilitychange', onVisible);
+    if (subscribed) window.Echo?.leave(channelName);
+});
+</script>
+
+<template>
+    <PlayerLayout>
+        <Head :title="chatTitle(chat)" />
+        <div class="chat">
+            <header class="chead">
+                <Link class="back" :href="route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
+                <span :class="['cav', chat.type]">
+                    <Icon v-if="isGame" name="ball" />
+                    <template v-else>{{ initials(chat.other?.name) }}</template>
+                </span>
+                <div class="ht">
+                    <b>{{ chatTitle(chat) }}</b>
+                    <span v-if="chat.game" class="hs">
+                        {{ $t(`messages.status.${chat.game.status}`) }} · {{ $t('messages.players', { n: String(chat.game.players), t: String(chat.game.total) }) }} · {{ $t('messages.members', { n: String(chat.members) }) }}
+                    </span>
+                    <span v-else class="hs">{{ $t('messages.direct') }}</span>
+                </div>
+                <Link v-if="chat.game?.url" class="btn ghost sm" :href="chat.game.url"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.openGame') }}</span></Link>
+            </header>
+
+            <div v-if="archived" class="banner">
+                <Icon name="clock" size="sm" />
+                <span>{{ $t('messages.archived') }}</span>
+                <Link v-if="chat.game?.url" class="btn sm" :href="chat.game.url">{{ $t('messages.playAgain') }}</Link>
+            </div>
+
+            <div ref="scroller" class="cbody" @scroll.passive="onScroll" @click.self="active = null">
+                <button v-if="more" type="button" class="older" :disabled="loadingOlder" @click="loadOlder">{{ $t('messages.older') }}</button>
+                <p v-if="!msgs.length" class="none">{{ $t('messages.noMessages') }}</p>
+                <template v-for="g in groups" :key="g.key">
+                    <div class="dsep"><span>{{ g.label }}</span></div>
+                    <template v-for="r in g.rows" :key="r.m.id">
+                        <div v-if="r.m.id === firstUnread" class="newline"><span>{{ $t('messages.unread') }}</span></div>
+                        <div v-if="r.m.type === 'system'" :id="`m${r.m.id}`" class="sys">
+                            <span>{{ sysText(r.m.body, r.m.meta) }}</span>
+                        </div>
+                        <div v-else :id="`m${r.m.id}`" :class="['mrow', { mine: r.mine, head: r.head, tail: r.tail }]">
+                            <span v-if="!r.mine && isGame" class="mav" :aria-hidden="true">{{ r.tail ? initials(userName(r.m.user)) : '' }}</span>
+                            <div class="mcol">
+                                <span v-if="!r.mine && isGame && r.head" class="mname">{{ userName(r.m.user) }}</span>
+                                <div :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id }]" role="button" tabindex="0" :aria-label="$t('messages.actions')" @click="toggle(r.m)" @keydown.enter.prevent="toggle(r.m)">
+                                    <button v-if="r.m.reply && !r.m.deleted" type="button" class="quote" @click.stop="jumpTo(r.m.reply.id)">
+                                        <b>{{ r.m.reply.user?.id === me ? $t('messages.you') : userName(r.m.reply.user) }}</b>
+                                        <span>{{ quoteText(r.m.reply) }}</span>
+                                    </button>
+                                    <span v-if="r.m.deleted" class="txt"><Icon name="trash" size="sm" />{{ $t('messages.deleted') }}</span>
+                                    <span v-else class="txt">{{ r.m.body }}</span>
+                                    <span class="meta">
+                                        <template v-if="r.m.edited && !r.m.deleted">{{ $t('messages.edited') }} · </template>{{ clock(r.m.created_at) }}
+                                    </span>
+                                </div>
+                                <div v-if="active === r.m.id" class="acts">
+                                    <button v-if="!archived" type="button" @click="reply(r.m)"><Icon name="arrow" size="sm" />{{ $t('messages.reply') }}</button>
+                                    <template v-if="canChange(r.m)">
+                                        <button type="button" @click="edit(r.m)"><Icon name="edit" size="sm" />{{ $t('messages.edit') }}</button>
+                                        <button type="button" class="danger" @click="remove(r.m)"><Icon name="trash" size="sm" />{{ confirmDelete ? $t('messages.deleteSure') : $t('messages.delete') }}</button>
+                                    </template>
+                                    <button v-if="canReport && !r.mine && !reported.includes(r.m.id)" type="button" @click="report(r.m)"><Icon name="x" size="sm" />{{ $t('messages.report') }}</button>
+                                    <span v-if="reported.includes(r.m.id)" class="ok">{{ $t('messages.reported') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </div>
+
+            <div class="under">
+                <button v-if="newBelow" type="button" class="jump" @click="toBottom(true)">{{ $t('messages.newBelow') }} · {{ newBelow }}</button>
+                <div class="typing" aria-live="polite">{{ typingText }}</div>
+            </div>
+            <div v-if="echoState !== 'connected' && echoState !== 'connecting' && echoState !== 'initialized'" class="offline">{{ $t('messages.offline') }}</div>
+
+            <form v-if="!archived" class="composer" @submit.prevent="submit">
+                <div v-if="replying || editing" class="mode">
+                    <Icon :name="editing ? 'edit' : 'arrow'" size="sm" />
+                    <div class="mt">
+                        <b>{{ editing ? $t('messages.editing') : $t('messages.replyTo', { name: replying?.user?.id === me ? $t('messages.you') : userName(replying?.user) }) }}</b>
+                        <span>{{ (editing ?? replying)?.body }}</span>
+                    </div>
+                    <button type="button" class="x" :aria-label="$t('messages.cancel')" @click="cancelMode"><Icon name="x" size="sm" /></button>
+                </div>
+                <div class="box">
+                    <textarea
+                        ref="input"
+                        v-model="text"
+                        rows="1"
+                        :placeholder="$t('messages.placeholder')"
+                        :aria-label="$t('messages.placeholder')"
+                        :title="$t('messages.hint')"
+                        @input="onInput"
+                        @keydown="onKey"
+                    />
+                    <button type="submit" class="send" :disabled="!len || tooLong || sending" :aria-label="editing ? $t('messages.save') : $t('messages.send')">
+                        <Icon :name="editing ? 'check' : 'send'" />
+                    </button>
+                </div>
+                <div class="cfoot">
+                    <span class="err" role="alert">{{ error }}</span>
+                    <span :class="['count', { warn: text.length > maxLength - 100, over: tooLong }]">{{ text.length }}/{{ maxLength }}</span>
+                </div>
+            </form>
+        </div>
+    </PlayerLayout>
+</template>
+
+<style scoped>
+.chat { max-width: 820px; margin: 12px auto 0; display: flex; flex-direction: column; height: calc(100dvh - 64px - 24px); min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.chead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2); min-width: 0; }
+.back { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); flex: none; }
+.back:hover { background: var(--surface-2); color: var(--ink); }
+.cav { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; background: var(--surface-3); border: 1px solid var(--line-2); }
+.cav.game { background: var(--free-soft); color: var(--accent-2); border-color: rgba(94, 240, 168, 0.3); }
+.ht { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ht b { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--warn-soft); color: var(--warn); font-size: 13px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.banner span { flex: 1; min-width: 200px; }
+
+.cbody { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 14px 6px; display: flex; flex-direction: column; overscroll-behavior: contain; }
+.older { align-self: center; margin: 4px 0 10px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--muted); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 700; }
+.none { text-align: center; color: var(--muted); margin: auto 0; }
+.dsep { text-align: center; margin: 12px 0 6px; position: sticky; top: -12px; z-index: 2; }
+.dsep span { display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); padding: 3px 10px; border-radius: 999px; }
+.newline { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--accent); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.newline::before, .newline::after { content: ''; flex: 1; height: 1px; background: rgba(200, 255, 61, 0.35); }
+.sys { text-align: center; margin: 8px 0; }
+.sys span { display: inline-block; max-width: 92%; font-size: 12.5px; color: var(--muted); background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--line-2); border-radius: 12px; padding: 5px 12px; overflow-wrap: anywhere; }
+
+.mrow { display: flex; gap: 8px; align-items: flex-end; margin-top: 2px; min-width: 0; }
+.mrow.head { margin-top: 10px; }
+.mrow.mine { justify-content: flex-end; }
+.mav { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--surface-3); }
+.mav:empty { background: none; }
+.mcol { display: flex; flex-direction: column; max-width: min(78%, 560px); min-width: 0; }
+.mine .mcol { align-items: flex-end; }
+.mname { font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 3px 10px; }
+.bubble { position: relative; background: var(--surface-3); border-radius: 16px; padding: 7px 12px 6px; cursor: pointer; min-width: 0; max-width: 100%; transition: box-shadow 0.2s; }
+.mrow:not(.tail) .bubble { border-bottom-left-radius: 6px; }
+.mrow:not(.head) .bubble { border-top-left-radius: 6px; }
+.mine .bubble { background: rgba(200, 255, 61, 0.14); border: 1px solid rgba(200, 255, 61, 0.22); }
+.mine.mrow:not(.tail) .bubble { border-bottom-left-radius: 16px; border-bottom-right-radius: 6px; }
+.mine.mrow:not(.head) .bubble { border-top-left-radius: 16px; border-top-right-radius: 6px; }
+.bubble.on { box-shadow: 0 0 0 2px var(--accent); }
+.bubble.deleted { background: transparent; border: 1px dashed var(--line-2); color: var(--faint); font-style: italic; }
+.txt { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font-size: 14.5px; display: inline; }
+.txt .ico { vertical-align: -2px; margin-right: 5px; }
+.meta { float: right; margin: 6px 0 -2px 10px; font-size: 10.5px; color: var(--faint); line-height: 1.6; white-space: nowrap; }
+.quote { display: flex; flex-direction: column; text-align: left; width: 100%; border: 0; border-left: 3px solid var(--accent-2); background: rgba(0, 0, 0, 0.22); border-radius: 8px; padding: 4px 8px; margin: 2px 0 5px; font-size: 12.5px; min-width: 0; }
+.quote b { color: var(--accent-2); font-size: 12px; }
+.quote span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.acts button { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line-2); background: var(--surface-2); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.acts button:hover { background: var(--surface-3); }
+.acts .danger { color: var(--hot); }
+.acts .ok { font-size: 12.5px; color: var(--free); }
+:global(.mrow.flash .bubble) { box-shadow: 0 0 0 2px var(--blue); }
+
+.under { position: relative; min-height: 20px; padding: 0 16px; }
+.typing { font-size: 12px; color: var(--muted); font-style: italic; height: 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.jump { position: absolute; left: 50%; transform: translateX(-50%); bottom: 26px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 12.5px; padding: 6px 14px; box-shadow: var(--shadow); z-index: 3; white-space: nowrap; }
+.offline { font-size: 12px; color: var(--warn); padding: 0 16px 4px; }
+
+.composer { border-top: 1px solid var(--line); padding: 8px 12px 6px; background: var(--bg-2); }
+.mode { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; color: var(--accent-2); min-width: 0; }
+.mt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12.5px; }
+.mt b { color: var(--accent-2); }
+.mt span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.x { border: 0; background: var(--surface-2); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.box { display: flex; gap: 8px; align-items: flex-end; }
+.box textarea { flex: 1; min-width: 0; resize: none; background: var(--surface); border: 1px solid var(--line-2); border-radius: 20px; padding: 9px 14px; font-size: 15px; line-height: 1.4; max-height: 150px; outline: none; }
+.box textarea:focus { border-color: rgba(200, 255, 61, 0.5); }
+.send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; }
+.send:disabled { opacity: 0.35; cursor: not-allowed; }
+.cfoot { display: flex; justify-content: space-between; gap: 10px; padding: 3px 6px 0; font-size: 11.5px; min-height: 18px; }
+.err { color: var(--hot); }
+.count { color: var(--faint); flex: none; }
+.count.warn { color: var(--warn); }
+.count.over { color: var(--hot); font-weight: 800; }
+
+@media (max-width: 900px) {
+    .chat { height: calc(100dvh - 64px - 76px - 16px); margin-top: 8px; }
+}
+@media (max-width: 600px) {
+    .chat { margin: 6px -16px 0; border-radius: 0; border-left: 0; border-right: 0; height: calc(100dvh - 64px - 76px - 6px); }
+    .hide-sm { display: none; }
+    .chead { padding: 8px 10px; gap: 8px; }
+    .cbody { padding: 10px 10px 6px; }
+    .mcol { max-width: 84%; }
+}
+</style>
