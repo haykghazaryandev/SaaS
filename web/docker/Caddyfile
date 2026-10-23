@@ -1,0 +1,29 @@
+# Caddy / FrankenPHP config for the Bookball web service (replaces the image default).
+#
+# Env placeholders:
+#   SERVER_NAME      ":8080" on Railway (set by docker/entrypoint.sh from $PORT); plain HTTP, Railway terminates TLS
+#   SERVER_ROOT      /app/public
+#   REVERB_UPSTREAM  host:port of the Reverb service on Railway's private network,
+#                    e.g. reverb.railway.internal:8080. WebSocket (/app/*) and the server-side
+#                    broadcast API (/apps/*) are served on the web domain, so the browser never
+#                    needs a second domain and the reverb service needs no public domain.
+{
+	skip_install_trust
+	{$CADDY_GLOBAL_OPTIONS}
+
+	frankenphp {
+		{$FRANKENPHP_CONFIG}
+	}
+}
+
+{$SERVER_NAME:localhost} {
+	root {$SERVER_ROOT:public/}
+	encode zstd br gzip
+
+	@reverb path /app/* /apps/*
+	reverse_proxy @reverb {$REVERB_UPSTREAM:localhost:8081}
+
+	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+
+	php_server
+}

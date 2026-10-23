@@ -137,7 +137,7 @@ DB_DATABASE=bookball_test_2 ./vendor/bin/pest     # another test database (e.g. 
 Notes:
 - Tests need `npm run build` once, because pages render the Vite manifest.
 - They need PostgreSQL and the `bookball_test` database. Tests never call Telegram (HTTP is faked).
-- **GitLab CI** runs the same tests on every push and merge request (`.gitlab-ci.yml`, using Postgres 16 and Redis services). The file is in the repository root (the `bookball` folder), and the app is in `web/`.
+- **GitHub Actions** runs the same tests on every push and pull request (`.github/workflows/tests.yml`, using Postgres 16 and Redis services). The workflow is in the repository root, and the app is in `web/`. Railway deploys only after it passes (see `docs/deploy-railway.md`).
 
 **Code style:**
 ```bash
@@ -235,4 +235,4 @@ ngrok http 8090                # gives an https address
   ```
 - New database tables go in new migration files. Don't edit migrations that others have already run.
 - New UI texts go in all three languages: `lang/en|hy|ru`.
-- Run `./vendor/bin/pest` before pushing. GitLab runs it again on every push (see the pipeline in GitLab → Build → Pipelines).
+- Run `./vendor/bin/pest` before pushing. GitHub Actions runs it again on every push (see the Actions tab).
