@@ -42,6 +42,8 @@ class AuthController extends Controller
             'telegram' => ['bot' => config('services.telegram.bot_username'), 'simulate' => $this->canSimulate($bot)],
             'phoneCode' => $this->phoneCodeEnabled(),
             'testAccounts' => ! $this->realPhoneCodes() && TestAccounts::enabled(),
+            // email codes need a real mail service (MAIL_MAILER); with "log" nobody would receive them
+            'emailLogin' => config('app.debug') || ! in_array(config('mail.default'), ['log', 'array'], true),
         ]);
     }
 
