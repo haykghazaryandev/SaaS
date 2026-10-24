@@ -67,13 +67,11 @@ class Notice extends Notification implements ShouldQueue
         if (! $this->link) {
             return new TelegramMessage('notice.'.$this->type, $text, $rows);
         }
-        // a button that opens the page logged in (https only); on a local http site the plain address instead
-        $url = $notifiable instanceof \App\Models\User
-            ? app(\App\Domain\Auth\LoginLinks::class)->make($notifiable, $this->link, \App\Domain\Auth\LoginLinks::NOTICE_MINUTES)
-            : rtrim(config('app.url'), '/').$this->link;
-        if (! str_starts_with($url, 'https://')) {
+        // a button that opens the page in the Mini App (Bookball inside Telegram); on a local http site the plain address
+        if (! str_starts_with((string) config('app.url'), 'https://')) {
             return new TelegramMessage('notice.'.$this->type, $text."\n".rtrim(config('app.url'), '/').$this->link, $rows);
         }
+        $url = 'app:'.$this->link;
 
         return new TelegramMessage('notice.'.$this->type, $text, [...$rows, [[__('telegram.button.open', [], $locale), $url]]]);
     }

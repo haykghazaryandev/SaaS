@@ -2,7 +2,6 @@
 
 namespace App\Domain\Notifications;
 
-use App\Domain\Auth\LoginLinks;
 use App\Domain\Booking\AfterBooking;
 use App\Domain\Auth\TelegramLoginFlow;
 use App\Domain\Booking\Actions\DecideBooking;
@@ -134,13 +133,10 @@ class TelegramUpdateHandler
         }
     }
 
-    /** Buttons that open Bookball (book a field, find players), logged in as $user when known. */
+    /** Buttons that open Bookball inside Telegram (the Mini App logs the person in by itself): book a field, find players. */
     private function appLinks(string $locale, ?User $user = null): array
     {
-        $url = rtrim(config('app.url'), '/');
-        $open = fn (string $path) => $user ? app(LoginLinks::class)->make($user, $path) : $url.$path;
-
-        return [[__('telegram.login.btnBook', [], $locale), $open('/?lang='.$locale)], [__('telegram.login.btnGames', [], $locale), $open('/games?lang='.$locale)]];
+        return [[__('telegram.login.btnBook', [], $locale), 'app:/?lang='.$locale], [__('telegram.login.btnGames', [], $locale), 'app:/games?lang='.$locale]];
     }
 
     private function callback(array $q): void

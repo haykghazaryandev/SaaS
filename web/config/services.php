@@ -40,6 +40,8 @@ return [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'bot_username' => env('TELEGRAM_BOT_USERNAME', 'BookballBot'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        // the Mini App's short name from BotFather /newapp (t.me/<bot>/<app> links); empty = not registered
+        'app_name' => env('TELEGRAM_APP_NAME'),
     ],
 
     // how login codes are delivered: log (development) | gateway (Telegram Gateway API)

@@ -9,6 +9,7 @@ import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { router } from '@inertiajs/vue3';
 import { startEcho } from './lib/echo';
+import TgAppGate from './components/TgAppGate.vue';
 
 // live updates (Reverb): connect only while someone is logged in; follow logins / logouts done without a full page load
 type AuthProps = { auth?: { user?: { id: number } | null } };
@@ -21,7 +22,8 @@ createInertiaApp({
         const locale = (props.initialPage.props.locale as string) || 'hy';
         document.documentElement.lang = locale;
         startEcho((props.initialPage.props as AuthProps).auth?.user?.id);
-        createApp({ render: () => h(App, props) })
+        // TgAppGate: inside Telegram (Mini App) logs in with Telegram and adapts the site; nothing on the web
+        createApp({ render: () => [h(App, props), h(TgAppGate)] })
             .use(plugin)
             .use(ZiggyVue)
             .use(i18nVue, {

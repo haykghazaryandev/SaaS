@@ -192,6 +192,10 @@ class Chat
             foreach ($memberIds as $uid) {
                 ChatUpdated::dispatch($uid, $c->id);
             }
+            // people who don't read it within a minute hear about it from the bot
+            if ($m->type === 'text') {
+                ChatTelegramDigest::dispatch($m->id)->delay(now()->addSeconds(ChatTelegramDigest::DELAY_SECONDS));
+            }
         });
 
         return $m;

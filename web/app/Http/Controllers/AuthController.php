@@ -6,6 +6,7 @@ use App\Domain\Auth\EmailCodes;
 use App\Domain\Auth\LoginLinks;
 use App\Domain\Auth\PhoneCodes;
 use App\Domain\Auth\TelegramLoginFlow;
+use App\Domain\Auth\TelegramWebApp;
 use App\Domain\Notifications\TelegramBot;
 use App\Models\TelegramLogin;
 use App\Models\User;
@@ -78,6 +79,51 @@ class AuthController extends Controller
         $redirect = $this->landing($request, $user);   // logs in; the booking sheet stays on its page
 
         return response()->json(['redirect' => $request->input('context') === 'booking' ? null : $redirect]);
+    }
+
+    /**
+     * Telegram Mini App: the page sends Telegram's signed initData. A known Telegram account is logged in at once
+     * (no login screen); a new one shares its phone once with the bot (the usual contact step), then the page
+     * polls and completes like "Log in with Telegram". Returns status ok | need_contact.
+     */
+    public function telegramApp(Request $request, TelegramWebApp $app, TelegramLoginFlow $flow)
+    {
+        $data = $app->verify((string) $request->input('init_data'));
+        if (! $data) {
+            return response()->json(['error' => __('auth.telegram.app_bad')], 422);
+        }
+        $tgId = (int) $data['user']['id'];   // in a private chat the chat id is the user id
+        // where to go: a t.me link's page, else the page the person wanted before being sent to /login, else this page
+        $intended = (string) parse_url((string) $request->session()->pull('url.intended'), PHP_URL_PATH);
+        $here = LoginLinks::safePath($request->input('path'));
+        $path = $data['start_param'] ? TelegramWebApp::startPath($data['start_param'])
+            : (in_array(strtok($here, '?'), ['/login', '/welcome'], true) ? LoginLinks::safePath($intended ?: '/') : $here);
+        $user = User::where('telegram_chat_id', $tgId)->whereNotNull('phone_verified_at')->first();
+
+        if ($user) {
+            if ($user->isBlocked()) {
+                return response()->json(['error' => __('auth.blocked')], 422);
+            }
+            if (! $request->user()?->is($user)) {
+                if ($request->user()) {
+                    Auth::guard('web')->logout();
+                }
+                Auth::login($user, remember: true);
+                $request->session()->regenerate();
+            }
+            $user->forceFill(['last_seen_at' => now()])->save();
+            $user->syncAdmin();
+
+            return response()->json(['status' => 'ok', 'user_id' => $user->id, 'redirect' => $user->isRegistered() && $user->phone ? $path : route('welcome', [], false)]);
+        }
+
+        // first time: the bot asks for the phone (Telegram.WebApp.requestContact sends the contact to the bot)
+        $login = $flow->start();
+        $login->update(['chat_id' => $tgId]);
+        $request->session()->put('tg_logins', [...array_slice($request->session()->get('tg_logins', []), -4), $login->token]);
+        $request->session()->put('url.intended', url($path));
+
+        return response()->json(['status' => 'need_contact', 'token' => $login->token]);
     }
 
     /** Development only (no bot token): pretend the user shared this phone in Telegram. */

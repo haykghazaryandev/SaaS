@@ -85,5 +85,14 @@
  "booking.error.not_yours": "Դա կարող է անել միայն ամրագրողը։",
  "booking.error.team_full": "Այս դաշտի համար թիմը լրացված է։",
  "booking.error.bad_phone": "Մուտքագրեք ճիշտ հայկական բջջային համար։",
- "booking.error.rate_closed": "Այս խաղն այլևս հնարավոր չէ գնահատել։"
+ "booking.error.rate_closed": "Այս խաղն այլևս հնարավոր չէ գնահատել։",
+ "auth.telegram.app_bad": "Telegram-ը չկարողացավ հաստատել, թե ով եք։ Փակեք Bookball-ը և կրկին բացեք բոտից։",
+ "tgapp.checking": "Մուտք ենք գործում Telegram-ով…",
+ "tgapp.waiting": "Հաստատում ենք ձեր հեռախոսը…",
+ "tgapp.welcome": "Բարի գալուստ Bookball",
+ "tgapp.contact": "Մեկ անգամ կիսվեք ձեր հեռախոսահամարով․ դաշտը կարող է զանգել ամրագրման հարցով։ Հաջորդ անգամ մուտքը կլինի անմիջապես։",
+ "tgapp.share": "Կիսվել հեռախոսահամարով",
+ "tgapp.later": "Պարզապես նայել",
+ "tgapp.failed": "Չհաջողվեց մուտք գործել։ Փորձեք կրկին։",
+ "tgapp.retry": "Փորձել կրկին"
 }

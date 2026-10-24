@@ -28,6 +28,7 @@ return [
         'no_show' => '✖ Չեկան',
         'wait' => '⏳ Սպասել',
         'team_yes' => '✅ Գալիս եմ', 'team_no' => '✖ Չեմ կարող',
+        'open_chat' => '💬 Բացել չաթը',
     ],
     'status' => [
         'pending' => 'Սպասում է',
@@ -101,5 +102,10 @@ return [
         'waiting' => 'Լավ, սպասում ենք։ Նշեք հետո Bookball-ում։',
         'team_in' => '✅ Դուք թիմում եք՝ :venue :field, :date :time։ Հիշեցումները կգան այստեղ։', 'team_in_short' => 'Դուք թիմում եք',
         'team_out' => '✖ Դուք մերժեցիք՝ :venue, :date :time։', 'team_out_short' => 'Մերժված է',
+    ],
+    'chat' => [
+        'direct' => '💬 <b>:name</b>՝ :text',
+        'game' => '💬 :format խաղ · <b>:name</b>՝ :text',
+        'more' => 'ևս :n',
     ],
 ];

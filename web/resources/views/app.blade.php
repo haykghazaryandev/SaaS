@@ -7,6 +7,15 @@
         <title inertia>Bookball</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+        {{-- Telegram Mini App: Telegram opens us with #tgWebAppData…; only then load its script (before the app starts) --}}
+        <script>
+            try {
+                if (/tgWebAppData|tgWebAppPlatform/.test(location.hash) || sessionStorage.getItem('bb.tg')) {
+                    sessionStorage.setItem('bb.tg', '1');
+                    document.write('<script src="https://telegram.org/js/telegram-web-app.js"><\/script>');
+                }
+            } catch (e) {}
+        </script>
         @routes
         @vite(['resources/js/app.ts'])
         @inertiaHead

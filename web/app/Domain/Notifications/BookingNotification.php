@@ -2,7 +2,6 @@
 
 namespace App\Domain\Notifications;
 
-use App\Domain\Auth\LoginLinks;
 use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -45,10 +44,9 @@ class BookingNotification extends Notification implements ShouldQueue
         if (! $notifiable instanceof User) {
             return $message;
         }
-        // one more row: open the booking page, already logged in
+        // one more row: open the booking page in the Mini App (logged in by Telegram)
         [$label, $path] = $this->audience === 'owner' ? ['telegram.button.schedule', '/owner'] : ['telegram.button.my_bookings', '/me/bookings'];
-        $link = app(LoginLinks::class)->make($notifiable, $path, LoginLinks::NOTICE_MINUTES);
 
-        return new TelegramMessage($message->type, $message->text, [...$message->buttons, [[__($label), $link]]]);
+        return new TelegramMessage($message->type, $message->text, [...$message->buttons, [[__($label), 'app:'.$path]]]);
     }
 }

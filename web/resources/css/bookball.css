@@ -375,3 +375,6 @@ h3 { font-size: 17px; margin: 0; }
 
 /* the place page's bottom booking bar (phones): keep toasts above it */
 @media (max-width: 1040px) { body:has(.bookbar) .toast, body:has(.bookbar) .ntoast { bottom: calc(96px + env(safe-area-inset-bottom)); } }
+
+/* Inside Telegram (Mini App, html.in-tg): no website footer, no "connect the bot" banners (we are in it) */
+.in-tg .papp .foot, .in-tg .tgban, .in-tg .tg-note, .in-tg .tg-box { display: none !important; }

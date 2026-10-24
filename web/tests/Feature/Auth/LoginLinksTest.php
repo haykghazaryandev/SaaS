@@ -56,30 +56,28 @@ it('switches the browser to the person of the link', function () {
     $this->assertAuthenticatedAs($b);
 });
 
-it('logs in the bot buttons after a Telegram login', function () {
+it('opens Bookball inside Telegram from the bot buttons after a Telegram login', function () {
     config(['app.url' => 'https://bookball.am']);
     $token = $this->postJson('/login/telegram')->json('token');
     $from = ['id' => 777001, 'first_name' => 'Hamo'];
     $this->postJson('/telegram/webhook/hook-secret', ['update_id' => 1, 'message' => ['message_id' => 1, 'chat' => ['id' => 777001, 'type' => 'private'], 'from' => $from, 'text' => "/start login_{$token}"]], ['X-Telegram-Bot-Api-Secret-Token' => 'hook-secret']);
     $this->postJson('/telegram/webhook/hook-secret', ['update_id' => 2, 'message' => ['message_id' => 2, 'chat' => ['id' => 777001, 'type' => 'private'], 'from' => $from, 'contact' => ['user_id' => 777001, 'phone_number' => '37494000111', 'first_name' => 'Hamo']]], ['X-Telegram-Bot-Api-Secret-Token' => 'hook-secret']);
 
-    $buttons = collect(Http::recorded())->map(fn ($p) => $p[0])->filter(fn (Request $r) => str_ends_with($r->url(), '/sendMessage'))
-        ->flatMap(fn (Request $r) => collect($r['reply_markup']['inline_keyboard'] ?? [])->flatten(1))->pluck('url')->filter()->values();
-    expect($buttons)->not->toBeEmpty()->and($buttons->first())->toStartWith('https://bookball.am/l/');
+    $apps = collect(Http::recorded())->map(fn ($p) => $p[0])->filter(fn (Request $r) => str_ends_with($r->url(), '/sendMessage'))
+        ->flatMap(fn (Request $r) => collect($r['reply_markup']['inline_keyboard'] ?? [])->flatten(1))->pluck('web_app.url')->filter()->values();
+    expect($apps)->not->toBeEmpty()->and($apps->first())->toStartWith('https://bookball.am/');
 });
 
-it('adds an "open, logged in" button to booking messages and keeps the link out of the log', function () {
+it('adds an "open" button to booking messages that opens the Mini App on My bookings', function () {
     config(['app.url' => 'https://bookball.am']);
     $venue = makeVenue();
     $player = User::factory()->create(['telegram_chat_id' => 4242]);
     $b = app(RequestBooking::class)->handle($player, $venue->fields->first(), at(20), 60);
     Http::fake(['api.telegram.org/*' => Http::response(['ok' => true, 'result' => ['message_id' => 1]])]);
-    NotificationLog::query()->delete();
 
     app(TelegramChannel::class)->send($player, new BookingNotification($b, 'accepted', 'player'));
 
-    Http::assertSent(fn (Request $r) => str_starts_with((string) ($r['reply_markup']['inline_keyboard'][0][0]['url'] ?? ''), 'https://bookball.am/l/'));
-    expect(json_encode(NotificationLog::first()->payload))->not->toContain('signature');
+    Http::assertSent(fn (Request $r) => ($r['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? '') === 'https://bookball.am/me/bookings');
 });
 
 // ---------- delete completely ----------

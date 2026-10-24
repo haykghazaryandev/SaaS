@@ -60,9 +60,9 @@ class TelegramBot
     public function sendWithButtons(int|string $chatId, string $text, array $links = [], array $actions = []): array
     {
         $rows = [];
-        $links = array_values(array_filter($links, fn ($l) => str_starts_with($l[1], 'https://')));
+        $links = array_values(array_filter(array_map(fn ($l) => $this->button($l), $links)));
         if ($links) {
-            $rows[] = array_map(fn ($l) => ['text' => $l[0], 'url' => $l[1]], $links);
+            $rows[] = $links;
         }
         if ($actions) {
             $rows[] = array_map(fn ($a) => ['text' => $a[0], 'callback_data' => $a[1]], $actions);
@@ -105,14 +105,32 @@ class TelegramBot
         return $res->json() ?? ['ok' => false];
     }
 
-    /** Rows of [text, callback_data] or [text, https url] (link buttons; Telegram refuses http/localhost, those are left out). */
+    /**
+     * One inline button from [text, target]:
+     * - "app:/path" opens the Mini App on that page (Bookball inside Telegram, logged in by Telegram);
+     * - "https://…" opens a link; "http://…" is left out (Telegram refuses it, e.g. localhost);
+     * - anything else is callback data (handled by TelegramUpdateHandler).
+     */
+    public function button(array $b): ?array
+    {
+        if (str_starts_with($b[1], 'app:')) {
+            $url = rtrim((string) config('app.url'), '/').substr($b[1], 4);
+
+            return str_starts_with($url, 'https://') ? ['text' => $b[0], 'web_app' => ['url' => $url]] : null;
+        }
+        if (preg_match('#^https?://#', $b[1])) {
+            return str_starts_with($b[1], 'https://') ? ['text' => $b[0], 'url' => $b[1]] : null;
+        }
+
+        return ['text' => $b[0], 'callback_data' => $b[1]];
+    }
+
+    /** Rows of buttons, see button(). */
     private function markup(array $buttons): array
     {
         $rows = [];
         foreach ($buttons as $row) {
-            $row = array_values(array_filter(array_map(fn ($b) => preg_match('#^https?://#', $b[1])
-                ? (str_starts_with($b[1], 'https://') ? ['text' => $b[0], 'url' => $b[1]] : null)
-                : ['text' => $b[0], 'callback_data' => $b[1]], $row)));
+            $row = array_values(array_filter(array_map(fn ($b) => $this->button($b), $row)));
             if ($row) {
                 $rows[] = $row;
             }

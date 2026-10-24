@@ -29,6 +29,7 @@ return [
         'no_show' => '✖ Didn\'t come',
         'wait' => '⏳ Wait',
         'team_yes' => '✅ I\'m in', 'team_no' => '✖ Can\'t come',
+        'open_chat' => '💬 Open chat',
     ],
     'status' => [
         'pending' => 'Waiting',
@@ -103,5 +104,10 @@ return [
         'waiting' => 'OK, waiting. Mark it later in Bookball.',
         'team_in' => '✅ You are in: :venue :field, :date :time. The reminders will come here.', 'team_in_short' => 'You are in',
         'team_out' => '✖ You declined: :venue, :date :time.', 'team_out_short' => 'Declined',
+    ],
+    'chat' => [
+        'direct' => '💬 <b>:name</b>: :text',
+        'game' => '💬 :format game · <b>:name</b>: :text',
+        'more' => '+:n more',
     ],
 ];

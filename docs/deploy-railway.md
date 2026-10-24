@@ -113,6 +113,12 @@ Telegram ("Log in with Telegram" and booking messages) needs `TELEGRAM_BOT_TOKEN
 `TELEGRAM_BOT_USERNAME` (`BookballAmBot`) and a random `TELEGRAM_WEBHOOK_SECRET`
 (letters, digits, `_` and `-` only) on the services.
 
+Telegram Mini App (Bookball inside Telegram): the bot's menu button and the buttons in its
+messages open APP_URL inside Telegram, and the person is logged in by Telegram (signed initData,
+`POST /tg/app/login`). Nothing to set up for that. Optional, for t.me links (team invites open
+inside Telegram): in BotFather send `/newapp`, choose the bot, give the URL = APP_URL and a short
+name (e.g. `app`), then set `TELEGRAM_APP_NAME=app` on the services.
+
 A bot has one webhook. While staging owns it, `php artisan telegram:poll` on a laptop gets
 nothing (Telegram refuses getUpdates while a webhook is set). To test the bot locally again,
 use a separate test bot token in your `.env`, or remove the webhook

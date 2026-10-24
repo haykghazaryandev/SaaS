@@ -63,6 +63,12 @@ class BookingTeam
             $b->forceFill(['invite_token' => Str::random(20)])->save();
         }
 
+        // with the Mini App registered (BotFather /newapp), the link opens Bookball right inside Telegram
+        $app = config('services.telegram.app_name');
+        if ($app && config('services.telegram.bot_username')) {
+            return 'https://t.me/'.config('services.telegram.bot_username').'/'.$app.'?startapp=join_'.$b->invite_token;
+        }
+
         return rtrim(config('app.url'), '/').'/join/'.$b->invite_token;
     }
 

@@ -46,6 +46,9 @@ Route::middleware('guest')->group(function () {
     Route::post('login/email', [AuthController::class, 'emailSend'])->name('login.email');
     Route::post('login/email/verify', [AuthController::class, 'emailVerify'])->name('login.email.verify');
 });
+// Telegram Mini App: log in with Telegram's signed initData (works logged in or not)
+Route::post('tg/app/login', [AuthController::class, 'telegramApp'])->middleware('throttle:30,1')->name('login.telegram.app');
+
 // links in our Telegram messages that open the site logged in (signed, single-use)
 Route::get('l/{user}', [AuthController::class, 'loginLink'])->middleware('throttle:30,1')->name('login.link');
 Route::middleware('auth')->group(function () {

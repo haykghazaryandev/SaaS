@@ -13,7 +13,7 @@ class ConversationParticipant extends Model
 
     protected function casts(): array
     {
-        return ['joined_at' => 'datetime', 'left_at' => 'datetime', 'muted_until' => 'datetime'];
+        return ['joined_at' => 'datetime', 'left_at' => 'datetime', 'muted_until' => 'datetime', 'notified_at' => 'datetime'];
     }
 
     public function conversation(): BelongsTo

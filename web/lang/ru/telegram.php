@@ -28,6 +28,7 @@ return [
         'no_show' => '✖ Не пришли',
         'wait' => '⏳ Подождать',
         'team_yes' => '✅ Я в деле', 'team_no' => '✖ Не смогу',
+        'open_chat' => '💬 Открыть чат',
     ],
     'status' => [
         'pending' => 'Ожидает',
@@ -101,5 +102,10 @@ return [
         'waiting' => 'Хорошо, ждём. Отметьте позже в Bookball.',
         'team_in' => '✅ Вы в команде: :venue :field, :date :time. Напоминания придут сюда.', 'team_in_short' => 'Вы в команде',
         'team_out' => '✖ Вы отказались: :venue, :date :time.', 'team_out_short' => 'Отказано',
+    ],
+    'chat' => [
+        'direct' => '💬 <b>:name</b>: :text',
+        'game' => '💬 Игра :format · <b>:name</b>: :text',
+        'more' => 'ещё :n',
     ],
 ];

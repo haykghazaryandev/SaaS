@@ -85,5 +85,14 @@
  "booking.error.not_yours": "Only the person who booked can do this.",
  "booking.error.team_full": "The team is full for this field.",
  "booking.error.bad_phone": "Enter a valid Armenian mobile number.",
- "booking.error.rate_closed": "This game can't be rated anymore."
+ "booking.error.rate_closed": "This game can't be rated anymore.",
+ "auth.telegram.app_bad": "Telegram could not confirm who you are. Close Bookball and open it again from the bot.",
+ "tgapp.checking": "Logging you in with Telegram…",
+ "tgapp.waiting": "Confirming your phone…",
+ "tgapp.welcome": "Welcome to Bookball!",
+ "tgapp.contact": "Share your phone number once: the field may call you about a booking. Next time you'll be logged in at once.",
+ "tgapp.share": "Share my phone number",
+ "tgapp.later": "Just look around",
+ "tgapp.failed": "Could not log in. Try again.",
+ "tgapp.retry": "Try again"
 }
