@@ -54,6 +54,15 @@ class TelegramBot
     }
 
     /**
+     * Remove the "📱 Share my phone number" button under the message field once the phone was shared.
+     * Telegram removes a reply keyboard only together with a message: a quiet "✅".
+     */
+    public function hideKeyboard(int|string $chatId): array
+    {
+        return $this->call('sendMessage', ['chat_id' => $chatId, 'text' => '✅', 'reply_markup' => ['remove_keyboard' => true], 'disable_notification' => true]);
+    }
+
+    /**
      * A message with one row of link buttons (only https links; Telegram refuses localhost) and one row of callback buttons.
      * $links: [[text, url], …]   $actions: [[text, callback_data], …]
      */

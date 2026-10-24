@@ -134,3 +134,12 @@ it('simulates Telegram in development only when there is no bot token', function
     $token2 = startTelegramLogin($this);
     $this->postJson("/login/telegram/{$token2}/simulate", ['phone' => '93000100'])->assertNotFound();
 });
+
+it('removes the "Share my phone number" button once the phone is shared', function () {
+    $token = startTelegramLogin($this);
+    $from = ['id' => 555090, 'first_name' => 'Gor'];
+    tgUpdate(['from' => $from, 'text' => "/start login_{$token}"]);
+    tgUpdate(['from' => $from, 'contact' => ['user_id' => 555090, 'phone_number' => '37494555090', 'first_name' => 'Gor']]);
+
+    Http::assertSent(fn ($r) => str_ends_with($r->url(), '/sendMessage') && $r['chat_id'] == 555090 && ($r['reply_markup']['remove_keyboard'] ?? false) === true);
+});
