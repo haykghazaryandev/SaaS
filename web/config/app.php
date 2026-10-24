@@ -70,6 +70,9 @@ return [
     // Bookball shows every time in Yerevan time; the database keeps UTC.
     'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Yerevan'),
 
+    // php artisan app:deploy (runs on every container start): also seed what is missing
+    'seed_on_deploy' => (bool) env('SEED_ON_DEPLOY', true),
+
     'locales' => ['hy', 'ru', 'en'],
 
     /*

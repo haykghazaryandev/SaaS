@@ -96,14 +96,22 @@ runs, `/up` is polled, then the deployment goes live. If the migration or the he
 fails, Railway keeps the previous `web` deployment live and shows the failure in the
 deployments list. Open `APP_URL`, log in, open a chat: the WebSocket must show as connected.
 
-Telegram ("Log in with Telegram" and booking messages) needs `TELEGRAM_BOT_TOKEN`,
-`TELEGRAM_BOT_USERNAME` (`BookballAmBot`) and a random `TELEGRAM_WEBHOOK_SECRET` on the
-services. After the first deploy, run once on `web`:
+Nothing needs to be run by hand. Every time the `web` container starts,
+`docker/entrypoint.sh` runs `php artisan app:deploy`, which is safe to repeat:
 
-```bash
-php artisan telegram:set-webhook   # Telegram sends bot updates to APP_URL (must be https)
-php artisan telegram:setup         # bot menu and description in hy/ru/en
-```
+1. migrations
+2. seeders: they only add what is missing (places by slug, people by phone, bookings and
+   games only into empty tables). Production gets only the admin (`ADMIN_PHONE`).
+   `SEED_ON_DEPLOY=false` skips seeding.
+3. Telegram webhook and bot menu (hy/ru/en), when `TELEGRAM_BOT_TOKEN` is set and `APP_URL`
+   is https
+
+Migrations must succeed or the container stops. Seeding and Telegram only print a warning,
+so a Telegram outage never blocks a deploy. `DEPLOY_ON_START=false` turns the whole step off.
+
+Telegram ("Log in with Telegram" and booking messages) needs `TELEGRAM_BOT_TOKEN`,
+`TELEGRAM_BOT_USERNAME` (`BookballAmBot`) and a random `TELEGRAM_WEBHOOK_SECRET`
+(letters, digits, `_` and `-` only) on the services.
 
 A bot has one webhook. While staging owns it, `php artisan telegram:poll` on a laptop gets
 nothing (Telegram refuses getUpdates while a webhook is set). To test the bot locally again,
@@ -131,10 +139,8 @@ needs one token and one workflow job per environment.)
   Shell, or `railway ssh --service web`). Any command works as
   `/app/docker/entrypoint.sh php artisan ...`. (`railway run` runs on your laptop with the
   Railway variables, and the internal database hostname is not reachable from there.)
-- Demo data: `php artisan db:seed --force` in the `web` shell. Each seeder only adds what is
-  missing (places by slug, people by phone, bookings and games only into empty tables), so
-  it is safe to run again on staging. Set `ADMIN_PHONE` first: that phone becomes the admin.
-  On production it seeds only the admin.
+- Demo data is seeded on every start (see "First deploy"). To run it by hand anyway:
+  `php artisan app:deploy` or `php artisan db:seed --force` in the `web` shell.
 - Local dev stays as in `web/INSTALL.md`; the Docker image is for Railway only.
 
 ## Known trade-offs

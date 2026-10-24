@@ -24,10 +24,11 @@ fi
 # Route/view/event caches are built into the image (Dockerfile); only config depends on env.
 php artisan config:cache
 
-# Migrations run as the Railway pre-deploy command (see .railway/railway.ts). Set
-# RUN_MIGRATIONS_ON_START=true to run them here instead (single replica only).
-if [ "$RUN_MIGRATIONS_ON_START" = "true" ]; then
-    php artisan migrate --force
+# The web process prepares everything before it serves: migrations, seeders (they only add
+# what is missing; production gets only the admin) and the Telegram webhook + bot menu.
+# Safe on every start. DEPLOY_ON_START=false turns it off, SEED_ON_DEPLOY=false skips seeding.
+if [ "${1:-web}" = "web" ] && [ "${DEPLOY_ON_START:-true}" = "true" ]; then
+    php artisan app:deploy
 fi
 
 PORT="${PORT:-8080}"
