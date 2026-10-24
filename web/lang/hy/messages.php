@@ -70,4 +70,5 @@ return [
     'seenToday' => 'եղել է այսօր՝ :time',
     'seenYesterday' => 'եղել է երեկ՝ :time',
     'seenDate' => 'եղել է :date',
+    'sent' => 'Ուղարկված է', 'seen' => 'Կարդացված է', 'seenBy' => 'Կարդացել է՝ :n',
 ];

@@ -70,4 +70,5 @@ return [
     'seenToday' => 'last seen today at :time',
     'seenYesterday' => 'last seen yesterday at :time',
     'seenDate' => 'last seen :date',
+    'sent' => 'Sent', 'seen' => 'Seen', 'seenBy' => 'Seen by :n',
 ];

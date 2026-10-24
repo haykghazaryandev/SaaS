@@ -168,6 +168,7 @@ class Chat
             ->update(['last_read_message_id' => $messageId]);
         if ($changed) {
             ChatUpdated::dispatch($u->id, $c->id);   // the user's other tabs / devices refresh their unread counts
+            Events\MessagesRead::dispatch($c->id, $u->id, $messageId);   // the others' "seen" ticks
         }
     }
 

@@ -9,6 +9,7 @@ import { reactive } from 'vue';
  * Live: when window.Echo is connected (resources/js/lib/echo.ts) we listen on
  *   private-App.Models.User.{id}  .notification(...)   new notices
  *   private-user.{id}             .chat.updated        unread chat counters changed
+ *   presence-online                                    who has Bookball open right now ("online" in chats)
  * otherwise we poll GET /notifications every 30 s.
  */
 export const social = reactive({
@@ -18,8 +19,16 @@ export const social = reactive({
     toast: null as { text: string; link: string | null } | null,
 });
 
+/**
+ * Who has Bookball open right now (the presence channel "online"): someone closes the app → gone within seconds.
+ * `live` is false until the channel answered; then pages trust this list instead of "seen in the last 2 minutes".
+ */
+export const presence = reactive({ live: false, ids: new Set<number>(), leftAt: {} as Record<number, string> });
+
+type Member = { id: number };
 type EchoLike = {
     private: (ch: string) => { notification: (cb: (n: Record<string, unknown>) => void) => unknown; listen: (ev: string, cb: () => void) => unknown };
+    join: (ch: string) => { here: (cb: (m: Member[]) => void) => { joining: (cb: (m: Member) => void) => { leaving: (cb: (m: Member) => void) => unknown } } };
     connector?: { pusher?: { connection?: { state?: string } } };
 };
 
@@ -105,8 +114,10 @@ async function onNotice(n: Record<string, unknown>) {
     const link = item?.link ?? (typeof n.link === 'string' ? n.link : null);
     if (text) showToast(text, link);
     if (soundOn()) ping();
-    // the place answered a booking while "My bookings" is open: show the new status at once
-    if (link?.startsWith('/me/bookings') && window.location.pathname.startsWith('/me/bookings')) {
+    // the notice is about the page that is open (a booking answered on "My bookings", a friend request accepted on
+    // "Friends", someone joined the game you are looking at): show it at once
+    const path = link ? new URL(link, window.location.origin).pathname : null;
+    if (path && path !== '/' && window.location.pathname.startsWith(path) && !document.querySelector('.scrim')) {
         router.reload();
     }
 }
@@ -117,10 +128,18 @@ function soundOn(): boolean {
 }
 
 /** A new chat message (unread went up) while that chat is not on the screen: the sound. */
-async function onChat() {
-    const before = social.counts.messages;
-    await refresh();
-    if (social.counts.messages > before && !window.location.pathname.startsWith('/messages/') && soundOn()) ping();
+// several chat events come together (each member, my own read): one refresh for all of them
+let chatTimer: number | undefined;
+let chatBefore: number | null = null;
+function onChat() {
+    chatBefore ??= social.counts.messages;
+    clearTimeout(chatTimer);
+    chatTimer = window.setTimeout(async () => {
+        const before = chatBefore ?? 0;
+        chatBefore = null;
+        await refresh();
+        if (social.counts.messages > before && !window.location.pathname.startsWith('/messages/') && soundOn()) ping();
+    }, 400);
 }
 
 /** Listen on the user's channels once per Echo connection (echo.ts makes a new one when the user changes). */
@@ -131,6 +150,16 @@ function attach() {
     try {
         e.private(`App.Models.User.${liveFor}`).notification(onNotice);
         e.private(`user.${liveFor}`).listen('.chat.updated', onChat);
+        e.join('online')
+            .here((members) => {
+                presence.ids = new Set(members.map((m) => m.id));
+                presence.live = true;
+            })
+            .joining((m) => presence.ids.add(m.id))
+            .leaving((m) => {
+                presence.ids.delete(m.id);
+                presence.leftAt[m.id] = new Date().toISOString();   // "last seen" = just now
+            });
     } catch {
         attached = null;
     }
@@ -152,6 +181,8 @@ export function startLive(userId: number | null | undefined) {
 
 export function stopLive() {
     clearInterval(pollTimer);
+    presence.live = false;
+    presence.ids = new Set();
     liveFor = null;
     attached = null;
     social.items = [];

@@ -16,3 +16,6 @@ Broadcast::channel('conversation.{id}', function ($user, $id) {
 
     return $c && app(Chat::class)->isMember($c, $user) ? ['id' => $user->id, 'name' => $user->name] : false;
 });
+
+// everyone with Bookball open: "online" in chats is who is in this channel (it empties the moment the app closes)
+Broadcast::channel('online', fn ($user) => ['id' => $user->id]);

@@ -70,4 +70,5 @@ return [
     'seenToday' => 'был(а) сегодня в :time',
     'seenYesterday' => 'был(а) вчера в :time',
     'seenDate' => 'был(а) :date',
+    'sent' => 'Отправлено', 'seen' => 'Прочитано', 'seenBy' => 'Прочитали: :n',
 ];

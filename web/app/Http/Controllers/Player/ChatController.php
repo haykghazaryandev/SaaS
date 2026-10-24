@@ -64,6 +64,9 @@ class ChatController extends Controller
                 // game chats: how many other members are online now (direct chats have other.online / other.lastSeen)
                 'online' => $this->onlineCount($conversation, $me),
                 'lastReadId' => $mine?->last_read_message_id,
+                // "seen" ticks on my messages: how far each other member has read
+                'reads' => $conversation->participants->whereNull('left_at')->where('user_id', '!=', $me->id)
+                    ->mapWithKeys(fn ($p) => [$p->user_id => (int) $p->last_read_message_id])->all(),
             ],
             'messages' => $msgs->take(self::PAGE)->reverse()->values()->map(fn ($m) => ChatPresenter::message($m))->all(),
             'hasMore' => $msgs->count() > self::PAGE,

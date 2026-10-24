@@ -5,10 +5,11 @@ import Icon from '@/components/Icon.vue';
 import { whenShort } from '@/composables/useGames';
 import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, lastSeenText, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
+import { presence, refresh as refreshCounts } from '@/composables/useSocial';
 import { echoConnected, echoState } from '@/lib/echo';
 import { tgApp } from '@/lib/telegram';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -16,7 +17,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // and the "typing" whisper; when the socket is down it polls /history?after=<last id> every 5 s.
 // The header shows "online" / "last seen …" (direct) or "N online" (game), refreshed from /presence every minute.
 const props = defineProps<{
-    chat: ChatItem & { members: number; lastReadId: number | null; online: number | null };
+    chat: ChatItem & { members: number; lastReadId: number | null; online: number | null; reads?: Record<string, number> };
     messages: ChatMessage[];
     hasMore: boolean;
     editMinutes: number;
@@ -147,7 +148,13 @@ function markRead() {
         const id = lastId();
         if (document.visibilityState !== 'visible' || id <= readSent || !nearBottom()) return;
         readSent = id;
-        api('POST', route('messages.read', cid), { id }).catch(() => (readSent = 0));
+        api('POST', route('messages.read', cid), { id })
+            .then(() => {
+                // the unread badge goes at once, and no preloaded page keeps showing the old count
+                router.flushAll();
+                refreshCounts();
+            })
+            .catch(() => (readSent = 0));
     }, 400);
 }
 function onVisible() {
@@ -161,7 +168,22 @@ function onVisible() {
 // ---------- online / last seen (header) ----------
 const other = ref({ online: !!props.chat.other?.online, lastSeen: props.chat.other?.lastSeen ?? null });
 const onlineN = ref(props.chat.online ?? 0);
-const seenText = computed(() => lastSeenText(other.value.online, other.value.lastSeen));
+// the live list of open apps decides "online" (closing the app = offline at once); the server's value until it answered
+const otherOnline = computed(() => {
+    const id = props.chat.other?.id;
+    return presence.live && id ? presence.ids.has(id) : other.value.online;
+});
+const otherSeen = computed(() => (props.chat.other?.id && presence.leftAt[props.chat.other.id]) || other.value.lastSeen);
+const seenText = computed(() => lastSeenText(otherOnline.value, otherSeen.value));
+// game chats: re-count online members when someone opens or closes the app
+watch(
+    () => presence.ids.size,
+    () => isGame && setTimeout(refreshPresence, 1500),
+);
+
+// ---------- "seen" ticks on my messages: ✓ sent, ✓✓ read (direct: by them; game: by at least one) ----------
+const reads = ref<Record<string, number>>({ ...(props.chat.reads ?? {}) });
+const seenBy = (id: number) => Object.values(reads.value).filter((r) => r >= id).length;
 async function refreshPresence() {
     if (document.visibilityState !== 'visible') return;
     try {
@@ -195,6 +217,10 @@ function subscribe() {
     subscribed = true;
     window.Echo.private(channelName)
         .listen('.message', (e: { action: string; message: ChatMessage }) => receive([e.message]))
+        .listen('.read', (e: { user_id: number; message_id: number }) => {
+            if (e.user_id !== me.value) reads.value = { ...reads.value, [e.user_id]: Math.max(reads.value[e.user_id] ?? 0, e.message_id) };
+            sawOther(e.user_id);
+        })
         .listenForWhisper('typing', (e: { id: number; name: string }) => {
             if (e.id !== me.value) typers.value[e.id] = { name: e.name, until: Date.now() + 4000 };
             sawOther(e.id);
@@ -452,7 +478,7 @@ onBeforeUnmount(() => {
                         <!-- "N online" before the member count: on phones the end of this line is cut -->
                         <template v-if="onlineN"><span class="on">{{ $t('messages.onlineN', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}
                     </span>
-                    <span v-else-if="seenText" :class="['hs', { on: other.online }]"><i v-if="other.online" class="on-dot" aria-hidden="true" />{{ seenText }}</span>
+                    <span v-else-if="seenText" :class="['hs', { on: otherOnline }]"><i v-if="otherOnline" class="on-dot" aria-hidden="true" />{{ seenText }}</span>
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
                 <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.openGame')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.openGame') }}</span></Link>
@@ -510,6 +536,12 @@ onBeforeUnmount(() => {
                                     <span v-else class="txt">{{ r.m.body }}</span>
                                     <span class="meta">
                                         <template v-if="r.m.edited && !r.m.deleted">{{ $t('messages.edited') }} · </template>{{ clock(r.m.created_at) }}
+                                        <span
+                                            v-if="r.mine && !r.m.deleted"
+                                            :class="['tick', { seen: seenBy(r.m.id) > 0 }]"
+                                            :title="seenBy(r.m.id) ? (isGame ? $t('messages.seenBy', { n: String(seenBy(r.m.id)) }) : $t('messages.seen')) : $t('messages.sent')"
+                                            >{{ seenBy(r.m.id) ? '✓✓' : '✓' }}</span
+                                        >
                                     </span>
                                 </div>
                                 <div v-if="active === r.m.id" class="acts">
@@ -568,6 +600,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.tick { margin-left: 4px; letter-spacing: -3px; color: var(--muted); font-size: 11px; }
+.tick.seen { color: var(--accent-2); }
 .chat { max-width: 820px; width: 100%; margin: 12px auto 0; display: flex; flex-direction: column; height: calc(100dvh - var(--app-top, 64px) - 24px); min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
 .chead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2); min-width: 0; }
 .back { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); flex: none; }

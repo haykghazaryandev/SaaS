@@ -99,3 +99,23 @@ it('refreshes presence for members only', function () {
     $this->actingAs($this->c)->getJson(route('messages.presence', $this->dm))->assertForbidden()->assertJsonMissingPath('other');
     $this->actingAs($this->c)->get(route('messages.show', $this->dm))->assertForbidden();
 });
+
+it('tells the chat when a member read it (live "seen" ticks) and gives the read positions to the page', function () {
+    Illuminate\Support\Facades\Event::fake([App\Domain\Chat\Events\MessagesRead::class]);
+    $a = App\Models\User::factory()->create();
+    $b = App\Models\User::factory()->create();
+    App\Models\Friendship::create(['user_id' => $a->id, 'friend_id' => $b->id, 'status' => 'accepted', 'accepted_at' => now()]);
+    $chat = app(App\Domain\Chat\Chat::class);
+    $c = $chat->direct($a, $b);
+    $m = $chat->send($c, $a, 'hi');
+
+    $chat->markRead($c, $b, $m->id);
+    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Chat\Events\MessagesRead::class, fn ($e) => $e->userId === $b->id && $e->messageId === $m->id && $e->conversationId === $c->id);
+    $this->actingAs($a)->get("/messages/{$c->id}")->assertInertia(fn ($p) => $p->where("chat.reads.{$b->id}", $m->id));
+});
+
+it('uses the live list of open apps for "online" when Reverb answers', function () {
+    $u = App\Models\User::factory()->create(['last_seen_at' => now()]);   // seen a moment ago…
+    $this->mock(App\Domain\Social\Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([]));
+    expect($u->isActiveNow())->toBeFalse();   // …but the app is closed: offline at once
+});
