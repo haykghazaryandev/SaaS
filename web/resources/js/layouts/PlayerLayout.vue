@@ -62,6 +62,29 @@ const active = (m: string[]) => m.some((p) => (p === '/' ? path.value === '/' : 
 const badge = (n?: number) => (n ? (n > 99 ? '99+' : String(n)) : '');
 const showTabbar = computed(() => !props.hideTabbar && !props.fullscreen);
 
+// Instagram-like: the bottom menu slides away while scrolling down and comes back when scrolling up (or near the top)
+const tabHidden = ref(false);
+let lastY = 0;
+let ticking = false;
+function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const dy = y - lastY;
+        if (y < 60) tabHidden.value = false;
+        else if (dy > 8) tabHidden.value = true;
+        else if (dy < -8) tabHidden.value = false;
+        if (Math.abs(dy) > 8 || y < 60) lastY = y;
+        ticking = false;
+    });
+}
+onMounted(() => {
+    lastY = window.scrollY;
+    window.addEventListener('scroll', onScroll, { passive: true });
+});
+onBeforeUnmount(() => window.removeEventListener('scroll', onScroll));
+
 // badges and live notices
 watch(() => page.props.counts, (c) => setCounts(c), { immediate: true });
 watch(() => user.value?.id, (id) => startLive(id), { immediate: true });
@@ -136,8 +159,8 @@ watch(() => page.url, () => (menu.value = false));
                 <span>© 2026 Bookball · {{ $t('foot.city') }}</span>
             </div>
         </footer>
-        <nav v-if="showTabbar" class="tabbar" :aria-label="$t('nav.main')">
-            <Link v-for="n in tabs" :key="n.key" :href="n.href" :title="$t(n.tab ?? n.short)" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
+        <nav v-if="showTabbar" :class="['tabbar', { 'tab-hide': tabHidden }]" :aria-label="$t('nav.main')">
+            <Link v-for="n in tabs" :key="n.key" :href="n.href" :title="$t(n.tab ?? n.short)" :prefetch="['mount', 'click']" cache-for="30s" :aria-current="active(n.match) ? 'page' : undefined">
                 <span class="ti"><Icon :name="n.icon" size="lg" /><span v-if="badge(n.badge)" :class="['badge-dot', 'tb', { warn: n.warn }]">{{ badge(n.badge) }}</span></span>
                 <span class="tl">{{ $t(n.tab ?? n.short) }}</span>
             </Link>
@@ -151,7 +174,7 @@ watch(() => page.url, () => (menu.value = false));
 .app-main { flex: 1 0 auto; width: 100%; padding-bottom: 40px; }
 .papp.guest .app-main { padding-bottom: 0; }
 @media (max-width: 900px) {
-    .papp.with-tabbar { --app-bottom: calc(76px + var(--sab)); }
+    .papp.with-tabbar { --app-bottom: calc(84px + var(--tab-gap)); }
     .app-main { padding-bottom: 24px; }
     /* fullscreen (chat on phones): the page fills the screen */
     .papp.fs { --app-top: 0px; height: 100dvh; min-height: 0; overflow: hidden; }

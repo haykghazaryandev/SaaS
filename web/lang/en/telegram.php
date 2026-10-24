@@ -51,6 +51,8 @@ return [
         'already' => '👋 Your Telegram is already connected to Bookball. Booking updates will come here.',
         'linked' => "✅ Your phone is confirmed and Telegram is connected:name.\n\nOpen Bookball with the buttons below: you're already logged in there.",
         'link_expired' => '⚠️ This link has expired or was already used. Tap «Connect Telegram» on the site again.',
+        'link_ask' => "To connect Telegram to your Bookball account, share your phone number with the button below (it must be the number of your Bookball account).",
+        'link_mismatch' => "⚠️ This Telegram account has a different phone number than your Bookball account (:phone), so it was not connected. Use the Telegram account with that number, or log in with Telegram to use this one.",
         'help' => 'I only send booking updates. Book and manage your games on :url',
         'not_allowed' => 'You can not answer requests of this place.',
     ],

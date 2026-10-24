@@ -48,16 +48,30 @@ it('needs a login for the link and the status', function () {
     $this->getJson('/telegram/status')->assertUnauthorized();
 });
 
-it('links the chat on /start <token> and says hello in the user language', function () {
-    $user = User::factory()->create(['locale' => 'ru', 'name' => 'Aram']);
+it('connects Telegram only after the phone of that Telegram account matches the account', function () {
+    $user = User::factory()->create(['locale' => 'ru', 'name' => 'Aram', 'phone' => '+37491111222']);
     $token = app(TelegramLinker::class)->createToken($user);
 
     webhook($this, ['update_id' => 1, 'message' => ['message_id' => 1, 'chat' => ['id' => 9001, 'type' => 'private'], 'from' => ['id' => 9001, 'language_code' => 'en'], 'text' => '/start '.$token->token]])->assertOk();
+    expect($user->fresh()->telegram_chat_id)->toBeNull();   // nothing linked before the phone
+    expect(sentTo(9001)[0]['reply_markup']['keyboard'][0][0]['request_contact'] ?? false)->toBeTrue();
 
-    expect($user->fresh()->telegram_chat_id)->toBe(9001)->and($token->fresh()->used_at)->not->toBeNull();
-    $sent = sentTo(9001);
-    expect($sent)->toHaveCount(1)->and($sent[0]['text'])->toContain('Telegram подключён');
+    webhook($this, ['update_id' => 2, 'message' => ['message_id' => 2, 'chat' => ['id' => 9001, 'type' => 'private'], 'from' => ['id' => 9001], 'contact' => ['user_id' => 9001, 'phone_number' => '37491111222']]])->assertOk();
+    expect($user->fresh()->telegram_chat_id)->toBe(9001)->and($user->fresh()->telegram_verified_at)->not->toBeNull()->and($token->fresh()->used_at)->not->toBeNull();
+    expect(collect(sentTo(9001))->last()['text'])->toContain('Telegram подключён');
     $this->actingAs($user->fresh())->getJson('/telegram/status')->assertExactJson(['linked' => true]);
+});
+
+it('refuses to connect someone else\'s Telegram (a different phone) and keeps it with its owner', function () {
+    $owner = User::factory()->create(['phone' => '+37494369202', 'telegram_chat_id' => 9002, 'telegram_verified_at' => now()]);
+    $other = User::factory()->create(['phone' => '+37493000100', 'locale' => 'en']);   // e.g. a test account
+    $token = app(TelegramLinker::class)->createToken($other);
+
+    webhook($this, ['update_id' => 1, 'message' => ['message_id' => 1, 'chat' => ['id' => 9002, 'type' => 'private'], 'from' => ['id' => 9002], 'text' => '/start '.$token->token]]);
+    webhook($this, ['update_id' => 2, 'message' => ['message_id' => 2, 'chat' => ['id' => 9002, 'type' => 'private'], 'from' => ['id' => 9002], 'contact' => ['user_id' => 9002, 'phone_number' => '37494369202']]]);
+
+    expect($other->fresh()->telegram_chat_id)->toBeNull()->and($owner->fresh()->telegram_chat_id)->toBe(9002);
+    expect(collect(sentTo(9002))->last()['text'])->toContain('different phone number');
 });
 
 it('refuses an expired or used token', function () {

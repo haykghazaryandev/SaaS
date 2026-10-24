@@ -61,13 +61,15 @@ class TelegramUpdateHandler
 
             return;
         }
-        $user = $this->linker->link($token, $chatId);
+        // "Connect Telegram": first the phone, so a Telegram account is never attached to someone else's account
+        $user = $this->linker->start($token, $chatId);
         if (! $user) {
             $this->reply($chatId, 'telegram.bot.link_expired', $this->locale($m['from'] ?? []));
 
             return;
         }
-        $this->reply($chatId, 'telegram.bot.linked', $user->preferredLocale(), ['name' => $user->name ? ', '.e($user->name) : '']);
+        $locale = $user->preferredLocale();
+        $this->bot->askContact($chatId, __('telegram.bot.link_ask', [], $locale), __('telegram.login.button', [], $locale));
     }
 
     /** "Log in with Telegram": approve at once if we know this chat, otherwise ask for the phone number. */
@@ -91,6 +93,18 @@ class TelegramUpdateHandler
         $chatId = (int) ($m['chat']['id'] ?? 0);
         if (! $chatId || ($m['chat']['type'] ?? 'private') !== 'private') {
             return;
+        }
+        // a "Connect Telegram" waiting for this chat: link only if this Telegram's number is the account's number
+        if ((int) ($m['contact']['user_id'] ?? 0) === (int) ($m['from']['id'] ?? -1) && ($phone = \App\Support\Phone::normalize($m['contact']['phone_number'] ?? ''))) {
+            [$linked, $owner] = $this->linker->finish($chatId, $phone);
+            if ($linked !== 'none') {
+                $locale = $owner->preferredLocale();
+                $linked === 'linked'
+                    ? $this->bot->sendWithButtons($chatId, __('telegram.bot.linked', ['name' => $owner->name ? ', '.e($owner->name) : ''], $locale), $this->appLinks($locale, $owner), $this->langButton($locale))
+                    : $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_mismatch', ['phone' => \App\Support\Phone::format($owner->phone)], $locale));
+
+                return;
+            }
         }
         [$result, $user] = $this->login->onContact($chatId, $m['from'] ?? [], $m['contact']);
         $locale = $user?->preferredLocale() ?? $this->locale($m['from'] ?? []);

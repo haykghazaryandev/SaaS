@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TelegramLinkToken extends Model
 {
-    protected $fillable = ['user_id', 'token', 'expires_at', 'used_at'];
+    protected $fillable = ['user_id', 'token', 'expires_at', 'used_at', 'chat_id'];
 
     protected function casts(): array
     {

@@ -48,20 +48,20 @@ it('maps startapp parameters to pages, and nothing else', function () {
 // ---------- logging in ----------
 
 it('logs a known Telegram account in at once and keeps it on the page', function () {
-    $u = User::factory()->create(['telegram_chat_id' => 555]);
+    $u = User::factory()->create(['telegram_chat_id' => 555, 'telegram_verified_at' => now()]);
     $this->postJson('/tg/app/login', ['init_data' => initData(['id' => 555]), 'path' => '/games'])
         ->assertOk()->assertJson(['status' => 'ok', 'user_id' => $u->id, 'redirect' => '/games']);
     $this->assertAuthenticatedAs($u);
 });
 
 it('opens the page of a t.me link (startapp)', function () {
-    User::factory()->create(['telegram_chat_id' => 555]);
+    User::factory()->create(['telegram_chat_id' => 555, 'telegram_verified_at' => now()]);
     $this->postJson('/tg/app/login', ['init_data' => initData(['id' => 555], ['start_param' => 'chat_7']), 'path' => '/'])
         ->assertJson(['redirect' => '/messages/7']);
 });
 
 it('refuses forged data', function () {
-    User::factory()->create(['telegram_chat_id' => 555]);
+    User::factory()->create(['telegram_chat_id' => 555, 'telegram_verified_at' => now()]);
     $this->postJson('/tg/app/login', ['init_data' => initData(['id' => 555], [], 'stolen-guess')])->assertStatus(422);
     $this->assertGuest();
 });
@@ -130,7 +130,19 @@ it('does not tell people who read it or muted the chat', function () {
 });
 
 it('goes back to the page that needed a login', function () {
-    User::factory()->create(['telegram_chat_id' => 555]);
+    User::factory()->create(['telegram_chat_id' => 555, 'telegram_verified_at' => now()]);
     $this->get('/me/bookings')->assertRedirect(route('login'));   // a guest is sent to /login first
     $this->postJson('/tg/app/login', ['init_data' => initData(['id' => 555]), 'path' => '/login'])->assertJson(['redirect' => '/me/bookings']);
+});
+
+it('never logs in through an unconfirmed Telegram link: asks for the phone, then opens the real account', function () {
+    $mine = User::factory()->create(['phone' => '+37494369202']);
+    User::factory()->create(['phone' => '+37493000100', 'telegram_chat_id' => 555]);   // a test account the Telegram was once attached to
+
+    $token = $this->postJson('/tg/app/login', ['init_data' => initData(['id' => 555])])->assertJson(['status' => 'need_contact'])->json('token');
+    $this->assertGuest();
+    $this->postJson('/telegram/webhook/hook-secret', ['update_id' => 1, 'message' => ['message_id' => 1, 'chat' => ['id' => 555, 'type' => 'private'],
+        'from' => ['id' => 555], 'contact' => ['user_id' => 555, 'phone_number' => '37494369202']]], ['X-Telegram-Bot-Api-Secret-Token' => 'hook-secret']);
+    $this->postJson("/login/telegram/{$token}/complete", ['context' => 'login'])->assertOk();
+    expect(auth()->id())->toBe($mine->id)->and($mine->fresh()->telegram_chat_id)->toBe(555);
 });

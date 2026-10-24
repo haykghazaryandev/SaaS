@@ -61,12 +61,19 @@ it('does not accept somebody else\'s contact as confirmation', function () {
 });
 
 it('approves at once when the Telegram chat already belongs to an account', function () {
-    User::factory()->create(['phone' => '+37494000001', 'telegram_chat_id' => 555003]);
+    User::factory()->create(['phone' => '+37494000001', 'telegram_chat_id' => 555003, 'telegram_verified_at' => now()]);
     $token = startTelegramLogin($this);
     tgUpdate(['from' => ['id' => 555003, 'first_name' => 'A'], 'text' => "/start login_{$token}"]);
     $this->getJson("/login/telegram/{$token}")->assertJson(['status' => 'approved']);
     $this->postJson("/login/telegram/{$token}/complete", ['context' => 'booking'])->assertOk()->assertJson(['redirect' => null]);
     $this->assertAuthenticated();
+});
+
+it('does not log in one tap through a Telegram link that was never confirmed by its phone', function () {
+    User::factory()->create(['phone' => '+37494000002', 'telegram_chat_id' => 555004]);   // linked the old way, unconfirmed
+    $token = startTelegramLogin($this);
+    tgUpdate(['from' => ['id' => 555004, 'first_name' => 'A'], 'text' => "/start login_{$token}"]);
+    $this->getJson("/login/telegram/{$token}")->assertJson(['status' => 'pending']);   // the bot asks for the phone instead
 });
 
 it('only lets the browser that started the login finish it', function () {

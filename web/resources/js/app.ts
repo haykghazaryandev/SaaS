@@ -50,7 +50,7 @@ createInertiaApp({
             })
             .mount(el);
     },
-    progress: { color: '#c8ff3d' },
+    progress: false,   // no loading line at the top (product decision): pages are preloaded instead
     // pages preloaded on hover / press are kept only a few seconds (they are for the click that follows)
     defaults: { prefetch: { cacheFor: 5000, hoverDelay: 75 } },
 });

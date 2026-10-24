@@ -46,7 +46,8 @@ class TelegramLoginFlow
             return 'expired';
         }
         $login->update(['chat_id' => $chatId]);
-        $user = User::where('telegram_chat_id', $chatId)->whereNotNull('phone_verified_at')->first();
+        // one tap only for a Telegram account whose phone was confirmed for this Bookball account
+        $user = User::where('telegram_chat_id', $chatId)->whereNotNull('telegram_verified_at')->first();
         if ($user && ! $user->isBlocked()) {
             $this->approve($login, $user);
 
@@ -151,8 +152,9 @@ class TelegramLoginFlow
 
     private function linkChat(User $user, int $chatId): void
     {
-        User::where('telegram_chat_id', $chatId)->where('id', '!=', $user->id)->update(['telegram_chat_id' => null, 'telegram_linked_at' => null]);
-        $user->forceFill(['telegram_chat_id' => $chatId, 'telegram_linked_at' => $user->telegram_linked_at ?? now()])->save();
+        User::where('telegram_chat_id', $chatId)->where('id', '!=', $user->id)->update(['telegram_chat_id' => null, 'telegram_linked_at' => null, 'telegram_verified_at' => null]);
+        // the phone came from this Telegram account itself: confirmed
+        $user->forceFill(['telegram_chat_id' => $chatId, 'telegram_linked_at' => $user->telegram_linked_at ?? now(), 'telegram_verified_at' => now()])->save();
     }
 
     private function approve(TelegramLogin $login, User $user): void

@@ -98,7 +98,8 @@ class AuthController extends Controller
         $here = LoginLinks::safePath($request->input('path'));
         $path = $data['start_param'] ? TelegramWebApp::startPath($data['start_param'])
             : (in_array(strtok($here, '?'), ['/login', '/welcome'], true) ? LoginLinks::safePath($intended ?: '/') : $here);
-        $user = User::where('telegram_chat_id', $tgId)->whereNotNull('phone_verified_at')->first();
+        // only a Telegram account confirmed by its own phone for this account (never one linked without the phone)
+        $user = User::where('telegram_chat_id', $tgId)->whereNotNull('telegram_verified_at')->first();
 
         if ($user) {
             if ($user->isBlocked()) {
