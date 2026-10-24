@@ -68,6 +68,10 @@ const field = computed(() => props.fields.find((f) => f.id === fieldId.value) ??
 const durFor = (f: FieldInfo) => (f.durations.includes(minutes.value) ? minutes.value : f.defaultDuration);
 const startsFor = (f: FieldInfo | null, m: number) => (f ? (slots.value.fields.find((x) => x.id === f.id)?.starts[String(m)] ?? []) : []);
 const free = computed(() => startsFor(field.value, minutes.value));
+// prime times are marked only when the day has both prices (weekday daytime vs evening); at weekends every time
+// is prime, and a free time must never look like a warning (amber is the "waiting" color)
+const twoRates = computed(() => !!field.value && free.value.some((t) => isPrime(field.value!, t)) && free.value.some((t) => !isPrime(field.value!, t)));
+const dayRate = computed(() => (field.value && free.value.length ? rateAt(field.value, free.value[0]) : 0));
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
 const slotRow = computed(() => (field.value ? slots.value.fields.find((x) => x.id === field.value!.id) : undefined));
 /** every start time within the opening hours (past ones are not sent): free and taken, in order */
@@ -550,7 +554,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 <button
                                     v-else
                                     type="button"
-                                    :class="['tslot', { prime: isPrime(field, s.t), on: start != null && same(s.t, start) }]"
+                                    :class="['tslot', { prime: twoRates && isPrime(field, s.t), on: start != null && same(s.t, start) }]"
                                     :aria-pressed="start != null && same(s.t, start)"
                                     @click="pickStart(s.t)"
                                 >
@@ -559,8 +563,11 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             </template>
                         </div>
                         <div v-if="allStarts.length" class="tgl">
-                            <span v-if="free.some((t) => !isPrime(field!, t))"><i class="lg free" />{{ $t('player.place.stFree') }}</span>
-                            <span v-if="free.some((t) => isPrime(field!, t))"><i class="lg pk" />{{ $t('player.place.primeTag') }} · {{ amd(field.price.max) }} {{ $t('player.perHour') }}</span>
+                            <template v-if="twoRates">
+                                <span><i class="lg free" />{{ $t('player.place.stFree') }} · {{ amd(field.price.min) }} {{ $t('player.perHour') }}</span>
+                                <span><i class="lg free pk" />{{ $t('player.place.primeTag') }} · {{ amd(field.price.max) }} {{ $t('player.perHour') }}</span>
+                            </template>
+                            <span v-else-if="free.length"><i class="lg free" />{{ $t('player.place.stFree') }} · {{ amd(dayRate) }} {{ $t('player.perHour') }}</span>
                         </div>
                         <p v-if="hasTaken" class="bell-hint"><Icon name="bell" size="sm" />{{ $t('player.alert.legend') }}</p>
                     </div>
@@ -823,7 +830,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .slots.dim { opacity: .5; }
 .tslot { font-family: var(--mono); font-size: 14px; padding: 8px 0; width: 74px; text-align: center; border-radius: 9px; background: var(--free-soft); color: var(--free); border: 1px solid rgba(94, 240, 168, .22); }
 .tslot:hover { background: rgba(94, 240, 168, .22); }
-.tslot.prime { color: var(--warn); background: var(--warn-soft); border-color: rgba(255, 181, 71, .25); }
+/* prime price: the same free chip with a small dot (not a different color) */
+.tslot { position: relative; }
+.tslot.prime::after { content: ''; position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--warn); }
+.tslot.prime.on::after { background: var(--on-accent); }
 .tslot.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .tslot.taken { background: transparent; color: var(--faint); border: 1px dashed var(--line-2); cursor: pointer; }
 .tslot.taken .tt { text-decoration: line-through; }
@@ -849,7 +859,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .tgl span { display: inline-flex; gap: 6px; align-items: center; }
 .tgl .lg { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
 .tgl .free { background: var(--free-soft); box-shadow: inset 0 0 0 1px rgba(94, 240, 168, .4); }
-.tgl .pk { background: var(--warn-soft); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, .4); }
+.tgl .lg.pk { position: relative; }
+.tgl .lg.pk::after { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: var(--warn); }
 .err-box { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--hot-soft); color: var(--hot); font-size: 13.5px; font-weight: 700; }
 .err-box.warn { background: var(--warn-soft); color: var(--warn); }
 .err-box .ico { margin-top: 2px; }
