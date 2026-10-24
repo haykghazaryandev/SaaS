@@ -62,11 +62,7 @@ class PlaceController extends Controller
             'slots' => $present->slots($venue, $day) + ['mine' => $this->mine($request, $venue, $day)],
             'booked' => $booked,
             // why a new request can't be sent right now (told before tapping "Book", not after): too many waiting, or a pause
-            'limit' => ($u = $request->user()) ? [
-                'pending' => Booking::where('user_id', $u->id)->where('status', BookingStatus::Pending)->count(),
-                'maxPending' => (int) $venue->rule('max_pending_per_phone'),
-                'bannedUntil' => $u->isBookingBanned() ? $u->booking_ban_until->toImmutable()->setTimezone(LocalTime::tz())->format('d.m.Y') : null,
-            ] : null,
+            'limit' => $this->limit($request, $venue),
             // the player's "notify me if it frees up" times at this place (a bell on those taken times)
             'alerts' => $request->user() ? SlotAlert::where('user_id', $request->user()->id)->where('venue_id', $venue->id)
                 ->where('starts_at', '>', now())->orderBy('starts_at')->get()
@@ -92,7 +88,21 @@ class PlaceController extends Controller
 
         $day = $present->pickDay($request->query('date'));
 
-        return response()->json($present->slots($venue, $day, $fieldId, $request->integer('minutes') ?: null) + ['mine' => $this->mine($request, $venue, $day)]);
+        // "mine" and "limit" come with every refresh: a request withdrawn on another page shows up here at once
+        return response()->json($present->slots($venue, $day, $fieldId, $request->integer('minutes') ?: null)
+            + ['mine' => $this->mine($request, $venue, $day), 'limit' => $this->limit($request, $venue)]);
+    }
+
+    /** Waiting requests and a booking pause: why "Book" can't send a new request (null for guests). */
+    private function limit(Request $request, Venue $venue): ?array
+    {
+        $u = $request->user();
+
+        return $u ? [
+            'pending' => Booking::where('user_id', $u->id)->where('status', BookingStatus::Pending)->count(),
+            'maxPending' => (int) $venue->rule('max_pending_per_phone'),
+            'bannedUntil' => $u->isBookingBanned() ? $u->booking_ban_until->toImmutable()->setTimezone(LocalTime::tz())->format('d.m.Y') : null,
+        ] : null;
     }
 
     /**

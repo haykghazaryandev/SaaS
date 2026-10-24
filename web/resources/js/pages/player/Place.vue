@@ -169,6 +169,7 @@ async function load(quiet = false) {
         if (data.date !== date.value) return;
         const before = start.value;
         slots.value = data;
+        if (data.limit !== undefined) limit.value = data.limit;
         revalidate();
         if (quiet && before != null && (start.value == null || !same(before, start.value))) {
             // the picked time was just taken: offer "notify me if it frees up" for exactly that time
@@ -185,6 +186,7 @@ async function load(quiet = false) {
 let timer: number | undefined;
 const onVisible = () => document.visibilityState === 'visible' && load(true);
 onMounted(() => {
+    load(true);   // the page may come from a cache or "back": check times, "yours" and the limit now
     timer = window.setInterval(() => document.visibilityState === 'visible' && load(true), 60_000);
     document.addEventListener('visibilitychange', onVisible);
     if (props.booked) okBooking.value = props.booked;
@@ -280,8 +282,11 @@ const loginUrl = computed(() => route('login', { redirect: window.location.pathn
 
 const bookError = computed(() => (lostStart.value == null ? (form.errors as Record<string, string>).booking ?? null : null));
 // a new request can't be sent: say so before "Book" (G2), with the way out, instead of failing after the tap
+// the latest limit: from the page, then from every refresh of the times (withdrawn elsewhere → gone at once)
+const limit = ref(props.limit);
+watch(() => props.limit, (l) => (limit.value = l));
 const blocked = computed<string | null>(() => {
-    const l = props.limit;
+    const l = limit.value;
     if (!l) return null;
     if (l.bannedUntil) return trans('player.place.blockedBan', { until: l.bannedUntil });
     if (l.pending >= l.maxPending) return trans('player.place.blockedPending', { n: String(l.pending) });

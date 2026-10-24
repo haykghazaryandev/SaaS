@@ -18,6 +18,17 @@ router.on('navigate', (e) => startEcho((e.detail.page.props as AuthProps).auth?.
 
 installSheetSwipe();   // bottom sheets close with a downward swipe on phones
 
+// Fresh pages: something changed (booked, withdrew, accepted, joined…) → forget the preloaded pages, so the next page
+// shows the change; and "back" asks the server again instead of showing the old page as it was.
+router.on('finish', (e) => e.detail.visit.method !== 'get' && router.flushAll());
+window.addEventListener('popstate', () => setTimeout(() => router.reload(), 0));
+// back to Bookball after a while in another app or tab (phones, the Telegram Mini App): refresh the page's data
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') hiddenAt = Date.now();
+    else if (hiddenAt && Date.now() - hiddenAt > 30_000 && !document.querySelector('.scrim')) router.reload();
+});
+
 createInertiaApp({
     title: (title) => (title ? `${title} · Bookball` : 'Bookball'),
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')),
@@ -40,4 +51,6 @@ createInertiaApp({
             .mount(el);
     },
     progress: { color: '#c8ff3d' },
+    // pages preloaded on hover / press are kept only a few seconds (they are for the click that follows)
+    defaults: { prefetch: { cacheFor: 5000, hoverDelay: 75 } },
 });

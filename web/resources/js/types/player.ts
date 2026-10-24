@@ -55,6 +55,8 @@ export interface MyTime {
 export interface SlotsPayload {
     /** the player's own requests / bookings this day (their times are "yours") */
     mine?: MyTime[];
+    /** waiting requests / booking pause of the player (null for guests) */
+    limit?: { pending: number; maxPending: number; bannedUntil: string | null } | null;
     date: string;
     hours: [number, number] | null;
     fields: {
