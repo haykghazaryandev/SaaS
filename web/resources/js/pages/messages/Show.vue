@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
                                         <span
                                             v-if="r.mine && !r.m.deleted"
                                             :class="['tick', { seen: seenBy(r.m.id) > 0 }]"
-                                            :title="seenBy(r.m.id) ? (isGame ? $t('messages.seenBy', { n: String(seenBy(r.m.id)) }) : $t('messages.seen')) : $t('messages.sent')"
+                                            :title="seenBy(r.m.id) ? (isGame ? $t('messages.seen_by', { n: String(seenBy(r.m.id)) }) : $t('messages.seen')) : $t('messages.sent')"
                                             >{{ seenBy(r.m.id) ? '✓✓' : '✓' }}</span
                                         >
                                     </span>

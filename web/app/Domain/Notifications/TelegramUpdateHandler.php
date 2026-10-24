@@ -116,22 +116,6 @@ class TelegramUpdateHandler
             : $this->bot->sendAndHideKeyboard($chatId, $text);
     }
 
-    /** "/language": three buttons; the choice is saved on the account (bot + website). */
-    private function askLanguage(int $chatId, array $from): void
-    {
-        $user = User::where('telegram_chat_id', $chatId)->first();
-        $locale = $user?->preferredLocale() ?? $this->locale($from);
-        $this->bot->sendMessage($chatId, __('telegram.lang.choose', [], $locale), [self::LANG_BUTTONS]);
-    }
-
-    /** The "🌐 Language: Հայերեն" button under login messages. */
-    private function langButton(string $locale): array
-    {
-        $names = ['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'];
-
-        return [['🌐 '.__('common.language', [], $locale).': '.$names[$locale], 'lang:menu']];
-    }
-
     private const LANG_BUTTONS = [['🇦🇲 Հայերեն', 'lang:hy'], ['🇷🇺 Русский', 'lang:ru'], ['🇬🇧 English', 'lang:en']];
 
     private function setLanguage(array $q, ?User $user, string $lang, int $chatId, int $messageId): void
@@ -146,12 +130,6 @@ class TelegramUpdateHandler
         if ($messageId) {
             $this->bot->editMessageText($chatId, $messageId, __('telegram.lang.set', [], $lang));
         }
-    }
-
-    /** Buttons that open Bookball inside Telegram (the Mini App logs the person in by itself): book a field, find players. */
-    private function appLinks(string $locale, ?User $user = null): array
-    {
-        return [[__('telegram.login.button_book', [], $locale), 'app:/?lang='.$locale], [__('telegram.login.button_games', [], $locale), 'app:/games?lang='.$locale]];
     }
 
     private function callback(array $q): void

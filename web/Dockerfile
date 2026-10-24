@@ -28,7 +28,6 @@ RUN npm ci --no-audit --no-fund
 # resources/js/app.ts imports ZiggyVue from vendor/tightenco/ziggy.
 COPY --from=deps /app/vendor/tightenco/ziggy ./vendor/tightenco/ziggy
 COPY resources ./resources
-COPY lang ./lang
 COPY public ./public
 COPY vite.config.ts tsconfig.json tailwind.config.js components.json ./
 RUN npm run build
