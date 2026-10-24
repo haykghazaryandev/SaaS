@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { presence } from '@/composables/useSocial';
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import { type ChatItem, chatTitle, shortWhen, sysText, userName } from '@/composables/useChat';
@@ -77,6 +78,9 @@ onBeforeUnmount(() => {
     document.removeEventListener('keydown', onKey);
     if (channel) window.Echo?.private(channel).stopListening('.chat.updated', refresh);
 });
+
+// online: the live list of open apps once it answered, else the server's "seen in the last 2 minutes"
+const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o ? (presence.live ? presence.ids.has(o.id) : !!o.online) : false);
 </script>
 
 <template>
@@ -93,7 +97,7 @@ onBeforeUnmount(() => {
                     <span v-if="c.type === 'game'" class="cav"><Icon name="ball" /></span>
                     <span v-else class="avw">
                         <Avatar :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
-                        <i v-if="c.other?.online" class="on-dot" role="img" :aria-label="$t('messages.online')" />
+                        <i v-if="isOnline(c.other)" class="on-dot" role="img" :aria-label="$t('messages.online')" />
                     </span>
                     <span class="cmain">
                         <span class="crow">
@@ -161,7 +165,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* the other person is online (seen in the last 2 minutes) */
+/* the other person has Bookball open (the live list; before it answered: seen in the last 2 minutes) */
 .avw { position: relative; display: inline-grid; flex: none; }
 .on-dot { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--free); border: 2px solid var(--surface); }
 .msgs { max-width: 760px; margin: 0 auto; padding: 24px 0 40px; }

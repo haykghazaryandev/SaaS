@@ -37,6 +37,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'telegram_linked_at' => 'datetime',
             'telegram_verified_at' => 'datetime',
             'notify_prefs' => 'array',
+            'locale_chosen_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'registered_at' => 'datetime',
@@ -120,6 +121,12 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     /** Using Bookball right now (a page in the last 2 minutes): no need to repeat social news by Telegram. */
     public function isActiveNow(): bool
     {
+        // the live list of open apps (closing the app = offline at once); without Reverb: seen in the last 2 minutes
+        $online = app(\App\Domain\Social\Presence::class)->onlineIds();
+        if ($online !== null) {
+            return in_array($this->id, $online, true);
+        }
+
         return $this->last_seen_at !== null && $this->last_seen_at->greaterThan(now()->subMinutes(2));
     }
 

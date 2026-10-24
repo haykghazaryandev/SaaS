@@ -38,11 +38,6 @@ class TelegramUpdateHandler
             return;
         }
         $text = trim($m['text']);
-        if (str_starts_with($text, '/language')) {
-            $this->askLanguage($chatId, $m['from'] ?? []);
-
-            return;
-        }
         if (! str_starts_with($text, '/start')) {
             $user = User::where('telegram_chat_id', $chatId)->first();
             $this->reply($chatId, 'telegram.bot.help', $user?->preferredLocale() ?? $this->locale($m['from'] ?? []));
@@ -81,7 +76,7 @@ class TelegramUpdateHandler
         if ($result === 'expired') {
             $this->reply($chatId, 'telegram.login.expired', $locale);
         } elseif ($result === 'approved') {
-            $this->bot->sendWithButtons($chatId, __('telegram.login.done', ['name' => $known?->name ? ', '.e($known->name) : ''], $locale), $this->appLinks($locale, $known), $this->langButton($locale));
+            $this->bot->sendMessage($chatId, __('telegram.login.done', ['name' => $known?->name ? ', '.e($known->name) : ''], $locale));
         } else {
             $this->bot->askContact($chatId, __('telegram.login.ask', [], $locale), __('telegram.login.button', [], $locale));
         }
@@ -103,7 +98,7 @@ class TelegramUpdateHandler
                     $this->bot->hideKeyboard($chatId);   // the phone is shared: the "Share my phone number" button goes away
                 }
                 $linked === 'linked'
-                    ? $this->bot->sendWithButtons($chatId, __('telegram.bot.linked', ['name' => $owner->name ? ', '.e($owner->name) : ''], $locale), $this->appLinks($locale, $owner), $this->langButton($locale))
+                    ? $this->bot->sendMessage($chatId, __('telegram.bot.linked', ['name' => $owner->name ? ', '.e($owner->name) : ''], $locale))
                     : $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_mismatch', ['phone' => \App\Support\Phone::format($owner->phone)], $locale));
 
                 return;
@@ -117,7 +112,7 @@ class TelegramUpdateHandler
         if ($ok) {
             $this->bot->hideKeyboard($chatId);   // the phone is shared: the "Share my phone number" button goes away
         }
-        $ok ? $this->bot->sendWithButtons($chatId, $text, $this->appLinks($locale, $user), $this->langButton($locale))
+        $ok ? $this->bot->sendMessage($chatId, $text)
             : $this->bot->sendAndHideKeyboard($chatId, $text);
     }
 
@@ -146,7 +141,7 @@ class TelegramUpdateHandler
 
             return;
         }
-        $user->forceFill(['locale' => $lang])->save();
+        $user->forceFill(['locale' => $lang, 'locale_chosen_at' => now()])->save();   // their own choice: stop following the phone
         $this->bot->answerCallbackQuery($q['id'], __('telegram.lang.short', [], $lang));
         if ($messageId) {
             $this->bot->editMessageText($chatId, $messageId, __('telegram.lang.set', [], $lang));

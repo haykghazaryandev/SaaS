@@ -168,6 +168,7 @@ class Chat
             ->update(['last_read_message_id' => $messageId]);
         if ($changed) {
             ChatUpdated::dispatch($u->id, $c->id);   // the user's other tabs / devices refresh their unread counts
+            Events\MessagesRead::dispatch($c->id, $u->id, $messageId);   // the others' "seen" ticks
         }
     }
 
@@ -192,9 +193,9 @@ class Chat
             foreach ($memberIds as $uid) {
                 ChatUpdated::dispatch($uid, $c->id);
             }
-            // people who don't read it within a minute hear about it from the bot
+            // members without the app open hear about it from the bot, right away
             if ($m->type === 'text') {
-                ChatTelegramDigest::dispatch($m->id)->delay(now()->addSeconds(ChatTelegramDigest::DELAY_SECONDS));
+                ChatTelegramDigest::dispatch($m->id);
             }
         });
 

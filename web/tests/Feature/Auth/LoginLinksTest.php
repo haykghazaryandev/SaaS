@@ -56,18 +56,6 @@ it('switches the browser to the person of the link', function () {
     $this->assertAuthenticatedAs($b);
 });
 
-it('opens Bookball inside Telegram from the bot buttons after a Telegram login', function () {
-    config(['app.url' => 'https://bookball.am']);
-    $token = $this->postJson('/login/telegram')->json('token');
-    $from = ['id' => 777001, 'first_name' => 'Hamo'];
-    $this->postJson('/telegram/webhook/hook-secret', ['update_id' => 1, 'message' => ['message_id' => 1, 'chat' => ['id' => 777001, 'type' => 'private'], 'from' => $from, 'text' => "/start login_{$token}"]], ['X-Telegram-Bot-Api-Secret-Token' => 'hook-secret']);
-    $this->postJson('/telegram/webhook/hook-secret', ['update_id' => 2, 'message' => ['message_id' => 2, 'chat' => ['id' => 777001, 'type' => 'private'], 'from' => $from, 'contact' => ['user_id' => 777001, 'phone_number' => '37494000111', 'first_name' => 'Hamo']]], ['X-Telegram-Bot-Api-Secret-Token' => 'hook-secret']);
-
-    $apps = collect(Http::recorded())->map(fn ($p) => $p[0])->filter(fn (Request $r) => str_ends_with($r->url(), '/sendMessage'))
-        ->flatMap(fn (Request $r) => collect($r['reply_markup']['inline_keyboard'] ?? [])->flatten(1))->pluck('web_app.url')->filter()->values();
-    expect($apps)->not->toBeEmpty()->and($apps->first())->toStartWith('https://bookball.am/');
-});
-
 it('adds an "open" button to booking messages that opens the Mini App on My bookings', function () {
     config(['app.url' => 'https://bookball.am']);
     $venue = makeVenue();

@@ -146,3 +146,15 @@ it('never logs in through an unconfirmed Telegram link: asks for the phone, then
     $this->postJson("/login/telegram/{$token}/complete", ['context' => 'login'])->assertOk();
     expect(auth()->id())->toBe($mine->id)->and($mine->fresh()->telegram_chat_id)->toBe(555);
 });
+
+it('sends a chat message by Telegram right away to someone without the app open, never to someone online', function () {
+    [$a, $b, $c] = chatPair();
+    $this->mock(App\Domain\Social\Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([$a->id]));   // only the sender is online
+    app(Chat::class)->send($c, $a, 'Are you coming?');
+    expect(chatTelegrams(7102))->toBe(1);   // b: no delay
+
+    $this->mock(App\Domain\Social\Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([$a->id, $b->id]));   // b opens the app
+    $this->travel(1)->minutes();
+    app(Chat::class)->send($c, $a, 'Hello?');
+    expect(chatTelegrams(7102))->toBe(1);   // b sees it live, no Telegram
+});

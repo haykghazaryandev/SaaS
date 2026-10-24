@@ -160,7 +160,7 @@ watch(() => page.url, () => (menu.value = false));
             </div>
         </footer>
         <nav v-if="showTabbar" :class="['tabbar', { 'tab-hide': tabHidden }]" :aria-label="$t('nav.main')">
-            <Link v-for="n in tabs" :key="n.key" :href="n.href" :title="$t(n.tab ?? n.short)" :prefetch="['mount', 'click']" cache-for="30s" :aria-current="active(n.match) ? 'page' : undefined">
+            <Link v-for="n in tabs" :key="n.key" :href="n.href" :title="$t(n.tab ?? n.short)" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
                 <span class="ti"><Icon :name="n.icon" size="lg" /><span v-if="badge(n.badge)" :class="['badge-dot', 'tb', { warn: n.warn }]">{{ badge(n.badge) }}</span></span>
                 <span class="tl">{{ $t(n.tab ?? n.short) }}</span>
             </Link>
