@@ -282,8 +282,8 @@ it('lists notifications with texts in my language and marks them read', function
         ->and(collect($res['items'])->pluck('text')->all())->toContain('Davit wants to be your friend', 'Narek invites you to a 5×5 game')
         ->and($res['items'][0]['read_at'])->toBeNull();
 
-    // in Russian when the session language is Russian
-    $ru = $this->withSession(['locale' => 'ru'])->getJson('/notifications')->json('items');
+    // in Russian once the person switches the app to Russian
+    $ru = $this->getJson('/notifications?lang=ru')->json('items');
     expect(collect($ru)->pluck('text')->all())->toContain(__('notice.friend_request', ['name' => 'Davit'], 'ru'));
 
     // one

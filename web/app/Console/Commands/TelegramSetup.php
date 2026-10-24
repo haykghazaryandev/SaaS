@@ -26,7 +26,6 @@ class TelegramSetup extends Command
         foreach (['en' => null, 'hy' => 'hy', 'ru' => 'ru'] as $locale => $code) {
             $commands = [
                 ['command' => 'start', 'description' => __('telegram.menu.start', [], $locale)],
-                ['command' => 'language', 'description' => __('telegram.menu.language', [], $locale)],
             ];
             $bot->call('setMyCommands', array_filter(['commands' => $commands, 'language_code' => $code]));
             $bot->call('setMyDescription', array_filter(['description' => __('telegram.menu.about', [], $locale), 'language_code' => $code]));

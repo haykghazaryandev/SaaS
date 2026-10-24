@@ -10,6 +10,7 @@ use App\Domain\Auth\TelegramWebApp;
 use App\Domain\Notifications\TelegramBot;
 use App\Models\TelegramLogin;
 use App\Models\User;
+use App\Support\Locales;
 use App\Support\Phone;
 use App\Support\TestAccounts;
 use Illuminate\Http\Request;
@@ -75,6 +76,10 @@ class AuthController extends Controller
             return response()->json(['error' => __('auth.blocked')], 422);
         }
         $request->session()->put('tg_logins', array_values(array_diff($request->session()->get('tg_logins', []), [$token])));
+        // first login from the Mini App: speak the phone's language (until the person picks one in the app)
+        if (($lang = $request->session()->pull('device_lang')) && ! $user->locale_chosen_at && $user->locale !== $lang) {
+            $user->forceFill(['locale' => $lang])->save();
+        }
 
         $redirect = $this->landing($request, $user);   // logs in; the booking sheet stays on its page
 
@@ -112,10 +117,12 @@ class AuthController extends Controller
                 Auth::login($user, remember: true);
                 $request->session()->regenerate();
             }
-            $user->forceFill(['last_seen_at' => now()])->save();
+            // until the person picks a language in the app: the phone's language, else Telegram's
+            $lang = $user->locale_chosen_at ? null : (Locales::match($request->input('device_lang')) ?? Locales::match($data['user']['language_code'] ?? null));
+            $user->forceFill(['last_seen_at' => now()] + ($lang ? ['locale' => $lang] : []))->save();
             $user->syncAdmin();
 
-            return response()->json(['status' => 'ok', 'user_id' => $user->id, 'redirect' => $user->isRegistered() && $user->phone ? $path : route('welcome', [], false)]);
+            return response()->json(['status' => 'ok', 'user_id' => $user->id, 'locale' => $user->preferredLocale(), 'redirect' => $user->isRegistered() && $user->phone ? $path : route('welcome', [], false)]);
         }
 
         // first time: the bot asks for the phone (Telegram.WebApp.requestContact sends the contact to the bot)
@@ -123,6 +130,7 @@ class AuthController extends Controller
         $login->update(['chat_id' => $tgId]);
         $request->session()->put('tg_logins', [...array_slice($request->session()->get('tg_logins', []), -4), $login->token]);
         $request->session()->put('url.intended', url($path));
+        $request->session()->put('device_lang', Locales::match($request->input('device_lang')));   // used once the login completes
 
         return response()->json(['status' => 'need_contact', 'token' => $login->token]);
     }

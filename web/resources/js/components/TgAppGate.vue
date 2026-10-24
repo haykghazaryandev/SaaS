@@ -40,13 +40,16 @@ async function login() {
     if (!tg) return;
     state.value = 'checking';
     try {
-        const d = await call('POST', route('login.telegram.app'), { init_data: tg.initData, path: location.pathname + location.search });
+        // the phone's language (Telegram has no Armenian, so its own language is only the fallback on the server)
+        const d = await call('POST', route('login.telegram.app'), { init_data: tg.initData, path: location.pathname + location.search, device_lang: navigator.language });
         if (d.status === 'need_contact') {
             token = d.token;
             state.value = 'contact';
             return;
         }
         state.value = 'off';
+        // another language than this page: load the page again in it (the texts are loaded once, at start)
+        if (d.locale && d.locale !== page.props.locale) return location.replace(new URL(d.redirect, location.origin).href);
         const userId = (page.props.auth as { user?: { id: number } | null })?.user?.id;
         // already logged in as this person on this page: nothing to do; otherwise show the page with the account
         const samePage = new URL(d.redirect, location.origin).pathname === location.pathname;
@@ -74,7 +77,8 @@ function poll(n: number) {
             if (d.status === 'approved') {
                 const done = await call('POST', route('login.telegram.complete', token), { context: 'login' });
                 state.value = 'off';
-                return go(done.redirect);
+                // a full load: the account (and maybe its language) is new to this page
+                return location.replace(done.redirect || '/');
             }
         } catch {
             /* keep trying */
