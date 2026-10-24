@@ -89,27 +89,27 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                     <!-- a small label above each filter keeps the values short, so they fit in Armenian and Russian too -->
                     <label class="fsel">
                         <span>{{ $t('common.field') }}</span>
-                        <select v-model="f.size" class="input">
-                            <option value="">{{ $t('player.home.any') }}</option>
-                            <option value="small">{{ $t('player.size.small') }} 5×5</option>
-                            <option value="big">{{ $t('player.size.big') }} 11×11</option>
+                        <select v-model="f.size" class="input [color-scheme:dark]">
+                            <option class="bg-surface text-ink checked:text-accent" value="">{{ $t('player.home.any') }}</option>
+                            <option class="bg-surface text-ink checked:text-accent" value="small">{{ $t('player.size.small') }} 5×5</option>
+                            <option class="bg-surface text-ink checked:text-accent" value="big">{{ $t('player.size.big') }} 11×11</option>
                         </select>
                     </label>
                     <label class="fsel">
                         <span>{{ $t('common.district') }}</span>
-                        <select v-model="f.district" class="input">
-                            <option value="">{{ $t('player.home.any') }}</option>
-                            <option v-for="d in districts" :key="d" :value="d">{{ $t(`common.districts.${d}`) }}</option>
+                        <select v-model="f.district" class="input [color-scheme:dark]">
+                            <option class="bg-surface text-ink checked:text-accent" value="">{{ $t('player.home.any') }}</option>
+                            <option class="bg-surface text-ink checked:text-accent" v-for="d in districts" :key="d" :value="d">{{ $t(`common.districts.${d}`) }}</option>
                         </select>
                     </label>
                     <label class="fsel">
                         <span>{{ $t('player.place.start_time') }}</span>
-                        <select v-model="f.time" class="input">
-                            <option value="">{{ $t('player.home.any') }}</option>
-                            <option value="morning">{{ $t('player.home.morning') }}</option>
-                            <option value="day">{{ $t('player.home.day') }}</option>
-                            <option value="evening">{{ $t('player.home.evening') }}</option>
-                            <option v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.start_at', { t }) }}</option>
+                        <select v-model="f.time" class="input [color-scheme:dark]">
+                            <option class="bg-surface text-ink checked:text-accent" value="">{{ $t('player.home.any') }}</option>
+                            <option class="bg-surface text-ink checked:text-accent" value="morning">{{ $t('player.home.morning') }}</option>
+                            <option class="bg-surface text-ink checked:text-accent" value="day">{{ $t('player.home.day') }}</option>
+                            <option class="bg-surface text-ink checked:text-accent" value="evening">{{ $t('player.home.evening') }}</option>
+                            <option class="bg-surface text-ink checked:text-accent" v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.start_at', { t }) }}</option>
                         </select>
                     </label>
                     <button class="btn wide" :disabled="loading"><Icon name="search" />{{ $t('common.find_a_field') }}</button>
