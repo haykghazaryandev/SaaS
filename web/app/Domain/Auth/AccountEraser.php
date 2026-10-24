@@ -4,7 +4,6 @@ namespace App\Domain\Auth;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Deletes a person completely (not the soft delete): friends, game places, chat membership, alerts,
@@ -15,13 +14,9 @@ class AccountEraser
 {
     public function erase(User $user): void
     {
-        $avatar = $user->avatar_path;
         DB::transaction(function () use ($user) {
             $user->notifications()->delete();   // database notices are not a foreign key
-            $user->forceDelete();
+            $user->forceDelete();               // the photo (user_photos) goes with it
         });
-        if ($avatar) {
-            Storage::disk('public')->delete($avatar);
-        }
     }
 }

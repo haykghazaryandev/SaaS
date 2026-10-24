@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Route;
 
 // /u/{player}: a username or an id, resolved in AppServiceProvider (bindings in route files are lost with route:cache)
 
+// profile photos (stored in the database, see AvatarPhoto)
+Route::get('avatars/{file}', [App\Http\Controllers\Social\AvatarController::class, 'show'])->where('file', '[0-9]+-[A-Za-z0-9]+\.webp')->name('avatars.show');
+
 Route::middleware('auth')->group(function () {
     Route::get('friends', [FriendsController::class, 'index'])->name('friends.index');
     Route::middleware('throttle:60,1')->group(function () {

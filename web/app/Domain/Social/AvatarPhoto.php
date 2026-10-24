@@ -3,14 +3,15 @@
 namespace App\Domain\Social;
 
 use App\Models\User;
+use App\Models\UserPhoto;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
  * Profile photo: the uploaded image is turned straight, cropped to the centre square and saved
- * as a small 320×320 WebP (public disk, avatars/). The original is never kept.
+ * as a small 320×320 WebP in the database (user_photos; the server disk is wiped on every deploy).
+ * The original is never kept. users.avatar_path = "avatars/{id}-{token}.webp", the URL path.
  */
 class AvatarPhoto
 {
@@ -35,9 +36,9 @@ class AvatarPhoto
         imagedestroy($img);
         imagedestroy($out);
 
-        $path = 'avatars/'.$user->id.'-'.Str::random(8).'.webp';
-        Storage::disk('public')->put($path, $data);
-        $this->delete($user);
+        $token = Str::random(8);
+        UserPhoto::updateOrCreate(['user_id' => $user->id], ['token' => $token, 'data' => base64_encode($data)]);
+        $path = 'avatars/'.$user->id.'-'.$token.'.webp';
         $user->forceFill(['avatar_path' => $path])->save();
 
         return $path;
@@ -45,10 +46,21 @@ class AvatarPhoto
 
     public function delete(User $user): void
     {
+        UserPhoto::where('user_id', $user->id)->delete();
         if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
             $user->forceFill(['avatar_path' => null])->save();
         }
+    }
+
+    /** The WebP bytes for /avatars/{id}-{token}.webp, or null. */
+    public function find(string $file): ?string
+    {
+        if (! preg_match('/^(\d+)-([A-Za-z0-9]{1,16})\.webp$/', $file, $m)) {
+            return null;
+        }
+        $photo = UserPhoto::where('user_id', (int) $m[1])->where('token', $m[2])->first();
+
+        return $photo ? base64_decode($photo->data) : null;
     }
 
     /** Phone photos carry their rotation in EXIF: apply it so the face isn't sideways. */

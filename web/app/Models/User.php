@@ -133,7 +133,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function avatarUrl(): ?string
     {
         // a relative link works on every address the app is opened from (localhost, ngrok, the real domain)
-        return $this->avatar_path ? '/storage/'.ltrim($this->avatar_path, '/') : null;
+        return $this->avatar_path ? '/'.ltrim($this->avatar_path, '/') : null;   // /avatars/{id}-{token}.webp (AvatarController::show)
     }
 
     /** Short name for lists: "Aram P." */

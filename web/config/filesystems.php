@@ -33,7 +33,7 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            'serve' => false,   // nothing private is served; a missing /storage file is a plain 404, not a 403
             'throw' => false,
             'report' => false,
         ],

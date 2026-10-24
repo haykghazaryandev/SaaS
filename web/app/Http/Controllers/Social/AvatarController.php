@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
-/** Upload or remove the profile photo (My profile). */
+/** Upload, show or remove the profile photo (My profile). */
 class AvatarController extends Controller
 {
     public function store(Request $request, AvatarPhoto $photos)
@@ -21,6 +21,15 @@ class AvatarController extends Controller
         }
 
         return back()->with('success', __('profile.photo.saved'));
+    }
+
+    /** GET /avatars/{id}-{token}.webp: public; a new photo has a new token, so browsers may cache it for good. */
+    public function show(string $file, AvatarPhoto $photos)
+    {
+        $data = $photos->find($file);
+        abort_unless($data !== null, 404);
+
+        return response($data, 200, ['Content-Type' => 'image/webp', 'Cache-Control' => 'public, max-age=31536000, immutable']);
     }
 
     public function destroy(Request $request, AvatarPhoto $photos)
