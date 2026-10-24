@@ -96,6 +96,24 @@ runs, `/up` is polled, then the deployment goes live. If the migration or the he
 fails, Railway keeps the previous `web` deployment live and shows the failure in the
 deployments list. Open `APP_URL`, log in, open a chat: the WebSocket must show as connected.
 
+Telegram ("Log in with Telegram" and booking messages) needs `TELEGRAM_BOT_TOKEN`,
+`TELEGRAM_BOT_USERNAME` (`BookballAmBot`) and a random `TELEGRAM_WEBHOOK_SECRET` on the
+services. After the first deploy, run once on `web`:
+
+```bash
+php artisan telegram:set-webhook   # Telegram sends bot updates to APP_URL (must be https)
+php artisan telegram:setup         # bot menu and description in hy/ru/en
+```
+
+A bot has one webhook. While staging owns it, `php artisan telegram:poll` on a laptop gets
+nothing (Telegram refuses getUpdates while a webhook is set). To test the bot locally again,
+use a separate test bot token in your `.env`, or remove the webhook
+(`curl https://api.telegram.org/bot<TOKEN>/deleteWebhook`) and set it again afterwards.
+
+Profile photos are stored on the container disk (`FILESYSTEM_DISK=local`), so a redeploy
+loses them. Add a Railway volume on `storage/app/public` or move them to S3/R2 before
+real users upload photos.
+
 ## 3. Changing infrastructure later
 
 Edit `.railway/railway.ts`, then `railway config plan` / `railway config apply` against

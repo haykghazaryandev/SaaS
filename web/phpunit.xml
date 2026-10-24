@@ -24,6 +24,9 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="OTP_DRIVER" value="log"/>
+        <!-- tests never talk to the real bot (.env.example holds the team token) -->
+        <env name="TELEGRAM_BOT_TOKEN" value="" force="true"/>
+        <env name="TELEGRAM_GATEWAY_TOKEN" value="" force="true"/>
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="bookball_test"/>
         <env name="MAIL_MAILER" value="array"/>
