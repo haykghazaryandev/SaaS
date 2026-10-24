@@ -144,7 +144,6 @@ class TelegramLoginFlow
                 'registered_at' => $user->registered_at ?? ($name ? now() : null),
             ])->save();
             $user->syncAdmin();
-            app(\App\Domain\Booking\AfterBooking\BookingTeam::class)->claimInvites($user);   // "join my game" invites to this phone
 
             return $user;
         });

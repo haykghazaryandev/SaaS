@@ -24,7 +24,7 @@ class Notice extends Notification implements ShouldQueue
 
     /** Types that also go to Telegram (people connected the bot to hear about these). */
     public const TELEGRAM = ['slot_free', 'friend_request', 'game_invite', 'game_opened', 'game_full', 'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed',
-        'booking_reminder_day', 'booking_reminder_hour', 'booking_team_added', 'booking_team_joined',
+        'booking_reminder_day', 'booking_reminder_hour', 'booking_team_invite', 'booking_team_joined',
         'booking_team_confirmed', 'booking_team_changed', 'booking_team_cancelled',
         'booking_late', 'booking_not_here', 'booking_no_show', 'booking_ban', 'booking_rate'];
 

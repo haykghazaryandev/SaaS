@@ -199,6 +199,27 @@ class TelegramUpdateHandler
      */
     private function afterBooking(array $q, ?User $user, int $chatId, int $messageId): bool
     {
+        // an invite to a friend's booking: teamyes:{booking_players.id} / teamno:{id}
+        if (preg_match('/^team(yes|no):(\d+)$/', (string) ($q['data'] ?? ''), $t)) {
+            $row = \App\Models\BookingPlayer::with('booking.venue', 'booking.field', 'booking.user')->find((int) $t[2]);
+            if (! $user || ! $row || $row->user_id !== $user->id) {
+                $this->bot->answerCallbackQuery($q['id'], __('telegram.bot.not_allowed'), true);
+
+                return true;
+            }
+            try {
+                app(AfterBooking\BookingTeam::class)->respond($row, $user, $t[1] === 'yes');
+                $key = $t[1] === 'yes' ? 'telegram.after.team_in' : 'telegram.after.team_out';
+                if ($messageId) {
+                    $this->bot->editMessageText($chatId, $messageId, __($key, $this->esc(AfterBooking\BookingPeople::params($row->booking))));
+                }
+                $this->bot->answerCallbackQuery($q['id'], __($key.'_short'));
+            } catch (BookingException $e) {
+                $this->bot->answerCallbackQuery($q['id'], __('booking.error.'.$e->reason), true);
+            }
+
+            return true;
+        }
         if (! preg_match('/^(late|cantcome|cancelyes|rate|arrived|noshow|wait):(\d+)(?::(\d+))?$/', (string) ($q['data'] ?? ''), $m)) {
             return false;
         }

@@ -11,23 +11,25 @@ use App\Models\BookingPlayer;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-/** My bookings: the team of a booking (add friends, invite a phone, the invite link), leaving it, "running late". */
+/** My bookings: the team of a booking (invite friends, answer an invite, the invite link), leaving it, "running late". */
 class BookingTeamController extends Controller
 {
     public function friends(Request $request, Booking $booking, BookingTeam $team)
     {
         $data = $request->validate(['user_ids' => 'required|array|max:22', 'user_ids.*' => 'integer']);
-        $n = $this->attempt(fn () => $team->addFriends($booking, $request->user(), $data['user_ids']));
+        $n = $this->attempt(fn () => $team->inviteFriends($booking, $request->user(), $data['user_ids']));
 
-        return back()->with('success', trans_choice('player.team.added', $n, ['n' => $n]));
+        return back()->with('success', trans_choice('player.team.invited', $n, ['n' => $n]));
     }
 
-    public function phone(Request $request, Booking $booking, BookingTeam $team)
+    /** An invited friend accepts or declines (also possible with the Telegram buttons). */
+    public function respond(Request $request, Booking $booking, BookingTeam $team)
     {
-        $data = $request->validate(['phone' => 'required|string|max:20']);
-        [$result, $user] = $this->attempt(fn () => $team->invitePhone($booking, $request->user(), $data['phone']), 'phone');
+        $data = $request->validate(['accept' => 'required|boolean']);
+        $row = BookingPlayer::where('booking_id', $booking->id)->where('user_id', $request->user()->id)->firstOrFail();
+        $this->attempt(fn () => $team->respond($row, $request->user(), (bool) $data['accept']));
 
-        return back()->with('success', $result === 'added' ? __('player.team.phone_added', ['name' => $user->name]) : __('player.team.phone_invited'));
+        return back()->with('success', __($data['accept'] ? 'player.team.accepted' : 'player.team.declined'));
     }
 
     public function destroy(Request $request, Booking $booking, BookingPlayer $player, BookingTeam $team)

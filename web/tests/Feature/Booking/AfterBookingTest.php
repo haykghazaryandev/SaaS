@@ -178,43 +178,56 @@ it('updates the place rating from the stars', function () {
 
 // ---------- the booking's team ----------
 
-it('adds friends to the booking and tells the team about changes', function () {
+it('invites friends: they join only when they accept, then hear about changes', function () {
     $b = acceptedBooking($this);
     $friend = User::factory()->create(['telegram_chat_id' => 5002]);
     $stranger = User::factory()->create();
     Friendship::create(['user_id' => $this->player->id, 'friend_id' => $friend->id, 'status' => 'accepted', 'accepted_at' => now()]);
 
-    expect(app(BookingTeam::class)->addFriends($b, $this->player, [$friend->id, $stranger->id]))->toBe(1)
-        ->and(notices($friend, 'booking_team_added'))->toHaveCount(1)
-        ->and(fn () => app(BookingTeam::class)->addFriends($b, $friend, [$stranger->id]))->toThrow(BookingException::class);
+    expect(app(BookingTeam::class)->inviteFriends($b, $this->player, [$friend->id, $stranger->id]))->toBe(1)
+        ->and(notices($friend, 'booking_team_invite'))->toHaveCount(1)
+        ->and($b->fresh()->attendees()->pluck('id'))->not->toContain($friend->id)   // no reminders before answering
+        ->and(app(BookingTeam::class)->inviteFriends($b, $this->player, [$friend->id]))->toBe(0)   // asked already
+        ->and(fn () => app(BookingTeam::class)->inviteFriends($b, $friend, [$stranger->id]))->toThrow(BookingException::class);
+
+    // the friend sees the invite in My bookings and accepts there
+    $this->actingAs($friend)->get('/me/bookings')->assertInertia(fn ($p) => $p->where('upcoming.0.id', $b->id)->where('upcoming.0.role', 'invited'));
+    $this->actingAs($friend)->post("/bookings/{$b->id}/team/respond", ['accept' => true])->assertSessionHasNoErrors();
+    expect($b->fresh()->attendees()->pluck('id'))->toContain($friend->id)
+        ->and(notices($this->player, 'booking_team_joined'))->toHaveCount(1);
 
     app(CancelBooking::class)->handle($b, $this->player, 'player');
     expect(notices($friend, 'booking_team_cancelled'))->toHaveCount(1);
 });
 
-it('invites by phone: an account is added at once, a new number joins when it logs in with Telegram', function () {
+it('answers an invite with the Telegram buttons, and only the invited person can', function () {
     $b = acceptedBooking($this);
-    $known = User::factory()->create(['phone' => '+37491555111', 'phone_verified_at' => now()]);
-    expect(app(BookingTeam::class)->invitePhone($b, $this->player, '091 555 111')[0])->toBe('added')
-        ->and(app(BookingTeam::class)->invitePhone($b, $this->player, '093 777 888')[0])->toBe('invited');
-
-    // that person logs in with Telegram for the first time
-    $token = $this->postJson('/login/telegram')->json('token');
-    $from = ['id' => 999001, 'first_name' => 'Vahe'];
-    foreach ([['text' => "/start login_{$token}"], ['contact' => ['user_id' => 999001, 'phone_number' => '37493777888', 'first_name' => 'Vahe']]] as $i => $m) {
-        $this->postJson('/telegram/webhook/hook-secret', ['update_id' => $i, 'message' => ['message_id' => $i, 'chat' => ['id' => 999001, 'type' => 'private'], 'from' => $from] + $m], ['X-Telegram-Bot-Api-Secret-Token' => 'hook-secret']);
+    [$yes, $no] = [User::factory()->create(['telegram_chat_id' => 5101]), User::factory()->create(['telegram_chat_id' => 5102])];
+    foreach ([$yes, $no] as $f) {
+        Friendship::create(['user_id' => $this->player->id, 'friend_id' => $f->id, 'status' => 'accepted', 'accepted_at' => now()]);
     }
-    $vahe = User::where('phone', '+37493777888')->first();
-    expect($b->fresh()->attendees()->pluck('id')->all())->toContain($known->id, $vahe->id)
-        ->and(notices($this->player, 'booking_team_joined'))->toHaveCount(1);
+    app(BookingTeam::class)->inviteFriends($b, $this->player, [$yes->id, $no->id]);
+    $rowYes = BookingPlayer::where('user_id', $yes->id)->first();
+    $rowNo = BookingPlayer::where('user_id', $no->id)->first();
+
+    tapButton($this, 5102, "teamyes:{$rowYes->id}");   // someone else's invite: refused
+    expect($rowYes->fresh()->status)->toBe('invited');
+    tapButton($this, 5101, "teamyes:{$rowYes->id}");
+    tapButton($this, 5102, "teamno:{$rowNo->id}");
+    expect($rowYes->fresh()->status)->toBe('joined')->and($rowNo->fresh()->status)->toBe('declined')
+        ->and(notices($this->player, 'booking_team_declined'))->toHaveCount(1);
 });
 
-it('lets anyone with the invite link join, and members leave', function () {
+it('joins with the invite link without an answer, also right after logging in', function () {
     $b = acceptedBooking($this);
-    $link = app(BookingTeam::class)->link($b);
+    $path = parse_url(app(BookingTeam::class)->link($b), PHP_URL_PATH);
     $mate = User::factory()->create();
 
-    $this->actingAs($mate)->get(parse_url($link, PHP_URL_PATH))->assertRedirect('/me/bookings');
+    // logged out: log in first, then back to the link
+    $this->get($path)->assertRedirect(route('login'));
+    expect(session('url.intended'))->toEndWith($path);
+
+    $this->actingAs($mate)->get($path)->assertRedirect('/me/bookings');
     expect($b->fresh()->attendees()->pluck('id'))->toContain($mate->id);
     $this->actingAs($mate)->get('/me/bookings')->assertInertia(fn ($p) => $p->where('upcoming.0.id', $b->id)->where('upcoming.0.role', 'member'));
 

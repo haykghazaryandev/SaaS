@@ -158,15 +158,16 @@ class PlayerVenues
     {
         $b->loadMissing('players.user', 'user');
         $booker = $b->user_id === $viewer->id;
-        $team = $b->players->where('status', '!=', 'left')->values()->map(fn ($p) => [
+        $mine = $b->players->firstWhere('user_id', $viewer->id);
+        $team = $b->players->whereIn('status', ['invited', 'joined', 'declined'])->filter(fn ($p) => $p->user)->values()->map(fn ($p) => [
             'id' => $p->id, 'status' => $p->status,
-            'user' => $p->user ? ['id' => $p->user->id, 'name' => $p->user->name, 'avatar' => $p->user->avatarUrl()] : null,
-            'phone' => $p->user ? null : \App\Support\Phone::format($p->phone),
+            'user' => ['id' => $p->user->id, 'name' => $p->user->name, 'avatar' => $p->user->avatarUrl()],
         ])->all();
 
         return [
             'canCancel' => $booker && $b->status->holdsTime() && $b->starts_at->isFuture(),
-            'role' => $booker ? 'booker' : 'member',
+            // booker | member (joined) | invited (a friend asked, waiting for my answer)
+            'role' => $booker ? 'booker' : ($mine?->status === 'invited' ? 'invited' : 'member'),
             'booker' => $booker ? null : ['name' => $b->user?->name, 'avatar' => $b->user?->avatarUrl(), 'id' => $b->user_id],
             'team' => $team,
             'teamMax' => max(1, (int) ($b->field->max_players ?: 22) - 1),

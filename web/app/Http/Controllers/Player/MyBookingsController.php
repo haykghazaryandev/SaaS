@@ -21,9 +21,9 @@ class MyBookingsController extends Controller
     public function __invoke(Request $request, PlayerVenues $present, SlotAlerts $alerts)
     {
         $user = $request->user();
-        // mine, and the ones a friend added me to (team)
+        // mine, the ones I joined, and invites from friends waiting for my answer
         $upcoming = Booking::holding()->where('ends_at', '>', now())
-            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhereIn('id', BookingPlayer::select('booking_id')->where('user_id', $user->id)->where('status', 'joined')))
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhereIn('id', BookingPlayer::select('booking_id')->where('user_id', $user->id)->whereIn('status', ['joined', 'invited'])))
             ->with(['venue', 'field', 'user', 'players.user'])->orderBy('starts_at')->get();
         $friends = User::whereIn('id', $user->friendIds())->orderBy('name')->get(['id', 'name', 'username', 'avatar_path']);
 

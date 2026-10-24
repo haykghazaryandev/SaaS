@@ -7,48 +7,53 @@ use App\Models\Booking;
 use App\Models\BookingPlayer;
 use App\Models\User;
 use App\Notifications\Notice;
-use App\Support\Phone;
 use Illuminate\Support\Str;
 
 /**
- * The team of a booking: the booker adds friends (or invites a phone number, or shares the invite link),
- * and those people get the booking's news and reminders too.
- * - friends are added at once and told (bell + Telegram);
- * - a phone with an account is added the same way; a phone without one waits: when that person logs in with
- *   that number (confirmed by Telegram), they join automatically;
- * - anyone who opens the invite link /join/{token} while logged in joins.
- * Up to the field's player count (10 for 5×5, 22 for 11×11).
+ * The team of a booking: the people who get its news and reminders.
+ * - the booker invites friends: they are "invited" until they accept (Telegram buttons or My bookings);
+ * - the invite link /join/{token} needs no answer: opening it means joining (logged-out people log in or
+ *   register first and land back in the booking);
+ * Only "joined" members get the reminders. Up to the field's player count (10 for 5×5, 22 for 11×11).
+ * Statuses: invited | joined | declined | left
  */
 class BookingTeam
 {
-    /** @param int[] $userIds friends of the booker */
-    public function addFriends(Booking $b, User $by, array $userIds): int
+    /** @param int[] $userIds friends of the booker; returns how many were invited */
+    public function inviteFriends(Booking $b, User $by, array $userIds): int
     {
         $this->ensureBooker($b, $by);
-        $friends = collect($by->friendIds());
         $n = 0;
-        foreach (User::whereIn('id', array_intersect($userIds, $friends->all()))->get() as $friend) {
-            $n += $this->add($b, $friend, $by) ? 1 : 0;
+        foreach (User::whereIn('id', array_intersect($userIds, $by->friendIds()))->get() as $friend) {
+            $row = BookingPlayer::where('booking_id', $b->id)->where('user_id', $friend->id)->first();
+            if ($friend->id === $b->user_id || in_array($row?->status, ['invited', 'joined'], true)) {
+                continue;   // asked already, or in the team
+            }
+            $this->ensureRoom($b);
+            $row ? $row->update(['status' => 'invited', 'invited_by' => $by->id])
+                : $row = BookingPlayer::create(['booking_id' => $b->id, 'user_id' => $friend->id, 'invited_by' => $by->id, 'status' => 'invited']);
+            $friend->notify(new Notice('booking_team_invite', ['by' => $by->name] + BookingPeople::params($b), '/me/bookings', [
+                [['telegram.button.team_yes', "teamyes:{$row->id}"], ['telegram.button.team_no', "teamno:{$row->id}"]],
+            ]));
+            $n++;
         }
 
         return $n;
     }
 
-    /** Returns ['added', User] or ['invited', null] (nobody has that number yet: share the link). */
-    public function invitePhone(Booking $b, User $by, string $phone): array
+    /** The invited friend answers. */
+    public function respond(BookingPlayer $row, User $user, bool $accept): void
     {
-        $this->ensureBooker($b, $by);
-        $phone = Phone::normalize($phone) ?? throw new BookingException('bad_phone');
-        $user = User::where('phone', $phone)->whereNotNull('phone_verified_at')->first();
-        if ($user) {
-            $this->add($b, $user, $by);
-
-            return ['added', $user];
+        $b = $row->booking;
+        if ($row->user_id !== $user->id || $row->status !== 'invited') {
+            throw new BookingException('not_active');
         }
-        $this->ensureRoom($b);
-        BookingPlayer::firstOrCreate(['booking_id' => $b->id, 'phone' => $phone], ['invited_by' => $by->id, 'status' => 'invited']);
-
-        return ['invited', null];
+        if ($accept && (! $b->status->holdsTime() || $b->ends_at->isPast())) {
+            throw new BookingException('not_active');
+        }
+        $row->update(['status' => $accept ? 'joined' : 'declined']);
+        $b->loadMissing('user');
+        $b->user?->notify(new Notice($accept ? 'booking_team_joined' : 'booking_team_declined', ['who' => $user->name] + BookingPeople::params($b), '/me/bookings'));
     }
 
     /** The invite link of the booking (made on first use). */
@@ -61,7 +66,7 @@ class BookingTeam
         return rtrim(config('app.url'), '/').'/join/'.$b->invite_token;
     }
 
-    /** Someone opened the invite link while logged in. */
+    /** Someone opened the invite link while logged in: they are in, no answer needed. */
     public function join(Booking $b, User $user): void
     {
         if ($b->user_id === $user->id) {
@@ -70,7 +75,16 @@ class BookingTeam
         if (! $b->status->holdsTime() || $b->ends_at->isPast()) {
             throw new BookingException('not_active');
         }
-        $this->add($b, $user, null, notifyBooker: true);
+        $row = BookingPlayer::where('booking_id', $b->id)->where('user_id', $user->id)->first();
+        if ($row?->status === 'joined') {
+            return;
+        }
+        if ($row?->status !== 'invited') {
+            $this->ensureRoom($b);
+        }
+        $row ? $row->update(['status' => 'joined']) : BookingPlayer::create(['booking_id' => $b->id, 'user_id' => $user->id, 'status' => 'joined']);
+        $b->loadMissing('user');
+        $b->user?->notify(new Notice('booking_team_joined', ['who' => $user->name] + BookingPeople::params($b), '/me/bookings'));
     }
 
     public function leave(Booking $b, User $user): void
@@ -78,68 +92,12 @@ class BookingTeam
         BookingPlayer::where('booking_id', $b->id)->where('user_id', $user->id)->update(['status' => 'left']);
     }
 
-    /** The booker removes a member or a waiting phone invite. */
+    /** The booker removes a member or takes back an invite. */
     public function remove(Booking $b, User $by, BookingPlayer $player): void
     {
         $this->ensureBooker($b, $by);
         abort_unless($player->booking_id === $b->id, 404);
         $player->delete();
-    }
-
-    /** A phone was just confirmed: join the bookings that invited this number. */
-    public function claimInvites(User $user): void
-    {
-        if (! $user->phone) {
-            return;
-        }
-        $invites = BookingPlayer::with('booking')->where('phone', $user->phone)->whereNull('user_id')->where('status', 'invited')->get();
-        foreach ($invites as $invite) {
-            $b = $invite->booking;
-            if (! $b || ! $b->status->holdsTime() || $b->ends_at->isPast() || $b->user_id === $user->id) {
-                continue;
-            }
-            if (BookingPlayer::where('booking_id', $b->id)->where('user_id', $user->id)->exists()) {
-                $invite->delete();
-
-                continue;
-            }
-            $invite->update(['user_id' => $user->id, 'status' => 'joined']);
-            $this->tellBooker($b, $user);
-        }
-    }
-
-    private function add(Booking $b, User $user, ?User $by, bool $notifyBooker = false): bool
-    {
-        if ($b->user_id === $user->id) {
-            return false;
-        }
-        // the same person: already a member, or a waiting invite to their phone
-        $row = BookingPlayer::where('booking_id', $b->id)
-            ->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($q) => $q->orWhere(fn ($q) => $q->whereNull('user_id')->where('phone', $user->phone))))
-            ->first();
-        if ($row?->status === 'joined' && $row->user_id === $user->id) {
-            return false;
-        }
-        if (! $row) {
-            $this->ensureRoom($b);
-        }
-        $row ? $row->update(['user_id' => $user->id, 'status' => 'joined', 'invited_by' => $row->invited_by ?? $by?->id])
-            : BookingPlayer::create(['booking_id' => $b->id, 'user_id' => $user->id, 'invited_by' => $by?->id, 'status' => 'joined']);
-
-        if ($by) {
-            $user->notify(new Notice('booking_team_added', ['by' => $by->name] + BookingPeople::params($b), '/me/bookings'));
-        }
-        if ($notifyBooker) {
-            $this->tellBooker($b, $user);
-        }
-
-        return true;
-    }
-
-    private function tellBooker(Booking $b, User $joined): void
-    {
-        $b->loadMissing('user');
-        $b->user?->notify(new Notice('booking_team_joined', ['who' => $joined->name] + BookingPeople::params($b), '/me/bookings'));
     }
 
     private function ensureBooker(Booking $b, User $by): void
@@ -156,7 +114,7 @@ class BookingTeam
     {
         $b->loadMissing('field');
         $max = max(2, (int) ($b->field->max_players ?: 22)) - 1;   // the booker is one of them
-        if (BookingPlayer::where('booking_id', $b->id)->where('status', '!=', 'left')->count() >= $max) {
+        if (BookingPlayer::where('booking_id', $b->id)->whereIn('status', ['invited', 'joined'])->count() >= $max) {
             throw new BookingException('team_full');
         }
     }

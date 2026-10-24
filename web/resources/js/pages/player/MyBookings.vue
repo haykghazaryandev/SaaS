@@ -111,7 +111,11 @@ function cancel() {
 // ---------- the team ----------
 const teamFor = ref<number | null>(props.openTeam);   // ?team=<id> right after booking opens it
 const teamBooking = computed(() => props.upcoming.find((b) => b.id === teamFor.value && b.role === 'booker') ?? null);
-const teamPeople = (b: PlayerBooking) => (b.team ?? []).filter((p) => p.status === 'joined' && p.user).map((p) => p.user!);
+const teamPeople = (b: PlayerBooking) => (b.team ?? []).filter((p) => p.status === 'joined').map((p) => p.user);
+const waitingAnswers = (b: PlayerBooking) => (b.team ?? []).filter((p) => p.status === 'invited').length;
+function answer(b: PlayerBooking, accept: boolean) {
+    router.post(route('bookings.team.respond', b.id), { accept }, { preserveScroll: true });
+}
 function leave(b: PlayerBooking) {
     menuFor.value = null;
     if (window.confirm(trans('player.team.leaveAsk'))) router.post(route('bookings.leave', b.id), {}, { preserveScroll: true });
@@ -217,8 +221,20 @@ const canLinkTelegram = computed(() => {
                     <div v-if="b.status === 'cancelled' && b.cancelledBy && b.cancelledBy !== 'player'" class="extra">
                         {{ b.cancelledBy === 'owner' ? $t('player.my.byPlace') : $t('player.my.bySystem') }}<template v-if="b.cancelReason"> · {{ $t('player.my.reason', { r: b.cancelReason }) }}</template>
                     </div>
+                    <!-- a friend's invite: accept to get the reminders -->
+                    <div v-if="b.role === 'invited'" class="invite">
+                        <span class="by"
+                            ><Avatar :id="b.booker?.id" :name="b.booker?.name" :src="b.booker?.avatar" size="xs" />{{
+                                $t('player.team.invitesYou', { name: b.booker?.name ?? '' })
+                            }}</span
+                        >
+                        <div class="row" style="gap: 8px">
+                            <button type="button" class="btn sm" @click="answer(b, true)"><Icon name="check" size="sm" />{{ $t('player.team.accept') }}</button>
+                            <button type="button" class="btn ghost sm" @click="answer(b, false)">{{ $t('player.team.decline') }}</button>
+                        </div>
+                    </div>
                     <!-- the team: avatars, "Booked by" for members, "Add your team" for the booker -->
-                    <div v-if="b.role" class="teamrow">
+                    <div v-if="b.role && b.role !== 'invited'" class="teamrow">
                         <span v-if="b.role === 'member' && b.booker" class="by">
                             <Avatar :id="b.booker.id" :name="b.booker.name" :src="b.booker.avatar" size="xs" />{{ $t('player.team.bookedBy', { name: b.booker.name ?? '' }) }}
                         </span>
@@ -229,11 +245,12 @@ const canLinkTelegram = computed(() => {
                         <button v-if="b.role === 'booker'" type="button" :class="['btn sm', teamPeople(b).length ? 'link' : 'ghost']" @click="teamFor = b.id">
                             <Icon name="users" size="sm" />{{ teamPeople(b).length ? $t('player.team.manage') : $t('player.team.add') }}
                         </button>
+                        <small v-if="b.role === 'booker' && waitingAnswers(b)" class="muted">{{ $t('player.team.waitingN', { n: String(waitingAnswers(b)) }) }}</small>
                     </div>
                     <p v-if="b.role === 'booker' && !(b.team ?? []).length && b.status !== 'cancelled'" class="hint-team">{{ $t('player.team.nudge') }}</p>
                     <!-- running late? -->
                     <div v-if="b.lateMinutes" class="late-said"><Icon name="clock" size="sm" />{{ $t('player.late.said', { min: String(b.lateMinutes) }) }}</div>
-                    <div v-if="b.canLate" class="late">
+                    <div v-if="b.canLate && b.role !== 'invited'" class="late">
                         <button v-if="lateOpen !== b.id" type="button" class="btn outline sm" @click="lateOpen = b.id"><Icon name="clock" size="sm" />{{ $t('player.late.ask') }}</button>
                         <div v-else class="chips" role="group" :aria-label="$t('player.late.ask')">
                             <button v-for="m in b.lateOptions ?? []" :key="m" type="button" class="chip" @click="sayLate(b, m)">~{{ m }} {{ $t('player.min') }}</button>
@@ -345,6 +362,8 @@ const canLinkTelegram = computed(() => {
 .faces small { margin-left: 12px; color: var(--muted); font-weight: 700; }
 .teamrow .btn.link { padding-left: 0; }
 .hint-team { margin: 0; font-size: 12.5px; color: var(--muted); }
+.invite { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.invite .by { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; }
 .late { margin-top: 4px; }
 .late .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .late-said { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 700; color: var(--st-pending); }

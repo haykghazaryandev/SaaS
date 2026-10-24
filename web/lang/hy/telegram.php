@@ -27,6 +27,7 @@ return [
         'arrived' => '✅ Եկել են',
         'no_show' => '✖ Չեկան',
         'wait' => '⏳ Սպասել',
+        'team_yes' => '✅ Գալիս եմ', 'team_no' => '✖ Չեմ կարող',
     ],
     'status' => [
         'pending' => 'Սպասում է',
@@ -98,5 +99,7 @@ return [
         'no_show_done' => '✖ :name-ը չեկավ (:field, :time)։ Նշեց՝ :by։ Մնացած ժամանակը կրկին ազատ է։',
         'no_show_done_short' => 'Նշված է՝ չեկան',
         'waiting' => 'Լավ, սպասում ենք։ Նշեք հետո Bookball-ում։',
+        'team_in' => '✅ Դուք թիմում եք՝ :venue :field, :date :time։ Հիշեցումները կգան այստեղ։', 'team_in_short' => 'Դուք թիմում եք',
+        'team_out' => '✖ Դուք մերժեցիք՝ :venue, :date :time։', 'team_out_short' => 'Մերժված է',
     ],
 ];

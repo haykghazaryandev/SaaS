@@ -27,6 +27,7 @@ return [
         'arrived' => '✅ Пришли',
         'no_show' => '✖ Не пришли',
         'wait' => '⏳ Подождать',
+        'team_yes' => '✅ Я в деле', 'team_no' => '✖ Не смогу',
     ],
     'status' => [
         'pending' => 'Ожидает',
@@ -98,5 +99,7 @@ return [
         'no_show_done' => '✖ :name не пришли (:field, :time). Отметил(а): :by. Оставшееся время снова свободно.',
         'no_show_done_short' => 'Отмечено: не пришли',
         'waiting' => 'Хорошо, ждём. Отметьте позже в Bookball.',
+        'team_in' => '✅ Вы в команде: :venue :field, :date :time. Напоминания придут сюда.', 'team_in_short' => 'Вы в команде',
+        'team_out' => '✖ Вы отказались: :venue, :date :time.', 'team_out_short' => 'Отказано',
     ],
 ];

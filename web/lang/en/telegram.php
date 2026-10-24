@@ -28,6 +28,7 @@ return [
         'arrived' => '✅ Arrived',
         'no_show' => '✖ Didn\'t come',
         'wait' => '⏳ Wait',
+        'team_yes' => '✅ I\'m in', 'team_no' => '✖ Can\'t come',
     ],
     'status' => [
         'pending' => 'Waiting',
@@ -100,5 +101,7 @@ return [
         'no_show_done' => '✖ :name didn\'t come (:field, :time). Marked by :by. The rest of the time is free again.',
         'no_show_done_short' => 'Marked: didn\'t come',
         'waiting' => 'OK, waiting. Mark it later in Bookball.',
+        'team_in' => '✅ You are in: :venue :field, :date :time. The reminders will come here.', 'team_in_short' => 'You are in',
+        'team_out' => '✖ You declined: :venue, :date :time.', 'team_out_short' => 'Declined',
     ],
 ];

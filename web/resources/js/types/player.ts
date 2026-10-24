@@ -80,9 +80,9 @@ export interface PlayerBooking {
     freeCancelHours: number;
     lateCancel: boolean;
     // My bookings only: the team, "running late", arrival
-    role?: 'booker' | 'member';
+    role?: 'booker' | 'member' | 'invited';
     booker?: { id: number | null; name: string | null; avatar: string | null } | null;
-    team?: { id: number; status: 'joined' | 'invited'; user: { id: number; name: string; avatar: string | null } | null; phone: string | null }[];
+    team?: { id: number; status: 'joined' | 'invited' | 'declined'; user: { id: number; name: string; avatar: string | null } }[];
     teamMax?: number;
     inviteUrl?: string | null;
     canLate?: boolean;
