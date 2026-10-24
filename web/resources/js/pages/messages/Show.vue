@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
 .jump { position: absolute; left: 50%; transform: translateX(-50%); bottom: 26px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 12.5px; padding: 6px 14px; box-shadow: var(--shadow); z-index: 3; white-space: nowrap; }
 .offline { font-size: 12px; color: var(--warn); padding: 0 16px 4px; }
 
-.composer { border-top: 1px solid var(--line); padding: 8px 12px calc(6px + env(safe-area-inset-bottom)); background: var(--bg-2); }
+.composer { border-top: 1px solid var(--line); padding: 10px 12px calc(10px + var(--sab)); background: var(--bg-2); }
 .mode { display: flex; align-items: center; gap: 8px; padding: 4px 4px 8px; color: var(--accent-2); min-width: 0; }
 .mt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12.5px; }
 .mt b { color: var(--accent-2); }

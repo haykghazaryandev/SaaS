@@ -86,6 +86,8 @@ function poll(n: number) {
 
 function setUp(w: TgWebApp) {
     document.documentElement.classList.add('in-tg');
+    // iPhone: keep bottom bars above the home indicator even if Telegram reports no safe area
+    if (w.platform === 'ios') document.documentElement.classList.add('tg-ios');
     w.ready();
     w.expand();
     try {

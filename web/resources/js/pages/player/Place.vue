@@ -990,7 +990,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
   .bookbar .bb-why span { flex: 1; min-width: 0; }
   .bookbar .bb-why .ico { margin-top: 2px; flex: none; }
   .bookbar .bb-why a { flex-basis: 100%; padding-left: 22px; }
-  .bookbar { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 45; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; background: rgba(27, 33, 28, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); box-shadow: var(--shadow); }
+  .bookbar { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(10px + var(--sab)); z-index: 45; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; background: rgba(27, 33, 28, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); box-shadow: var(--shadow); }
   .bbinfo { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; color: var(--ink); display: flex; flex-direction: column; }
   .bbinfo b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bbinfo small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
