@@ -134,18 +134,18 @@ onMounted(() => {
             <Logo />
             <template v-if="state === 'checking' || state === 'waiting'">
                 <span class="spin" aria-hidden="true" />
-                <p class="muted">{{ $t(state === 'waiting' ? 'tgapp.waiting' : 'tgapp.checking') }}</p>
+                <p class="muted">{{ $t(state === 'waiting' ? 'telegram.miniapp.waiting' : 'telegram.miniapp.checking') }}</p>
             </template>
             <template v-else-if="state === 'contact'">
-                <h2>{{ $t('tgapp.welcome') }}</h2>
-                <p class="muted">{{ $t('tgapp.contact') }}</p>
-                <button type="button" class="btn block lg" @click="sharePhone"><Icon name="phone" size="sm" />{{ $t('tgapp.share') }}</button>
-                <button type="button" class="btn link" @click="state = 'off'">{{ $t('tgapp.later') }}</button>
+                <h2>{{ $t('common.welcome_to_bookball') }}</h2>
+                <p class="muted">{{ $t('telegram.miniapp.contact') }}</p>
+                <button type="button" class="btn block lg" @click="sharePhone"><Icon name="phone" size="sm" />{{ $t('telegram.miniapp.share') }}</button>
+                <button type="button" class="btn link" @click="state = 'off'">{{ $t('telegram.miniapp.later') }}</button>
             </template>
             <template v-else>
-                <p class="err">{{ error || $t('tgapp.failed') }}</p>
-                <button type="button" class="btn block" @click="login">{{ $t('tgapp.retry') }}</button>
-                <button type="button" class="btn link" @click="state = 'off'">{{ $t('tgapp.later') }}</button>
+                <p class="err">{{ error || $t('telegram.miniapp.failed') }}</p>
+                <button type="button" class="btn block" @click="login">{{ $t('telegram.miniapp.retry') }}</button>
+                <button type="button" class="btn link" @click="state = 'off'">{{ $t('telegram.miniapp.later') }}</button>
             </template>
         </div>
     </div>

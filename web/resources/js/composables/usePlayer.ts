@@ -1,4 +1,4 @@
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 
 // Helpers for the player pages: dates (local calendar days as "2026-10-21"), durations, field colours.
 
@@ -15,8 +15,8 @@ export function weekday(iso: string): number {
     const [y, m, d] = parts(iso);
     return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
-export const wdName = (i: number) => trans('player.wd').split(',')[i] ?? '';
-export const monthName = (i: number) => trans('player.months').split(',')[i] ?? '';
+export const wdName = (i: number) => trans('common.weekday_names_short').split(',')[i] ?? '';
+export const monthName = (i: number) => trans('common.month_names_short').split(',')[i] ?? '';
 
 /** "21 Oct" */
 export function dateShort(iso: string): string {
@@ -30,13 +30,13 @@ export function dateLong(iso: string): string {
 /** "Today" / "Tomorrow" / "Wed, 21 Oct" */
 export function dateRel(iso: string, todayIso: string): string {
     const diff = Math.round((Date.UTC(...(parts(iso) as [number, number, number])) - Date.UTC(...(parts(todayIso) as [number, number, number]))) / 864e5);
-    if (diff === 0) return trans('player.today');
-    if (diff === 1) return trans('player.tomorrow');
+    if (diff === 0) return trans('common.today');
+    if (diff === 1) return trans('common.tomorrow');
     return dateLong(iso);
 }
 /** 90 -> "90 min", 120 -> "2 h" */
 export function dur(m: number): string {
-    return m % 60 ? `${m} ${trans('player.min')}` : `${m / 60} ${trans('player.h')}`;
+    return m % 60 ? `${m} ${trans('common.minute_short')}` : `${m / 60} ${trans('common.hour_short')}`;
 }
 /** "19:30" -> 19.5 */
 export function toHours(t: string): number {
@@ -51,7 +51,7 @@ export function dayDiff(a: string, b: string): number {
 export function nextLabel(iso: string, todayIso: string, time: string, inline = false): string {
     const d = dayDiff(todayIso, iso);
     const rel = (k: string) => (inline ? trans(k).toLocaleLowerCase() : trans(k));
-    const day = d === 0 ? rel('player.today') : d === 1 ? rel('player.tomorrow') : d < 7 ? wdName(weekday(iso)) : dateLong(iso);
+    const day = d === 0 ? rel('common.today') : d === 1 ? rel('common.tomorrow') : d < 7 ? wdName(weekday(iso)) : dateLong(iso);
     return `${day} ${time}`;
 }
 /** "today" as a calendar date in Yerevan */

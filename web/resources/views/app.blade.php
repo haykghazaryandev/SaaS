@@ -16,6 +16,8 @@
                 }
             } catch (e) {}
         </script>
+        {{-- the interface texts (the translations table): the app fetches them before it mounts; cached by version --}}
+        <link rel="preload" as="fetch" crossorigin href="{{ route('lang', app()->getLocale()) }}?v={{ app(\App\Support\Translations::class)->version() }}">
         @routes
         @vite(['resources/js/app.ts'])
         @inertiaHead

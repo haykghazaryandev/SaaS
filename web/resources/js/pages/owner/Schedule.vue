@@ -20,7 +20,7 @@ import {
 import { amd, hhmm } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { router, usePoll } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Schedule: day (fields side by side; one field at a time below 768px), week (7 days × fields) and list (search + status filter).
@@ -253,11 +253,11 @@ function setStatus(s: string) {
 
 const fieldOf = (id: number) => fields.value.find((f) => f.id === id);
 const legend = computed(() => [
-    ['pending', trans('owner.st.pending')],
-    ['accepted', trans('owner.st.accepted')],
-    ['owner', trans('owner.st.owner')],
-    ['off', trans('owner.schedule.legend_off')],
-    ['closed', trans('owner.schedule.closure')],
+    ['pending', trans('owner.status.pending')],
+    ['accepted', trans('owner.status.accepted')],
+    ['owner', trans('owner.status.owner')],
+    ['off', trans('owner.schedule.legend_inactive')],
+    ['closed', trans('common.closed')],
 ]);
 const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.hidden[b.id] ?? b.status });
 </script>
@@ -266,12 +266,12 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
     <OwnerLayout :title="$t('owner.nav.schedule')" :new-booking="{ date: daysBetween(today, date) >= 0 ? date : today }">
         <div class="phead">
             <div>
-                <div class="kicker">{{ $t('owner.schedule.kicker') }} · {{ owner.venue.name }}</div>
+                <div class="kicker">{{ $t('common.bookings') }} · {{ owner.venue.name }}</div>
                 <h1>{{ $t('owner.nav.schedule') }}</h1>
             </div>
             <div class="phead-r">
                 <button type="button" class="btn new" data-test="new" @click="openForm({ date: daysBetween(today, date) >= 0 ? date : today })">
-                    <Icon name="plus" size="sm" />{{ $t('owner.new_booking') }}
+                    <Icon name="plus" size="sm" />{{ $t('common.new_booking') }}
                 </button>
             </div>
         </div>
@@ -292,14 +292,14 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                 </button>
             </div>
             <span class="grow" />
-            <label v-if="view === 'day'" class="switch"><input v-model="showOff" type="checkbox" />{{ $t('owner.schedule.show_off') }}</label>
+            <label v-if="view === 'day'" class="switch"><input v-model="showOff" type="checkbox" />{{ $t('owner.schedule.show_inactive') }}</label>
         </div>
 
         <!-- date bar: day strip, one calendar button, "Now" -->
         <div v-if="view !== 'list'" class="datebar">
             <div ref="chips" class="chips fade">
                 <button v-for="d in strip" :key="d" type="button" class="chip dchip" :aria-pressed="d === date" @click="go({ date: d })">
-                    <small>{{ d === today ? $t('owner.today') : fdate(d, { weekday: 'short' }) }}</small
+                    <small>{{ d === today ? $t('common.today') : fdate(d, { weekday: 'short' }) }}</small
                     ><b>{{ fdate(d, { day: 'numeric' }) }}</b
                     ><i v-if="pendingDays.includes(d)" class="dp" />
                 </button>
@@ -324,12 +324,12 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                 />
             </span>
             <button type="button" class="btn ghost sm nowbtn" data-test="now" @click="goNow">
-                <Icon name="clock" size="sm" />{{ $t('owner.schedule.now') }}
+                <Icon name="clock" size="sm" />{{ $t('common.now') }}
             </button>
         </div>
 
         <!-- phones: one field at a time -->
-        <div v-if="narrow && view !== 'list' && fields.length > 1" class="seg lanesw" role="group" :aria-label="$t('owner.schedule.lanes')">
+        <div v-if="narrow && view !== 'list' && fields.length > 1" class="seg lanesw" role="group" :aria-label="$t('common.field')">
             <button
                 v-for="f in fields"
                 :key="f.id"
@@ -362,7 +362,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                             <small
                                 >{{ $t('owner.schedule.booked', { h: headOf(f.id).h, n: headOf(f.id).n })
                                 }}<template v-if="headOf(f.id).p">
-                                    · <span style="color: var(--warn)">{{ $t('owner.schedule.pending_n', { n: headOf(f.id).p }) }}</span></template
+                                    · <span style="color: var(--warn)">{{ $t('owner.schedule.pending_count', { n: headOf(f.id).p }) }}</span></template
                                 ></small
                             >
                         </span>
@@ -386,7 +386,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                             :class="['slot', { half: s.t % 1, past: s.past }]"
                             :style="{ top: top(s.t) + 'px', height: PX / 2 + 'px' }"
                             :tabindex="s.past ? -1 : undefined"
-                            :aria-label="s.past ? undefined : `${$t('owner.new_booking')} ${hhmm(s.t)}`"
+                            :aria-label="s.past ? undefined : `${$t('common.new_booking')} ${hhmm(s.t)}`"
                             @click="!s.past && newAt(f.id, s.t)"
                         >
                             {{ s.past ? '' : '+ ' + hhmm(s.t) }}
@@ -399,7 +399,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                         >
                             <div class="bi">
                                 <div class="bt">{{ hhmm(c.start) }}–{{ hhmm(c.end) }}</div>
-                                <div class="bn" style="color: var(--hot)">{{ $t('owner.schedule.closure') }}</div>
+                                <div class="bn" style="color: var(--hot)">{{ $t('common.closed') }}</div>
                                 <div class="bx">{{ c.reason }}</div>
                             </div>
                         </div>
@@ -424,11 +424,11 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                                 <div v-if="b.minutes >= 60" class="bx">{{ b.team ? b.name : b.phone || '' }}</div>
                             </div>
                             <div v-if="kindOf(b) === 'pending'" class="ba">
-                                <button type="button" class="ok" :title="$t('owner.a.accept')" data-test="block-accept" @click.stop="accept(b.id, b)">
-                                    <Icon name="check" size="sm" /><span>{{ $t('owner.a.accept') }}</span>
+                                <button type="button" class="ok" :title="$t('common.accept')" data-test="block-accept" @click.stop="accept(b.id, b)">
+                                    <Icon name="check" size="sm" /><span>{{ $t('common.accept') }}</span>
                                 </button>
-                                <button type="button" class="no" :title="$t('owner.a.decline')" @click.stop="askDecline(b.id, whoOf(b))">
-                                    <Icon name="x" size="sm" /><span>{{ $t('owner.a.decline') }}</span>
+                                <button type="button" class="no" :title="$t('common.decline')" @click.stop="askDecline(b.id, whoOf(b))">
+                                    <Icon name="x" size="sm" /><span>{{ $t('common.decline') }}</span>
                                 </button>
                             </div>
                         </div>
@@ -449,7 +449,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                     <div v-for="f in shownFields" :key="'wh' + f.id" class="wh"><i :class="['fdot', dotOf(f.size)]" />{{ f.label }}</div>
                     <template v-for="d in week.days" :key="d.date">
                         <div :class="['wd', { today: d.date === today }]" style="cursor: pointer" @click="go({ date: d.date, view: 'day' })">
-                            <b>{{ d.date === today ? $t('owner.today') : fdate(d.date, { weekday: 'short' }) }}</b
+                            <b>{{ d.date === today ? $t('common.today') : fdate(d.date, { weekday: 'short' }) }}</b
                             ><span class="muted">{{ fdate(d.date, { day: 'numeric', month: 'short' }) }}</span>
                         </div>
                         <div
@@ -473,7 +473,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                                     d.hours ? `${d.fields[f.id]?.pct ?? 0}% · ${d.fields[f.id]?.count ?? 0}` : $t('owner.schedule.closed_short')
                                 }}</span>
                                 <span v-if="d.fields[f.id]?.pending" class="p">{{
-                                    $t('owner.schedule.pending_n', { n: d.fields[f.id].pending })
+                                    $t('owner.schedule.pending_count', { n: d.fields[f.id].pending })
                                 }}</span>
                             </div>
                         </div>
@@ -507,7 +507,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                         :aria-pressed="status === k"
                         @click="setStatus(k)"
                     >
-                        {{ $t(`owner.schedule.f_${k}`) }} <span class="faint">{{ listAll.filter(FILTERS[k]).length }}</span>
+                        {{ $t(`owner.schedule.filter_${k}`) }} <span class="faint">{{ listAll.filter(FILTERS[k]).length }}</span>
                     </button>
                 </div>
             </div>
@@ -532,8 +532,8 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                     <div class="pr">{{ amd(b.price) }}</div>
                     <div class="acts">
                         <template v-if="kindOf(b) === 'pending'">
-                            <button type="button" class="btn sm" @click.stop="accept(b.id, b)">{{ $t('owner.a.accept') }}</button>
-                            <button type="button" class="btn sm danger" @click.stop="askDecline(b.id, whoOf(b))">{{ $t('owner.a.decline') }}</button>
+                            <button type="button" class="btn sm" @click.stop="accept(b.id, b)">{{ $t('common.accept') }}</button>
+                            <button type="button" class="btn sm danger" @click.stop="askDecline(b.id, whoOf(b))">{{ $t('common.decline') }}</button>
                         </template>
                         <span v-else :class="['pill', rowPill(b).cls]">{{ rowPill(b).label }}</span>
                     </div>

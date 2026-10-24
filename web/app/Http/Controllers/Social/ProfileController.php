@@ -22,10 +22,10 @@ class ProfileController extends Controller
 
     public function __construct(private Friends $friends, private PlayerCards $cards) {}
 
-    /** Districts are the same as the places' districts (lang player.district.*). */
+    /** Districts are the same as the places' districts (translations common.districts.*). */
     public static function districts(): array
     {
-        return array_keys(trans('player.district', [], 'en'));
+        return array_keys(trans('common.districts', [], 'en'));
     }
 
     public function show(Request $request, User $player)

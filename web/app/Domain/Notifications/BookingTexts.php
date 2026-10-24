@@ -38,7 +38,7 @@ class BookingTexts
             $text .= "\n💬 ".e($b->note_player);
         }
         $buttons = $type === 'requested'
-            ? [[['✅ '.__('telegram.button.accept'), 'accept:'.$b->id], ['✖ '.__('telegram.button.decline'), 'decline:'.$b->id]]]
+            ? [[['✅ '.__('common.accept'), 'accept:'.$b->id], ['✖ '.__('common.decline'), 'decline:'.$b->id]]]
             : [];
 
         return new TelegramMessage('venue.'.$type, $text, $buttons);

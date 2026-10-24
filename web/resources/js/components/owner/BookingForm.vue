@@ -4,7 +4,7 @@ import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import { dur, useOwner, weekdayOf, type FormOpts } from '@/composables/useOwner';
 import { hhmm } from '@/composables/useShared';
 import { useForm } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 
 // Create or edit a booking (phone calls, walk-ins, regular teams). The price comes from the place's prices and can be changed.
@@ -127,12 +127,12 @@ function submit() {
 <template>
     <OwnerSheet
         wide
-        :title="$t(b ? 'owner.form.edit_title' : 'owner.form.new_title')"
-        :sub="b ? $t(b.tel ? 'owner.form.notify' : 'owner.b.no_phone') : $t('owner.form.new_sub')"
+        :title="$t(b ? 'owner.form.edit_title' : 'common.new_booking')"
+        :sub="b ? $t(b.tel ? 'owner.form.notify' : 'owner.booking.no_phone') : $t('owner.form.new_sub')"
         @close="emit('close')"
     >
         <form @submit.prevent="submit">
-            <div id="ff" class="seg" role="group" :aria-label="$t('owner.b.field')">
+            <div id="ff" class="seg" role="group" :aria-label="$t('common.field')">
                 <button v-for="f in fields" :key="f.id" type="button" :aria-pressed="form.field_id === f.id" @click="pickField(f.id)">
                     {{ f.label }}
                 </button>
@@ -149,7 +149,7 @@ function submit() {
                     </select>
                 </div>
                 <div class="field">
-                    <label for="fu">{{ $t('owner.b.duration') }}</label>
+                    <label for="fu">{{ $t('common.duration') }}</label>
                     <select id="fu" v-model.number="form.minutes" class="input">
                         <option v-for="d in durations" :key="d" :value="d">{{ dur(d) }}</option>
                     </select>
@@ -161,7 +161,7 @@ function submit() {
                 </div>
                 <div class="field">
                     <label for="fh"
-                        >{{ $t('owner.form.phone') }} <span class="faint">· {{ $t('owner.form.optional') }}</span></label
+                        >{{ $t('common.phone') }} <span class="faint">· {{ $t('owner.form.optional') }}</span></label
                     >
                     <div class="row" style="gap: 6px">
                         <span class="input pre">+374</span>
@@ -170,27 +170,27 @@ function submit() {
                     <span v-if="quote?.player" class="player-hint"
                         ><Icon name="user" size="sm" />{{ $t('owner.form.is_player', { name: quote.player.name || '—' }) }}</span
                     >
-                    <span v-if="quote?.player?.no_shows" class="player-hint warn">{{ $t('owner.b.no_shows', { n: quote.player.no_shows }) }}</span>
+                    <span v-if="quote?.player?.no_shows" class="player-hint warn">{{ $t('owner.booking.no_shows', { n: quote.player.no_shows }) }}</span>
                     <div v-if="form.errors.phone || (quote && !quote.phoneValid && form.phone.length > 7)" class="err">
                         {{ form.errors.phone || $t('owner.form.bad_phone') }}
                     </div>
                 </div>
                 <div class="field">
-                    <label for="fn">{{ $t('owner.form.name') }}</label>
+                    <label for="fn">{{ $t('common.name') }}</label>
                     <input id="fn" v-model="form.name" class="input" autocomplete="off" maxlength="80" :placeholder="quote?.player?.name || ''" />
                     <div v-if="form.errors.name" class="err">{{ form.errors.name }}</div>
                 </div>
                 <div class="field">
                     <label for="ft"
-                        >{{ $t('owner.b.team') }} <span class="faint">· {{ $t('owner.form.optional') }}</span></label
+                        >{{ $t('common.team') }} <span class="faint">· {{ $t('owner.form.optional') }}</span></label
                     >
                     <input id="ft" v-model="form.team_name" class="input" maxlength="80" />
                 </div>
                 <div class="field">
                     <label for="fo"
-                        >{{ $t('owner.b.note_owner') }} <span class="faint">· {{ $t('owner.form.optional') }}</span></label
+                        >{{ $t('owner.booking.note_owner') }} <span class="faint">· {{ $t('owner.form.optional') }}</span></label
                     >
-                    <input id="fo" v-model="form.note_owner" class="input" maxlength="1000" :placeholder="$t('owner.form.note_ph')" />
+                    <input id="fo" v-model="form.note_owner" class="input" maxlength="1000" :placeholder="$t('owner.form.note_placeholder')" />
                 </div>
             </div>
             <label v-if="!b" class="check">
@@ -210,7 +210,7 @@ function submit() {
                 <span v-if="status?.ok" class="ok"><Icon name="check" size="sm" />{{ status.text }}</span>
                 <template v-else-if="status">{{ status.text }}</template>
             </div>
-            <button class="btn block" :disabled="form.processing" data-test="form-ok">{{ $t(b ? 'owner.a.save' : 'owner.a.create') }}</button>
+            <button class="btn block" :disabled="form.processing" data-test="form-ok">{{ $t(b ? 'common.save' : 'owner.action.create') }}</button>
         </form>
     </OwnerSheet>
 </template>

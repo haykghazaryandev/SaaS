@@ -9,7 +9,7 @@ import { echoConnected, echoState } from '@/lib/echo';
 import { tgApp } from '@/lib/telegram';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // A chat screen (direct or game chat). Live over Reverb: private-conversation.{id} ".message" {action, message}
@@ -58,8 +58,8 @@ const bar = computed(() => {
     const g = props.chat.game;
     if (!g || archived.value || ['cancelled', 'played', 'archived'].includes(g.status)) return null;
     const b = g.booking ?? null;
-    const when = b ? whenShort({ date: b.date, from: b.start }) : g.window ? whenShort(g.window) : trans('games.card.tbd');
-    const where = b?.venue.name ?? g.place ?? (g.district ? trans(`player.district.${g.district}`) : trans('games.card.anywhere'));
+    const when = b ? whenShort({ date: b.date, from: b.start }) : g.window ? whenShort(g.window) : trans('games.card.time_tbd');
+    const where = b?.venue.name ?? g.place ?? (g.district ? trans(`common.districts.${g.district}`) : trans('games.card.anywhere'));
     const state = b ? (b.status === 'accepted' ? 'booked' : 'requested') : 'none';
     // only the creator books the field for the game
     const canBook = !b && ['open', 'full'].includes(g.status) && !!g.url && (g as { creatorId?: number }).creatorId === user.value?.id;
@@ -184,9 +184,9 @@ const typingText = computed(() => {
         .filter((t) => t.until > now.value)
         .map((t) => t.name);
     if (!names.length) return '';
-    if (names.length === 1) return trans('messages.typing1', { name: names[0] });
-    if (names.length === 2) return trans('messages.typing2', { a: names[0], b: names[1] });
-    return trans('messages.typingMany');
+    if (names.length === 1) return trans('messages.typing_one', { name: names[0] });
+    if (names.length === 2) return trans('messages.typing_two', { a: names[0], b: names[1] });
+    return trans('messages.typing_many');
 });
 let subscribed = false;
 const channelName = `conversation.${cid}`;
@@ -450,12 +450,12 @@ onBeforeUnmount(() => {
                     <span v-if="chat.game" class="hs">
                         {{ $t(`messages.status.${chat.game.status}`) }} · {{ $t('messages.players', { n: String(chat.game.players), t: String(chat.game.total) }) }} ·
                         <!-- "N online" before the member count: on phones the end of this line is cut -->
-                        <template v-if="onlineN"><span class="on">{{ $t('messages.onlineN', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}
+                        <template v-if="onlineN"><span class="on">{{ $t('messages.online_count', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}
                     </span>
                     <span v-else-if="seenText" :class="['hs', { on: other.online }]"><i v-if="other.online" class="on-dot" aria-hidden="true" />{{ seenText }}</span>
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
-                <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.openGame')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.openGame') }}</span></Link>
+                <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.open_game')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.open_game') }}</span></Link>
             </header>
 
             <div v-if="bar" class="gbar">
@@ -471,12 +471,12 @@ onBeforeUnmount(() => {
             <div v-if="archived" class="banner">
                 <Icon name="clock" size="sm" />
                 <span>{{ $t('messages.archived') }}</span>
-                <Link v-if="chat.game?.url" class="btn sm" :href="chat.game.url">{{ $t('messages.playAgain') }}</Link>
+                <Link v-if="chat.game?.url" class="btn sm" :href="chat.game.url">{{ $t('messages.play_again') }}</Link>
             </div>
 
             <div ref="scroller" class="cbody" @scroll.passive="onScroll" @click.self="active = null">
                 <button v-if="more" type="button" class="older" :disabled="loadingOlder" @click="loadOlder">{{ $t('messages.older') }}</button>
-                <p v-if="!msgs.length" class="none">{{ $t('messages.noMessages') }}</p>
+                <p v-if="!msgs.length" class="none">{{ $t('messages.no_messages') }}</p>
                 <template v-for="g in groups" :key="g.key">
                     <div class="dsep"><span>{{ g.label }}</span></div>
                     <template v-for="r in g.rows" :key="r.m.id">
@@ -515,10 +515,10 @@ onBeforeUnmount(() => {
                                 <div v-if="active === r.m.id" class="acts">
                                     <button v-if="!archived" type="button" @click="reply(r.m)"><Icon name="arrow" size="sm" />{{ $t('messages.reply') }}</button>
                                     <template v-if="canChange(r.m)">
-                                        <button type="button" @click="edit(r.m)"><Icon name="edit" size="sm" />{{ $t('messages.edit') }}</button>
-                                        <button type="button" class="danger" @click="remove(r.m)"><Icon name="trash" size="sm" />{{ confirmDelete ? $t('messages.deleteSure') : $t('messages.delete') }}</button>
+                                        <button type="button" @click="edit(r.m)"><Icon name="edit" size="sm" />{{ $t('common.edit') }}</button>
+                                        <button type="button" class="danger" @click="remove(r.m)"><Icon name="trash" size="sm" />{{ confirmDelete ? $t('messages.delete_sure') : $t('messages.delete') }}</button>
                                     </template>
-                                    <button v-if="canReport && !r.mine && !reported.includes(r.m.id)" type="button" @click="report(r.m)"><Icon name="x" size="sm" />{{ $t('messages.report') }}</button>
+                                    <button v-if="canReport && !r.mine && !reported.includes(r.m.id)" type="button" @click="report(r.m)"><Icon name="x" size="sm" />{{ $t('common.report') }}</button>
                                     <span v-if="reported.includes(r.m.id)" class="ok">{{ $t('messages.reported') }}</span>
                                 </div>
                             </div>
@@ -528,7 +528,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="under">
-                <button v-if="newBelow" type="button" class="jump" @click="toBottom(true)">{{ $t('messages.newBelow') }} · {{ newBelow }}</button>
+                <button v-if="newBelow" type="button" class="jump" @click="toBottom(true)">{{ $t('messages.new_below') }} · {{ newBelow }}</button>
                 <div class="typing" aria-live="polite">{{ typingText }}</div>
             </div>
             <div v-if="echoState !== 'connected' && echoState !== 'connecting' && echoState !== 'initialized'" class="offline">{{ $t('messages.offline') }}</div>
@@ -537,13 +537,13 @@ onBeforeUnmount(() => {
                 <div v-if="replying || editing" class="mode">
                     <Icon :name="editing ? 'edit' : 'arrow'" size="sm" />
                     <div class="mt">
-                        <b>{{ editing ? $t('messages.editing') : $t('messages.replyTo', { name: replying?.user?.id === me ? $t('messages.you') : userName(replying?.user) }) }}</b>
+                        <b>{{ editing ? $t('messages.editing') : $t('messages.reply_to', { name: replying?.user?.id === me ? $t('messages.you') : userName(replying?.user) }) }}</b>
                         <span>{{ (editing ?? replying)?.body }}</span>
                     </div>
-                    <button type="button" class="x" :aria-label="$t('messages.cancel')" @click="cancelMode"><Icon name="x" size="sm" /></button>
+                    <button type="button" class="x" :aria-label="$t('common.cancel')" @click="cancelMode"><Icon name="x" size="sm" /></button>
                 </div>
                 <div class="box">
-                    <EmojiPicker :label="$t('messages.emoji')" :football-label="$t('messages.emojiFootball')" :reactions-label="$t('messages.emojiReactions')" @pick="insertEmoji" />
+                    <EmojiPicker :label="$t('messages.emoji')" :football-label="$t('messages.emoji_football')" :reactions-label="$t('messages.emoji_reactions')" @pick="insertEmoji" />
                     <textarea
                         ref="input"
                         v-model="text"
@@ -554,7 +554,7 @@ onBeforeUnmount(() => {
                         @input="onInput"
                         @keydown="onKey"
                     />
-                    <button type="submit" class="send" :disabled="!len || tooLong || sending" :aria-label="editing ? $t('messages.save') : $t('messages.send')">
+                    <button type="submit" class="send" :disabled="!len || tooLong || sending" :aria-label="editing ? $t('common.save') : $t('common.send')">
                         <Icon :name="editing ? 'check' : 'send'" />
                     </button>
                 </div>

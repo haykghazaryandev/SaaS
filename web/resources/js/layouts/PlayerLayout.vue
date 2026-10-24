@@ -46,12 +46,12 @@ const has = (name: string) => {
 type NavItem = { key: string; href: string; label: string; short: string; tab?: string; icon: string; match: string[]; badge?: number; warn?: boolean };
 const nav = computed<NavItem[]>(() => {
     const c = social.counts;
-    const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'nav.fields', short: 'nav.fields', icon: 'grid', match: ['/', '/places'] }];
-    if (has('games.index')) items.push({ key: 'games', href: route('games.index'), label: 'nav.games', short: 'nav.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
+    const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'common.fields', short: 'common.fields', icon: 'grid', match: ['/', '/places'] }];
+    if (has('games.index')) items.push({ key: 'games', href: route('games.index'), label: 'common.games', short: 'common.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
     if (user.value) {
         if (has('messages.index')) items.push({ key: 'chats', href: route('messages.index'), label: 'nav.chats', short: 'nav.chats', icon: 'chat', match: ['/messages'], badge: c.messages });
-        items.push({ key: 'friends', href: route('friends.index'), label: 'nav.friends', short: 'nav.friends', icon: 'users', match: ['/friends', '/u/'], badge: c.friendRequests });
-        items.push({ key: 'bookings', href: route('me.bookings'), label: 'nav.bookings', short: 'nav.bookingsShort', tab: 'nav.tabBookings', icon: 'ticket', match: ['/me/bookings'], badge: c.pendingBookings, warn: true });
+        items.push({ key: 'friends', href: route('friends.index'), label: 'common.friends', short: 'common.friends', icon: 'users', match: ['/friends', '/u/'], badge: c.friendRequests });
+        items.push({ key: 'bookings', href: route('me.bookings'), label: 'common.my_bookings', short: 'common.bookings', tab: 'nav.tab_bookings', icon: 'ticket', match: ['/me/bookings'], badge: c.pendingBookings, warn: true });
     }
     return items;
 });
@@ -130,23 +130,23 @@ watch(() => page.url, () => (menu.value = false));
                         <Link v-if="user.isOwner" class="btn outline sm owner-btn" :href="route('owner.today')"><Icon name="chart" size="sm" /><span>{{ $t('nav.owner') }}</span></Link>
                         <NotifyBell />
                         <div ref="menuEl" class="umenu">
-                            <button type="button" class="ubtn" :aria-expanded="menu" aria-haspopup="menu" :aria-label="$t('player.menu.account')" :title="who" @click="menu = !menu">
+                            <button type="button" class="ubtn" :aria-expanded="menu" aria-haspopup="menu" :aria-label="$t('common.account')" :title="who" @click="menu = !menu">
                                 <Avatar :id="user.id" :name="user.name || user.phone" :src="user.avatar" size="sm" />
                             </button>
                             <div v-if="menu" class="menu udrop" role="menu">
                                 <div class="uhead">
                                     <Avatar :id="user.id" :name="user.name || user.phone" :src="user.avatar" size="md" />
                                     <span class="uwho">
-                                        <b>{{ user.name || $t('player.menu.account') }}</b>
+                                        <b>{{ user.name || $t('common.account') }}</b>
                                         <span>{{ user.username ? '@' + user.username : user.phone }}</span>
                                     </span>
                                 </div>
                                 <Link role="menuitem" :href="route('me.profile')" :prefetch="PREFETCH"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                                <Link role="menuitem" :href="route('me.bookings')" :prefetch="PREFETCH"><Icon name="ticket" size="sm" />{{ $t('nav.bookings') }}</Link>
-                                <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my.finish') }}</Link>
+                                <Link role="menuitem" :href="route('me.bookings')" :prefetch="PREFETCH"><Icon name="ticket" size="sm" />{{ $t('common.my_bookings') }}</Link>
+                                <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my_bookings.finish_profile') }}</Link>
                                 <Link v-if="user.isOwner" role="menuitem" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
                                 <hr />
-                                <Link role="menuitem" :href="route('logout')" method="post" as="button" class="out"><Icon name="logout" size="sm" />{{ $t('nav.logout') }}</Link>
+                                <Link role="menuitem" :href="route('logout')" method="post" as="button" class="out"><Icon name="logout" size="sm" />{{ $t('common.log_out') }}</Link>
                             </div>
                         </div>
                     </template>
@@ -156,7 +156,7 @@ watch(() => page.url, () => (menu.value = false));
         <main class="wrap app-main"><slot /></main>
         <footer v-if="!user" class="foot">
             <div class="wrap">
-                <span>© 2026 Bookball · {{ $t('foot.city') }}</span>
+                <span>© 2026 Bookball · {{ $t('common.city') }}</span>
             </div>
         </footer>
         <nav v-if="showTabbar" :class="['tabbar', { 'tab-hide': tabHidden }]" :aria-label="$t('nav.main')">

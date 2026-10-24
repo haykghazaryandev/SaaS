@@ -119,7 +119,7 @@ One phone number = one **user**. A user can be a player and also an owner/staff 
 | Real time | **Laravel Reverb** (WebSocket server) + **Laravel Echo** on the client (web and React Native both work with Echo/pusher-js) |
 | Web frontend | **Vue 3 + Inertia 2 + TypeScript + Tailwind 4** (from the official Laravel Vue starter kit), with the prototype design |
 | Admin | **Filament 3**, accessible only to `is_admin` users |
-| i18n | `lang/{hy,ru,en}.json` shared with Vue via `laravel-vue-i18n`; DB texts in JSON columns |
+| i18n | Interface texts in the `translations` table (seeded from `database/seeders/data/translations.json`, edited in the admin panel), loaded by PHP and by the browser (`/lang/{locale}.json`); venue texts in JSON columns |
 | API | `/api/v1` JSON with **Sanctum** tokens for mobile (built alongside the web, used by mobile later) |
 | Mobile (later) | **React Native + Expo** (EAS Build for Play Market and App Store), Expo Router, TanStack Query, Echo for chat, **Expo Notifications** for push |
 | Hosting | One VPS (Hetzner) with Laravel Forge: nginx, PHP-FPM, Postgres, Redis, Reverb, Horizon, plus daily backups and Sentry |

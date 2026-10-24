@@ -7,11 +7,11 @@ const model = defineModel<string | null>({ required: true });
 <template>
     <div class="pospick">
         <span v-if="label" class="lbl">{{ label }}</span>
-        <div class="chips" role="group" :aria-label="label ?? $t('games.pos.title')">
+        <div class="chips" role="group" :aria-label="label ?? $t('games.position.title')">
             <button v-for="p in positions" :key="p" type="button" class="chip" :aria-pressed="model === p" :title="$t(`profile.positions.${p}`)" @click="model = model === p ? null : p">
                 {{ $t(`profile.positions.${p}`) }}
             </button>
-            <button type="button" class="chip" :aria-pressed="model === null" @click="model = null">{{ $t('games.pos.none') }}</button>
+            <button type="button" class="chip" :aria-pressed="model === null" @click="model = null">{{ $t('games.position.none') }}</button>
         </div>
     </div>
 </template>

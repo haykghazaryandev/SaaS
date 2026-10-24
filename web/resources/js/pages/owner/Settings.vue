@@ -6,7 +6,7 @@ import { fdate, useOwner } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, reactive, ref } from 'vue';
 
 // Settings: place info + phone, prices per field, opening hours, booking rules, closures. Only the owner role can change them.
@@ -184,7 +184,7 @@ const NOTICE = [0, 30, 60, 120, 240];
 const EXPIRE = [30, 60, 120, 240, 720];
 const GRACE = [5, 10, 15, 20, 30];
 const mins = (m: number) =>
-    m === 0 ? trans('owner.settings.none') : m < 60 ? trans('owner.settings.min', { n: m }) : trans('owner.settings.hours_n', { n: m / 60 });
+    m === 0 ? trans('owner.settings.no_limit') : m < 60 ? trans('owner.settings.minutes_count', { n: m }) : trans('owner.settings.hours_count', { n: m / 60 });
 const withCurrent = (list: number[], v: number) => [...new Set([...list, v])].sort((a, b) => a - b);
 
 // closures (added and removed right away: they are actions, not settings)
@@ -194,7 +194,7 @@ function addClosure() {
     closure.post(route('owner.closures.store'), { ...opts, onSuccess: () => closure.reset('reason') });
 }
 function removeClosure(id: number) {
-    if (window.confirm(trans('owner.settings.closure_remove_q'))) router.delete(route('owner.closures.destroy', id), opts);
+    if (window.confirm(trans('owner.settings.closure_remove_ask'))) router.delete(route('owner.closures.destroy', id), opts);
 }
 const fmtRange = (c: ClosureRow) =>
     `${c.from.slice(8, 10)}.${c.from.slice(5, 7)} ${c.from.slice(11)} – ${c.to.slice(0, 10) === c.from.slice(0, 10) ? '' : c.to.slice(8, 10) + '.' + c.to.slice(5, 7) + ' '}${c.to.slice(11)}`;
@@ -221,11 +221,11 @@ const fmtRange = (c: ClosureRow) =>
                         <h3 style="font-size: 20px; margin-bottom: 12px">{{ place.name }}</h3>
                         <div class="kvs">
                             <div class="kv">
-                                <Icon name="pin" size="sm" /><span>{{ $t('owner.settings.address') }}</span
+                                <Icon name="pin" size="sm" /><span>{{ $t('common.address') }}</span
                                 ><b>{{ place.address || '—' }}</b>
                             </div>
                             <div class="kv kv-phone">
-                                <Icon name="phone" size="sm" /><span>{{ $t('owner.b.phone') }}</span>
+                                <Icon name="phone" size="sm" /><span>{{ $t('common.phone') }}</span>
                                 <div v-if="canEdit && state.phoneOpen" class="phone-edit">
                                     <div class="row" style="gap: 6px">
                                         <span class="input pre">+374</span>
@@ -236,7 +236,7 @@ const fmtRange = (c: ClosureRow) =>
                                             placeholder="91 234 567"
                                             autocomplete="off"
                                             :value="state.phone"
-                                            :aria-label="$t('owner.b.phone')"
+                                            :aria-label="$t('common.phone')"
                                             data-test="venue-phone"
                                             @input="onPhone"
                                         />
@@ -250,7 +250,7 @@ const fmtRange = (c: ClosureRow) =>
                                             <Icon name="x" size="sm" />
                                         </button>
                                     </div>
-                                    <small class="faint">{{ $t('owner.settings.phone_s') }}</small>
+                                    <small class="faint">{{ $t('owner.settings.phone_help') }}</small>
                                     <span v-if="errors.phone" class="err">{{ errors.phone }}</span>
                                 </div>
                                 <button
@@ -265,7 +265,7 @@ const fmtRange = (c: ClosureRow) =>
                                 <b v-else>{{ place.phone || '—' }}</b>
                             </div>
                             <div class="kv">
-                                <Icon name="grid" size="sm" /><span>{{ $t('owner.settings.fields') }}</span
+                                <Icon name="grid" size="sm" /><span>{{ $t('common.fields') }}</span
                                 ><b>{{ prices.map((p) => p.label).join(' · ') }}</b>
                             </div>
                         </div>
@@ -281,12 +281,12 @@ const fmtRange = (c: ClosureRow) =>
                             <div class="lbl">
                                 <b>{{ priceOf(p.field_id).label }}</b
                                 ><small
-                                    >{{ $t(`owner.surface.${priceOf(p.field_id).surface}`)
+                                    >{{ $t(`common.surfaces.${priceOf(p.field_id).surface}`)
                                     }}{{ priceOf(p.field_id).indoor ? ' · ' + $t('owner.settings.indoor') : '' }}</small
                                 >
                             </div>
                             <div v-for="k in ['day', 'evening', 'weekend'] as const" :key="k" class="field">
-                                <label :for="`p${k}${i}`">{{ $t(`owner.settings.p_${k}`) }}</label>
+                                <label :for="`p${k}${i}`">{{ $t(`owner.settings.price_${k}`) }}</label>
                                 <span class="money"
                                     ><input
                                         :id="`p${k}${i}`"
@@ -315,21 +315,21 @@ const fmtRange = (c: ClosureRow) =>
                                 <small>{{ c.field || $t('owner.settings.whole_place') }}{{ c.reason ? ' · ' + c.reason : '' }}</small>
                             </div>
                             <button v-if="canEdit" type="button" class="btn ghost sm hot" @click="removeClosure(c.id)">
-                                <Icon name="trash" size="sm" />{{ $t('owner.settings.remove') }}
+                                <Icon name="trash" size="sm" />{{ $t('common.remove') }}
                             </button>
                         </div>
                         <p v-if="!closures.length" class="faint" style="font-size: 13px; margin: 8px 0">{{ $t('owner.settings.no_closures') }}</p>
                         <form v-if="canEdit" style="margin-top: 10px" @submit.prevent="addClosure">
                             <div class="fgrid" style="margin: 8px 0">
                                 <div class="field">
-                                    <label for="cf">{{ $t('owner.b.field') }}</label>
+                                    <label for="cf">{{ $t('common.field') }}</label>
                                     <select id="cf" v-model="closure.field_id" class="input">
                                         <option :value="null">{{ $t('owner.settings.whole_place') }}</option>
                                         <option v-for="p in prices" :key="p.field_id" :value="p.field_id">{{ p.label }}</option>
                                     </select>
                                 </div>
                                 <div class="field">
-                                    <label for="cr">{{ $t('owner.settings.reason') }}</label
+                                    <label for="cr">{{ $t('common.reason') }}</label
                                     ><input
                                         id="cr"
                                         v-model="closure.reason"
@@ -339,11 +339,11 @@ const fmtRange = (c: ClosureRow) =>
                                     />
                                 </div>
                                 <div class="field">
-                                    <label for="cfrom">{{ $t('owner.settings.from') }}</label
+                                    <label for="cfrom">{{ $t('common.from') }}</label
                                     ><input id="cfrom" v-model="closure.from" class="input" type="datetime-local" step="1800" required />
                                 </div>
                                 <div class="field">
-                                    <label for="cto">{{ $t('owner.settings.to') }}</label
+                                    <label for="cto">{{ $t('common.to') }}</label
                                     ><input id="cto" v-model="closure.to" class="input" type="datetime-local" step="1800" required />
                                 </div>
                             </div>
@@ -360,21 +360,21 @@ const fmtRange = (c: ClosureRow) =>
                 <div class="scol">
                     <section class="card panel">
                         <div class="sec-h">
-                            <h2>{{ $t('owner.settings.tg') }}</h2>
+                            <h2>{{ $t('owner.settings.telegram') }}</h2>
                         </div>
-                        <p class="muted" style="font-size: 13px; margin: 0 0 12px">{{ $t('owner.settings.tg_note') }}</p>
+                        <p class="muted" style="font-size: 13px; margin: 0 0 12px">{{ $t('owner.settings.telegram_note') }}</p>
                         <TelegramConnect v-if="!user?.telegram" compact />
-                        <div v-else class="tg-hint"><Icon name="check" size="sm" />{{ $t('owner.settings.tg_on') }}</div>
+                        <div v-else class="tg-hint"><Icon name="check" size="sm" />{{ $t('owner.settings.telegram_on') }}</div>
                     </section>
 
                     <section class="card panel">
                         <div class="sec-h">
-                            <h2>{{ $t('owner.settings.hours') }}</h2>
+                            <h2>{{ $t('common.opening_hours') }}</h2>
                         </div>
                         <label class="srow same">
                             <div>
                                 <b>{{ $t('owner.settings.same_hours') }}</b
-                                ><small>{{ $t('owner.settings.same_hours_s') }}</small>
+                                ><small>{{ $t('owner.settings.same_hours_help') }}</small>
                             </div>
                             <span class="switch"
                                 ><input
@@ -387,10 +387,10 @@ const fmtRange = (c: ClosureRow) =>
                         </label>
                         <div v-if="state.same" class="hrow2">
                             <b>{{ $t('owner.settings.every_day') }}</b>
-                            <select v-model="state.every.open" class="input" :aria-label="$t('owner.settings.opens')" :disabled="!canEdit">
+                            <select v-model="state.every.open" class="input" :aria-label="$t('common.opens')" :disabled="!canEdit">
                                 <option v-for="t in OPEN_T" :key="t" :value="t">{{ t }}</option>
                             </select>
-                            <select v-model="state.every.close" class="input" :aria-label="$t('owner.settings.closes')" :disabled="!canEdit">
+                            <select v-model="state.every.close" class="input" :aria-label="$t('common.closes')" :disabled="!canEdit">
                                 <option v-for="t in CLOSE_T" :key="t" :value="t">{{ t }}</option>
                             </select>
                             <span />
@@ -399,14 +399,14 @@ const fmtRange = (c: ClosureRow) =>
                             <div v-for="(h, i) in state.hours" :key="h.weekday" class="hrow2">
                                 <b>{{ weekdayName(h.weekday) }}</b>
                                 <template v-if="h.open !== null">
-                                    <select v-model="h.open" class="input" :aria-label="$t('owner.settings.opens')" :disabled="!canEdit">
+                                    <select v-model="h.open" class="input" :aria-label="$t('common.opens')" :disabled="!canEdit">
                                         <option v-for="t in OPEN_T" :key="t" :value="t">{{ t }}</option>
                                     </select>
-                                    <select v-model="h.close" class="input" :aria-label="$t('owner.settings.closes')" :disabled="!canEdit">
+                                    <select v-model="h.close" class="input" :aria-label="$t('common.closes')" :disabled="!canEdit">
                                         <option v-for="t in CLOSE_T" :key="t" :value="t">{{ t }}</option>
                                     </select>
                                 </template>
-                                <span v-else class="closed">{{ $t('owner.settings.closed') }}</span>
+                                <span v-else class="closed">{{ $t('common.closed') }}</span>
                                 <label class="switch" :title="$t('owner.settings.open_day')"
                                     ><input
                                         type="checkbox"
@@ -422,25 +422,25 @@ const fmtRange = (c: ClosureRow) =>
 
                     <section class="card panel">
                         <div class="sec-h">
-                            <h2>{{ $t('owner.settings.rules') }}</h2>
+                            <h2>{{ $t('common.booking_rules') }}</h2>
                         </div>
                         <div class="srow">
                             <div>
-                                <b>{{ $t('owner.settings.auto') }}</b
-                                ><small>{{ $t('owner.settings.auto_s') }}</small>
+                                <b>{{ $t('owner.settings.auto_accept') }}</b
+                                ><small>{{ $t('owner.settings.auto_accept_help') }}</small>
                             </div>
                             <label class="switch"
                                 ><input
                                     v-model="state.rules.auto_accept_regulars"
                                     type="checkbox"
                                     :disabled="!canEdit"
-                                    :aria-label="$t('owner.settings.auto')"
+                                    :aria-label="$t('owner.settings.auto_accept')"
                             /></label>
                         </div>
                         <div class="srow stack">
                             <div>
                                 <b>{{ $t('owner.settings.free_cancel') }}</b
-                                ><small>{{ $t('owner.settings.free_cancel_s') }}</small>
+                                ><small>{{ $t('owner.settings.free_cancel_help') }}</small>
                             </div>
                             <select
                                 v-model.number="state.rules.free_cancel_hours"
@@ -449,14 +449,14 @@ const fmtRange = (c: ClosureRow) =>
                                 :aria-label="$t('owner.settings.free_cancel')"
                             >
                                 <option v-for="n in withCurrent(CANCEL_H, state.rules.free_cancel_hours)" :key="n" :value="n">
-                                    {{ n ? $t('owner.settings.h_before', { n }) : $t('owner.settings.none') }}
+                                    {{ n ? $t('owner.settings.hours_before', { n }) : $t('owner.settings.no_limit') }}
                                 </option>
                             </select>
                         </div>
                         <div class="srow stack">
                             <div>
                                 <b>{{ $t('owner.settings.notice') }}</b
-                                ><small>{{ $t('owner.settings.notice_s') }}</small>
+                                ><small>{{ $t('owner.settings.notice_help') }}</small>
                             </div>
                             <select
                                 v-model.number="state.rules.min_notice_min"
@@ -470,7 +470,7 @@ const fmtRange = (c: ClosureRow) =>
                         <div class="srow stack">
                             <div>
                                 <b>{{ $t('owner.settings.expire') }}</b
-                                ><small>{{ $t('owner.settings.expire_s') }}</small>
+                                ><small>{{ $t('owner.settings.expire_help') }}</small>
                             </div>
                             <select
                                 v-model.number="state.rules.request_expire_min"
@@ -484,7 +484,7 @@ const fmtRange = (c: ClosureRow) =>
                         <div class="srow stack">
                             <div>
                                 <b>{{ $t('owner.settings.grace') }}</b
-                                ><small>{{ $t('owner.settings.grace_s') }}</small>
+                                ><small>{{ $t('owner.settings.grace_help') }}</small>
                             </div>
                             <select v-model.number="state.rules.late_grace_min" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.grace')">
                                 <option v-for="n in withCurrent(GRACE, state.rules.late_grace_min)" :key="n" :value="n">{{ mins(n) }}</option>
@@ -495,7 +495,7 @@ const fmtRange = (c: ClosureRow) =>
 
                     <section class="card panel">
                         <div class="sec-h">
-                            <h2>{{ $t('owner.settings.account') }}</h2>
+                            <h2>{{ $t('common.account') }}</h2>
                         </div>
                         <div class="srow">
                             <div>
@@ -508,7 +508,7 @@ const fmtRange = (c: ClosureRow) =>
                         </div>
                         <div class="srow">
                             <div>
-                                <b>{{ $t('owner.settings.language') }}</b>
+                                <b>{{ $t('common.language') }}</b>
                             </div>
                             <LangSwitch />
                         </div>
@@ -519,7 +519,7 @@ const fmtRange = (c: ClosureRow) =>
 
         <div v-if="dirty" class="savebar" role="region" :aria-label="$t('owner.settings.save_changes')" data-test="savebar">
             <span class="sb-t">
-                <b>{{ $t('owner.settings.save_bar') }}</b>
+                <b>{{ $t('owner.settings.unsaved_changes') }}</b>
                 <small v-if="firstError" class="err">{{ firstError }}</small>
             </span>
             <button type="button" class="btn ghost sm" :disabled="saving" @click="discard">{{ $t('owner.settings.discard') }}</button>

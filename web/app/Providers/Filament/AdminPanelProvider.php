@@ -72,7 +72,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make()->label(fn () => __('admin.nav.places')),
                 NavigationGroup::make()->label(fn () => __('admin.nav.people')),
-                NavigationGroup::make()->label(fn () => __('admin.nav.bookings')),
+                NavigationGroup::make()->label(fn () => __('common.bookings')),
                 NavigationGroup::make()->label(fn () => __('admin.nav.system')),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

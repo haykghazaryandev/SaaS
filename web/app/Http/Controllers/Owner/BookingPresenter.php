@@ -98,7 +98,7 @@ final class BookingPresenter
         $c = $e->changes ?? [];
         $out = [];
         if (isset($c['reason'])) {
-            $out[] = __('owner.history.reason').': '.$c['reason'];
+            $out[] = __('common.reason').': '.$c['reason'];
         }
         if ($e->type !== 'changed') {
             return $out;

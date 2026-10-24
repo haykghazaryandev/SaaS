@@ -7,7 +7,7 @@ import ReportSheet from '@/components/social/ReportSheet.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { PlayerCard } from '@/types/social';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 // A player's profile: who they are, games / friends, friend buttons, Message (if allowed), Block / Report.
@@ -43,15 +43,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
 
 <template>
     <PlayerLayout>
-        <Head :title="hidden && !blockedByMe ? $t('friends.title') : player.name" />
+        <Head :title="hidden && !blockedByMe ? $t('common.friends') : player.name" />
 
         <!-- blocked (either way): no details -->
         <section v-if="hidden" class="card prof hiddenp">
             <Avatar :id="player.id" :name="blockedByMe ? player.name : null" size="xl" />
             <div style="min-width: 0">
                 <h1 v-if="blockedByMe">{{ player.name }}</h1>
-                <p class="muted" style="margin: 6px 0 0">{{ blockedByMe ? $t('friends.profile.blockedByMe') : $t('friends.profile.unavailable') }}</p>
-                <button v-if="blockedByMe" type="button" class="btn outline sm" style="margin-top: 14px" :disabled="busy" @click="unblock">{{ $t('friends.unblock') }}</button>
+                <p class="muted" style="margin: 6px 0 0">{{ blockedByMe ? $t('friends.profile.blocked_by_me') : $t('friends.profile.unavailable') }}</p>
+                <button v-if="blockedByMe" type="button" class="btn outline sm" style="margin-top: 14px" :disabled="busy" @click="unblock">{{ $t('common.unblock') }}</button>
             </div>
         </section>
 
@@ -59,17 +59,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
             <section class="card prof">
                 <Avatar :id="player.id" :name="player.name" :src="player.avatar" size="xl" class="bigav" />
                 <div class="who">
-                    <span class="kicker">{{ player.relation === 'self' ? $t('friends.you') : $t('friends.kick') }}</span>
+                    <span class="kicker">{{ player.relation === 'self' ? $t('friends.you') : $t('friends.kicker') }}</span>
                     <h1>{{ player.name }}</h1>
                     <div v-if="player.username" class="muted uname">@{{ player.username }}</div>
                     <div class="row wrapflex" style="gap: 6px; margin-top: 10px">
                         <span v-if="player.position" class="pill blue"><Icon name="user" size="sm" />{{ $t('profile.positions.' + player.position) }}</span>
-                        <span v-if="player.district" class="pill"><Icon name="pin" size="sm" />{{ $t('player.district.' + player.district) }}</span>
+                        <span v-if="player.district" class="pill"><Icon name="pin" size="sm" />{{ $t('common.districts.' + player.district) }}</span>
                     </div>
                 </div>
                 <div class="pstats">
-                    <div><span>{{ $t('friends.profile.games') }}</span><b>{{ player.games ?? 0 }}</b></div>
-                    <div><span>{{ $t('friends.profile.friends') }}</span><b>{{ player.friends ?? 0 }}</b></div>
+                    <div><span>{{ $t('common.games') }}</span><b>{{ player.games ?? 0 }}</b></div>
+                    <div><span>{{ $t('common.friends') }}</span><b>{{ player.friends ?? 0 }}</b></div>
                 </div>
                 <div class="acts">
                     <template v-if="player.relation === 'self'">
@@ -79,10 +79,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
                         <FriendActions :player="player" />
                         <Link v-if="canMessage && canChat" :href="route('messages.direct', player.id)" method="post" as="button" class="btn outline sm"><Icon name="chat" size="sm" />{{ $t('friends.message') }}</Link>
                         <div ref="menuEl" class="pmenu">
-                            <button type="button" class="btn ghost sm more" :aria-expanded="menu" aria-haspopup="menu" :aria-label="$t('friends.more')" :title="$t('friends.more')" @click="menu = !menu">•••</button>
+                            <button type="button" class="btn ghost sm more" :aria-expanded="menu" aria-haspopup="menu" :aria-label="$t('common.more')" :title="$t('common.more')" @click="menu = !menu">•••</button>
                             <div v-if="menu" class="pdrop" role="menu">
-                                <button type="button" role="menuitem" @click="(menu = false), (reporting = true)"><Icon name="eye" size="sm" />{{ $t('friends.report') }}</button>
-                                <button type="button" role="menuitem" class="danger" @click="(menu = false), (blocking = true)"><Icon name="x" size="sm" />{{ $t('friends.block') }}</button>
+                                <button type="button" role="menuitem" @click="(menu = false), (reporting = true)"><Icon name="eye" size="sm" />{{ $t('common.report') }}</button>
+                                <button type="button" role="menuitem" class="danger" @click="(menu = false), (blocking = true)"><Icon name="x" size="sm" />{{ $t('common.block') }}</button>
                             </div>
                         </div>
                     </template>
@@ -90,16 +90,16 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
             </section>
 
             <section class="card about">
-                <h2>{{ $t('friends.profile.about') }}</h2>
-                <p :class="{ muted: !player.bio }">{{ player.bio || $t('friends.profile.noBio') }}</p>
+                <h2>{{ $t('common.about') }}</h2>
+                <p :class="{ muted: !player.bio }">{{ player.bio || $t('friends.profile.no_bio') }}</p>
             </section>
         </template>
 
         <ConfirmSheet
             v-if="blocking"
-            :title="trans('friends.profile.blockConfirm', { name: player.name })"
-            :text="trans('friends.profile.blockText')"
-            :yes="trans('friends.block')"
+            :title="trans('friends.profile.block_confirm', { name: player.name })"
+            :text="trans('friends.profile.block_text')"
+            :yes="trans('common.block')"
             :busy="busy"
             @close="blocking = false"
             @confirm="block"

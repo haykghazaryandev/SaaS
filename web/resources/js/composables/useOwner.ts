@@ -1,6 +1,6 @@
 import { hhmm } from '@/composables/useShared';
 import { router, usePage } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, reactive } from 'vue';
 
 // ---------- types (owner web) ----------
@@ -25,7 +25,7 @@ export interface OwnerShared {
     nowHour: number;
 }
 
-/** Visual kind of a booking (BookingPresenter::kind): colors come from the --st-* tokens. */
+/** Visual kind of booking (BookingPresenter::kind): colors come from the --st-* tokens. */
 export type Kind = 'pending' | 'accepted' | 'owner' | 'noshow' | 'expired' | 'off';
 
 export interface BookingRow {
@@ -114,11 +114,12 @@ export const askCancel = (id: number) => {
 
 /** POST an action (accept, decline, cancel, no-show); a broken rule comes back as errors.booking. */
 export function act(name: 'accept' | 'decline' | 'cancel' | 'no-show' | 'arrived', id: number, data: Record<string, unknown> = {}, done?: () => void) {
+    // @ts-ignore
     router.post(route(`owner.bookings.${name}`, id), data, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: () => done?.(),
-        onError: (errors) => toastError(errors.booking || Object.values(errors)[0] || trans('owner.err.generic')),
+        onError: (errors) => toastError(errors.booking || Object.values(errors)[0] || trans('owner.error.generic')),
     });
 }
 
@@ -187,7 +188,7 @@ export async function commit() {
             body: JSON.stringify(d.kind === 'decline' ? { reason: d.reason } : {}),
         });
         if (!r.ok) {
-            let msg = trans('owner.err.generic');
+            let msg = trans('owner.error.generic');
             try {
                 const errs = ((await r.json()).errors ?? {}) as Record<string, string[]>;
                 msg = errs.booking?.[0] || Object.values(errs)[0]?.[0] || msg;
@@ -197,7 +198,7 @@ export async function commit() {
             toastError(msg);
         }
     } catch {
-        toastError(trans('owner.err.generic'));
+        toastError(trans('owner.error.generic'));
     }
     // refresh the owner page (without cancelling a visit in progress), then forget the local state
     const component = String(usePageSafe()?.component ?? '');
@@ -276,9 +277,9 @@ export function daysBetween(a: string, b: string): number {
 /** Today / Tomorrow / Yesterday, otherwise "Wed 21 Oct". */
 export function relDay(iso: string, today: string): string {
     const d = daysBetween(today, iso);
-    if (d === 0) return trans('owner.today');
-    if (d === 1) return trans('owner.tomorrow');
-    if (d === -1) return trans('owner.yesterday');
+    if (d === 0) return trans('common.today');
+    if (d === 1) return trans('common.tomorrow');
+    if (d === -1) return trans('common.yesterday');
     return fdate(iso, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 export const longDate = (iso: string) => fdate(iso, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -286,13 +287,13 @@ export const longDate = (iso: string) => fdate(iso, { weekday: 'long', day: 'num
 /** 90 -> "1.5 h" */
 export function dur(minutes: number): string {
     const h = minutes / 60;
-    return trans('owner.dur', { h: String(Number.isInteger(h) ? h : h.toFixed(1)) });
+    return trans('owner.duration_hours', { h: String(Number.isInteger(h) ? h : h.toFixed(1)) });
 }
 
 /** Pill class and label of a booking. */
 export function pillOf(b: { kind: Kind; status: string }): { cls: string; label: string } {
     const cls = { pending: 'warn', accepted: 'green', owner: 'manual', noshow: 'hot', expired: 'off', off: 'off' }[b.kind];
-    const label = b.kind === 'owner' ? trans('owner.st.owner') : b.kind === 'expired' ? trans('owner.st.expired') : trans(`owner.st.${b.status}`);
+    const label = b.kind === 'owner' ? trans('owner.status.owner') : b.kind === 'expired' ? trans('owner.status.expired') : trans(`owner.status.${b.status}`);
     return { cls, label };
 }
 

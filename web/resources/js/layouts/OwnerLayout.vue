@@ -19,7 +19,7 @@ const props = defineProps<{ title?: string; newBooking?: FormOpts }>();
 const owner = useOwner();
 const { user } = useShared();
 const nav = computed(() => [
-    { name: 'owner.today', label: 'owner.nav.today', icon: 'home', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
+    { name: 'owner.today', label: 'common.today', icon: 'home', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
     { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
@@ -89,7 +89,7 @@ onBeforeUnmount(off);
         </header>
         <main class="omain"><slot /></main>
         <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" @click="openForm(props.newBooking)">
-            <Icon name="plus" /><span>{{ $t('owner.new_booking') }}</span>
+            <Icon name="plus" /><span>{{ $t('common.new_booking') }}</span>
         </button>
         <nav class="tabbar">
             <Link v-for="n in nav" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">

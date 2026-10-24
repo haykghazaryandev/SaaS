@@ -3,7 +3,7 @@ import Icon from '@/components/Icon.vue';
 import ConfirmSheet from '@/components/social/ConfirmSheet.vue';
 import type { PlayerCard } from '@/types/social';
 import { Link, router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 /**
@@ -42,8 +42,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
             <button type="button" class="btn sm" :disabled="busy" @click="add"><Icon name="plus" size="sm" />{{ $t('friends.add') }}</button>
         </template>
         <template v-else-if="player.relation === 'received'">
-            <button type="button" class="btn sm" :disabled="busy" @click="accept"><Icon name="check" size="sm" />{{ $t('friends.accept') }}</button>
-            <button type="button" class="btn outline sm" :disabled="busy" @click="remove">{{ $t('friends.decline') }}</button>
+            <button type="button" class="btn sm" :disabled="busy" @click="accept"><Icon name="check" size="sm" />{{ $t('common.accept') }}</button>
+            <button type="button" class="btn outline sm" :disabled="busy" @click="remove">{{ $t('common.decline') }}</button>
         </template>
         <template v-else-if="player.relation === 'sent'">
             <span class="btn outline sm is-state"><Icon name="clock" size="sm" />{{ $t('friends.requested') }}</span>
@@ -52,7 +52,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
         <template v-else-if="player.relation === 'friends'">
             <Link v-if="message && canChat" :href="route('messages.direct', player.id)" method="post" as="button" class="btn outline sm"><Icon name="chat" size="sm" />{{ $t('friends.message') }}</Link>
             <div class="fmenu">
-                <button type="button" class="btn outline sm is-friend" :aria-expanded="menu" aria-haspopup="menu" @click="menu = !menu"><Icon name="check" size="sm" />{{ $t('friends.isFriend') }}</button>
+                <button type="button" class="btn outline sm is-friend" :aria-expanded="menu" aria-haspopup="menu" @click="menu = !menu"><Icon name="check" size="sm" />{{ $t('friends.is_friend') }}</button>
                 <div v-if="menu" class="fdrop" role="menu">
                     <button type="button" role="menuitem" class="danger" @click="(menu = false), (confirming = true)"><Icon name="x" size="sm" />{{ $t('friends.remove') }}</button>
                 </div>
@@ -60,8 +60,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
         </template>
         <ConfirmSheet
             v-if="confirming"
-            :title="trans('friends.profile.removeConfirm', { name: player.name })"
-            :text="trans('friends.profile.removeText')"
+            :title="trans('friends.profile.remove_confirm', { name: player.name })"
+            :text="trans('friends.profile.remove_text')"
             :yes="trans('friends.remove')"
             :busy="busy"
             @close="confirming = false"

@@ -35,9 +35,14 @@ composer run dev     # app :8000 + queue + Reverb :8080 + logs + Vite
 - **No double booking:** a Postgres exclusion constraint guarantees it (`bookings_no_overlap`). The app maps SQLSTATE 23P01 to `BookingException('taken')`.
 
 **Translations (hy, ru, en):**
-- Shared texts are in `lang/{en,hy,ru}.json`. Each area has its own PHP files: `lang/{en,hy,ru}/player.php`, `owner.php`, `admin.php`, `telegram.php`.
-  - In PHP: `__('player.home.title')`
-  - In Vue: `$t('player.home.title')` or `trans()` from `laravel-vue-i18n`
+- The texts live in the **`translations` table** (one row per key: `en`, `hy`, `ru`); there are no lang files. The admin edits them in **/admin → System → Translations**, and can add keys there. An empty language shows English.
+  - **Seed:** `database/seeders/data/translations.json` is the main translation. `TranslationSeeder` (part of `db:seed`, so of every deploy) adds the keys that are not in the table yet and never changes a row. `php artisan translations:export` writes the table back into that file, so edits can be committed. While the table is empty (fresh install, tests, Docker build) the texts come from the file.
+  - **Keys:** `area.screen.element` in snake_case (`player.home.title`, `owner.settings.price_day`); the first part is the group Laravel loads (`App\Support\DatabaseTranslationLoader`, `App\Support\Translations`, rows cached per group and emptied on every edit). A key without a dot (`brand`) is looked up flat. `a.b` and `a.b.c` cannot both exist (the unit test checks).
+  - **Shared words** live once under `common.*` (`common.save`, `common.field`, `common.today`, the lists `common.districts.*`, `common.surfaces.*`, `common.weekdays.*`): a text that means exactly the same thing in all three languages on several screens is one key, not one per screen. A word that is translated differently by context (a booking "Cancelled" vs a game "Cancelled") keeps its own key.
+  - **Renaming or removing a key:** change the code and the seed file, then add `"old.key": "new.key"` (or `null` to delete) to `database/seeders/data/translation_renames.json`. The seeder applies it to every environment's table on the next deploy, keeping the admin's edited texts under the new key.
+  - In PHP: `__('player.home.title')`, `trans_choice('games.open.spotsLeft', $n, ['n' => $n])`
+  - In Vue: `$t('player.home.title')` / `$tChoice()` in templates, `trans()` / `transChoice()` from `@/lib/i18n` in scripts (our own, no library). The browser fetches `GET /lang/{locale}.json?v=<langVersion>` (`LangController`) before the app mounts; `langVersion` is a shared Inertia prop that changes with every edit, so the JSON is cached for a year.
+  - Framework texts (validation, pagination) and Filament's own still come from the vendor lang files.
   - Placeholders use `:name`
 - Write natural Armenian and Russian.
 
@@ -68,7 +73,7 @@ composer run dev     # app :8000 + queue + Reverb :8080 + logs + Vite
   - `GET /messages` (`messages.index`): chat list, unread badges, closed chats apart; reloads on `.chat.updated`.
   - `GET /messages/{conversation}` (`messages.show`): members only (403). JSON actions: `GET …/history?before=|after=` (40 per page), `POST …` send, `POST …/read {id}`, `PATCH|DELETE /messages/message/{message}` (author, 15 min).
   - `POST /messages/direct/{user}` (`messages.direct`): opens the direct chat or flashes the error.
-  - Texts: `lang/*/messages.php`; system lines are translated on the client with `trans(message.body, message.meta)`.
+  - Texts: the `messages.*` keys; system lines are translated on the client with `trans(message.body, message.meta)`.
 - **Routes:**
   - `routes/social.php`: friends, profiles, the notification bell
   - `routes/games.php`

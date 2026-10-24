@@ -26,7 +26,7 @@ class StaffRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('admin.staff.many');
+        return __('common.owners_and_staff');
     }
 
     public static function getModelLabel(): string
@@ -49,10 +49,10 @@ class StaffRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('name')->label(__('admin.user.name'))->weight('bold')->placeholder('—')
+                TextColumn::make('name')->label(__('common.name'))->weight('bold')->placeholder('—')
                     ->url(fn (User $record) => UserResource::getUrl('view', ['record' => $record])),
-                TextColumn::make('phone')->label(__('admin.user.phone'))->formatStateUsing(fn ($state) => Phone::format($state)),
-                TextColumn::make('pivot.role')->label(__('admin.staff.role'))->badge()
+                TextColumn::make('phone')->label(__('common.phone'))->formatStateUsing(fn ($state) => Phone::format($state)),
+                TextColumn::make('pivot.role')->label(__('common.role'))->badge()
                     ->formatStateUsing(fn ($state) => self::roles()[$state] ?? $state)
                     ->color(fn ($state) => $state === 'owner' ? 'primary' : 'gray'),
                 IconColumn::make('telegram_chat_id')->label('Telegram')->boolean()->falseColor('gray')->getStateUsing(fn (User $record) => $record->telegram_chat_id !== null),
@@ -61,14 +61,14 @@ class StaffRelationManager extends RelationManager
             ->headerActions([
                 Action::make('addStaff')->label(__('admin.staff.add'))->icon('heroicon-o-user-plus')
                     ->schema([
-                        TextInput::make('phone')->label(__('admin.user.phone'))->tel()->required()->placeholder('+374 91 234 567')
+                        TextInput::make('phone')->label(__('common.phone'))->tel()->required()->placeholder('+374 91 234 567')
                             ->rule(fn () => function ($attr, $value, $fail) {
                                 if (! Phone::normalize($value)) {
                                     $fail(__('auth.phone.invalid'));
                                 }
                             }),
-                        TextInput::make('name')->label(__('admin.user.name'))->maxLength(60),
-                        Select::make('role')->label(__('admin.staff.role'))->options(self::roles())->default('owner')->required(),
+                        TextInput::make('name')->label(__('common.name'))->maxLength(60),
+                        Select::make('role')->label(__('common.role'))->options(self::roles())->default('owner')->required(),
                     ])
                     ->action(function (array $data, CreateOwnerAccount $create) {
                         $user = $create->handle(auth()->user(), $data['phone'], $data['name'] ?? null, $this->getOwnerRecord(), VenueRole::from($data['role']));
@@ -77,7 +77,7 @@ class StaffRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('role')->label(__('admin.staff.change_role'))->icon('heroicon-o-arrows-right-left')->color('gray')
-                    ->schema([Select::make('role')->label(__('admin.staff.role'))->options(self::roles())->required()])
+                    ->schema([Select::make('role')->label(__('common.role'))->options(self::roles())->required()])
                     ->fillForm(fn (User $record) => ['role' => $record->pivot->role])
                     ->action(fn (User $record, array $data) => $this->getOwnerRecord()->staff()->updateExistingPivot($record->id, ['role' => $data['role']])),
                 DetachAction::make()->label(__('admin.staff.remove')),

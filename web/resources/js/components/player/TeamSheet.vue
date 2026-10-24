@@ -4,7 +4,7 @@ import Icon from '@/components/Icon.vue';
 import { dateLong } from '@/composables/usePlayer';
 import type { PlayerBooking } from '@/types/player';
 import { router, useForm } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, ref } from 'vue';
 
 // "Your team" of one booking: everyone who joined gets the booking's news and the reminders (24 h and 1 h before).
@@ -45,7 +45,7 @@ function addFriends() {
 
 // ---------- invite link ----------
 const shareText = computed(() =>
-    trans('player.team.shareText', { venue: props.booking.venue.name, when: `${dateLong(props.booking.date)} ${props.booking.start}` }),
+    trans('player.team.share_text', { venue: props.booking.venue.name, when: `${dateLong(props.booking.date)} ${props.booking.start}` }),
 );
 const copied = ref(false);
 async function copyLink() {
@@ -55,7 +55,7 @@ async function copyLink() {
         copied.value = true;
         setTimeout(() => (copied.value = false), 2000);
     } catch {
-        window.prompt(trans('player.team.copyManual'), props.booking.inviteUrl);
+        window.prompt(trans('player.team.copy_manual'), props.booking.inviteUrl);
     }
 }
 const telegramShare = computed(() =>
@@ -80,7 +80,7 @@ function remove(id: number) {
         <div class="sheet team" role="dialog" aria-modal="true" aria-labelledby="teamT">
             <div class="sheet-head">
                 <h3 id="teamT">{{ $t('player.team.title') }}</h3>
-                <button type="button" class="x" :aria-label="$t('player.close')" @click="emit('close')"><Icon name="x" /></button>
+                <button type="button" class="x" :aria-label="$t('common.close')" @click="emit('close')"><Icon name="x" /></button>
             </div>
             <p class="muted small">{{ $t('player.team.why', { venue: booking.venue.name, when: `${dateLong(booking.date)} ${booking.start}` }) }}</p>
 
@@ -90,23 +90,23 @@ function remove(id: number) {
                     <Avatar :id="p.user.id" :name="p.user.name" :src="p.user.avatar" size="sm" />
                     <span class="nm"
                         >{{ p.user.name }}
-                        <small v-if="p.status === 'invited'" class="st warn">{{ $t('player.team.waitingAnswer') }}</small>
-                        <small v-else-if="p.status === 'declined'" class="st">{{ $t('player.team.declinedPill') }}</small>
+                        <small v-if="p.status === 'invited'" class="st warn">{{ $t('player.team.waiting_answer') }}</small>
+                        <small v-else-if="p.status === 'declined'" class="st">{{ $t('player.team.declined_pill') }}</small>
                     </span>
-                    <button type="button" class="rm" :aria-label="$t('player.team.remove')" :title="$t('player.team.remove')" @click="remove(p.id)"><Icon name="x" size="sm" /></button>
+                    <button type="button" class="rm" :aria-label="$t('common.remove')" :title="$t('common.remove')" @click="remove(p.id)"><Icon name="x" size="sm" /></button>
                 </li>
             </ul>
-            <p class="muted small count">{{ $t('player.team.count', { n: String(joined + 1), max: String((booking.teamMax ?? 21) + 1) }) }}</p>
+            <p class="muted small count">{{ $t('player.team.players_count', { n: String(joined + 1), max: String((booking.teamMax ?? 21) + 1) }) }}</p>
 
             <div class="seg block" role="tablist">
-                <button type="button" role="tab" :aria-pressed="tab === 'friends'" @click="tab = 'friends'"><Icon name="users" size="sm" />{{ $t('player.team.tabFriends') }}</button>
-                <button type="button" role="tab" :aria-pressed="tab === 'link'" @click="tab = 'link'"><Icon name="share" size="sm" />{{ $t('player.team.tabLink') }}</button>
+                <button type="button" role="tab" :aria-pressed="tab === 'friends'" @click="tab = 'friends'"><Icon name="users" size="sm" />{{ $t('common.friends') }}</button>
+                <button type="button" role="tab" :aria-pressed="tab === 'link'" @click="tab = 'link'"><Icon name="share" size="sm" />{{ $t('player.team.tab_link') }}</button>
             </div>
 
             <!-- friends -->
             <div v-if="tab === 'friends'" class="pane">
                 <template v-if="friends.length">
-                    <p class="muted small">{{ $t('player.team.friendsHint') }}</p>
+                    <p class="muted small">{{ $t('player.team.friends_hint') }}</p>
                     <input v-model="q" class="input" type="search" :placeholder="$t('player.team.search')" />
                     <ul class="pick">
                         <li v-for="f in shown" :key="f.id">
@@ -114,22 +114,22 @@ function remove(id: number) {
                                 <input type="checkbox" :checked="asked.has(f.id) || picked.includes(f.id)" :disabled="asked.has(f.id) || (!picked.includes(f.id) && picked.length >= room)" @change="togglePick(f.id)" />
                                 <Avatar :id="f.id" :name="f.name" :src="f.avatar" size="sm" />
                                 <span class="nm">{{ f.name }}<small v-if="f.username" class="muted"> @{{ f.username }}</small></span>
-                                <span v-if="asked.has(f.id)" class="muted small">{{ $t('player.team.alreadyAsked') }}</span>
+                                <span v-if="asked.has(f.id)" class="muted small">{{ $t('player.team.already_asked') }}</span>
                             </label>
                         </li>
                     </ul>
                     <div v-if="errOf(friendsForm, 'team')" class="err">{{ errOf(friendsForm, 'team') }}</div>
                     <button type="button" class="btn block" :disabled="!picked.length || friendsForm.processing" @click="addFriends">
-                        <Icon name="send" size="sm" />{{ picked.length ? $t('player.team.inviteN', { n: String(picked.length) }) : $t('player.team.pickFriends') }}
+                        <Icon name="send" size="sm" />{{ picked.length ? $t('player.team.invite_count', { n: String(picked.length) }) : $t('player.team.pick_friends') }}
                     </button>
                 </template>
-                <p v-else class="muted small">{{ $t('player.team.noFriends') }}</p>
+                <p v-else class="muted small">{{ $t('player.team.no_friends') }}</p>
             </div>
 
 
             <!-- invite link -->
             <div v-else class="pane">
-                <p class="muted small">{{ $t('player.team.linkHint') }}</p>
+                <p class="muted small">{{ $t('player.team.link_hint') }}</p>
                 <div class="share">
                     <a v-if="telegramShare" class="btn ghost" :href="telegramShare" target="_blank" rel="noopener"><Icon name="send" size="sm" />Telegram</a>
                     <a v-if="whatsappShare" class="btn ghost" :href="whatsappShare" target="_blank" rel="noopener"><Icon name="msg" size="sm" />WhatsApp</a>

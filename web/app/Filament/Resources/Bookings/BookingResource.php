@@ -41,7 +41,7 @@ class BookingResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.nav.bookings');
+        return __('common.bookings');
     }
 
     public static function getModelLabel(): string
@@ -51,7 +51,7 @@ class BookingResource extends Resource
 
     public static function getPluralModelLabel(): string
     {
-        return __('admin.booking.many');
+        return __('common.bookings');
     }
 
     public static function getNavigationBadge(): ?string
@@ -82,29 +82,29 @@ class BookingResource extends Resource
     {
         return $schema->components([
             Section::make(fn (Booking $record) => $record->code)->columns(3)->schema([
-                TextEntry::make('status')->label(__('admin.booking.status'))->badge()
+                TextEntry::make('status')->label(__('common.status'))->badge()
                     ->formatStateUsing(fn ($state) => __('telegram.status.'.$state->value))->color(fn ($state) => self::statusColor($state)),
-                TextEntry::make('venue.name')->label(__('admin.venue.one'))
+                TextEntry::make('venue.name')->label(__('common.place'))
                     ->url(fn (Booking $record) => VenueResource::getUrl('edit', ['record' => $record->venue])),
                 TextEntry::make('field.size')->label(__('admin.field.one'))->formatStateUsing(fn ($state) => __('telegram.field.'.$state->value)),
-                TextEntry::make('starts_at')->label(__('admin.booking.when'))
+                TextEntry::make('starts_at')->label(__('common.when'))
                     ->formatStateUsing(fn (Booking $record) => Options::local($record->starts_at).'–'.Options::local($record->ends_at, 'H:i')),
-                TextEntry::make('price')->label(__('admin.booking.price'))->formatStateUsing(fn ($state) => Options::amd($state)),
+                TextEntry::make('price')->label(__('common.price'))->formatStateUsing(fn ($state) => Options::amd($state)),
                 TextEntry::make('source')->label(__('admin.booking.source'))->formatStateUsing(fn ($state) => __('admin.booking.source_'.$state->value)),
             ]),
             Section::make(__('admin.booking.contact'))->columns(3)->schema([
-                TextEntry::make('contact_name')->label(__('admin.user.name')),
-                TextEntry::make('contact_phone')->label(__('admin.user.phone'))->formatStateUsing(fn ($state) => Phone::format($state))->placeholder('—')->copyable(),
+                TextEntry::make('contact_name')->label(__('common.name')),
+                TextEntry::make('contact_phone')->label(__('common.phone'))->formatStateUsing(fn ($state) => Phone::format($state))->placeholder('—')->copyable(),
                 TextEntry::make('user.name')->label(__('admin.user.one'))->placeholder('—')
                     ->url(fn (Booking $record) => $record->user ? UserResource::getUrl('view', ['record' => $record->user]) : null),
-                TextEntry::make('team_name')->label(__('admin.booking.team'))->placeholder('—'),
+                TextEntry::make('team_name')->label(__('common.team'))->placeholder('—'),
                 TextEntry::make('note_player')->label(__('admin.booking.note_player'))->placeholder('—'),
                 TextEntry::make('note_owner')->label(__('admin.booking.note_owner'))->placeholder('—'),
                 TextEntry::make('decline_reason')->label(__('admin.booking.decline_reason'))->placeholder('—'),
                 TextEntry::make('cancel_reason')->label(__('admin.booking.cancel_reason'))->placeholder('—')
                     ->suffix(fn (Booking $record) => $record->cancelled_by ? ' ('.$record->cancelled_by.')' : ''),
             ]),
-            Section::make(__('admin.booking.history'))->collapsible()->schema([
+            Section::make(__('common.history'))->collapsible()->schema([
                 RepeatableEntry::make('events')->hiddenLabel()->columns(3)->schema([
                     TextEntry::make('type')->hiddenLabel()->badge(),
                     TextEntry::make('created_at')->hiddenLabel()->dateTime('d.m.Y H:i', 'Asia/Yerevan'),
@@ -132,16 +132,16 @@ class BookingResource extends Resource
     public static function columns(bool $withVenue = true): array
     {
         return array_values(array_filter([
-            TextColumn::make('code')->label(__('admin.booking.code'))->searchable()->weight('bold')->copyable(),
-            $withVenue ? TextColumn::make('venue.name')->label(__('admin.venue.one'))->sortable() : null,
+            TextColumn::make('code')->label(__('common.code'))->searchable()->weight('bold')->copyable(),
+            $withVenue ? TextColumn::make('venue.name')->label(__('common.place'))->sortable() : null,
             TextColumn::make('field.size')->label(__('admin.field.one'))->badge()->color('gray')
                 ->formatStateUsing(fn ($state) => $state->format()),
-            TextColumn::make('starts_at')->label(__('admin.booking.when'))->sortable()
+            TextColumn::make('starts_at')->label(__('common.when'))->sortable()
                 ->formatStateUsing(fn (Booking $record) => Options::local($record->starts_at).'–'.Options::local($record->ends_at, 'H:i')),
             TextColumn::make('contact_name')->label(__('admin.booking.contact'))->searchable()
                 ->description(fn (Booking $record) => Phone::format($record->contact_phone)),
-            TextColumn::make('price')->label(__('admin.booking.price'))->formatStateUsing(fn ($state) => Options::amd($state))->sortable()->alignEnd(),
-            TextColumn::make('status')->label(__('admin.booking.status'))->badge()
+            TextColumn::make('price')->label(__('common.price'))->formatStateUsing(fn ($state) => Options::amd($state))->sortable()->alignEnd(),
+            TextColumn::make('status')->label(__('common.status'))->badge()
                 ->formatStateUsing(fn ($state) => __('telegram.status.'.$state->value))->color(fn ($state) => self::statusColor($state)),
             TextColumn::make('source')->label(__('admin.booking.source'))->formatStateUsing(fn ($state) => __('admin.booking.source_'.$state->value))
                 ->toggleable(isToggledHiddenByDefault: true),
@@ -156,10 +156,10 @@ class BookingResource extends Resource
             ->defaultSort(fn (Builder $query) => BookingResource::soonestFirst($query))
             ->columns(self::columns())
             ->filters([
-                SelectFilter::make('venue_id')->label(__('admin.venue.one'))->relationship('venue', 'name')->searchable()->preload(),
-                SelectFilter::make('status')->label(__('admin.booking.status'))->options(Options::bookingStatuses())->multiple(),
-                Filter::make('day')->label(__('admin.booking.day'))
-                    ->schema([DatePicker::make('day')->label(__('admin.booking.day'))->native(false)])
+                SelectFilter::make('venue_id')->label(__('common.place'))->relationship('venue', 'name')->searchable()->preload(),
+                SelectFilter::make('status')->label(__('common.status'))->options(Options::bookingStatuses())->multiple(),
+                Filter::make('day')->label(__('common.day'))
+                    ->schema([DatePicker::make('day')->label(__('common.day'))->native(false)])
                     ->query(function (Builder $q, array $data) {
                         if (! ($data['day'] ?? null)) {
                             return $q;
@@ -168,7 +168,7 @@ class BookingResource extends Resource
 
                         return $q->where('starts_at', '>=', $day->utc())->where('starts_at', '<', $day->addDay()->utc());
                     })
-                    ->indicateUsing(fn (array $data) => ($data['day'] ?? null) ? __('admin.booking.day').': '.$data['day'] : null),
+                    ->indicateUsing(fn (array $data) => ($data['day'] ?? null) ? __('common.day').': '.$data['day'] : null),
                 Filter::make('upcoming')->label(__('admin.booking.upcoming'))->query(fn (Builder $query) => $query->where('starts_at', '>=', now())),
             ])
             ->recordActions([
@@ -180,7 +180,7 @@ class BookingResource extends Resource
     /** Cancel by the system (admin): the player gets a Telegram message. */
     public static function cancelAction(): Action
     {
-        return Action::make('cancel')->label(__('admin.booking.cancel'))->icon('heroicon-o-x-circle')->color('danger')
+        return Action::make('cancel')->label(__('common.cancel_booking'))->icon('heroicon-o-x-circle')->color('danger')
             ->visible(fn (Booking $record) => $record->status->holdsTime() && $record->starts_at->isFuture())
             ->requiresConfirmation()
             ->modalDescription(__('admin.booking.cancel_help'))

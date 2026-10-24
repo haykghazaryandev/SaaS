@@ -24,14 +24,14 @@ const when = computed(() => {
         <Link class="cover" :href="route('games.show', game.id)" :aria-label="`${game.format} · ${whereText(game)}`" />
         <div v-if="invite && game.invitedBy" class="invline">
             <Avatar :id="game.invitedBy.id" :name="game.invitedBy.name" :src="game.invitedBy.avatar" size="xs" />
-            <span>{{ $t('games.card.invitedYou', { name: game.invitedBy.short }) }}</span>
+            <span>{{ $t('games.card.invited_you', { name: game.invitedBy.short }) }}</span>
         </div>
         <div class="ghd">
             <div class="where">
                 <h3>{{ whereText(game) }}</h3>
                 <div class="when">
                     <template v-if="when"><Icon name="calendar" size="sm" />{{ when }}</template>
-                    <span v-else class="tbd"><Icon name="clock" size="sm" />{{ $t('games.card.tbd') }}</span>
+                    <span v-else class="tbd"><Icon name="clock" size="sm" />{{ $t('games.card.time_tbd') }}</span>
                 </div>
             </div>
             <div class="tags">
@@ -46,7 +46,7 @@ const when = computed(() => {
                 <Avatars :people="game.avatars.slice(0, 4)" :more="game.in - Math.min(4, game.avatars.length)" />
                 <span class="by">
                     <template v-if="game.mine">{{ $t('games.card.yours') }}</template>
-                    <template v-else-if="game.me === 'accepted' || game.me === 'joined'">{{ $t('games.card.youIn') }}</template>
+                    <template v-else-if="game.me === 'accepted' || game.me === 'joined'">{{ $t('games.card.you_in') }}</template>
                     <template v-else>{{ $t('games.card.by', { name: game.creator.short }) }}</template>
                 </span>
             </div>

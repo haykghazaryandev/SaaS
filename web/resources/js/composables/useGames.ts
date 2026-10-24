@@ -1,5 +1,5 @@
 import type { GameCard, GameWindow } from '@/types/games';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { dateRel, dateShort, wdName, weekday } from './usePlayer';
 
 // Helpers for the games pages.
@@ -9,7 +9,7 @@ export const todayYerevan = () => new Intl.DateTimeFormat('en-CA', { timeZone: '
 
 /** "Tomorrow · 19:00–22:00", "Fri, 23 Oct", or "Time to agree" */
 export function whenText(w: GameWindow | null): string {
-    if (!w) return trans('games.card.anyTime');
+    if (!w) return trans('games.card.any_time');
     const day = dateRel(w.date, todayYerevan());
     if (!w.from) return day;
     return `${day} · ${w.from}${w.to ? `–${w.to}` : ''}`;
@@ -18,7 +18,7 @@ export function whenText(w: GameWindow | null): string {
 /** where the game is: preferred place, else district, else "Anywhere in Yerevan" */
 export function whereText(g: Pick<GameCard, 'venue' | 'district'>): string {
     if (g.venue) return g.venue.name;
-    if (g.district) return trans(`player.district.${g.district}`);
+    if (g.district) return trans(`common.districts.${g.district}`);
     return trans('games.card.anywhere');
 }
 

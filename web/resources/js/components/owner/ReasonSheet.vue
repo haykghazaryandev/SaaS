@@ -24,18 +24,18 @@ function go() {
 </script>
 
 <template>
-    <OwnerSheet :title="$t(kind === 'decline' ? 'owner.reason.decline_title' : 'owner.reason.cancel_title')" @close="emit('close')">
+    <OwnerSheet :title="$t(kind === 'decline' ? 'owner.reason.decline_title' : 'common.cancel_this_booking')" @close="emit('close')">
         <div class="field">
             <label for="rr">{{ $t('owner.reason.label') }}</label>
-            <textarea id="rr" v-model="reason" class="input" rows="3" maxlength="255" :placeholder="$t('owner.reason.ph')" />
+            <textarea id="rr" v-model="reason" class="input" rows="3" maxlength="255" :placeholder="$t('owner.reason.placeholder')" />
         </div>
         <div class="chips" style="margin: 10px 0 18px; flex-wrap: wrap">
             <button v-for="q in QUICK" :key="q" type="button" class="chip" @click="reason = $t(q)">{{ $t(q) }}</button>
         </div>
         <div class="row">
-            <button type="button" class="btn ghost" style="flex: 1" @click="emit('close')">{{ $t('owner.a.keep') }}</button>
+            <button type="button" class="btn ghost" style="flex: 1" @click="emit('close')">{{ $t('common.keep_it') }}</button>
             <button type="button" class="btn danger" style="flex: 1" :disabled="busy" data-test="reason-ok" @click="go">
-                {{ $t(kind === 'decline' ? 'owner.a.decline' : 'owner.a.cancel') }}
+                {{ $t(kind === 'decline' ? 'common.decline' : 'common.cancel_booking') }}
             </button>
         </div>
     </OwnerSheet>

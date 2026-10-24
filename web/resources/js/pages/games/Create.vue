@@ -5,7 +5,7 @@ import { wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { GamePerson } from '@/types/games';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { trans, transChoice } from '@/lib/i18n';
 import { computed, nextTick, ref } from 'vue';
 
 // Create a game: N vs N, district / place, time window, note, and friends to invite.
@@ -61,8 +61,8 @@ const errs = computed(() => form.errors as Record<string, string | undefined>);
 // G2: why "Create" is disabled, shown right above it
 const why = computed(() => {
     if (limitReached.value) return trans('social.error.too_many_games', { n: String(props.maxActive) });
-    if (tooMany.value) return trans('games.create.tooMany', { n: String(total.value - 1) });
-    if (!enough.value) return transChoice('games.create.pickMore', need.value - form.invite.length, { n: String(need.value - form.invite.length) });
+    if (tooMany.value) return trans('games.create.too_many', { n: String(total.value - 1) });
+    if (!enough.value) return transChoice('games.create.pick_more', need.value - form.invite.length, { n: String(need.value - form.invite.length) });
     return '';
 });
 
@@ -108,23 +108,23 @@ function submit() {
 
 <template>
     <PlayerLayout>
-        <Head :title="$t('games.create.title')" />
+        <Head :title="$t('common.create_game')" />
         <Link class="back" :href="route('games.index')"><Icon name="back" size="sm" />{{ $t('games.show.back') }}</Link>
         <section class="chead">
-            <h1 class="page-title">{{ $t('games.create.title') }}</h1>
+            <h1 class="page-title">{{ $t('common.create_game') }}</h1>
             <p class="muted">{{ $t('games.create.lead') }}</p>
         </section>
 
         <div v-if="limitReached" class="alert">
             <Icon name="clock" size="sm" />{{ $t('social.error.too_many_games', { n: String(maxActive) }) }}
-            <Link :href="route('games.index', { tab: 'mine' })" class="lnk">{{ $t('games.index.tabMine') }}</Link>
+            <Link :href="route('games.index', { tab: 'mine' })" class="lnk">{{ $t('games.index.tab_mine') }}</Link>
         </div>
 
         <form class="cgrid" @submit.prevent="submit">
             <div class="col">
                 <!-- size: stepper + quick chips -->
                 <section class="card blk">
-                    <h3>{{ $t('games.create.perSide') }}</h3>
+                    <h3>{{ $t('games.create.per_side') }}</h3>
                     <div class="sizer">
                         <button type="button" class="stp" :aria-label="$t('games.create.less')" :disabled="form.players_per_side <= 3" @click="step(-1)">−</button>
                         <div class="big">
@@ -133,7 +133,7 @@ function submit() {
                         </div>
                         <button type="button" class="stp" :aria-label="$t('games.create.more')" :disabled="form.players_per_side >= 11" @click="step(1)">+</button>
                     </div>
-                    <div class="chips quick" role="group" :aria-label="$t('games.create.perSide')">
+                    <div class="chips quick" role="group" :aria-label="$t('games.create.per_side')">
                         <button v-for="n in QUICK" :key="n" type="button" class="chip" :aria-pressed="form.players_per_side === n" @click="form.players_per_side = n">
                             <i :class="['field-dot', n >= 7 ? 'big' : 'small']" />{{ n }}×{{ n }}
                         </button>
@@ -147,43 +147,43 @@ function submit() {
                     <h3>{{ $t('games.create.details') }}</h3>
                     <div class="two">
                         <div class="field">
-                            <label for="dst">{{ $t('games.district') }}</label>
+                            <label for="dst">{{ $t('common.district') }}</label>
                             <select id="dst" v-model="form.district" class="input" @change="form.venue_id = ''">
-                                <option value="">{{ $t('player.home.anyDistrict') }}</option>
-                                <option v-for="d in districts" :key="d" :value="d">{{ $t(`player.district.${d}`) }}</option>
+                                <option value="">{{ $t('player.home.any_district') }}</option>
+                                <option v-for="d in districts" :key="d" :value="d">{{ $t(`common.districts.${d}`) }}</option>
                             </select>
                         </div>
                         <div class="field">
                             <label for="ven">{{ $t('games.create.place') }}</label>
                             <select id="ven" v-model="form.venue_id" class="input">
-                                <option value="">{{ $t('games.create.anyPlace') }}</option>
-                                <option v-for="v in venuesShown" :key="v.id" :value="v.id">{{ v.name }} · {{ $t(`player.district.${v.district}`) }}</option>
+                                <option value="">{{ $t('games.create.any_place') }}</option>
+                                <option v-for="v in venuesShown" :key="v.id" :value="v.id">{{ v.name }} · {{ $t(`common.districts.${v.district}`) }}</option>
                             </select>
                             <div v-if="form.errors.venue_id" class="err">{{ form.errors.venue_id }}</div>
                         </div>
                     </div>
                     <div class="field">
                         <label>{{ $t('games.create.when') }}</label>
-                        <div class="days" role="group" :aria-label="$t('games.create.date')">
-                            <button type="button" class="day any" :aria-pressed="!form.date" @click="(form.date = ''), (form.from = ''), (form.to = '')"><b>{{ $t('games.create.anyDay') }}</b></button>
+                        <div class="days" role="group" :aria-label="$t('common.day')">
+                            <button type="button" class="day any" :aria-pressed="!form.date" @click="(form.date = ''), (form.from = ''), (form.to = '')"><b>{{ $t('common.any_day') }}</b></button>
                             <button v-for="d in dayList" :key="d.date" type="button" :class="['day', { we: d.weekend }]" :aria-pressed="form.date === d.date" @click="pickDay(d.date)">
-                                <small>{{ d.k === 0 ? $t('player.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
+                                <small>{{ d.k === 0 ? $t('common.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
                             </button>
                         </div>
-                        <small v-if="!form.date" class="hint">{{ $t('games.create.whenHint') }}</small>
+                        <small v-if="!form.date" class="hint">{{ $t('games.create.when_hint') }}</small>
                     </div>
                     <template v-if="form.date">
                         <div class="field">
-                            <label>{{ $t('games.create.from') }}</label>
-                            <div class="chips times" role="group" :aria-label="$t('games.create.from')">
-                                <button type="button" class="chip" :aria-pressed="!form.from" @click="(form.from = ''), (form.to = '')">{{ $t('games.create.anyTime') }}</button>
+                            <label>{{ $t('common.from') }}</label>
+                            <div class="chips times" role="group" :aria-label="$t('common.from')">
+                                <button type="button" class="chip" :aria-pressed="!form.from" @click="(form.from = ''), (form.to = '')">{{ $t('common.any_time') }}</button>
                                 <button v-for="t in fromHours" :key="t" type="button" class="chip tm" :aria-pressed="form.from === t" @click="pickFrom(t)">{{ t }}</button>
                             </div>
                         </div>
                         <div v-if="form.from" class="field">
-                            <label>{{ $t('games.create.to') }}</label>
-                            <div class="chips times" role="group" :aria-label="$t('games.create.to')">
-                                <button type="button" class="chip" :aria-pressed="!form.to" @click="form.to = ''">{{ $t('games.create.noEnd') }}</button>
+                            <label>{{ $t('common.to') }}</label>
+                            <div class="chips times" role="group" :aria-label="$t('common.to')">
+                                <button type="button" class="chip" :aria-pressed="!form.to" @click="form.to = ''">{{ $t('games.create.no_end') }}</button>
                                 <button v-for="t in toHours" :key="t" type="button" class="chip tm" :aria-pressed="form.to === t" @click="(form.to = t), revealPicked()">{{ t }}</button>
                             </div>
                         </div>
@@ -191,7 +191,7 @@ function submit() {
                     <div v-if="form.errors.date || form.errors.from || form.errors.to" class="err">{{ form.errors.date || form.errors.from || form.errors.to }}</div>
                     <div class="field">
                         <label for="note">{{ $t('games.create.note') }}</label>
-                        <textarea id="note" v-model="form.note" class="input" rows="2" maxlength="200" :placeholder="$t('games.create.notePh')" />
+                        <textarea id="note" v-model="form.note" class="input" rows="2" maxlength="200" :placeholder="$t('games.create.note_placeholder')" />
                         <div v-if="form.errors.note" class="err">{{ form.errors.note }}</div>
                     </div>
                 </section>
@@ -206,15 +206,15 @@ function submit() {
 
                 <div v-if="!friends.length" class="empty-state plain">
                     <span class="es-ico"><Icon name="users" /></span>
-                    <h3>{{ $t('games.create.noFriends') }}</h3>
-                    <p>{{ $t('games.create.noFriendsText') }}</p>
-                    <Link v-if="friendsUrl" class="btn sm" :href="friendsUrl + '?tab=find'"><Icon name="search" size="sm" />{{ $t('games.create.findFriends') }}</Link>
+                    <h3>{{ $t('games.create.no_friends') }}</h3>
+                    <p>{{ $t('games.create.no_friends_text') }}</p>
+                    <Link v-if="friendsUrl" class="btn sm" :href="friendsUrl + '?tab=find'"><Icon name="search" size="sm" />{{ $t('games.create.find_friends') }}</Link>
                 </div>
                 <template v-else>
                     <div class="row" style="gap: 8px">
                         <div class="srch">
                             <Icon name="search" size="sm" />
-                            <input v-model="q" type="search" class="input" :placeholder="$t('games.create.search')" :aria-label="$t('games.create.search')" />
+                            <input v-model="q" type="search" class="input" :placeholder="$t('common.search_friends')" :aria-label="$t('common.search_friends')" />
                         </div>
                         <button type="button" class="btn outline sm" :disabled="!shown.length" @click="toggleAll">{{ allShown ? $t('games.create.clear') : $t('games.create.all') }}</button>
                     </div>
@@ -227,7 +227,7 @@ function submit() {
                                 <span class="tick"><Icon name="check" size="sm" /></span>
                             </label>
                         </li>
-                        <li v-if="!shown.length" class="faint small" style="padding: 12px">{{ $t('games.create.noMatch') }}</li>
+                        <li v-if="!shown.length" class="faint small" style="padding: 12px">{{ $t('games.create.no_match') }}</li>
                     </ul>
                 </template>
                 <div v-if="form.errors.invite" class="err">{{ form.errors.invite }}</div>

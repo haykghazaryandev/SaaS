@@ -23,20 +23,20 @@ function send() {
 
 <template>
     <PlayerLayout>
-        <Head :title="$t('player.rate.title', { venue: booking.venue })" />
+        <Head :title="$t('player.rating.title', { venue: booking.venue })" />
         <div class="card pad rate">
-            <h1 class="page-title">{{ $t('player.rate.title', { venue: booking.venue }) }}</h1>
+            <h1 class="page-title">{{ $t('player.rating.title', { venue: booking.venue }) }}</h1>
             <p class="muted">{{ booking.field }} · {{ dateLong(booking.date) }} · {{ booking.start }}</p>
 
             <template v-if="canRate">
-                <div class="stars" role="radiogroup" :aria-label="$t('player.rate.stars')" @mouseleave="hover = 0">
+                <div class="stars" role="radiogroup" :aria-label="$t('player.rating.stars')" @mouseleave="hover = 0">
                     <button
                         v-for="n in 5"
                         :key="n"
                         type="button"
                         role="radio"
                         :aria-checked="form.stars === n"
-                        :aria-label="$t('player.rate.n', { n: String(n) })"
+                        :aria-label="$t('player.rating.n', { n: String(n) })"
                         :class="{ on: n <= (hover || form.stars) }"
                         @mouseenter="hover = n"
                         @click="(form.stars = n), (done = false)"
@@ -45,16 +45,16 @@ function send() {
                     </button>
                 </div>
                 <div class="field">
-                    <label for="c">{{ $t('player.rate.comment') }}</label>
-                    <textarea id="c" v-model="form.comment" class="input" rows="3" maxlength="500" :placeholder="$t('player.rate.commentHint')" @input="done = false" />
+                    <label for="c">{{ $t('player.rating.comment') }}</label>
+                    <textarea id="c" v-model="form.comment" class="input" rows="3" maxlength="500" :placeholder="$t('player.rating.comment_hint')" @input="done = false" />
                 </div>
                 <div v-if="form.errors.stars" class="err">{{ form.errors.stars }}</div>
-                <p v-if="done" class="ok"><Icon name="check" size="sm" />{{ $t('player.rate.thanks') }}</p>
-                <button v-else type="button" class="btn block" :disabled="!form.stars || form.processing" @click="send">{{ $t('player.rate.send') }}</button>
+                <p v-if="done" class="ok"><Icon name="check" size="sm" />{{ $t('player.rating.thanks') }}</p>
+                <button v-else type="button" class="btn block" :disabled="!form.stars || form.processing" @click="send">{{ $t('common.send') }}</button>
             </template>
-            <p v-else class="muted">{{ $t('player.rate.closed') }}</p>
+            <p v-else class="muted">{{ $t('player.rating.closed') }}</p>
 
-            <Link class="btn link" :href="route('places.show', { venue: booking.slug })">{{ $t('player.rate.again') }} <Icon name="arrow" size="sm" /></Link>
+            <Link class="btn link" :href="route('places.show', { venue: booking.slug })">{{ $t('player.rating.again') }} <Icon name="arrow" size="sm" /></Link>
         </div>
     </PlayerLayout>
 </template>

@@ -9,7 +9,7 @@ import { dateLong, dayDiff, directionLinks, nextLabel, yerevanToday } from '@/co
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { PlayerBooking } from '@/types/player';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // My bookings: the title, then upcoming bookings grouped under day headers (no past bookings), in compact cards.
@@ -67,7 +67,7 @@ function soon(b: PlayerBooking): string | null {
     if (ms <= 0 || ms >= 3 * 3600e3) return null;
     const m = Math.max(1, Math.round(ms / 60e3));
     const h = Math.floor(m / 60);
-    return h ? `${h} ${trans('player.h')}${m % 60 ? ` ${m % 60} ${trans('player.min')}` : ''}` : `${m} ${trans('player.min')}`;
+    return h ? `${h} ${trans('common.hour_short')}${m % 60 ? ` ${m % 60} ${trans('common.minute_short')}` : ''}` : `${m} ${trans('common.minute_short')}`;
 }
 const yerevanTime = (ms: number) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Yerevan', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
 /** "Free cancellation until Thu 18:00": only for confirmed bookings, within 24 h of that deadline */
@@ -118,7 +118,7 @@ function answer(b: PlayerBooking, accept: boolean) {
 }
 function leave(b: PlayerBooking) {
     menuFor.value = null;
-    if (window.confirm(trans('player.team.leaveAsk'))) router.post(route('bookings.leave', b.id), {}, { preserveScroll: true });
+    if (window.confirm(trans('player.team.leave_ask'))) router.post(route('bookings.leave', b.id), {}, { preserveScroll: true });
 }
 
 // ---------- running late ----------
@@ -160,14 +160,14 @@ const canLinkTelegram = computed(() => {
 
 <template>
     <PlayerLayout>
-        <Head :title="$t('player.my.title')" />
+        <Head :title="$t('common.my_bookings')" />
 
-        <h1 class="page-title mtitle">{{ $t('player.my.title') }}</h1>
+        <h1 class="page-title mtitle">{{ $t('common.my_bookings') }}</h1>
 
         <TelegramBanner v-if="user && !user.telegram && canLinkTelegram" class="tgban" />
 
         <section v-for="g in groups" :key="g.key" class="grp">
-            <h2 class="dayh">{{ $t(`player.my.g.${g.key}`) }}</h2>
+            <h2 class="dayh">{{ $t(`player.my_bookings.group.${g.key}`) }}</h2>
             <article v-for="b in g.items" :key="b.id" class="card bk">
                 <div class="bk-time">
                     <b>{{ b.start }}</b>
@@ -182,18 +182,18 @@ const canLinkTelegram = computed(() => {
                                 class="menu-btn"
                                 aria-haspopup="menu"
                                 :aria-expanded="menuFor === `more-${b.id}`"
-                                :aria-label="$t('player.my.more')"
+                                :aria-label="$t('common.more')"
                                 @click="toggle(`more-${b.id}`)"
                             >
                                 <Icon name="more" />
                             </button>
                             <div v-if="menuFor === `more-${b.id}`" class="menu" role="menu">
-                                <Link role="menuitem" :href="placeUrl(b)"><Icon name="calendar" size="sm" />{{ $t('player.my.openPlace') }}</Link>
+                                <Link role="menuitem" :href="placeUrl(b)"><Icon name="calendar" size="sm" />{{ $t('player.my_bookings.open_place') }}</Link>
                                 <button v-if="b.role === 'booker'" role="menuitem" type="button" @click="(menuFor = null), (teamFor = b.id)">
-                                    <Icon name="users" size="sm" />{{ $t('player.team.manage') }}
+                                    <Icon name="users" size="sm" />{{ $t('common.team') }}
                                 </button>
                                 <button v-if="b.canCancel" role="menuitem" type="button" class="danger" @click="askCancel(b)">
-                                    <Icon name="x" size="sm" />{{ b.status === 'pending' ? $t('player.my.withdraw') : $t('player.my.cancel') }}
+                                    <Icon name="x" size="sm" />{{ b.status === 'pending' ? $t('player.my_bookings.withdraw') : $t('player.my_bookings.cancel') }}
                                 </button>
                                 <button v-if="b.role === 'member'" role="menuitem" type="button" class="danger" @click="leave(b)">
                                     <Icon name="logout" size="sm" />{{ $t('player.team.leave') }}
@@ -203,29 +203,29 @@ const canLinkTelegram = computed(() => {
                     </div>
                     <div class="bk-l2">
                         <template v-if="showDate(b)">{{ dateLong(b.date) }} · </template>
-                        <span class="fz"><i :class="['field-dot', b.field.size]" />{{ b.field.format }}</span> · {{ $t(`player.district.${b.venue.district}`) }} · {{ amd(b.price) }}
+                        <span class="fz"><i :class="['field-dot', b.field.size]" />{{ b.field.format }}</span> · {{ $t(`common.districts.${b.venue.district}`) }} · {{ amd(b.price) }}
                     </div>
                     <div class="bk-l3">
-                        <span v-if="playing(b)" class="status-pill confirmed">{{ $t('player.my.now') }}</span>
-                        <span v-else-if="b.status === 'pending'" class="status-pill pending">{{ $t('player.my.waiting') }}</span>
+                        <span v-if="playing(b)" class="status-pill confirmed">{{ $t('player.my_bookings.playing_now') }}</span>
+                        <span v-else-if="b.status === 'pending'" class="status-pill pending">{{ $t('player.my_bookings.waiting') }}</span>
                         <StatusPill v-else :status="b.status" />
-                        <span v-if="soon(b) && !playing(b)" class="soon"><Icon name="clock" size="sm" />{{ $t('player.my.in', { t: soon(b) ?? '' }) }}</span>
-                        <span v-if="b.status === 'accepted'" class="code" :title="$t('player.my.code')">{{ b.code }}</span>
+                        <span v-if="soon(b) && !playing(b)" class="soon"><Icon name="clock" size="sm" />{{ $t('player.my_bookings.starts_in', { t: soon(b) ?? '' }) }}</span>
+                        <span v-if="b.status === 'accepted'" class="code" :title="$t('common.code')">{{ b.code }}</span>
                     </div>
                     <div v-if="b.teamName || b.note" class="extra">
-                        <template v-if="b.teamName">{{ $t('player.my.team', { n: b.teamName }) }}</template>
+                        <template v-if="b.teamName">{{ $t('player.my_bookings.team', { n: b.teamName }) }}</template>
                         <template v-if="b.teamName && b.note"> · </template>
                         <template v-if="b.note">“{{ b.note }}”</template>
                     </div>
-                    <div v-if="b.status === 'declined' && b.declineReason" class="extra hot">{{ $t('player.my.reason', { r: b.declineReason }) }}</div>
+                    <div v-if="b.status === 'declined' && b.declineReason" class="extra hot">{{ $t('player.my_bookings.reason', { r: b.declineReason }) }}</div>
                     <div v-if="b.status === 'cancelled' && b.cancelledBy && b.cancelledBy !== 'player'" class="extra">
-                        {{ b.cancelledBy === 'owner' ? $t('player.my.byPlace') : $t('player.my.bySystem') }}<template v-if="b.cancelReason"> · {{ $t('player.my.reason', { r: b.cancelReason }) }}</template>
+                        {{ b.cancelledBy === 'owner' ? $t('player.my_bookings.cancelled_by_place') : $t('player.my_bookings.cancelled_by_system') }}<template v-if="b.cancelReason"> · {{ $t('player.my_bookings.reason', { r: b.cancelReason }) }}</template>
                     </div>
                     <!-- a friend's invite: accept to get the reminders -->
                     <div v-if="b.role === 'invited'" class="invite">
                         <span class="by"
                             ><Avatar :id="b.booker?.id" :name="b.booker?.name" :src="b.booker?.avatar" size="xs" />{{
-                                $t('player.team.invitesYou', { name: b.booker?.name ?? '' })
+                                $t('player.team.invites_you', { name: b.booker?.name ?? '' })
                             }}</span
                         >
                         <div class="row" style="gap: 8px">
@@ -236,16 +236,16 @@ const canLinkTelegram = computed(() => {
                     <!-- the team: avatars, "Booked by" for members, "Add your team" for the booker -->
                     <div v-if="b.role && b.role !== 'invited'" class="teamrow">
                         <span v-if="b.role === 'member' && b.booker" class="by">
-                            <Avatar :id="b.booker.id" :name="b.booker.name" :src="b.booker.avatar" size="xs" />{{ $t('player.team.bookedBy', { name: b.booker.name ?? '' }) }}
+                            <Avatar :id="b.booker.id" :name="b.booker.name" :src="b.booker.avatar" size="xs" />{{ $t('player.team.booked_by', { name: b.booker.name ?? '' }) }}
                         </span>
                         <span v-if="teamPeople(b).length" class="faces" :title="teamPeople(b).map((u) => u.name).join(', ')">
                             <Avatar v-for="u in teamPeople(b).slice(0, 5)" :id="u.id" :key="u.id" :name="u.name" :src="u.avatar" size="xs" />
-                            <small>{{ $t('player.team.inTeam', { n: String(teamPeople(b).length + 1) }) }}</small>
+                            <small>{{ $t('player.team.in_team', { n: String(teamPeople(b).length + 1) }) }}</small>
                         </span>
                         <button v-if="b.role === 'booker'" type="button" :class="['btn sm', teamPeople(b).length ? 'link' : 'ghost']" @click="teamFor = b.id">
-                            <Icon name="users" size="sm" />{{ teamPeople(b).length ? $t('player.team.manage') : $t('player.team.add') }}
+                            <Icon name="users" size="sm" />{{ teamPeople(b).length ? $t('common.team') : $t('player.team.add') }}
                         </button>
-                        <small v-if="b.role === 'booker' && waitingAnswers(b)" class="muted">{{ $t('player.team.waitingN', { n: String(waitingAnswers(b)) }) }}</small>
+                        <small v-if="b.role === 'booker' && waitingAnswers(b)" class="muted">{{ $t('player.team.waiting_count', { n: String(waitingAnswers(b)) }) }}</small>
                     </div>
                     <p v-if="b.role === 'booker' && !(b.team ?? []).length && b.status !== 'cancelled'" class="hint-team">{{ $t('player.team.nudge') }}</p>
                     <!-- running late? -->
@@ -253,22 +253,22 @@ const canLinkTelegram = computed(() => {
                     <div v-if="b.canLate && b.role !== 'invited'" class="late">
                         <button v-if="lateOpen !== b.id" type="button" class="btn outline sm" @click="lateOpen = b.id"><Icon name="clock" size="sm" />{{ $t('player.late.ask') }}</button>
                         <div v-else class="chips" role="group" :aria-label="$t('player.late.ask')">
-                            <button v-for="m in b.lateOptions ?? []" :key="m" type="button" class="chip" @click="sayLate(b, m)">~{{ m }} {{ $t('player.min') }}</button>
-                            <button type="button" class="chip" :aria-label="$t('player.close')" @click="lateOpen = null"><Icon name="x" size="sm" /></button>
+                            <button v-for="m in b.lateOptions ?? []" :key="m" type="button" class="chip" @click="sayLate(b, m)">~{{ m }} {{ $t('common.minute_short') }}</button>
+                            <button type="button" class="chip" :aria-label="$t('common.close')" @click="lateOpen = null"><Icon name="x" size="sm" /></button>
                         </div>
                     </div>
-                    <div v-if="freeUntil(b)" class="rule"><Icon name="check" size="sm" />{{ $t('player.my.freeUntil', { t: freeUntil(b) ?? '' }) }}</div>
+                    <div v-if="freeUntil(b)" class="rule"><Icon name="check" size="sm" />{{ $t('player.my_bookings.free_until', { t: freeUntil(b) ?? '' }) }}</div>
                     <div class="acts">
                         <div v-if="directions(b).google" class="menu-wrap">
                             <button type="button" class="btn outline sm" aria-haspopup="menu" :aria-expanded="menuFor === `dir-${b.id}`" @click="toggle(`dir-${b.id}`)">
-                                <Icon name="directions" size="sm" />{{ $t('player.my.directions') }}
+                                <Icon name="directions" size="sm" />{{ $t('common.directions') }}
                             </button>
                             <div v-if="menuFor === `dir-${b.id}`" class="menu left" role="menu">
-                                <a role="menuitem" :href="directions(b).google!" target="_blank" rel="noopener" @click="menuFor = null"><Icon name="map" size="sm" />{{ $t('player.place.google') }}</a>
-                                <a v-if="directions(b).yandex" role="menuitem" :href="directions(b).yandex!" target="_blank" rel="noopener" @click="menuFor = null"><Icon name="map" size="sm" />{{ $t('player.place.yandex') }}</a>
+                                <a role="menuitem" :href="directions(b).google!" target="_blank" rel="noopener" @click="menuFor = null"><Icon name="map" size="sm" />{{ $t('player.place.map_google') }}</a>
+                                <a v-if="directions(b).yandex" role="menuitem" :href="directions(b).yandex!" target="_blank" rel="noopener" @click="menuFor = null"><Icon name="map" size="sm" />{{ $t('player.place.map_yandex') }}</a>
                             </div>
                         </div>
-                        <a v-if="b.venue.phone" class="btn outline sm" :href="`tel:${b.venue.phone}`"><Icon name="phone" size="sm" />{{ $t('player.my.call') }}</a>
+                        <a v-if="b.venue.phone" class="btn outline sm" :href="`tel:${b.venue.phone}`"><Icon name="phone" size="sm" />{{ $t('player.my_bookings.call_place') }}</a>
                     </div>
                 </div>
             </article>
@@ -276,13 +276,13 @@ const canLinkTelegram = computed(() => {
 
         <div v-if="!upcoming.length" class="empty-state">
             <span class="es-ico"><Icon name="calendar" /></span>
-            <p>{{ $t('player.my.emptyUp') }}</p>
-            <Link class="btn sm" :href="route('home')"><Icon name="search" size="sm" />{{ $t('player.my.find') }}</Link>
+            <p>{{ $t('player.my_bookings.empty_upcoming') }}</p>
+            <Link class="btn sm" :href="route('home')"><Icon name="search" size="sm" />{{ $t('common.find_a_field') }}</Link>
         </div>
 
         <!-- "notify me if it frees up" -->
         <section v-if="alerts.length" class="grp">
-            <h2 class="dayh">{{ $t('player.alert.listTitle') }}</h2>
+            <h2 class="dayh">{{ $t('player.alert.list_title') }}</h2>
             <div class="card alerts">
                 <div v-for="a in alerts" :key="a.id" class="arow">
                     <Icon name="bell" size="sm" :class="['abell', { on: a.notified }]" />
@@ -292,9 +292,9 @@ const canLinkTelegram = computed(() => {
                             <i :class="['field-dot', a.size]" /> {{ a.format }} · {{ nextLabel(a.date, todayIso, a.start) }}
                         </span>
                     </div>
-                    <Link v-if="a.notified" class="btn sm" :href="alertUrl(a)">{{ $t('player.alert.freeNow') }} <Icon name="arrow" size="sm" /></Link>
-                    <span v-else class="muted await">{{ $t('player.alert.waitingShort') }}</span>
-                    <button type="button" class="ax" :aria-label="$t('player.alert.remove')" :title="$t('player.alert.remove')" @click="removeAlert(a)"><Icon name="x" size="sm" /></button>
+                    <Link v-if="a.notified" class="btn sm" :href="alertUrl(a)">{{ $t('player.alert.free_now') }} <Icon name="arrow" size="sm" /></Link>
+                    <span v-else class="muted await">{{ $t('player.alert.waiting_short') }}</span>
+                    <button type="button" class="ax" :aria-label="$t('common.remove')" :title="$t('common.remove')" @click="removeAlert(a)"><Icon name="x" size="sm" /></button>
                 </div>
             </div>
         </section>
@@ -305,8 +305,8 @@ const canLinkTelegram = computed(() => {
         <div v-if="cancelling" class="scrim" @click.self="cancelling = null">
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ct">
                 <div class="row">
-                    <h3 id="ct">{{ cancelling.status === 'pending' ? $t('player.my.cTitleReq') : $t('player.my.cTitle') }}</h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="cancelling = null"><Icon name="x" /></button>
+                    <h3 id="ct">{{ cancelling.status === 'pending' ? $t('player.my_bookings.cancel_title_request') : $t('player.my_bookings.cancel_title') }}</h3>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="cancelling = null"><Icon name="x" /></button>
                 </div>
                 <div class="sum-box">
                     <i :class="['field-dot', cancelling.field.size]" />
@@ -318,13 +318,13 @@ const canLinkTelegram = computed(() => {
                 </div>
                 <div :class="['policy', cancelling.lateCancel ? 'late' : 'ok']">
                     <Icon :name="cancelling.lateCancel ? 'clock' : 'check'" size="sm" />
-                    <span v-if="cancelling.status === 'pending'">{{ $t('player.my.cReq') }}</span>
-                    <span v-else-if="cancelling.lateCancel">{{ $t('player.my.cLate', { h: String(cancelling.freeCancelHours) }) }}</span>
-                    <span v-else>{{ $t('player.my.cFree', { h: String(cancelling.freeCancelHours) }) }}</span>
+                    <span v-if="cancelling.status === 'pending'">{{ $t('player.my_bookings.cancel_request') }}</span>
+                    <span v-else-if="cancelling.lateCancel">{{ $t('player.my_bookings.cancel_late', { h: String(cancelling.freeCancelHours) }) }}</span>
+                    <span v-else>{{ $t('player.my_bookings.cancel_free', { h: String(cancelling.freeCancelHours) }) }}</span>
                 </div>
                 <div class="row">
-                    <button type="button" class="btn ghost" style="flex: 1" @click="cancelling = null">{{ $t('player.my.cKeep') }}</button>
-                    <button type="button" class="btn red" style="flex: 1" :disabled="busy" @click="cancel">{{ $t('player.my.cYes') }}</button>
+                    <button type="button" class="btn ghost" style="flex: 1" @click="cancelling = null">{{ $t('common.keep_it') }}</button>
+                    <button type="button" class="btn red" style="flex: 1" :disabled="busy" @click="cancel">{{ $t('common.yes_cancel') }}</button>
                 </div>
             </div>
         </div>

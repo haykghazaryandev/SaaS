@@ -82,13 +82,13 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
 
         <section class="hero">
             <div class="hero-copy">
-                <span class="kicker">{{ $t('player.home.kick') }}</span>
-                <h1>{{ $t('player.home.h1a') }}<br /><em>{{ $t('player.home.h1b') }}</em></h1>
+                <span class="kicker">{{ $t('player.home.kicker') }}</span>
+                <h1>{{ $t('player.home.title_a') }}<br /><em>{{ $t('player.home.title_b') }}</em></h1>
                 <p>{{ $t('player.home.lead') }}</p>
                 <form class="finder" @submit.prevent="find">
                     <!-- a small label above each filter keeps the values short, so they fit in Armenian and Russian too -->
                     <label class="fsel">
-                        <span>{{ $t('player.place.field') }}</span>
+                        <span>{{ $t('common.field') }}</span>
                         <select v-model="f.size" class="input">
                             <option value="">{{ $t('player.home.any') }}</option>
                             <option value="small">{{ $t('player.size.small') }} 5×5</option>
@@ -96,28 +96,28 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         </select>
                     </label>
                     <label class="fsel">
-                        <span>{{ $t('player.home.districtL') }}</span>
+                        <span>{{ $t('common.district') }}</span>
                         <select v-model="f.district" class="input">
                             <option value="">{{ $t('player.home.any') }}</option>
-                            <option v-for="d in districts" :key="d" :value="d">{{ $t(`player.district.${d}`) }}</option>
+                            <option v-for="d in districts" :key="d" :value="d">{{ $t(`common.districts.${d}`) }}</option>
                         </select>
                     </label>
                     <label class="fsel">
-                        <span>{{ $t('player.place.time') }}</span>
+                        <span>{{ $t('player.place.start_time') }}</span>
                         <select v-model="f.time" class="input">
                             <option value="">{{ $t('player.home.any') }}</option>
                             <option value="morning">{{ $t('player.home.morning') }}</option>
                             <option value="day">{{ $t('player.home.day') }}</option>
                             <option value="evening">{{ $t('player.home.evening') }}</option>
-                            <option v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.startAt', { t }) }}</option>
+                            <option v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.start_at', { t }) }}</option>
                         </select>
                     </label>
-                    <button class="btn wide" :disabled="loading"><Icon name="search" />{{ $t('player.home.find') }}</button>
+                    <button class="btn wide" :disabled="loading"><Icon name="search" />{{ $t('common.find_a_field') }}</button>
                 </form>
                 <div class="stats">
-                    <div v-if="stats.venues"><b>{{ stats.venues }}</b><span>{{ $t('player.home.sVenues') }}</span></div>
-                    <div v-if="stats.fields"><b>{{ stats.fields }}</b><span>{{ $t('player.home.sFields') }}</span></div>
-                    <div v-if="stats.tonight"><b>{{ stats.tonight }}</b><span>{{ $t('player.home.sTonight') }}</span></div>
+                    <div v-if="stats.venues"><b>{{ stats.venues }}</b><span>{{ $t('player.home.stat_venues') }}</span></div>
+                    <div v-if="stats.fields"><b>{{ stats.fields }}</b><span>{{ $t('player.home.stat_fields') }}</span></div>
+                    <div v-if="stats.tonight"><b>{{ stats.tonight }}</b><span>{{ $t('player.home.stat_tonight') }}</span></div>
                 </div>
             </div>
             <div class="hero-art" aria-hidden="true">
@@ -142,12 +142,12 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                     <span class="ic">{{ z === 'small' ? '5×5' : '11×11' }}</span>
                     <span>
                         <b>{{ $t(`player.size.${z}`) }} · {{ z === 'small' ? '5×5' : '11×11' }}</b>
-                        <small>{{ $t(z === 'small' ? 'player.home.smallSub' : 'player.home.bigSub') }}</small>
+                        <small>{{ $t(z === 'small' ? 'player.home.small_sub' : 'player.home.big_sub') }}</small>
                     </span>
                     <span class="tags">
-                        <span v-if="tiles[z].places" class="pill">{{ $t('player.home.placesN', { n: String(tiles[z].places) }) }}</span>
+                        <span v-if="tiles[z].places" class="pill">{{ $t('player.home.places_count', { n: String(tiles[z].places) }) }}</span>
                         <span v-if="tiles[z].tonight" class="pill green">{{ $t('player.home.tonight', { n: String(tiles[z].tonight) }) }}</span>
-                        <span class="pill">{{ $t('player.from') }} {{ amd(tiles[z].from) }} {{ $t('player.perHour') }}</span>
+                        <span class="pill">{{ $t('common.from_lower') }} {{ amd(tiles[z].from) }} {{ $t('common.per_hour') }}</span>
                     </span>
                 </button>
             </div>
@@ -156,8 +156,8 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
         <section id="venues" class="section">
             <div class="section-head">
                 <div>
-                    <span class="kicker">{{ $t('player.home.vk') }}</span>
-                    <h2>{{ $t('player.home.vh') }}</h2>
+                    <span class="kicker">{{ $t('player.home.venues_kicker') }}</span>
+                    <h2>{{ $t('player.home.venues_title') }}</h2>
                 </div>
             </div>
             <div class="filters">
@@ -170,11 +170,11 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         :aria-pressed="filters.date === d.date"
                         @click="go({ date: d.date })"
                     >
-                        <small>{{ d.k === 0 ? $t('player.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
+                        <small>{{ d.k === 0 ? $t('common.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
                     </button>
                 </div>
                 <div class="chips">
-                    <button type="button" class="chip" :aria-pressed="!filters.size" @click="go({ size: null })">{{ $t('player.home.allFields') }}</button>
+                    <button type="button" class="chip" :aria-pressed="!filters.size" @click="go({ size: null })">{{ $t('common.all_fields') }}</button>
                     <button v-for="z in ['small', 'big'] as const" :key="z" type="button" class="chip" :aria-pressed="filters.size === z" @click="go({ size: z })">
                         <span class="sport-dot" :style="{ background: SIZE_COLOR[z] }" />{{ z === 'small' ? '5×5' : '11×11' }}
                     </button>
@@ -188,7 +188,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         <div class="lights" />
                         <div class="badges">
                             <span v-if="small(v)" class="pill"><Icon :name="small(v)!.indoor ? 'roof' : 'sun'" size="sm" />5×5</span>
-                            <span v-if="big(v)" class="pill"><Icon name="ball" size="sm" />11×11<template v-if="big(v)!.surface === 'grass'"> · {{ $t('player.surface.grass') }}</template></span>
+                            <span v-if="big(v)" class="pill"><Icon name="ball" size="sm" />11×11<template v-if="big(v)!.surface === 'grass'"> · {{ $t('common.surfaces.grass') }}</template></span>
                         </div>
                     </Link>
                     <div class="body">
@@ -197,9 +197,9 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                             <span v-if="v.rating" class="rating"><Icon name="star" size="sm" />{{ v.rating.toFixed(1) }}</span>
                         </div>
                         <div class="meta">
-                            <span><Icon name="pin" size="sm" />{{ $t(`player.district.${v.district}`) }}</span>
+                            <span><Icon name="pin" size="sm" />{{ $t(`common.districts.${v.district}`) }}</span>
                             <span v-if="v.hours"><Icon name="clock" size="sm" />{{ hhmm(v.hours[0]) }}–{{ hhmm(v.hours[1]) }}</span>
-                            <span class="price">{{ $t('player.from') }} {{ amd(v.from) }} <small>{{ $t('player.perHour') }}</small></span>
+                            <span class="price">{{ $t('common.from_lower') }} {{ amd(v.from) }} <small>{{ $t('common.per_hour') }}</small></span>
                         </div>
                         <div class="slots">
                             <div v-for="fl in v.fields" :key="fl.id" class="fslots">
@@ -209,10 +209,10 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                                     <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)" :prefetch="['hover', 'click']">{{ $t('player.home.more', { n: String(fl.more) }) }}</Link>
                                 </template>
                                 <Link v-else-if="fl.next" class="next-free" :href="placeUrl(v, fl, fl.next.start, fl.next.date)" :prefetch="['hover', 'click']">
-                                    {{ $t('player.home.nextFree', { t: nextLabel(fl.next.date, days[0]?.date ?? '', hhmm(fl.next.start), true) }) }}<Icon name="arrow" size="sm" />
+                                    {{ $t('common.next_free_t', { t: nextLabel(fl.next.date, days[0]?.date ?? '', hhmm(fl.next.start), true) }) }}<Icon name="arrow" size="sm" />
                                 </Link>
                                 <span v-else class="muted" style="font-size: 12.5px">
-                                    {{ filters.time ? $t('player.home.noFreeTime') : isToday() ? $t('player.home.noFreeToday') : $t('player.home.noFree') }}
+                                    {{ filters.time ? $t('player.home.no_free_time') : isToday() ? $t('player.home.no_free_today') : $t('player.home.no_free') }}
                                 </span>
                             </div>
                         </div>
@@ -225,12 +225,12 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
         <!-- later: open games and tournaments strips go here -->
 
         <section class="section">
-            <div class="section-head"><h2>{{ $t('player.home.hh') }}</h2></div>
+            <div class="section-head"><h2>{{ $t('player.home.how_title') }}</h2></div>
             <div class="how">
                 <div v-for="i in 4" :key="i" class="card">
                     <div class="n">0{{ i }}</div>
-                    <h3 style="margin: 8px 0 6px">{{ $t(`player.home.how${i}`) }}</h3>
-                    <div class="muted" style="font-size: 14px">{{ $t(`player.home.how${i}s`) }}</div>
+                    <h3 style="margin: 8px 0 6px">{{ $t(`player.home.step${i}_title`) }}</h3>
+                    <div class="muted" style="font-size: 14px">{{ $t(`player.home.step${i}_text`) }}</div>
                 </div>
             </div>
         </section>

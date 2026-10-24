@@ -128,15 +128,15 @@ onBeforeUnmount(() => {
         <div class="sheet crop" role="dialog" aria-modal="true" aria-labelledby="cropT">
             <div class="sheet-head">
                 <h3 id="cropT">{{ $t('profile.photo.position') }}</h3>
-                <button type="button" class="x" :aria-label="$t('player.close')" @click="emit('cancel')"><Icon name="x" /></button>
+                <button type="button" class="x" :aria-label="$t('common.close')" @click="emit('cancel')"><Icon name="x" /></button>
             </div>
-            <p class="muted small">{{ $t('profile.photo.positionHint') }}</p>
+            <p class="muted small">{{ $t('profile.photo.position_hint') }}</p>
             <div
                 class="stage"
                 data-noswipe
                 :style="{ width: VIEW + 'px', height: VIEW + 'px' }"
                 tabindex="0"
-                :aria-label="$t('profile.photo.positionHint')"
+                :aria-label="$t('profile.photo.position_hint')"
                 @pointerdown="down"
                 @pointermove="move"
                 @pointerup="up"
@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
                 <button type="button" class="btn link sm" @click="reset">{{ $t('profile.photo.reset') }}</button>
             </div>
             <div class="acts">
-                <button type="button" class="btn outline" @click="emit('cancel')">{{ $t('player.close') }}</button>
+                <button type="button" class="btn outline" @click="emit('cancel')">{{ $t('common.close') }}</button>
                 <button type="button" class="btn" :disabled="!ready || saving" @click="save">{{ saving ? $t('profile.photo.uploading') : $t('profile.photo.save') }}</button>
             </div>
         </div>

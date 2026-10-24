@@ -2,7 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import { xsrf } from '@/lib/echo';
 import { router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { onBeforeUnmount, ref } from 'vue';
 
 // "Log in with Telegram" (free): opens our bot, the user shares their phone there, this page waits and logs in.
@@ -114,17 +114,17 @@ onBeforeUnmount(() => clearTimeout(timer));
             <div class="row" style="gap: 10px"><span class="spinner" aria-hidden="true"></span><b>{{ trans('auth.telegram.waiting') }}</b></div>
             <div class="row" style="gap: 8px; margin-top: 12px; flex-wrap: wrap">
                 <a v-if="!simulate" class="btn ghost sm" :href="url" target="_blank" rel="noopener"><Icon name="send" size="sm" />{{ trans('auth.telegram.open') }}</a>
-                <button type="button" class="btn ghost sm" @click="cancel">{{ trans('auth.telegram.cancel') }}</button>
+                <button type="button" class="btn ghost sm" @click="cancel">{{ trans('common.cancel') }}</button>
             </div>
             <!-- development without a bot token: pretend Telegram shared this phone -->
             <form v-if="simulate" class="sim" @submit.prevent="simulateConfirm">
-                <b>{{ trans('auth.telegram.simTitle') }}</b>
-                <small class="muted">{{ trans('auth.telegram.simSub') }}</small>
+                <b>{{ trans('auth.telegram.sim_title') }}</b>
+                <small class="muted">{{ trans('auth.telegram.sim_sub') }}</small>
                 <div class="row" style="gap: 8px">
                     <span class="input" style="width: auto; color: var(--muted)">+374</span>
                     <input v-model="simPhone" class="input mono" inputmode="tel" placeholder="93 000 100" aria-label="phone" />
                 </div>
-                <button class="btn sm">{{ trans('auth.telegram.simGo') }}</button>
+                <button class="btn sm">{{ trans('auth.telegram.sim_go') }}</button>
             </form>
         </div>
 

@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Http\Presenters\SocialCounts;
 use App\Support\Phone;
+use App\Support\TestAccounts;
+use App\Support\Translations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -19,6 +21,8 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'locale' => app()->getLocale(),
+            // the browser loads /lang/<locale>.json?v=<langVersion>; a new version after an edit in /admin → Translations
+            'langVersion' => fn () => app(Translations::class)->version(),
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,
@@ -44,7 +48,7 @@ class HandleInertiaRequests extends Middleware
                 $phone = config('services.otp_driver') === 'log' ? $request->session()->get('otp_phone') : null;
                 if (! config('app.debug')) {
                     // staging: the demo accounts only
-                    return \App\Support\TestAccounts::is($phone) ? Cache::get('dev-otp:'.$phone) : null;
+                    return TestAccounts::is($phone) ? Cache::get('dev-otp:'.$phone) : null;
                 }
                 $key = $request->session()->get('otp_email') ?? $phone;
 

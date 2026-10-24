@@ -22,18 +22,18 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
         <div class="scrim" @click.self="emit('close')">
             <form class="sheet" role="dialog" aria-modal="true" aria-labelledby="rs-t" @submit.prevent="send">
                 <div class="row" style="align-items: flex-start">
-                    <h3 id="rs-t" style="margin: 0; overflow-wrap: anywhere">{{ $t('friends.reportSheet.title') }}<template v-if="name">: {{ name }}</template></h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="emit('close')"><Icon name="x" /></button>
+                    <h3 id="rs-t" style="margin: 0; overflow-wrap: anywhere">{{ $t('friends.report_sheet.title') }}<template v-if="name">: {{ name }}</template></h3>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="emit('close')"><Icon name="x" /></button>
                 </div>
-                <p class="muted" style="margin: 8px 0 14px; font-size: 14px">{{ $t('friends.reportSheet.sub') }}</p>
+                <p class="muted" style="margin: 8px 0 14px; font-size: 14px">{{ $t('friends.report_sheet.sub') }}</p>
                 <div class="field">
-                    <label for="rs-r">{{ $t('friends.reportSheet.reason') }}</label>
-                    <textarea id="rs-r" v-model="form.reason" class="input" rows="4" maxlength="500" :placeholder="$t('friends.reportSheet.placeholder')" required minlength="3" />
+                    <label for="rs-r">{{ $t('friends.report_sheet.reason') }}</label>
+                    <textarea id="rs-r" v-model="form.reason" class="input" rows="4" maxlength="500" :placeholder="$t('friends.report_sheet.placeholder')" required minlength="3" />
                     <div v-if="form.errors.reason || form.errors.target_id" class="err">{{ form.errors.reason || form.errors.target_id }}</div>
                 </div>
                 <div class="row" style="margin-top: 16px">
-                    <button type="button" class="btn ghost" style="flex: 1" @click="emit('close')">{{ $t('friends.cancelBtn') }}</button>
-                    <button class="btn" style="flex: 1" :disabled="form.processing || form.reason.trim().length < 3">{{ $t('friends.reportSheet.send') }}</button>
+                    <button type="button" class="btn ghost" style="flex: 1" @click="emit('close')">{{ $t('common.cancel') }}</button>
+                    <button class="btn" style="flex: 1" :disabled="form.processing || form.reason.trim().length < 3">{{ $t('friends.report_sheet.send') }}</button>
                 </div>
             </form>
         </div>

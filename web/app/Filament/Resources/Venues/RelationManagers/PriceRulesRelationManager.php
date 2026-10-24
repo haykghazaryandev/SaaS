@@ -24,7 +24,7 @@ class PriceRulesRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('admin.price.many');
+        return __('common.prices');
     }
 
     public static function getModelLabel(): string
@@ -44,9 +44,9 @@ class PriceRulesRelationManager extends RelationManager
             TextInput::make('price_per_hour')->label(__('admin.price.per_hour'))->integer()->minValue(0)->step(500)->suffix('֏')->required(),
             CheckboxList::make('weekdays')->label(__('admin.price.weekdays'))->options(Options::weekdays())->columns(7)->required()->columnSpanFull()
                 ->bulkToggleable(),
-            TextInput::make('from_time')->label(__('admin.price.from'))->placeholder('08:00')->regex(Options::TIME_REGEX)->required()
+            TextInput::make('from_time')->label(__('common.from'))->placeholder('08:00')->regex(Options::TIME_REGEX)->required()
                 ->formatStateUsing(fn ($state) => Options::hhmm($state)),
-            TextInput::make('to_time')->label(__('admin.price.to'))->placeholder('24:00')->regex(Options::TIME_REGEX)->required()
+            TextInput::make('to_time')->label(__('common.to'))->placeholder('24:00')->regex(Options::TIME_REGEX)->required()
                 ->formatStateUsing(fn ($state) => Options::hhmm($state)),
             TextInput::make('priority')->label(__('admin.price.priority'))->integer()->default(1)->helperText(__('admin.price.priority_help')),
         ]);
@@ -69,7 +69,7 @@ class PriceRulesRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('field.size')->label(__('admin.field.one'))->formatStateUsing(fn (PriceRule $record) => __('telegram.field.'.$record->field->size->value)),
                 TextColumn::make('days')->label(__('admin.price.weekdays'))
-                    ->getStateUsing(fn (PriceRule $record) => collect($record->weekdays)->map(fn ($d) => __('admin.weekday_short.'.$d))->implode(' ')),
+                    ->getStateUsing(fn (PriceRule $record) => collect($record->weekdays)->map(fn ($d) => __('common.weekdays_short.'.$d))->implode(' ')),
                 TextColumn::make('from_time')->label(__('admin.price.time'))->formatStateUsing(fn (PriceRule $record) => Options::hhmm($record->from_time).'–'.Options::hhmm($record->to_time)),
                 TextColumn::make('price_per_hour')->label(__('admin.price.per_hour'))->formatStateUsing(fn ($state) => Options::amd($state))->weight('bold'),
                 TextColumn::make('priority')->label(__('admin.price.priority')),

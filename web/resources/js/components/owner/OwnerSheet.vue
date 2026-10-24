@@ -16,7 +16,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
             <template v-if="title">
                 <div class="row" :style="{ marginBottom: sub ? '4px' : '14px', alignItems: 'flex-start' }">
                     <h3>{{ title }}</h3>
-                    <button type="button" class="x" :aria-label="$t('owner.close')" @click="emit('close')"><Icon name="x" /></button>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="emit('close')"><Icon name="x" /></button>
                 </div>
                 <p v-if="sub" class="muted" style="margin: 0 0 16px; font-size: 14px">{{ sub }}</p>
             </template>

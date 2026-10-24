@@ -10,7 +10,7 @@ import { dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours,
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { DayInfo, FieldInfo, MyTime, PlayerBooking, SlotsPayload } from '@/types/player';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Place page: day → field → duration → start time (every start within the hours; taken ones greyed out),
@@ -175,7 +175,7 @@ async function load(quiet = false) {
             // the picked time was just taken: offer "notify me if it frees up" for exactly that time
             const nowTaken = (slotRow.value?.taken?.[String(minutes.value)] ?? []).some((t) => same(t, before));
             lostStart.value = nowTaken ? before : null;
-            notice.value = trans(nowTaken ? 'player.alert.justTaken' : 'player.place.refreshed');
+            notice.value = trans(nowTaken ? 'player.alert.just_taken' : 'player.place.refreshed');
         }
     } catch {
         // offline: keep what we have
@@ -227,14 +227,14 @@ const tiles = computed(() =>
         let line = '';
         if (start.value == null) {
             st = list.length ? 'free' : 'busy';
-            if (!list.length) line = trans('player.place.stNone');
+            if (!list.length) line = trans('player.place.slot_none');
         } else {
             const ok = list.some((t) => same(t, start.value!));
             st = ok ? (f.id === fieldId.value ? 'sel' : 'free') : 'busy';
             if (ok) line = `${amd(priceOf(f, start.value, d).total)} · ${dur(d)}`;
             else {
                 const n = nearest(list, start.value);
-                line = n != null ? trans('player.place.stNext', { t: hhmm(n) }) : trans('player.place.stNone');
+                line = n != null ? trans('player.place.slot_next', { t: hhmm(n) }) : trans('player.place.slot_none');
             }
         }
         return { f, st, line };
@@ -254,7 +254,7 @@ const hoursToday = computed(() => slots.value.hours);
 const weekHours = computed(() => {
     const w = props.venue.week;
     const span = (x?: [number, number, number]) => (x ? `${hhmm(x[1])}–${hhmm(x[2])}` : null);
-    if (w.length === 7 && w.every((x) => x[1] === w[0][1] && x[2] === w[0][2])) return [{ label: trans('player.place.everyDay'), text: span(w[0])! }];
+    if (w.length === 7 && w.every((x) => x[1] === w[0][1] && x[2] === w[0][2])) return [{ label: trans('player.place.every_day'), text: span(w[0])! }];
     const order = [1, 2, 3, 4, 5, 6, 0];
     const runs: { from: number; to: number; text: string | null }[] = [];
     for (const d of order) {
@@ -263,7 +263,7 @@ const weekHours = computed(() => {
         if (last && last.text === text) last.to = d;
         else runs.push({ from: d, to: d, text });
     }
-    return runs.map((r) => ({ label: r.from === r.to ? wdName(r.from) : `${wdName(r.from)}–${wdName(r.to)}`, text: r.text ?? trans('player.place.closed') }));
+    return runs.map((r) => ({ label: r.from === r.to ? wdName(r.from) : `${wdName(r.from)}–${wdName(r.to)}`, text: r.text ?? trans('common.closed') }));
 });
 const dirs = computed(() => directionLinks({ ...props.venue }));
 const hasMap = computed(() => props.venue.lat != null && props.venue.lng != null);
@@ -288,8 +288,8 @@ watch(() => props.limit, (l) => (limit.value = l));
 const blocked = computed<string | null>(() => {
     const l = limit.value;
     if (!l) return null;
-    if (l.bannedUntil) return trans('player.place.blockedBan', { until: l.bannedUntil });
-    if (l.pending >= l.maxPending) return trans('player.place.blockedPending', { n: String(l.pending) });
+    if (l.bannedUntil) return trans('player.place.blocked_ban', { until: l.bannedUntil });
+    if (l.pending >= l.maxPending) return trans('player.place.blocked_pending', { n: String(l.pending) });
     return null;
 });
 
@@ -386,7 +386,7 @@ function openMine(m: MyTime) {
 }
 function cancelMine() {
     const m = mineOpen.value;
-    if (!m || !window.confirm(trans(m.status === 'pending' ? 'player.place.mineWithdrawAsk' : 'player.place.mineCancelAsk'))) return;
+    if (!m || !window.confirm(trans(m.status === 'pending' ? 'player.place.mine_withdraw_ask' : 'common.cancel_this_booking'))) return;
     cancelBusy.value = true;
     router.post(route('bookings.cancel', m.id), {}, {
         preserveScroll: true,
@@ -491,30 +491,30 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
     <PlayerLayout hide-tabbar>
         <Head :title="venue.name" />
         <div class="pg">
-            <Link class="backlink" :href="homeUrl"><Icon name="back" size="sm" />{{ $t('player.place.back') }}</Link>
+            <Link class="backlink" :href="homeUrl"><Icon name="back" size="sm" />{{ $t('common.all_fields') }}</Link>
 
             <!-- header: the place only (no price, no button: booking starts below) -->
             <section class="vhead">
-                <span class="kicker">{{ $t(`player.district.${venue.district}`) }} · {{ fields.map((f) => f.format).join(' · ') }}</span>
+                <span class="kicker">{{ $t(`common.districts.${venue.district}`) }} · {{ fields.map((f) => f.format).join(' · ') }}</span>
                 <h1>{{ venue.name }}</h1>
                 <!-- secondary actions at the top (outline, so the Book button stays the main one) -->
                 <div v-if="venue.phone || hasMap" class="vacts">
-                    <a v-if="venue.phone" class="btn outline sm" :href="`tel:${venue.phone}`" :title="venue.phoneLabel ?? undefined"><Icon name="phone" size="sm" />{{ $t('player.place.call') }}</a>
-                    <a v-if="hasMap" class="btn link sm" href="#map" @click.prevent="toMap"><Icon name="directions" size="sm" />{{ $t('player.my.directions') }}</a>
+                    <a v-if="venue.phone" class="btn outline sm" :href="`tel:${venue.phone}`" :title="venue.phoneLabel ?? undefined"><Icon name="phone" size="sm" />{{ $t('common.call') }}</a>
+                    <a v-if="hasMap" class="btn link sm" href="#map" @click.prevent="toMap"><Icon name="directions" size="sm" />{{ $t('common.directions') }}</a>
                 </div>
                 <div class="vmeta">
                     <span v-if="venue.rating" class="rating"><Icon name="star" size="sm" />{{ venue.rating.toFixed(1) }}</span>
-                    <span v-if="venue.reviews">{{ $t('player.reviews', { n: String(venue.reviews) }) }}</span>
+                    <span v-if="venue.reviews">{{ $t('common.reviews_count', { n: String(venue.reviews) }) }}</span>
                     <span v-if="venue.address"><Icon name="pin" size="sm" />{{ venue.address }}</span>
-                    <span v-if="hoursToday"><Icon name="clock" size="sm" />{{ $t('player.place.open', { a: hhmm(hoursToday[0]), b: hhmm(hoursToday[1]) }) }}</span>
-                    <span v-else><Icon name="clock" size="sm" />{{ $t('player.place.closedDay') }}</span>
+                    <span v-if="hoursToday"><Icon name="clock" size="sm" />{{ $t('player.place.open_hours', { a: hhmm(hoursToday[0]), b: hhmm(hoursToday[1]) }) }}</span>
+                    <span v-else><Icon name="clock" size="sm" />{{ $t('player.place.closed_day') }}</span>
                 </div>
             </section>
 
             <section class="bookgrid">
                 <!-- booking: day → field → duration → start time -->
                 <div id="panel" class="card flow">
-                    <h2>{{ $t('player.place.bookTitle') }}</h2>
+                    <h2>{{ $t('common.book_a_field') }}</h2>
 
                     <div class="step">
                         <div class="plabel"><span><i class="n">1</i>{{ $t('player.place.date') }}</span></div>
@@ -528,20 +528,20 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 :aria-label="dateLong(d.date)"
                                 @click="pickDay(d.date)"
                             >
-                                <small>{{ d.k === 0 ? $t('player.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
+                                <small>{{ d.k === 0 ? $t('common.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
                             </button>
                         </div>
                     </div>
 
                     <div class="step">
-                        <div class="plabel"><span><i class="n">2</i>{{ $t('player.place.field') }}</span></div>
+                        <div class="plabel"><span><i class="n">2</i>{{ $t('common.field') }}</span></div>
                         <div class="fcards">
                             <button v-for="t in tiles" :key="t.f.id" type="button" :class="['fcard', `s-${t.st}`]" :aria-pressed="fieldId === t.f.id" @click="pickField(t.f.id)">
                                 <span class="fthumb"><CourtSvg :size="t.f.size" :color="pitchColor(t.f.surface)" /></span>
                                 <span class="fbody">
                                     <b>{{ cname(t.f) }}</b>
-                                    <span class="m">{{ t.f.indoor ? $t('player.indoor') : $t('player.outdoor') }} · {{ $t('player.players', { n: String(t.f.players) }) }}</span>
-                                    <span class="fp">{{ $t('player.place.fieldPrice', { p: amd(t.f.price.min) }) }}</span>
+                                    <span class="m">{{ t.f.indoor ? $t('player.indoor') : $t('common.outdoor') }} · {{ $t('common.players_count', { n: String(t.f.players) }) }}</span>
+                                    <span class="fp">{{ $t('player.place.field_price', { p: amd(t.f.price.min) }) }}</span>
                                 </span>
                                 <span v-if="t.st === 'busy'" class="fbusy">{{ t.line }}</span>
                             </button>
@@ -549,7 +549,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     </div>
 
                     <div v-if="field" class="step">
-                        <div class="plabel"><span><i class="n">3</i>{{ $t('player.place.dur') }}</span></div>
+                        <div class="plabel"><span><i class="n">3</i>{{ $t('common.duration') }}</span></div>
                         <div class="chips">
                             <button v-for="m in field.durations" :key="m" type="button" class="chip" :aria-pressed="minutes === m" @click="pickDur(m)"><Icon name="clock" size="sm" />{{ dur(m) }}</button>
                         </div>
@@ -557,23 +557,23 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 
                     <div v-if="field" class="step">
                         <div class="plabel">
-                            <span><i class="n">4</i>{{ $t('player.place.time') }}</span>
-                            <span v-if="loading" class="faint" style="text-transform: none; letter-spacing: 0">{{ $t('player.place.loading') }}</span>
+                            <span><i class="n">4</i>{{ $t('player.place.start_time') }}</span>
+                            <span v-if="loading" class="faint" style="text-transform: none; letter-spacing: 0">{{ $t('player.place.loading_times') }}</span>
                         </div>
                         <div v-if="!free.length" class="full">
-                            <span v-if="!hoursToday">{{ $t('player.place.closedDay') }}</span>
-                            <span v-else-if="allStarts.length">{{ $t('player.place.fullDay') }}</span>
-                            <span v-else>{{ $t('player.place.noFree', { dur: dur(minutes) }) }}</span>
+                            <span v-if="!hoursToday">{{ $t('player.place.closed_day') }}</span>
+                            <span v-else-if="allStarts.length">{{ $t('player.place.fully_booked') }}</span>
+                            <span v-else>{{ $t('player.place.no_free_times', { dur: dur(minutes) }) }}</span>
                             <span class="full-acts">
                                 <button v-if="nextFree" type="button" class="btn outline sm" @click="goNext">
-                                    {{ $t('player.place.nextFree', { t: nextText }) }} <Icon name="arrow" size="sm" />
+                                    {{ $t('common.next_free_t', { t: nextText }) }} <Icon name="arrow" size="sm" />
                                 </button>
-                                <button v-if="hasTaken" type="button" class="btn link sm" @click="showTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.findBtn') }}</button>
+                                <button v-if="hasTaken" type="button" class="btn link sm" @click="showTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.find_button') }}</button>
                             </span>
                         </div>
                         <div v-if="showHint" class="newhint" role="status">
-                            <Icon name="bell" size="sm" /><span>{{ $t('player.alert.newHint') }}</span>
-                            <button type="button" class="x" :aria-label="$t('player.close')" @click="seeHint"><Icon name="x" size="sm" /></button>
+                            <Icon name="bell" size="sm" /><span>{{ $t('player.alert.new_hint') }}</span>
+                            <button type="button" class="x" :aria-label="$t('common.close')" @click="seeHint"><Icon name="x" size="sm" /></button>
                         </div>
                         <div v-if="allStarts.length" :class="['slots', { dim: loading, pulse }]">
                             <template v-for="s in allStarts" :key="s.t">
@@ -583,8 +583,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                     type="button"
                                     :class="['tslot mine', myAt(s.t)!.status]"
                                     aria-haspopup="dialog"
-                                    :title="$t('player.place.mineTitle')"
-                                    :aria-label="`${hhmm(s.t)} · ${$t('player.place.mineTitle')}`"
+                                    :title="$t('player.place.mine_title')"
+                                    :aria-label="`${hhmm(s.t)} · ${$t('player.place.mine_title')}`"
                                     @click="openMine(myAt(s.t)!)"
                                 >
                                     {{ hhmm(s.t) }}
@@ -615,11 +615,11 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         </div>
                         <div v-if="allStarts.length" class="tgl">
                             <template v-if="twoRates">
-                                <span><i class="lg free" />{{ $t('player.place.stFree') }} · {{ amd(field.price.min) }} {{ $t('player.perHour') }}</span>
-                                <span><i class="lg free pk" />{{ $t('player.place.primeTag') }} · {{ amd(field.price.max) }} {{ $t('player.perHour') }}</span>
+                                <span><i class="lg free" />{{ $t('player.place.slot_free') }} · {{ amd(field.price.min) }} {{ $t('common.per_hour') }}</span>
+                                <span><i class="lg free pk" />{{ $t('player.place.prime_tag') }} · {{ amd(field.price.max) }} {{ $t('common.per_hour') }}</span>
                             </template>
-                            <span v-else-if="free.length"><i class="lg free" />{{ $t('player.place.stFree') }} · {{ amd(dayRate) }} {{ $t('player.perHour') }}</span>
-                            <span v-if="(slots.mine ?? []).some((m) => m.field === field!.id)"><i class="lg you" />{{ $t('player.place.mineTitle') }}</span>
+                            <span v-else-if="free.length"><i class="lg free" />{{ $t('player.place.slot_free') }} · {{ amd(dayRate) }} {{ $t('common.per_hour') }}</span>
+                            <span v-if="(slots.mine ?? []).some((m) => m.field === field!.id)"><i class="lg you" />{{ $t('player.place.mine_title') }}</span>
                         </div>
                         <p v-if="hasTaken" class="bell-hint"><Icon name="bell" size="sm" />{{ $t('player.alert.legend') }}</p>
                     </div>
@@ -632,7 +632,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         <span class="eb-main">
                             {{ notice }}
                             <button v-if="lostStart != null" type="button" class="eb-act" :disabled="alertBusy" @click="watchLost">
-                                <Icon name="bell" size="sm" />{{ $t('player.alert.btnAt', { t: hhmm(lostStart) }) }}
+                                <Icon name="bell" size="sm" />{{ $t('player.alert.button_at', { t: hhmm(lostStart) }) }}
                             </button>
                         </span>
                     </div>
@@ -653,34 +653,34 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             <b>{{ amd(summary.total) }}</b>
                         </div>
                         <div class="rate" :class="{ prime: summary.primeMin }">
-                            <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
-                            <template v-else-if="summary.primeMin">{{ $t('player.place.primeRate', { p: amd(summary.f.price.max) }) }}</template>
-                            <template v-else>{{ $t('player.place.dayRate', { p: amd(summary.f.price.min) }) }}</template>
+                            <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.price_mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
+                            <template v-else-if="summary.primeMin">{{ $t('player.place.prime_rate', { p: amd(summary.f.price.max) }) }}</template>
+                            <template v-else>{{ $t('player.place.day_rate', { p: amd(summary.f.price.min) }) }}</template>
                         </div>
 
-                        <button v-if="!showNote" type="button" class="addnote" @click="showNote = true"><Icon name="plus" size="sm" />{{ $t('player.place.addNote') }}</button>
+                        <button v-if="!showNote" type="button" class="addnote" @click="showNote = true"><Icon name="plus" size="sm" />{{ $t('player.place.add_note') }}</button>
                         <div v-else class="opt">
                             <div class="field">
-                                <label for="bkTeam">{{ $t('player.place.team') }}</label>
-                                <input id="bkTeam" v-model="form.team_name" class="input" maxlength="40" :placeholder="$t('player.place.teamPh')" />
+                                <label for="bkTeam">{{ $t('player.place.team_label') }}</label>
+                                <input id="bkTeam" v-model="form.team_name" class="input" maxlength="40" :placeholder="$t('player.place.team_placeholder')" />
                             </div>
                             <div class="field">
-                                <label for="bkNote">{{ $t('player.place.note') }}</label>
-                                <textarea id="bkNote" v-model="form.note" class="input" rows="2" maxlength="200" :placeholder="$t('player.place.notePh')" />
+                                <label for="bkNote">{{ $t('player.place.note_label') }}</label>
+                                <textarea id="bkNote" v-model="form.note" class="input" rows="2" maxlength="200" :placeholder="$t('player.place.note_placeholder')" />
                             </div>
                         </div>
 
                         <p v-if="blocked" class="why blocked">
-                            <Icon name="clock" size="sm" /><span>{{ blocked }} <Link :href="route('me.bookings')">{{ $t('player.place.blockedLink') }}</Link></span>
+                            <Icon name="clock" size="sm" /><span>{{ blocked }} <Link :href="route('me.bookings')">{{ $t('common.my_bookings') }}</Link></span>
                         </p>
                         <!-- on phones the sticky bar has the Book button, so this one is hidden there -->
-                        <button type="button" class="btn block bookbtn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.bookBtn') }}</button>
+                        <button type="button" class="btn block bookbtn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.book_button') }}</button>
                         <ul class="perks">
-                            <li><Icon name="wallet" size="sm" />{{ $t('player.place.lPay') }}</li>
-                            <li><Icon name="check" size="sm" />{{ $t('player.place.lFree', { h: String(venue.rules.freeCancelHours) }) }}</li>
-                            <li><Icon name="send" size="sm" />{{ $t('player.place.lTg') }}</li>
+                            <li><Icon name="wallet" size="sm" />{{ $t('player.place.badge_pay') }}</li>
+                            <li><Icon name="check" size="sm" />{{ $t('player.place.badge_free_cancel', { h: String(venue.rules.freeCancelHours) }) }}</li>
+                            <li><Icon name="send" size="sm" />{{ $t('player.place.badge_telegram') }}</li>
                         </ul>
-                        <p v-if="user && user.name" class="hint as"><Icon name="user" size="sm" />{{ $t('player.place.as', { name: user.name, phone: user.phone }) }}</p>
+                        <p v-if="user && user.name" class="hint as"><Icon name="user" size="sm" />{{ $t('player.place.booking_as', { name: user.name, phone: user.phone }) }}</p>
                     </template>
                 </aside>
             </section>
@@ -690,56 +690,56 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <!-- the reason a request can't be sent, or why it failed: right here, not in the card further down -->
                 <p v-if="blocked || bookError" class="bb-why" role="alert">
                     <Icon :name="blocked ? 'clock' : 'x'" size="sm" /><span>{{ blocked || bookError }}</span>
-                    <Link v-if="blocked" :href="route('me.bookings')">{{ $t('player.place.blockedLink') }}</Link>
+                    <Link v-if="blocked" :href="route('me.bookings')">{{ $t('common.my_bookings') }}</Link>
                 </p>
                 <button type="button" class="bbinfo" @click="scrollToSummary">
                     <b>{{ range(start!, minutes) }} · {{ amd(summary.total) }}</b>
                     <small>{{ dateRel(date, today) }} · {{ cname(summary.f) }}</small>
                 </button>
-                <button type="button" class="btn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.bookBtn') }}</button>
+                <button type="button" class="btn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.book_button') }}</button>
             </div>
 
             <!-- about the place: one compact list -->
             <section class="section about">
-                <h2 class="infoh">{{ $t('player.place.tabInfo') }}</h2>
+                <h2 class="infoh">{{ $t('player.place.tab_info') }}</h2>
                 <p v-if="venue.description" class="desc">{{ venue.description }}</p>
                 <dl class="ilist">
                     <div>
-                        <dt><Icon name="clock" size="sm" />{{ $t('player.place.infoHours') }}</dt>
+                        <dt><Icon name="clock" size="sm" />{{ $t('common.opening_hours') }}</dt>
                         <dd>
                             <span v-for="(h, i) in weekHours" :key="i" class="hrow"><span class="muted">{{ h.label }}</span> {{ h.text }}</span>
                         </dd>
                     </div>
                     <div>
-                        <dt><Icon name="wallet" size="sm" />{{ $t('player.place.infoPrices') }}</dt>
+                        <dt><Icon name="wallet" size="sm" />{{ $t('common.prices') }}</dt>
                         <dd>
                             <span v-for="f in fields" :key="f.id" class="hrow">
                                 <span class="fname"><i :class="['field-dot', f.size]" />{{ f.format }}</span>
-                                {{ f.price.min === f.price.max ? amd(f.price.min) : `${amd(f.price.min)} – ${amd(f.price.max)}` }} <span class="muted">{{ $t('player.perHour') }}</span>
+                                {{ f.price.min === f.price.max ? amd(f.price.min) : `${amd(f.price.min)} – ${amd(f.price.max)}` }} <span class="muted">{{ $t('common.per_hour') }}</span>
                             </span>
-                            <span class="muted small">{{ $t('player.place.primeTag') }}: {{ $t('player.place.primeWhen') }}</span>
+                            <span class="muted small">{{ $t('player.place.prime_tag') }}: {{ $t('player.place.prime_when') }}</span>
                         </dd>
                     </div>
                     <div v-if="venue.address || hasMap" id="map">
-                        <dt><Icon name="pin" size="sm" />{{ $t('player.place.infoAddr') }}</dt>
+                        <dt><Icon name="pin" size="sm" />{{ $t('common.address') }}</dt>
                         <dd>
-                            <span v-if="venue.address">{{ venue.address }}, {{ $t(`player.district.${venue.district}`) }}</span>
+                            <span v-if="venue.address">{{ venue.address }}, {{ $t(`common.districts.${venue.district}`) }}</span>
                             <!-- Google / Yandex map with its own "Directions" button -->
                             <PlaceMap v-if="hasMap" class="pmap" :lat="venue.lat!" :lng="venue.lng!" :name="venue.name" :height="mapHeight" />
                             <span v-if="!hasMap && dirs.google" class="acts">
-                                <a class="btn outline sm" :href="dirs.google" target="_blank" rel="noopener"><Icon name="directions" size="sm" />{{ $t('player.place.google') }}</a>
+                                <a class="btn outline sm" :href="dirs.google" target="_blank" rel="noopener"><Icon name="directions" size="sm" />{{ $t('player.place.map_google') }}</a>
                             </span>
                         </dd>
                     </div>
                     <div v-if="venue.amenities.length">
-                        <dt><Icon name="check" size="sm" />{{ $t('player.place.infoAmen') }}</dt>
+                        <dt><Icon name="check" size="sm" />{{ $t('player.place.info_amenities') }}</dt>
                         <dd class="amen">
                             <span v-for="a in venue.amenities" :key="a"><Icon :name="AMEN_ICON[a] || 'check'" size="sm" />{{ $t(`player.amenity.${a}`) }}</span>
                         </dd>
                     </div>
                     <div>
-                        <dt><Icon name="ticket" size="sm" />{{ $t('player.place.infoRules') }}</dt>
-                        <dd class="muted">{{ $t('player.place.r1') }} {{ $t('player.place.r3', { m: String(venue.rules.minNoticeMin) }) }}</dd>
+                        <dt><Icon name="ticket" size="sm" />{{ $t('player.place.info_rules') }}</dt>
+                        <dd class="muted">{{ $t('player.place.rule_request') }} {{ $t('player.place.rule_notice', { m: String(venue.rules.minNoticeMin) }) }}</dd>
                     </div>
                 </dl>
             </section>
@@ -751,17 +751,17 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <template v-if="sheet === 'login'">
                     <div class="row" style="margin-bottom: 6px">
                         <h3 id="vt">{{ $t('player.verify.title') }}</h3>
-                        <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
+                        <button type="button" class="x" :aria-label="$t('common.close')" @click="closeSheets"><Icon name="x" /></button>
                     </div>
                     <p class="muted" style="margin: 0 0 18px; font-size: 14px">{{ $t('auth.sub2') }}</p>
                     <TelegramLogin context="booking" @done="onLoggedIn" />
                     <div v-if="form.processing" class="muted" style="text-align: center; font-size: 13px; margin-top: 10px">{{ $t('player.verify.sending') }}</div>
-                    <Link :href="loginUrl" class="email-alt">{{ $t('auth.withEmail') }}</Link>
+                    <Link :href="loginUrl" class="email-alt">{{ $t('auth.with_email') }}</Link>
                 </template>
                 <template v-else-if="sheet === 'mine' && mineOpen && field">
                     <div class="row" style="margin-bottom: 6px">
-                        <h3 id="vt">{{ $t(mineOpen.status === 'pending' ? 'player.place.mineWaiting' : 'player.place.mineConfirmed') }}</h3>
-                        <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
+                        <h3 id="vt">{{ $t(mineOpen.status === 'pending' ? 'player.place.mine_waiting' : 'player.place.mine_confirmed') }}</h3>
+                        <button type="button" class="x" :aria-label="$t('common.close')" @click="closeSheets"><Icon name="x" /></button>
                     </div>
                     <p class="muted" style="margin: 0 0 12px; font-size: 14px">
                         {{ dateLong(date) }} · {{ cname(field) }} · {{ hhmm(mineOpen.start) }}–{{ hhmm(mineOpen.end) }}
@@ -770,18 +770,18 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         <StatusPill :status="mineOpen.status" />
                         <span class="pill mono">{{ mineOpen.code }}</span>
                     </div>
-                    <p v-if="mineOpen.status === 'pending'" style="margin: 0 0 14px; font-size: 14px">{{ $t('player.place.mineWaitingSub') }}</p>
+                    <p v-if="mineOpen.status === 'pending'" style="margin: 0 0 14px; font-size: 14px">{{ $t('player.place.mine_waiting_sub') }}</p>
                     <div class="minebtns">
-                        <Link class="btn block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('player.ok.my') }}</Link>
+                        <Link class="btn block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('common.my_bookings') }}</Link>
                         <button type="button" class="btn outline block hot" :disabled="cancelBusy" @click="cancelMine">
-                            {{ $t(mineOpen.status === 'pending' ? 'player.my.withdraw' : 'player.my.cancel') }}
+                            {{ $t(mineOpen.status === 'pending' ? 'player.my_bookings.withdraw' : 'player.my_bookings.cancel') }}
                         </button>
                     </div>
                 </template>
                 <template v-else-if="sheet === 'taken' && takenAt != null && field">
                     <div class="row" style="margin-bottom: 6px">
                         <h3 id="vt">{{ $t('player.alert.title', { t: hhmm(takenAt) }) }}</h3>
-                        <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
+                        <button type="button" class="x" :aria-label="$t('common.close')" @click="closeSheets"><Icon name="x" /></button>
                     </div>
                     <p class="muted" style="margin: 0 0 14px; font-size: 14px">
                         {{ dateLong(date) }} · {{ cname(field) }} · {{ range(takenAt, minutes) }}
@@ -793,21 +793,21 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     </template>
                     <template v-else>
                         <p style="margin: 0 0 14px; font-size: 14px">{{ $t('player.alert.sub') }}</p>
-                        <button type="button" class="btn block" :disabled="alertBusy" @click="watchTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.btn') }}</button>
+                        <button type="button" class="btn block" :disabled="alertBusy" @click="watchTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.button') }}</button>
                     </template>
                 </template>
                 <template v-else>
                     <form @submit.prevent="submit">
                         <div class="row" style="margin-bottom: 6px">
-                            <h3 id="vt">{{ $t('player.verify.nameOnly') }}</h3>
-                            <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
+                            <h3 id="vt">{{ $t('player.verify.name_only') }}</h3>
+                            <button type="button" class="x" :aria-label="$t('common.close')" @click="closeSheets"><Icon name="x" /></button>
                         </div>
                         <div class="field" style="margin: 12px 0 16px">
-                            <label for="vn2">{{ $t('player.verify.name') }}</label>
-                            <input id="vn2" v-model="form.name" class="input" autocomplete="name" maxlength="60" :placeholder="$t('player.verify.namePh')" />
+                            <label for="vn2">{{ $t('common.your_name') }}</label>
+                            <input id="vn2" v-model="form.name" class="input" autocomplete="name" maxlength="60" :placeholder="$t('player.verify.name_placeholder')" />
                             <div v-if="form.errors.name" class="err">{{ form.errors.name }}</div>
                         </div>
-                        <button class="btn block" :disabled="form.processing || form.name.trim().length < 2"><Icon name="send" size="sm" />{{ $t('player.verify.go') }}</button>
+                        <button class="btn block" :disabled="form.processing || form.name.trim().length < 2"><Icon name="send" size="sm" />{{ $t('player.verify.send_request') }}</button>
                     </form>
                 </template>
             </div>
@@ -816,35 +816,35 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
         <!-- request sent -->
         <div v-if="okBooking" class="scrim" @click.self="okBooking = null">
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="okT">
-                <div class="row"><button type="button" class="x" :aria-label="$t('player.close')" @click="okBooking = null"><Icon name="x" /></button></div>
+                <div class="row"><button type="button" class="x" :aria-label="$t('common.close')" @click="okBooking = null"><Icon name="x" /></button></div>
                 <div class="okhead">
                     <div class="okmark"><Icon name="send" /></div>
-                    <h3 id="okT">{{ $t('player.ok.title') }}</h3>
-                    <div class="muted" style="font-size: 14px; margin-top: 4px">{{ $t('player.ok.sub') }}</div>
+                    <h3 id="okT">{{ $t('player.request_sent.title') }}</h3>
+                    <div class="muted" style="font-size: 14px; margin-top: 4px">{{ $t('player.request_sent.sub') }}</div>
                 </div>
-                <div class="okcode"><small>{{ $t('player.ok.code') }}</small>{{ okBooking.code }}</div>
+                <div class="okcode"><small>{{ $t('player.request_sent.request_number') }}</small>{{ okBooking.code }}</div>
                 <dl class="oklist">
-                    <dt>{{ $t('player.ok.status') }}</dt>
+                    <dt>{{ $t('common.status') }}</dt>
                     <dd><StatusPill :status="okBooking.status" /></dd>
-                    <dt>{{ $t('player.ok.venue') }}</dt>
+                    <dt>{{ $t('player.request_sent.venue') }}</dt>
                     <dd>{{ okBooking.venue.name }}</dd>
-                    <dt>{{ $t('player.ok.field') }}</dt>
+                    <dt>{{ $t('common.field') }}</dt>
                     <dd>{{ $t(`player.size.${okBooking.field.size}`) }} {{ okBooking.field.format }}</dd>
-                    <dt>{{ $t('player.ok.when') }}</dt>
+                    <dt>{{ $t('common.when') }}</dt>
                     <dd>{{ dateLong(okBooking.date) }} · {{ okBooking.start }}–{{ okBooking.end }}</dd>
                     <template v-if="okBooking.venue.address">
-                        <dt>{{ $t('player.ok.address') }}</dt>
+                        <dt>{{ $t('common.address') }}</dt>
                         <dd>{{ okBooking.venue.address }}</dd>
                     </template>
                     <template v-if="okBooking.teamName">
-                        <dt>{{ $t('player.ok.team') }}</dt>
+                        <dt>{{ $t('common.team') }}</dt>
                         <dd>{{ okBooking.teamName }}</dd>
                     </template>
-                    <dt>{{ $t('player.ok.price') }}</dt>
+                    <dt>{{ $t('player.request_sent.price') }}</dt>
                     <dd>{{ amd(okBooking.price) }}</dd>
                 </dl>
                 <div v-if="user && !user.telegram && canLinkTelegram" class="tg-note" style="margin: 0 0 12px">
-                    <Icon name="send" size="sm" /><span style="flex: 1">{{ $t('player.ok.tgHint') }}</span>
+                    <Icon name="send" size="sm" /><span style="flex: 1">{{ $t('player.request_sent.telegram_hint') }}</span>
                 </div>
                 <div v-if="user && !user.telegram && canLinkTelegram" class="tg-box">
                     <TelegramConnect compact />
@@ -853,13 +853,13 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <div class="okteam">
                     <Icon name="users" />
                     <div>
-                        <b>{{ $t('player.team.okTitle') }}</b>
-                        <p class="muted">{{ $t('player.team.okSub') }}</p>
+                        <b>{{ $t('player.team.invite_title') }}</b>
+                        <p class="muted">{{ $t('player.team.invite_sub') }}</p>
                     </div>
                 </div>
                 <div class="okacts">
                     <Link class="btn block" :href="route('me.bookings', { team: okBooking.id })"><Icon name="users" size="sm" />{{ $t('player.team.add') }}</Link>
-                    <Link class="btn ghost block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('player.ok.my') }}</Link>
+                    <Link class="btn ghost block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('common.my_bookings') }}</Link>
                 </div>
             </div>
         </div>

@@ -22,7 +22,7 @@ import {
 import { amd, hhmm, useShared } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, usePoll } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Today: KPIs, the two-lane strip (what is on each field now and next), requests waiting (Accept / Decline with Undo),
@@ -92,17 +92,17 @@ const lanes = computed(() =>
         }),
 );
 const closedToday = computed(() => !hoursToday.value || now.value >= hoursToday.value[1]);
-const statusLabel = (k: Kind) => (k === 'pending' ? trans('owner.st.pending') : k === 'owner' ? trans('owner.st.owner') : '');
+const statusLabel = (k: Kind) => (k === 'pending' ? trans('owner.status.pending') : k === 'owner' ? trans('owner.status.owner') : '');
 
 // conflicts: "Conflicts with Narek 20:00 · 11×11"
 const conflictText = (c: RequestRow['conflicts'][number]) =>
-    trans('owner.today_page.conflict', { name: c.name, time: `${hhmm(c.start)} · ${fieldOf(c.field_id)?.format ?? ''}` });
+    trans('owner.dashboard.conflict', { name: c.name, time: `${hhmm(c.start)} · ${fieldOf(c.field_id)?.format ?? ''}` });
 
 // ---------- next 7 days ----------
 const chartDays = computed(() =>
     props.chart.map((d, i) => ({
         date: d.date,
-        top: i === 0 ? trans('owner.today') : fdate(d.date, { weekday: 'short' }),
+        top: i === 0 ? trans('common.today') : fdate(d.date, { weekday: 'short' }),
         day: fdate(d.date, { day: 'numeric' }),
         today: i === 0,
         bars: owner.value.fields.map((f) => ({ id: f.id, size: f.size, p: d.fields[f.id] ?? 0, label: f.label })),
@@ -111,15 +111,15 @@ const chartDays = computed(() =>
 </script>
 
 <template>
-    <OwnerLayout :title="$t('owner.nav.today')" :new-booking="{}">
+    <OwnerLayout :title="$t('common.today')" :new-booking="{}">
         <div class="phead">
             <div>
                 <div class="kicker">{{ longDate(date) }} · {{ owner.venue.name }}</div>
-                <h1>{{ first ? $t('owner.today_page.hello', { name: first }) : $t('owner.nav.today') }}</h1>
+                <h1>{{ first ? $t('owner.dashboard.hello', { name: first }) : $t('common.today') }}</h1>
             </div>
             <div class="phead-r">
                 <button type="button" class="btn new" data-test="new" @click="openForm({})">
-                    <Icon name="plus" size="sm" />{{ $t('owner.new_booking') }}
+                    <Icon name="plus" size="sm" />{{ $t('common.new_booking') }}
                 </button>
             </div>
         </div>
@@ -127,8 +127,8 @@ const chartDays = computed(() =>
         <div v-if="user && !user.telegram" class="tg-banner" data-test="tg-banner">
             <Icon name="send" />
             <div class="tgb-t">
-                <b>{{ $t('owner.today_page.tg_title') }}</b>
-                <small>{{ $t('owner.today_page.tg_sub') }}</small>
+                <b>{{ $t('owner.dashboard.telegram_title') }}</b>
+                <small>{{ $t('owner.dashboard.telegram_sub') }}</small>
             </div>
             <TelegramConnect compact />
         </div>
@@ -136,21 +136,21 @@ const chartDays = computed(() =>
         <div class="kpis">
             <div class="card kpi">
                 <div class="lbl">
-                    <Icon name="calendar" size="sm" /><span>{{ $t('owner.today_page.k_today') }}</span>
+                    <Icon name="calendar" size="sm" /><span>{{ $t('common.bookings') }}</span>
                 </div>
                 <div class="val" data-test="kpi-today">{{ kpi.today }}</div>
-                <div class="sub">{{ $t('owner.today_page.k_today_sub', { a: kpi.todayAccepted, p: kpi.todayPending }) }}</div>
+                <div class="sub">{{ $t('owner.dashboard.kpi_bookings_sub', { a: kpi.todayAccepted, p: kpi.todayPending }) }}</div>
             </div>
             <div :class="['card kpi', { warn: pendingCount }]">
                 <div class="lbl">
-                    <Icon name="msg" size="sm" /><span>{{ $t('owner.today_page.k_pending') }}</span>
+                    <Icon name="msg" size="sm" /><span>{{ $t('common.requests') }}</span>
                 </div>
                 <div class="val">{{ pendingCount }}</div>
-                <div class="sub">{{ $t(pendingCount ? 'owner.today_page.k_pending_sub' : 'owner.today_page.k_pending_none') }}</div>
+                <div class="sub">{{ $t(pendingCount ? 'owner.dashboard.kpi_requests_sub' : 'owner.dashboard.kpi_requests_none') }}</div>
             </div>
             <div class="card kpi">
                 <div class="lbl">
-                    <Icon name="chart" size="sm" /><span>{{ $t('owner.today_page.k_occ') }}</span>
+                    <Icon name="chart" size="sm" /><span>{{ $t('owner.dashboard.kpi_occupancy') }}</span>
                 </div>
                 <div class="occ">
                     <div v-for="f in owner.fields" :key="f.id">
@@ -162,34 +162,34 @@ const chartDays = computed(() =>
             </div>
             <div class="card kpi">
                 <div class="lbl">
-                    <Icon name="wallet" size="sm" /><span>{{ $t('owner.today_page.k_rev') }}</span>
+                    <Icon name="wallet" size="sm" /><span>{{ $t('owner.dashboard.kpi_revenue') }}</span>
                 </div>
                 <div class="val money">{{ amd(kpi.revenueToday) }}</div>
-                <div class="sub">{{ $t('owner.today_page.k_rev_sub', { sum: amd(kpi.revenueWeek) }) }}</div>
+                <div class="sub">{{ $t('owner.dashboard.kpi_revenue_sub', { sum: amd(kpi.revenueWeek) }) }}</div>
             </div>
         </div>
 
         <div class="dash">
             <section class="card panel tstrip" data-test="today-strip">
                 <div class="sec-h">
-                    <h2>{{ $t('owner.today_page.strip') }}</h2>
+                    <h2>{{ $t('owner.dashboard.strip') }}</h2>
                     <Link class="see-all" :href="route('owner.schedule')">{{ $t('owner.nav.schedule') }} <Icon name="arrow" size="sm" /></Link>
                 </div>
                 <div class="lanes">
                     <div v-for="l in lanes" :key="l.f.id" class="lane" data-test="lane">
                         <div class="lane-h">
                             <i :class="['fdot', dotOf(l.f.size)]" /><b>{{ l.f.format }}</b>
-                            <small>{{ $t('owner.today_page.lane_sub', { p: kpi.occupancy[l.f.id] ?? 0, n: l.count }) }}</small>
+                            <small>{{ $t('owner.dashboard.lane_sub', { p: kpi.occupancy[l.f.id] ?? 0, n: l.count }) }}</small>
                         </div>
                         <button v-if="l.current" type="button" :class="['li cur', 'k-' + kindOf(l.current)]" @click="openBooking(l.current.id)">
                             <span class="li-t"
-                                ><b>{{ $t('owner.today_page.now') }}</b> · {{ $t('owner.today_page.ends', { t: hhmm(l.current.end) }) }}</span
+                                ><b>{{ $t('common.now') }}</b> · {{ $t('owner.dashboard.ends', { t: hhmm(l.current.end) }) }}</span
                             >
                             <span class="li-n">{{ l.current.team || l.current.name }}</span>
-                            <span v-if="l.current.arrived" class="li-at ok"><Icon name="check" size="sm" />{{ $t('owner.b.arrived') }}</span>
+                            <span v-if="l.current.arrived" class="li-at ok"><Icon name="check" size="sm" />{{ $t('common.arrived') }}</span>
                             <span v-else-if="l.current.status === 'accepted'" class="li-at warn"
                                 ><Icon name="clock" size="sm" />{{
-                                    l.current.late_minutes ? $t('owner.b.late', { min: String(l.current.late_minutes) }) : $t('owner.b.waiting')
+                                    l.current.late_minutes ? $t('owner.booking.late', { min: String(l.current.late_minutes) }) : $t('owner.booking.waiting')
                                 }}</span
                             >
                             <span class="prog"><i :style="{ width: l.progress + '%' }" /></span>
@@ -209,13 +209,13 @@ const chartDays = computed(() =>
                                 >{{ hhmm(b.start) }}–{{ hhmm(b.end) }}<em v-if="statusLabel(kindOf(b))"> · {{ statusLabel(kindOf(b)) }}</em></span
                             >
                             <span class="li-n">{{ b.team || b.name }}</span>
-                            <span v-if="b.late_minutes" class="li-at warn"><Icon name="clock" size="sm" />{{ $t('owner.b.late', { min: String(b.late_minutes) }) }}</span>
+                            <span v-if="b.late_minutes" class="li-at warn"><Icon name="clock" size="sm" />{{ $t('owner.booking.late', { min: String(b.late_minutes) }) }}</span>
                         </button>
                         <Link v-if="l.more" class="li-more" :href="route('owner.schedule')">{{
-                            $t('owner.today_page.more_later', { n: l.more })
+                            $t('owner.dashboard.more_later', { n: l.more })
                         }}</Link>
                         <p v-if="!l.next.length" class="li-free">
-                            {{ closedToday ? $t('owner.today_page.closed_today') : $t('owner.today_page.free_rest') }}
+                            {{ closedToday ? $t('owner.dashboard.closed_today') : $t('owner.dashboard.free_rest') }}
                         </p>
                     </div>
                 </div>
@@ -224,7 +224,7 @@ const chartDays = computed(() =>
             <section class="card panel reqs">
                 <div class="sec-h">
                     <h2>
-                        {{ $t('owner.today_page.requests') }} <span v-if="pendingCount" class="pill warn">{{ pendingCount }}</span>
+                        {{ $t('owner.dashboard.requests') }} <span v-if="pendingCount" class="pill warn">{{ pendingCount }}</span>
                     </h2>
                     <Link v-if="pendingCount" class="see-all" :href="route('owner.schedule', { view: 'list', status: 'pending' })"
                         >{{ $t('owner.see_all') }} <Icon name="arrow" size="sm"
@@ -247,7 +247,7 @@ const chartDays = computed(() =>
                                 <a v-if="b.tel" class="tel" :href="`tel:${b.tel}`" data-test="tel" @click.stop
                                     ><Icon name="phone" size="sm" />{{ b.phone }}</a
                                 >
-                                <span v-if="b.sent_ago" class="faint">{{ $t('owner.today_page.sent', { ago: b.sent_ago }) }}</span>
+                                <span v-if="b.sent_ago" class="faint">{{ $t('owner.dashboard.sent', { ago: b.sent_ago }) }}</span>
                             </div>
                             <div v-if="b.conflicts.length" class="conf">
                                 <span v-for="c in b.conflicts" :key="c.id" class="cchip" data-test="conflict"
@@ -257,35 +257,35 @@ const chartDays = computed(() =>
                         </div>
                         <div class="acts">
                             <button type="button" class="btn" data-test="accept" @click="accept(b.id, b)">
-                                <Icon name="check" size="sm" />{{ $t('owner.a.accept') }}
+                                <Icon name="check" size="sm" />{{ $t('common.accept') }}
                             </button>
                             <button type="button" class="btn danger" data-test="decline" @click="askDecline(b.id, whoOf(b))">
-                                <Icon name="x" size="sm" />{{ $t('owner.a.decline') }}
+                                <Icon name="x" size="sm" />{{ $t('common.decline') }}
                             </button>
                         </div>
                     </div>
                     <p v-if="pendingCount > requestsShown.length" style="margin: 12px 0 0">
                         <Link class="see-all" :href="route('owner.schedule', { view: 'list', status: 'pending' })">{{
-                            $t('owner.today_page.more', { n: pendingCount - requestsShown.length })
+                            $t('owner.dashboard.more', { n: pendingCount - requestsShown.length })
                         }}</Link>
                     </p>
                 </template>
                 <div v-else class="empty">
                     <Icon name="check" size="lg" />
-                    <p style="margin: 8px 0 0">{{ $t('owner.today_page.no_requests') }}</p>
+                    <p style="margin: 8px 0 0">{{ $t('owner.dashboard.no_requests') }}</p>
                 </div>
             </section>
         </div>
 
         <section class="card panel week7">
             <div class="sec-h" style="margin-bottom: 2px">
-                <h2>{{ $t('owner.today_page.chart') }}</h2>
+                <h2>{{ $t('owner.dashboard.chart') }}</h2>
                 <div class="legend">
                     <span v-for="f in owner.fields" :key="f.id"><i :class="['fdot', dotOf(f.size)]" />{{ f.format }}</span>
                 </div>
             </div>
-            <p class="faint" style="margin: 0 0 12px; font-size: 12.5px">{{ $t('owner.today_page.chart_sub') }}</p>
-            <div class="wchart" role="img" :aria-label="$t('owner.today_page.chart')">
+            <p class="faint" style="margin: 0 0 12px; font-size: 12.5px">{{ $t('owner.dashboard.chart_sub') }}</p>
+            <div class="wchart" role="img" :aria-label="$t('owner.dashboard.chart')">
                 <div class="yax" aria-hidden="true"><span>100%</span><span>50%</span><span>0</span></div>
                 <button
                     v-for="d in chartDays"

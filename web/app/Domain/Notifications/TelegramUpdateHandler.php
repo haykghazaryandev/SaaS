@@ -134,7 +134,7 @@ class TelegramUpdateHandler
     {
         $names = ['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'];
 
-        return [['🌐 '.__('telegram.lang.button', [], $locale).': '.$names[$locale], 'lang:menu']];
+        return [['🌐 '.__('common.language', [], $locale).': '.$names[$locale], 'lang:menu']];
     }
 
     private const LANG_BUTTONS = [['🇦🇲 Հայերեն', 'lang:hy'], ['🇷🇺 Русский', 'lang:ru'], ['🇬🇧 English', 'lang:en']];
@@ -156,7 +156,7 @@ class TelegramUpdateHandler
     /** Buttons that open Bookball inside Telegram (the Mini App logs the person in by itself): book a field, find players. */
     private function appLinks(string $locale, ?User $user = null): array
     {
-        return [[__('telegram.login.btnBook', [], $locale), 'app:/?lang='.$locale], [__('telegram.login.btnGames', [], $locale), 'app:/games?lang='.$locale]];
+        return [[__('telegram.login.button_book', [], $locale), 'app:/?lang='.$locale], [__('telegram.login.button_games', [], $locale), 'app:/games?lang='.$locale]];
     }
 
     private function callback(array $q): void
@@ -279,7 +279,7 @@ class TelegramUpdateHandler
     {
         $text = __('telegram.after.cancel_ask', $this->esc(AfterBooking\BookingPeople::params($b)));
         $free = $b->starts_at->greaterThan(now()->addHours((int) $b->venue->rule('free_cancel_hours')));
-        $this->bot->sendMessage($chatId, $text.($free ? '' : "\n\n".__('telegram.after.cancel_late')), [[[__('telegram.after.cancel_yes'), "cancelyes:{$b->id}"]]]);
+        $this->bot->sendMessage($chatId, $text.($free ? '' : "\n\n".__('telegram.after.cancel_late')), [[[__('common.yes_cancel'), "cancelyes:{$b->id}"]]]);
 
         return '';
     }

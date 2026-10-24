@@ -82,13 +82,13 @@ onBeforeUnmount(() => clearInterval(timer));
     <div v-if="!hidden" class="tgb" role="note">
         <Icon name="send" size="sm" class="tgi" />
         <span class="tgt" :role="state === 'waiting' ? 'status' : undefined">
-            <template v-if="state === 'waiting'">{{ $t('player.my.tgWaiting') }}</template>
-            <template v-else-if="state === 'error'">{{ $t('player.my.tgError') }}</template>
-            <template v-else>{{ $t('player.my.tgAsk') }}</template>
+            <template v-if="state === 'waiting'">{{ $t('player.my_bookings.telegram_waiting') }}</template>
+            <template v-else-if="state === 'error'">{{ $t('player.my_bookings.telegram_error') }}</template>
+            <template v-else>{{ $t('player.my_bookings.telegram_ask') }}</template>
         </span>
-        <a v-if="state === 'waiting' && botUrl" :href="botUrl" target="_blank" rel="noopener" class="tga">{{ $t('player.my.tgOpen') }}</a>
-        <button v-else type="button" class="tga" @click="open">{{ $t('player.my.tgOpen') }} <Icon name="arrow" size="sm" /></button>
-        <button type="button" class="tgx" :aria-label="$t('player.close')" @click="dismiss"><Icon name="x" size="sm" /></button>
+        <a v-if="state === 'waiting' && botUrl" :href="botUrl" target="_blank" rel="noopener" class="tga">{{ $t('player.my_bookings.telegram_open') }}</a>
+        <button v-else type="button" class="tga" @click="open">{{ $t('player.my_bookings.telegram_open') }} <Icon name="arrow" size="sm" /></button>
+        <button type="button" class="tgx" :aria-label="$t('common.close')" @click="dismiss"><Icon name="x" size="sm" /></button>
     </div>
 </template>
 

@@ -41,7 +41,7 @@ class FieldsRelationManager extends RelationManager
         return $schema->columns(2)->components([
             Select::make('size')->label(__('admin.field.size'))->options(Options::fieldSizes())->required()
                 ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->where('venue_id', $this->getOwnerRecord()->id)),
-            Select::make('surface')->label(__('admin.field.surface'))->options(['turf' => __('admin.field.turf'), 'grass' => __('admin.field.grass')])->default('turf')->required(),
+            Select::make('surface')->label(__('admin.field.surface'))->options(['turf' => __('common.surfaces.turf'), 'grass' => __('common.surfaces.grass')])->default('turf')->required(),
             CheckboxList::make('durations')->label(__('admin.field.durations'))->options($durations)->columns(5)->required()->columnSpanFull(),
             Select::make('default_duration')->label(__('admin.field.default_duration'))->options($durations)->required(),
             TextInput::make('sort')->label(__('admin.field.sort'))->integer()->default(0),

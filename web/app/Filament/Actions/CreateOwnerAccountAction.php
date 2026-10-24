@@ -36,15 +36,15 @@ class CreateOwnerAccountAction
     public static function schema(): array
     {
         return [
-            TextInput::make('phone')->label(__('admin.user.phone'))->tel()->required()->placeholder('+374 91 234 567')
+            TextInput::make('phone')->label(__('common.phone'))->tel()->required()->placeholder('+374 91 234 567')
                 ->rule(fn () => function ($attr, $value, $fail) {
                     if (! Phone::normalize($value)) {
                         $fail(__('auth.phone.invalid'));
                     }
                 }),
-            TextInput::make('name')->label(__('admin.user.name'))->maxLength(60),
-            Select::make('venue_id')->label(__('admin.venue.one'))->options(fn () => Venue::orderBy('name')->pluck('name', 'id'))->searchable()->required(),
-            Select::make('role')->label(__('admin.staff.role'))->options(StaffRelationManager::roles())->default('owner')->required(),
+            TextInput::make('name')->label(__('common.name'))->maxLength(60),
+            Select::make('venue_id')->label(__('common.place'))->options(fn () => Venue::orderBy('name')->pluck('name', 'id'))->searchable()->required(),
+            Select::make('role')->label(__('common.role'))->options(StaffRelationManager::roles())->default('owner')->required(),
         ];
     }
 }

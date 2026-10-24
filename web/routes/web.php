@@ -1,13 +1,17 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LangController;
 use App\Http\Controllers\Player\BookingController;
 use App\Http\Controllers\Player\BookingTeamController;
-use App\Http\Controllers\Player\RateController;
 use App\Http\Controllers\Player\HomeController;
 use App\Http\Controllers\Player\MyBookingsController;
 use App\Http\Controllers\Player\PlaceController;
+use App\Http\Controllers\Player\RateController;
 use Illuminate\Support\Facades\Route;
+
+// interface texts for the browser (resources/js/lib/i18n.ts), versioned in the URL; see LangController
+Route::get('lang/{locale}.json', LangController::class)->where('locale', '[a-z]{2}')->name('lang');
 
 // ---------- player web ----------
 Route::get('/', HomeController::class)->name('home');

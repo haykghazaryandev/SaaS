@@ -28,7 +28,7 @@ abstract class OwnerController extends Controller
 
     protected function ensureOwner(Request $request): void
     {
-        abort_unless($this->isOwner($request), 403, __('owner.err.owner_only'));
+        abort_unless($this->isOwner($request), 403, __('owner.error.owner_only'));
     }
 
     /** A booking of another place: 403. */

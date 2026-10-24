@@ -16,7 +16,7 @@ class BookingsRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('admin.booking.many');
+        return __('common.bookings');
     }
 
     public function isReadOnly(): bool
@@ -31,7 +31,7 @@ class BookingsRelationManager extends RelationManager
             ->defaultSort(fn (Builder $query) => BookingResource::soonestFirst($query))
             ->columns(BookingResource::columns())
             ->recordActions([
-                Action::make('open')->label(__('admin.booking.open'))->icon('heroicon-o-eye')->color('gray')
+                Action::make('open')->label(__('common.open'))->icon('heroicon-o-eye')->color('gray')
                     ->url(fn (Booking $record) => BookingResource::getUrl('view', ['record' => $record])),
             ]);
     }

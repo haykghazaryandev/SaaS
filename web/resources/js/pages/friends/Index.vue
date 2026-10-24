@@ -87,45 +87,45 @@ const remove = (p: PlayerCard) => router.delete(route('friends.remove', p.id), o
 
 <template>
     <PlayerLayout>
-        <Head :title="tab === 'find' ? $t('friends.findTitle') : $t('friends.title')" />
+        <Head :title="tab === 'find' ? $t('common.find_players') : $t('common.friends')" />
 
         <section class="fhead">
             <template v-if="tab === 'find'">
-                <button type="button" class="back" @click="setTab('friends')"><Icon name="back" size="sm" />{{ $t('friends.title') }}</button>
-                <h1 class="page-title">{{ $t('friends.findTitle') }}</h1>
+                <button type="button" class="back" @click="setTab('friends')"><Icon name="back" size="sm" />{{ $t('common.friends') }}</button>
+                <h1 class="page-title">{{ $t('common.find_players') }}</h1>
             </template>
             <template v-else>
-                <h1 class="page-title">{{ $t('friends.title') }}</h1>
-                <button type="button" class="btn sm" @click="setTab('find')"><Icon name="plus" size="sm" />{{ $t('friends.findBtn') }}</button>
+                <h1 class="page-title">{{ $t('common.friends') }}</h1>
+                <button type="button" class="btn sm" @click="setTab('find')"><Icon name="plus" size="sm" />{{ $t('common.find_players') }}</button>
             </template>
         </section>
 
         <!-- friends | requests -->
         <template v-if="tab !== 'find'">
             <div class="seg" role="tablist">
-                <button role="tab" :aria-selected="tab === 'friends'" @click="setTab('friends')">{{ $t('friends.tab.friends') }}<span class="n">{{ friends.length }}</span></button>
+                <button role="tab" :aria-selected="tab === 'friends'" @click="setTab('friends')">{{ $t('common.friends') }}<span class="n">{{ friends.length }}</span></button>
                 <button role="tab" :aria-selected="tab === 'requests'" @click="setTab('requests')">
-                    {{ $t('friends.tab.requests') }}<span v-if="received.length" class="badge-dot">{{ received.length }}</span><span v-else-if="sent.length" class="n">{{ sent.length }}</span>
+                    {{ $t('common.requests') }}<span v-if="received.length" class="badge-dot">{{ received.length }}</span><span v-else-if="sent.length" class="n">{{ sent.length }}</span>
                 </button>
             </div>
             <label v-if="friends.length + received.length + sent.length > 0" class="search">
                 <Icon name="search" />
-                <input v-model="filter" type="search" class="input" :placeholder="$t('friends.filter')" :aria-label="$t('friends.filter')" autocomplete="off" autocapitalize="off" />
+                <input v-model="filter" type="search" class="input" :placeholder="$t('common.search_friends')" :aria-label="$t('common.search_friends')" autocomplete="off" autocapitalize="off" />
             </label>
         </template>
 
         <section v-if="tab === 'friends'">
             <div class="list">
                 <PlayerRow v-for="p in friendsShown" :key="p.id" :player="p">
-                    <Link v-if="canChat" :href="route('messages.direct', p.id)" method="post" as="button" class="btn icon sm" :aria-label="$t('friends.messageTo', { name: p.name })" :title="$t('friends.message')"><Icon name="chat" size="sm" /></Link>
+                    <Link v-if="canChat" :href="route('messages.direct', p.id)" method="post" as="button" class="btn icon sm" :aria-label="$t('friends.message_to', { name: p.name })" :title="$t('friends.message')"><Icon name="chat" size="sm" /></Link>
                 </PlayerRow>
             </div>
-            <p v-if="friends.length && !friendsShown.length" class="muted hint">{{ $t('friends.noMatch') }}</p>
+            <p v-if="friends.length && !friendsShown.length" class="muted hint">{{ $t('friends.no_match') }}</p>
             <div v-if="!friends.length" class="empty-state">
                 <span class="es-ico"><Icon name="users" /></span>
-                <h3>{{ $t('friends.empty.friendsTitle') }}</h3>
+                <h3>{{ $t('friends.empty.friends_title') }}</h3>
                 <p>{{ $t('friends.empty.friends') }}</p>
-                <button type="button" class="btn sm" @click="setTab('find')"><Icon name="search" size="sm" />{{ $t('friends.findBtn') }}</button>
+                <button type="button" class="btn sm" @click="setTab('find')"><Icon name="search" size="sm" />{{ $t('common.find_players') }}</button>
             </div>
         </section>
 
@@ -134,8 +134,8 @@ const remove = (p: PlayerCard) => router.delete(route('friends.remove', p.id), o
                 <h2 class="sub">{{ $t('friends.received') }}</h2>
                 <div class="list">
                     <PlayerRow v-for="p in receivedShown" :key="p.id" :player="p">
-                        <button type="button" class="btn outline sm" :disabled="busy === p.id" @click="remove(p)">{{ $t('friends.decline') }}</button>
-                        <button type="button" class="btn sm" :disabled="busy === p.id" @click="accept(p)">{{ $t('friends.accept') }}</button>
+                        <button type="button" class="btn outline sm" :disabled="busy === p.id" @click="remove(p)">{{ $t('common.decline') }}</button>
+                        <button type="button" class="btn sm" :disabled="busy === p.id" @click="accept(p)">{{ $t('common.accept') }}</button>
                     </PlayerRow>
                 </div>
             </template>
@@ -158,17 +158,17 @@ const remove = (p: PlayerCard) => router.delete(route('friends.remove', p.id), o
         <section v-else>
             <label class="search big">
                 <Icon name="search" />
-                <input ref="searchEl" v-model="q" type="search" class="input" :placeholder="$t('friends.search')" :aria-label="$t('friends.search')" autocomplete="off" autocapitalize="off" maxlength="60" />
+                <input ref="searchEl" v-model="q" type="search" class="input" :placeholder="$t('common.search_people')" :aria-label="$t('common.search_people')" autocomplete="off" autocapitalize="off" maxlength="60" />
                 <span v-if="searching" class="spin" aria-hidden="true" />
             </label>
             <template v-if="short">
-                <p class="muted hint">{{ $t('friends.searchHint') }}</p>
+                <p class="muted hint">{{ $t('friends.search_hint') }}</p>
                 <h2 class="sub">{{ $t('friends.tab.played') }}</h2>
                 <div v-if="played.length" class="list">
                     <PlayerRow v-for="p in played" :key="p.id" :player="p">
                         <template #extra><span class="together">{{ p.username ? ' · ' : '' }}{{ $tChoice('friends.together', p.games ?? 1, { n: String(p.games ?? 1) }) }}</span></template>
                         <button v-if="p.relation === 'none'" type="button" class="btn sm" :disabled="busy === p.id" @click="add(p)"><Icon name="plus" size="sm" />{{ $t('friends.add') }}</button>
-                        <button v-else-if="p.relation === 'received'" type="button" class="btn sm" :disabled="busy === p.id" @click="accept(p)">{{ $t('friends.accept') }}</button>
+                        <button v-else-if="p.relation === 'received'" type="button" class="btn sm" :disabled="busy === p.id" @click="accept(p)">{{ $t('common.accept') }}</button>
                         <span v-else-if="p.relation === 'sent'" class="state">{{ $t('friends.requested') }}</span>
                     </PlayerRow>
                 </div>
@@ -178,12 +178,12 @@ const remove = (p: PlayerCard) => router.delete(route('friends.remove', p.id), o
                 <div class="list">
                     <PlayerRow v-for="p in results" :key="p.id" :player="p">
                         <button v-if="p.relation === 'none'" type="button" class="btn sm" :disabled="busy === p.id" @click="add(p)"><Icon name="plus" size="sm" />{{ $t('friends.add') }}</button>
-                        <button v-else-if="p.relation === 'received'" type="button" class="btn sm" :disabled="busy === p.id" @click="accept(p)">{{ $t('friends.accept') }}</button>
+                        <button v-else-if="p.relation === 'received'" type="button" class="btn sm" :disabled="busy === p.id" @click="accept(p)">{{ $t('common.accept') }}</button>
                         <span v-else-if="p.relation === 'sent'" class="state">{{ $t('friends.requested') }}</span>
-                        <Link v-else-if="p.relation === 'friends' && canChat" :href="route('messages.direct', p.id)" method="post" as="button" class="btn icon sm" :aria-label="$t('friends.messageTo', { name: p.name })"><Icon name="chat" size="sm" /></Link>
+                        <Link v-else-if="p.relation === 'friends' && canChat" :href="route('messages.direct', p.id)" method="post" as="button" class="btn icon sm" :aria-label="$t('friends.message_to', { name: p.name })"><Icon name="chat" size="sm" /></Link>
                     </PlayerRow>
                 </div>
-                <div v-if="!results.length && !searching" class="empty-state plain"><p>{{ $t('friends.noResults') }}</p></div>
+                <div v-if="!results.length && !searching" class="empty-state plain"><p>{{ $t('friends.no_results') }}</p></div>
             </template>
         </section>
     </PlayerLayout>

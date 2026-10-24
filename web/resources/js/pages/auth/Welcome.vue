@@ -9,12 +9,12 @@ const form = useForm({ name: props.name ?? '', username: '', phone: '' });
 
 <template>
     <AuthLayout>
-        <Head :title="$t('auth.welcome.title')" />
-        <h1 style="font-size: 26px">{{ $t('auth.welcome.title') }}</h1>
+        <Head :title="$t('common.welcome_to_bookball')" />
+        <h1 style="font-size: 26px">{{ $t('common.welcome_to_bookball') }}</h1>
         <p class="muted" style="margin: 8px 0 20px">{{ $t('auth.welcome.sub') }}</p>
         <form class="grid" style="gap: 14px" @submit.prevent="form.post(route('welcome.store'))">
             <div class="field">
-                <label for="name">{{ $t('auth.welcome.name') }}</label>
+                <label for="name">{{ $t('common.your_name') }}</label>
                 <input id="name" v-model="form.name" class="input" autocomplete="name" autofocus />
                 <div v-if="form.errors.name" class="err">{{ form.errors.name }}</div>
             </div>
@@ -32,7 +32,7 @@ const form = useForm({ name: props.name ?? '', username: '', phone: '' });
                 <input id="username" v-model="form.username" class="input mono" autocapitalize="off" placeholder="aram_10" />
                 <div v-if="form.errors.username" class="err">{{ form.errors.username }}</div>
             </div>
-            <button class="btn block" :disabled="form.processing">{{ $t('auth.welcome.go') }}</button>
+            <button class="btn block" :disabled="form.processing">{{ $t('common.book_a_field') }}</button>
         </form>
     </AuthLayout>
 </template>

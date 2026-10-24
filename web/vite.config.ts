@@ -3,7 +3,6 @@ import autoprefixer from 'autoprefixer';
 import laravel from 'laravel-vite-plugin';
 import path from 'path';
 import tailwindcss from 'tailwindcss';
-import i18n from 'laravel-vue-i18n/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -12,7 +11,6 @@ export default defineConfig({
             input: ['resources/js/app.ts'],
             refresh: true,
         }),
-        i18n(),
         vue({
             template: {
                 transformAssetUrls: {

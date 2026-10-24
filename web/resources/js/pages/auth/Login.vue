@@ -58,7 +58,7 @@ function resend() {
             <p class="muted" style="margin: 8px 0 20px">{{ email ? $t('auth.email.enter', { email }) : $t('auth.enter', { phone: phone ?? '' }) }}</p>
             <CodeInput ref="codeBox" @complete="verify" />
             <p v-if="page.props.devCode" style="text-align: center; margin: 14px 0 0">
-                <span class="pill lime">{{ $t('auth.devCode', { code: page.props.devCode }) }}</span>
+                <span class="pill lime">{{ $t('auth.dev_code', { code: page.props.devCode }) }}</span>
             </p>
             <div v-if="codeForm.errors.code" class="err" style="text-align: center">{{ codeForm.errors.code }}</div>
             <div class="row" style="justify-content: space-between; margin-top: 20px">
@@ -73,9 +73,9 @@ function resend() {
             <TelegramLogin :to="to" />
             <template v-if="emailLogin">
                 <div class="or"><span>{{ $t('auth.or') }}</span></div>
-                <button type="button" class="btn ghost block" @click="mode = 'email'"><Icon name="msg" size="sm" />{{ $t('auth.withEmail') }}</button>
+                <button type="button" class="btn ghost block" @click="mode = 'email'"><Icon name="msg" size="sm" />{{ $t('auth.with_email') }}</button>
             </template>
-            <button v-if="phoneCode" type="button" class="linkish" @click="mode = 'phone'">{{ $t(testAccounts ? 'auth.withTestAccount' : 'auth.withPhoneDev') }}</button>
+            <button v-if="phoneCode" type="button" class="linkish" @click="mode = 'phone'">{{ $t(testAccounts ? 'auth.with_test_account' : 'auth.with_phone_dev') }}</button>
         </div>
 
         <!-- 2. email -->
@@ -86,22 +86,22 @@ function resend() {
                 <input id="email" v-model="emailForm.email" class="input" type="email" autocomplete="email" placeholder="name@mail.com" autofocus />
                 <div v-if="emailForm.errors.email" class="err">{{ emailForm.errors.email }}</div>
             </div>
-            <button class="btn block" style="margin-top: 16px" :disabled="emailForm.processing">{{ $t('auth.email.send') }}</button>
+            <button class="btn block" style="margin-top: 16px" :disabled="emailForm.processing">{{ $t('common.send_code') }}</button>
             <button type="button" class="linkish" @click="mode = 'main'"><Icon name="back" size="sm" />{{ $t('auth.telegram.button') }}</button>
         </form>
 
         <!-- 3. phone + code (development / Gateway) -->
         <form v-else @submit.prevent="sendPhone">
-            <p class="muted" style="margin: 8px 0 20px">{{ $t(testAccounts ? 'auth.testHint' : 'auth.sub') }}</p>
+            <p class="muted" style="margin: 8px 0 20px">{{ $t(testAccounts ? 'auth.test_hint' : 'auth.sub') }}</p>
             <div class="field">
-                <label for="phone">{{ $t('auth.phone') }}</label>
+                <label for="phone">{{ $t('auth.phone_label') }}</label>
                 <div class="row" style="gap: 8px">
                     <span class="input" style="width: auto; color: var(--muted)">+374</span>
                     <input id="phone" v-model="phoneForm.phone" class="input mono" inputmode="tel" autocomplete="tel" placeholder="91 234 567" autofocus />
                 </div>
                 <div v-if="phoneForm.errors.phone" class="err">{{ phoneForm.errors.phone }}</div>
             </div>
-            <button class="btn block" style="margin-top: 16px" :disabled="phoneForm.processing">{{ $t('auth.send') }}</button>
+            <button class="btn block" style="margin-top: 16px" :disabled="phoneForm.processing">{{ $t('common.send_code') }}</button>
             <button type="button" class="linkish" @click="mode = 'main'"><Icon name="back" size="sm" />{{ $t('auth.telegram.button') }}</button>
         </form>
     </AuthLayout>

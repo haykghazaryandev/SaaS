@@ -227,14 +227,14 @@ class GameController extends Controller
         $accept = $request->boolean('accept');
         $position = $this->positionFrom($request);
 
-        return $this->run(fn () => $this->games->respond($game, $request->user(), $accept, $position), $accept ? __('games.done.accepted') : __('games.done.declined'), $request);
+        return $this->run(fn () => $this->games->respond($game, $request->user(), $accept, $position), $accept ? __('games.flash.accepted') : __('games.flash.declined'), $request);
     }
 
     public function join(Request $request, Game $game)
     {
         $position = $this->positionFrom($request);
 
-        return $this->run(fn () => $this->games->join($game, $request->user(), $position), __('games.done.joined'), $request);
+        return $this->run(fn () => $this->games->join($game, $request->user(), $position), __('games.flash.joined'), $request);
     }
 
     /** PATCH /games/{game}/position: change or clear my own position in the game. */
@@ -242,17 +242,17 @@ class GameController extends Controller
     {
         $position = $this->positionFrom($request);
 
-        return $this->run(fn () => $this->games->setPosition($game, $request->user(), $position), $position ? __('games.done.position') : __('games.done.positionCleared'), $request);
+        return $this->run(fn () => $this->games->setPosition($game, $request->user(), $position), $position ? __('games.flash.position') : __('games.flash.position_cleared'), $request);
     }
 
     public function leave(Request $request, Game $game)
     {
-        return $this->run(fn () => $this->games->leave($game, $request->user()), __('games.done.left'), $request);
+        return $this->run(fn () => $this->games->leave($game, $request->user()), __('games.flash.left'), $request);
     }
 
     public function remove(Request $request, Game $game, User $user)
     {
-        return $this->run(fn () => $this->games->remove($game, $request->user(), $user), __('games.done.removed', ['name' => $user->name]), $request);
+        return $this->run(fn () => $this->games->remove($game, $request->user(), $user), __('games.flash.removed', ['name' => $user->name]), $request);
     }
 
     public function invite(Request $request, Game $game)
@@ -262,12 +262,12 @@ class GameController extends Controller
 
         return $this->run(function () use ($game, $request, $data, &$n) {
             $n = $this->games->invite($game, $request->user(), $data['ids']);
-        }, fn () => trans_choice('games.done.invited', $n, ['n' => $n]), $request);
+        }, fn () => trans_choice('games.flash.invited', $n, ['n' => $n]), $request);
     }
 
     public function cancel(Request $request, Game $game)
     {
-        return $this->run(fn () => $this->games->cancel($game, $request->user()), __('games.done.cancelled'), $request);
+        return $this->run(fn () => $this->games->cancel($game, $request->user()), __('games.flash.cancelled'), $request);
     }
 
     /** POST /games/{game}/book: a booking request for the game (the same rules as a normal request). */
@@ -291,7 +291,7 @@ class GameController extends Controller
             throw ValidationException::withMessages(['booking' => $e->getMessage()]);
         }
 
-        return redirect()->route('games.show', $game)->with('success', __('games.done.booked'));
+        return redirect()->route('games.show', $game)->with('success', __('games.flash.booked'));
     }
 
     public function playAgain(Request $request, Game $game)
@@ -356,7 +356,7 @@ class GameController extends Controller
         $from = $hour($data['from'] ?? null, 0);
         $to = $hour($data['to'] ?? null, 24);
         if ($to <= $from) {
-            throw ValidationException::withMessages(['to' => __('games.error.to_after_from')]);
+            throw ValidationException::withMessages(['to' => __('common.end_after_start')]);
         }
         $whenTo = LocalTime::at($day, $to);
         if ($whenTo->isPast()) {
@@ -388,6 +388,6 @@ class GameController extends Controller
 
     private function districts(): array
     {
-        return array_keys((array) trans('player.district'));
+        return array_keys((array) trans('common.districts'));
     }
 }

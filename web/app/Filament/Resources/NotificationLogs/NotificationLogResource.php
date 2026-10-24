@@ -48,7 +48,7 @@ class NotificationLogResource extends Resource
             TextEntry::make('status')->badge(),
             TextEntry::make('user.name')->label(__('admin.user.one'))->placeholder('—'),
             TextEntry::make('chat_id'),
-            TextEntry::make('payload.text')->label(__('admin.log.text'))->html()->columnSpanFull()
+            TextEntry::make('payload.text')->label(__('common.text'))->html()->columnSpanFull()
                 ->formatStateUsing(fn ($state) => nl2br(strip_tags((string) $state, '<b><i><a><code>'))),
             TextEntry::make('error')->placeholder('—')->columnSpanFull(),
         ]);
@@ -60,10 +60,10 @@ class NotificationLogResource extends Resource
             ->modifyQueryUsing(fn ($query) => $query->with('user'))
             ->defaultSort('id', 'desc')
             ->columns([
-                TextColumn::make('created_at')->label(__('admin.log.when'))->dateTime('d.m H:i:s', 'Asia/Yerevan'),
+                TextColumn::make('created_at')->label(__('common.when'))->dateTime('d.m H:i:s', 'Asia/Yerevan'),
                 TextColumn::make('type')->badge()->color('gray')->searchable(),
                 TextColumn::make('user.name')->label(__('admin.user.one'))->placeholder('—'),
-                TextColumn::make('payload.text')->label(__('admin.log.text'))->limit(70)->formatStateUsing(fn ($state) => strip_tags((string) $state)),
+                TextColumn::make('payload.text')->label(__('common.text'))->limit(70)->formatStateUsing(fn ($state) => strip_tags((string) $state)),
                 TextColumn::make('status')->badge()->color(fn ($state) => match ($state) {
                     'sent' => 'success', 'failed' => 'danger', default => 'gray'
                 }),

@@ -107,7 +107,7 @@ function unblock(p: PlayerCard) {
                         {{ photo.processing ? $t('profile.photo.uploading') : $t(user?.avatar ? 'profile.photo.change' : 'profile.photo.add') }}
                         <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="upload" />
                     </label>
-                    <button v-if="user?.avatar" type="button" class="btn link danger sm" @click="removePhoto">{{ $t('profile.photo.remove') }}</button>
+                    <button v-if="user?.avatar" type="button" class="btn link danger sm" @click="removePhoto">{{ $t('common.remove') }}</button>
                 </div>
                 <div v-if="photo.errors.photo" class="err">{{ photo.errors.photo }}</div>
                 <div v-else class="hint">{{ $t('profile.photo.hint') }}</div>
@@ -119,7 +119,7 @@ function unblock(p: PlayerCard) {
                 <p class="muted lead">{{ $t('profile.lead') }}</p>
                 <div class="two">
                     <div class="field">
-                        <label for="pf-name">{{ $t('profile.name') }}</label>
+                        <label for="pf-name">{{ $t('common.name') }}</label>
                         <input id="pf-name" v-model="form.name" class="input" autocomplete="name" maxlength="60" required />
                         <div v-if="form.errors.name" class="err">{{ form.errors.name }}</div>
                     </div>
@@ -130,7 +130,7 @@ function unblock(p: PlayerCard) {
                             <input id="pf-user" v-model="form.username" class="input" autocapitalize="off" autocomplete="off" spellcheck="false" maxlength="32" placeholder="aram_10" />
                         </div>
                         <div v-if="form.errors.username" class="err">{{ form.errors.username }}</div>
-                        <small v-else class="faint">{{ $t('profile.usernameHint') }}</small>
+                        <small v-else class="faint">{{ $t('profile.username_hint') }}</small>
                     </div>
                 </div>
 
@@ -145,16 +145,16 @@ function unblock(p: PlayerCard) {
 
                 <div class="two">
                     <div class="field">
-                        <label for="pf-district">{{ $t('profile.district') }}</label>
+                        <label for="pf-district">{{ $t('common.district') }}</label>
                         <select id="pf-district" v-model="form.district" class="input">
-                            <option value="">{{ $t('profile.notSet') }}</option>
-                            <option v-for="d in options.districts" :key="d" :value="d">{{ $t('player.district.' + d) }}</option>
+                            <option value="">{{ $t('profile.not_set') }}</option>
+                            <option v-for="d in options.districts" :key="d" :value="d">{{ $t('common.districts.' + d) }}</option>
                         </select>
                         <div v-if="form.errors.district" class="err">{{ form.errors.district }}</div>
                     </div>
                     <div class="field">
-                        <label>{{ $t('profile.language') }}</label>
-                        <div class="seg block" role="radiogroup" :aria-label="$t('profile.language')">
+                        <label>{{ $t('common.language') }}</label>
+                        <div class="seg block" role="radiogroup" :aria-label="$t('common.language')">
                             <button v-for="l in options.locales" :key="l" type="button" role="radio" :aria-checked="form.locale === l" @click="form.locale = l">{{ $t('profile.languages.' + l) }}</button>
                         </div>
                     </div>
@@ -162,29 +162,29 @@ function unblock(p: PlayerCard) {
 
                 <div class="field">
                     <label for="pf-bio">{{ $t('profile.bio') }}</label>
-                    <textarea id="pf-bio" v-model="form.bio" class="input" rows="3" maxlength="300" :placeholder="$t('profile.bioPlaceholder')" />
+                    <textarea id="pf-bio" v-model="form.bio" class="input" rows="3" maxlength="300" :placeholder="$t('profile.bio_placeholder')" />
                     <div v-if="form.errors.bio" class="err">{{ form.errors.bio }}</div>
                     <small v-else :class="['bcount', { near: form.bio.length > 280 }]">{{ form.bio.length }}/300</small>
                 </div>
 
                 <div class="savebar">
-                    <span v-if="!form.isDirty && !form.recentlySuccessful" class="muted small0">{{ $t('profile.noChanges') }}</span>
+                    <span v-if="!form.isDirty && !form.recentlySuccessful" class="muted small0">{{ $t('profile.no_changes') }}</span>
                     <span v-else-if="form.recentlySuccessful && !form.isDirty" class="okt small0"><Icon name="check" size="sm" />{{ $t('profile.saved') }}</span>
-                    <button class="btn" :disabled="form.processing || !form.isDirty">{{ $t('profile.save') }}</button>
+                    <button class="btn" :disabled="form.processing || !form.isDirty">{{ $t('common.save') }}</button>
                 </div>
             </form>
 
             <aside class="side">
                 <section class="card box">
                     <div class="row between">
-                        <h2>{{ $t('profile.phone') }}</h2>
+                        <h2>{{ $t('common.phone') }}</h2>
                         <span class="muted">{{ profile.phone }}</span>
                     </div>
                 </section>
 
                 <section v-if="profile.telegram" class="card box">
                     <h2>{{ $t('profile.telegram') }}</h2>
-                    <p class="muted small"><span class="pill blue" style="margin-right: 6px"><Icon name="send" size="sm" /></span>{{ $t('profile.telegramOn') }}</p>
+                    <p class="muted small"><span class="pill blue" style="margin-right: 6px"><Icon name="send" size="sm" /></span>{{ $t('profile.telegram_on') }}</p>
                 </section>
                 <TelegramConnect v-else-if="canLinkTelegram" class="tg" />
 
@@ -194,20 +194,20 @@ function unblock(p: PlayerCard) {
                         <li v-for="p in blocked" :key="p.id">
                             <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="sm" />
                             <Link :href="p.url" class="bn">{{ p.name }}</Link>
-                            <button type="button" class="btn outline sm" :disabled="unblocking === p.id" @click="unblock(p)">{{ $t('friends.unblock') }}</button>
+                            <button type="button" class="btn outline sm" :disabled="unblocking === p.id" @click="unblock(p)">{{ $t('common.unblock') }}</button>
                         </li>
                     </ul>
-                    <p v-else class="muted small">{{ $t('profile.blockedEmpty') }}</p>
+                    <p v-else class="muted small">{{ $t('profile.blocked_empty') }}</p>
                 </section>
             </aside>
         </div>
 
         <!-- notifications: what comes by Telegram (per kind), and the sound in the app; each switch saves at once -->
         <section class="card pad notif">
-            <h2>{{ $t('profile.notif.title') }}</h2>
-            <p class="muted small">{{ profile.telegram ? $t('profile.notif.sub') : $t('profile.notif.noTelegram') }}</p>
+            <h2>{{ $t('profile.notifications.title') }}</h2>
+            <p class="muted small">{{ profile.telegram ? $t('profile.notifications.sub') : $t('profile.notifications.no_telegram') }}</p>
             <label v-for="k in notifKeys" :key="k" class="sw">
-                <span><b>{{ $t(`profile.notif.${k}`) }}</b><small class="muted">{{ $t(`profile.notif.${k}Help`) }}</small></span>
+                <span><b>{{ $t(`profile.notifications.${k}`) }}</b><small class="muted">{{ $t(`profile.notifications.${k}_help`) }}</small></span>
                 <input type="checkbox" role="switch" :checked="notifs[k]" :disabled="!profile.telegram && k !== 'sound'" @change="setNotif(k, ($event.target as HTMLInputElement).checked)" />
             </label>
         </section>
@@ -215,13 +215,13 @@ function unblock(p: PlayerCard) {
         <!-- owners and the admin: their panels (on phones and in the Telegram Mini App there is no other way in) -->
         <section v-if="user?.isOwner || user?.isAdmin" class="card pad panels">
             <h2>{{ $t('profile.panels') }}</h2>
-            <Link v-if="user?.isOwner" class="btn ghost block" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('profile.ownerPanel') }}</Link>
+            <Link v-if="user?.isOwner" class="btn ghost block" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('profile.owner_panel') }}</Link>
             <!-- the admin panel is not part of this app (Filament): a full page load -->
-            <a v-if="user?.isAdmin" class="btn ghost block" href="/admin"><Icon name="settings" size="sm" />{{ $t('profile.adminPanel') }}</a>
+            <a v-if="user?.isAdmin" class="btn ghost block" href="/admin"><Icon name="settings" size="sm" />{{ $t('profile.admin_panel') }}</a>
         </section>
 
         <div class="outrow">
-            <Link :href="route('logout')" method="post" as="button" class="btn outline out"><Icon name="logout" size="sm" />{{ $t('profile.logout') }}</Link>
+            <Link :href="route('logout')" method="post" as="button" class="btn outline out"><Icon name="logout" size="sm" />{{ $t('common.log_out') }}</Link>
         </div>
         <AvatarCropper v-if="picked" :file="picked" :saving="photo.processing" @done="cropped" @cancel="picked = null" />
     </PlayerLayout>

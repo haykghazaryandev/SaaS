@@ -15,7 +15,7 @@ class ListBookings extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make(__('admin.booking.tab_all')),
+            'all' => Tab::make(__('common.all')),
             'pending' => Tab::make(__('admin.dashboard.pending'))->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'pending'))
                 ->badge(fn () => Booking::where('status', 'pending')->count() ?: null)->badgeColor('warning'),
             'upcoming' => Tab::make(__('admin.booking.upcoming'))->modifyQueryUsing(fn (Builder $query) => $query->whereIn('status', ['pending', 'accepted'])->where('starts_at', '>=', now())),

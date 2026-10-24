@@ -38,6 +38,6 @@ class RateController extends Controller
             throw ValidationException::withMessages(['stars' => $e->getMessage()]);
         }
 
-        return back()->with('success', __('player.rate.thanks'));
+        return back()->with('success', __('player.rating.thanks'));
     }
 }

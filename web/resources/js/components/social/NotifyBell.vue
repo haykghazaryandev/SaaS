@@ -64,14 +64,14 @@ watch(() => page.url, () => (open.value = false));
 
 <template>
     <div ref="el" class="bell">
-        <button type="button" class="bell-btn" :aria-expanded="open" aria-haspopup="true" :aria-label="$t('friends.bell.open')" :title="$t('friends.bell.open')" @click="toggle">
+        <button type="button" class="bell-btn" :aria-expanded="open" aria-haspopup="true" :aria-label="$t('friends.bell.title')" :title="$t('friends.bell.title')" @click="toggle">
             <Icon name="bell" />
             <span v-if="unread" class="badge-dot bdg">{{ unread > 99 ? '99+' : unread }}</span>
         </button>
         <div v-if="open" class="bdrop" role="dialog" :aria-label="$t('friends.bell.title')">
             <div class="bhead">
                 <b>{{ $t('friends.bell.title') }}</b>
-                <button v-if="unread" type="button" class="linkbtn" @click="markRead()">{{ $t('friends.bell.readAll') }}</button>
+                <button v-if="unread" type="button" class="linkbtn" @click="markRead()">{{ $t('friends.bell.read_all') }}</button>
             </div>
             <div class="blist">
                 <button v-for="n in social.items" :key="n.id" type="button" :class="['bitem', { new: !n.read_at }]" @click="go(n)">

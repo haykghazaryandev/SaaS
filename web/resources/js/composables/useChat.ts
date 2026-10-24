@@ -1,6 +1,6 @@
 import { dateLong, dateShort, wdName, weekday } from '@/composables/usePlayer';
 import { xsrf } from '@/lib/echo';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 
 // Chat helpers shared by the chat list and the chat screen. Shapes match App\Domain\Chat\ChatPresenter.
 
@@ -84,8 +84,8 @@ export const clock = (iso: string) => timeFmt.format(new Date(iso));
 /** "Today" / "Yesterday" / "Wed, 21 Oct" */
 export function dayLabel(key: string): string {
     const today = dayKey(new Date());
-    if (key === today) return trans('player.today');
-    if (key === dayKey(new Date(Date.now() - 864e5))) return trans('messages.yesterday');
+    if (key === today) return trans('common.today');
+    if (key === dayKey(new Date(Date.now() - 864e5))) return trans('common.yesterday');
     return dateLong(key);
 }
 /** chat list: "21:05" today, the weekday ("Mon") within the last 6 days, else "21 Oct" */
@@ -102,11 +102,11 @@ export function lastSeenText(online: boolean | undefined, iso: string | null | u
     if (online) return trans('messages.online');
     if (!iso) return '';
     const key = dayKey(iso);
-    if (key === dayKey(new Date())) return trans('messages.seenToday', { time: clock(iso) });
-    if (key === dayKey(new Date(Date.now() - 864e5))) return trans('messages.seenYesterday', { time: clock(iso) });
+    if (key === dayKey(new Date())) return trans('messages.seen_today', { time: clock(iso) });
+    if (key === dayKey(new Date(Date.now() - 864e5))) return trans('messages.seen_yesterday', { time: clock(iso) });
     const [y, m, d] = key.split('-');
     // another year: 12.10.2025
-    return trans('messages.seenDate', { date: y === dayKey(new Date()).slice(0, 4) ? `${d}.${m}` : `${d}.${m}.${y}` });
+    return trans('messages.seen_date', { date: y === dayKey(new Date()).slice(0, 4) ? `${d}.${m}` : `${d}.${m}.${y}` });
 }
 
 // ---------- JSON calls (session cookie + CSRF from the XSRF cookie) ----------

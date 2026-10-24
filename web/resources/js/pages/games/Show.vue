@@ -11,7 +11,7 @@ import { amd, hhmm } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { BookPlace, GameBooking, GameCard, GamePerson, GamePlayerRow } from '@/types/games';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // The game page: details, players, and what I can do (accept, join, leave, invite, book a field, cancel …).
@@ -40,7 +40,7 @@ const joinPos = ref<string | null>(known(props.profilePosition));
 const posData = (): Record<string, string> => (joinPos.value ? { position: joinPos.value } : {});
 const myRow = computed(() => props.players.in.find((p) => p.me) ?? null);
 const posFull = (p: string) => trans(`profile.positions.${p}`);
-const posShort = (p: string) => trans(`games.pos.short.${p}`);
+const posShort = (p: string) => trans(`games.position.short.${p}`);
 // "Positions: 1 GK · 2 DEF · 0 MID · 1 FWD": shown once somebody picked one, so the organiser sees what is missing
 const posCounts = computed(() => props.positions.map((p) => ({ p, n: props.players.in.filter((x) => x.position === p).length })));
 const posUnset = computed(() => props.players.in.filter((x) => !x.position).length);
@@ -66,11 +66,11 @@ const actions = computed<Act[]>(() => {
     const c = props.can;
     const list: Act[] = [];
     if (c.join) list.push({ key: 'join', label: trans('games.show.join', { n: String(spotsLeft.value) }), icon: 'plus', run: () => post('games.join', posData()) });
-    if (c.joinLogin) list.push({ key: 'login', label: trans('games.show.loginToJoin'), icon: 'user', href: route('login') });
+    if (c.joinLogin) list.push({ key: 'login', label: trans('games.show.login_to_join'), icon: 'user', href: route('login') });
     if (c.book) list.push({ key: 'book', label: trans('games.show.book'), icon: 'calendar', run: openBook });
     if (chatUrl.value) list.push({ key: 'chat', label: trans('games.show.chat'), icon: 'chat', href: chatUrl.value });
-    if (c.playAgain) list.push({ key: 'again', label: trans('games.show.playAgain'), icon: 'ball', run: () => post('games.playAgain') });
-    if (c.invite) list.push({ key: 'invite', label: trans('games.show.inviteMore'), icon: 'users', run: () => (inviting.value = true) });
+    if (c.playAgain) list.push({ key: 'again', label: trans('games.show.play_again'), icon: 'ball', run: () => post('games.playAgain') });
+    if (c.invite) list.push({ key: 'invite', label: trans('games.show.invite_more'), icon: 'users', run: () => (inviting.value = true) });
     return list;
 });
 const hasActions = computed(() => actions.value.length > 0 || props.can.leave || props.can.cancel);
@@ -96,12 +96,12 @@ function post(name: string, data: Record<string, string | number | boolean> = {}
 // ---------- confirm dialog (leave, cancel, remove) ----------
 type Confirm = { title: string; text: string; yes: string; run: () => void };
 const confirm = ref<Confirm | null>(null);
-const askLeave = () => (confirm.value = { title: 'games.show.leaveTitle', text: 'games.show.leaveText', yes: 'games.show.leaveYes', run: () => post('games.leave') });
-const askCancel = () => (confirm.value = { title: 'games.show.cancelTitle', text: 'games.show.cancelText', yes: 'games.show.cancelYes', run: () => post('games.cancel') });
+const askLeave = () => (confirm.value = { title: 'games.show.leave_title', text: 'games.show.leave_text', yes: 'games.show.leave_yes', run: () => post('games.leave') });
+const askCancel = () => (confirm.value = { title: 'games.show.cancel_title', text: 'games.show.cancel_text', yes: 'common.yes_cancel', run: () => post('games.cancel') });
 const removing = ref<GamePlayerRow | null>(null);
 function askRemove(p: GamePlayerRow) {
     removing.value = p;
-    confirm.value = { title: 'games.show.removeTitle', text: 'games.show.removeText', yes: 'games.show.removeYes', run: () => post('games.remove', {}, { user: p.id }) };
+    confirm.value = { title: 'games.show.remove_title', text: 'games.show.remove_text', yes: 'common.remove', run: () => post('games.remove', {}, { user: p.id }) };
 }
 
 // ---------- invite sheet ----------
@@ -210,14 +210,14 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
 
 <template>
     <PlayerLayout>
-        <Head :title="`${g.format} · ${$t('games.title')}`" />
+        <Head :title="`${g.format} · ${$t('common.games')}`" />
         <Link class="back" :href="route('games.index')"><Icon name="back" size="sm" />{{ $t('games.show.back') }}</Link>
 
         <!-- header -->
         <section :class="['card hero', `st-${g.status}`]">
             <div class="hl">
                 <div class="tags">
-                    <span class="fmt"><i :class="['field-dot', sizeOf(g.perSide)]" />{{ g.format }} · {{ $t('games.show.totalPlayers', { n: String(g.total) }) }}</span>
+                    <span class="fmt"><i :class="['field-dot', sizeOf(g.perSide)]" />{{ g.format }} · {{ $t('games.show.total_players', { n: String(g.total) }) }}</span>
                     <GameStatusPill :status="g.status" />
                     <span v-if="g.mine" class="mine">{{ $t('games.card.yours') }}</span>
                 </div>
@@ -227,8 +227,8 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                 </h1>
                 <div class="facts">
                     <span v-if="g.window" class="when"><Icon name="calendar" size="sm" />{{ whenText(g.window) }}</span>
-                    <span v-else class="tbd"><Icon name="clock" size="sm" />{{ $t('games.card.tbd') }}</span>
-                    <span v-if="g.venue && g.district && g.district !== g.venue.district"><Icon name="pin" size="sm" />{{ $t(`player.district.${g.district}`) }}</span>
+                    <span v-else class="tbd"><Icon name="clock" size="sm" />{{ $t('games.card.time_tbd') }}</span>
+                    <span v-if="g.venue && g.district && g.district !== g.venue.district"><Icon name="pin" size="sm" />{{ $t(`common.districts.${g.district}`) }}</span>
                     <span class="org"><Avatar :id="g.creator.id" :name="g.creator.name" :src="g.creator.avatar" size="xs" />{{ $t('games.show.organiser', { name: g.creator.name }) }}</span>
                 </div>
                 <p v-if="g.note" class="note">“{{ g.note }}”</p>
@@ -236,8 +236,8 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
             </div>
             <div class="hr">
                 <GameProgress :in-count="g.in" :total="g.total" :min-to-open="g.minToOpen" :status="g.status" big />
-                <p v-if="g.status === 'forming'" class="small muted">{{ $t('games.show.formingNote', { n: String(g.minToOpen), more: String(Math.max(0, g.minToOpen - g.in)) }) }}</p>
-                <p v-else-if="g.status === 'full'" class="small muted">{{ $t('games.show.fullNote') }}</p>
+                <p v-if="g.status === 'forming'" class="small muted">{{ $t('games.show.forming_note', { n: String(g.minToOpen), more: String(Math.max(0, g.minToOpen - g.in)) }) }}</p>
+                <p v-else-if="g.status === 'full'" class="small muted">{{ $t('games.show.full_note') }}</p>
                 <button type="button" class="howbtn" :aria-expanded="showRule" @click="showRule = !showRule"><span class="i" aria-hidden="true">i</span>{{ $t('games.rule.title') }}</button>
                 <p v-if="showRule" class="small muted rule">{{ $t('games.rule.text') }}</p>
             </div>
@@ -247,53 +247,53 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
         <section v-if="can.respond" class="card banner">
             <Avatar :id="g.invitedBy?.id ?? g.creator.id" :name="inviter" :src="(g.invitedBy ?? g.creator).avatar" size="md" />
             <div style="flex: 1; min-width: 0">
-                <b>{{ $t('games.card.invitedYou', { name: inviter }) }}</b>
-                <p class="small muted">{{ g.status === 'forming' ? $t('games.show.invitedForming', { n: String(g.minToOpen) }) : $t('games.show.invitedOpen') }}</p>
+                <b>{{ $t('games.card.invited_you', { name: inviter }) }}</b>
+                <p class="small muted">{{ g.status === 'forming' ? $t('games.show.invited_forming', { n: String(g.minToOpen) }) : $t('games.show.invited_open') }}</p>
             </div>
-            <PositionPicker v-model="joinPos" class="bpos" :positions="positions" :label="$t('games.pos.pick')" />
+            <PositionPicker v-model="joinPos" class="bpos" :positions="positions" :label="$t('games.position.pick')" />
             <div class="row bact">
-                <button type="button" class="btn outline" :disabled="busy" @click="post('games.respond', { accept: false })">{{ $t('games.decline') }}</button>
-                <button type="button" class="btn" :disabled="busy" @click="post('games.respond', { accept: true, ...posData() })"><Icon name="check" size="sm" />{{ $t('games.accept') }}</button>
+                <button type="button" class="btn outline" :disabled="busy" @click="post('games.respond', { accept: false })">{{ $t('common.decline') }}</button>
+                <button type="button" class="btn" :disabled="busy" @click="post('games.respond', { accept: true, ...posData() })"><Icon name="check" size="sm" />{{ $t('common.accept') }}</button>
             </div>
         </section>
 
         <div class="sgrid">
             <!-- players -->
             <section class="card blk">
-                <h3>{{ $t('games.show.inGame') }} <span class="cnt">{{ players.in.length }}/{{ g.total }}</span></h3>
+                <h3>{{ $t('games.show.in_game') }} <span class="cnt">{{ players.in.length }}/{{ g.total }}</span></h3>
                 <p v-if="showPosSummary" class="possum small">
-                    <span class="muted">{{ $t('games.pos.summary') }}:</span>
+                    <span class="muted">{{ $t('games.position.summary') }}:</span>
                     <template v-for="(c, i) in posCounts" :key="c.p">
                         <span v-if="i" class="faint" aria-hidden="true"> · </span>
-                        <span :class="{ faint: !c.n && c.p !== 'goalkeeper', warnt: !c.n && c.p === 'goalkeeper' }" :title="!c.n && c.p === 'goalkeeper' ? $t('games.pos.noKeeper') : undefined"
+                        <span :class="{ faint: !c.n && c.p !== 'goalkeeper', warnt: !c.n && c.p === 'goalkeeper' }" :title="!c.n && c.p === 'goalkeeper' ? $t('games.position.no_keeper') : undefined"
                             >{{ c.n }} <abbr :title="posFull(c.p)">{{ posShort(c.p) }}</abbr></span
                         >
                     </template>
-                    <span v-if="posUnset" class="faint"> · {{ $t('games.pos.notSet', { n: String(posUnset) }) }}</span>
+                    <span v-if="posUnset" class="faint"> · {{ $t('games.position.not_set', { n: String(posUnset) }) }}</span>
                 </p>
                 <ul class="plist">
                     <li v-for="p in players.in" :key="p.id">
                         <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" />
                         <span class="nm">
                             <span class="n1">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template></span>
-                            <small v-if="p.creator">{{ $t('games.show.organiserShort') }}</small>
+                            <small v-if="p.creator">{{ $t('games.show.organiser_short') }}</small>
                         </span>
                         <!-- my own chip opens the position sheet; the others only show theirs -->
                         <button v-if="p.me && can.position" type="button" :class="['pill pos', { blue: p.position }]" :title="p.position ? posFull(p.position) : undefined"
-                            :aria-label="p.position ? `${$t('games.pos.change')}: ${posFull(p.position)}` : $t('games.pos.set')" @click="openPos">
-                            <template v-if="p.position">{{ posShort(p.position) }}</template><template v-else><Icon name="plus" size="sm" />{{ $t('games.pos.set') }}</template>
+                            :aria-label="p.position ? `${$t('games.position.change')}: ${posFull(p.position)}` : $t('games.position.set')" @click="openPos">
+                            <template v-if="p.position">{{ posShort(p.position) }}</template><template v-else><Icon name="plus" size="sm" />{{ $t('games.position.set') }}</template>
                         </button>
                         <abbr v-else-if="p.position" class="pill blue pos" :title="posFull(p.position)"><span aria-hidden="true">{{ posShort(p.position) }}</span><span class="sr-only">{{ posFull(p.position) }}</span></abbr>
                         <div v-if="can.remove && !p.creator" class="menu-wrap">
                             <button type="button" class="menu-btn" aria-haspopup="menu" :aria-expanded="rowMenu === p.id" :aria-label="$t('games.show.more', { name: p.name })" @click.stop="rowMenu = rowMenu === p.id ? null : p.id">⋯</button>
                             <div v-if="rowMenu === p.id" class="menu" role="menu">
-                                <button type="button" role="menuitem" class="danger" @click="(rowMenu = null), askRemove(p)"><Icon name="x" size="sm" />{{ $t('games.show.remove') }}</button>
+                                <button type="button" role="menuitem" class="danger" @click="(rowMenu = null), askRemove(p)"><Icon name="x" size="sm" />{{ $t('common.remove') }}</button>
                             </div>
                         </div>
                     </li>
                     <li v-if="spotsLeft > 0 && !['cancelled', 'played', 'archived'].includes(g.status)" class="slot">
                         <span class="plus" aria-hidden="true">+{{ spotsLeft }}</span>
-                        <span class="nm">{{ $tChoice('games.show.freeSpots', spotsLeft, { n: String(spotsLeft) }) }}</span>
+                        <span class="nm">{{ $tChoice('games.show.free_spots', spotsLeft, { n: String(spotsLeft) }) }}</span>
                         <button v-if="can.invite" type="button" class="btn outline sm" @click="inviting = true">{{ $t('games.show.invite') }}</button>
                     </li>
                 </ul>
@@ -307,7 +307,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                         </li>
                     </ul>
                 </template>
-                <p v-else-if="players.invitedCount" class="small faint">{{ $t('games.show.invitedCount', { n: String(players.invitedCount) }) }}</p>
+                <p v-else-if="players.invitedCount" class="small faint">{{ $t('games.show.invited_count', { n: String(players.invitedCount) }) }}</p>
 
                 <template v-if="players.declined.length">
                     <h4>{{ $t('games.show.declined') }} <span class="cnt">{{ players.declined.length }}</span></h4>
@@ -322,14 +322,14 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
             <!-- actions -->
             <aside class="side">
                 <section v-if="hasActions || !can.respond" class="card blk acts">
-                    <PositionPicker v-if="can.join" v-model="joinPos" :positions="positions" :label="$t('games.pos.pick')" />
+                    <PositionPicker v-if="can.join" v-model="joinPos" :positions="positions" :label="$t('games.position.pick')" />
                     <template v-for="(a, i) in actions" :key="a.key">
                         <Link v-if="a.href" :class="['btn block', { outline: i > 0 }]" :href="a.href"><Icon :name="a.icon" size="sm" />{{ a.label }}</Link>
                         <button v-else type="button" :class="['btn block', { outline: i > 0 }]" :disabled="busy" @click="a.run?.()"><Icon :name="a.icon" size="sm" />{{ a.label }}</button>
                     </template>
-                    <p v-if="!chatUrl && g.me && ['accepted', 'joined'].includes(g.me) && g.status === 'forming'" class="small faint">{{ $t('games.show.chatLater') }}</p>
+                    <p v-if="!chatUrl && g.me && ['accepted', 'joined'].includes(g.me) && g.status === 'forming'" class="small faint">{{ $t('games.show.chat_later') }}</p>
                     <p v-if="!hasActions" class="small faint" style="margin: 0">
-                        {{ g.status === 'cancelled' ? $t('games.show.cancelledNote') : g.me === 'removed' ? $t('social.error.removed') : $t('games.show.nothing') }}
+                        {{ g.status === 'cancelled' ? $t('games.show.cancelled_note') : g.me === 'removed' ? $t('social.error.removed') : $t('games.show.nothing') }}
                     </p>
                     <div v-if="can.leave || can.cancel" class="links">
                         <button v-if="can.leave" type="button" class="btn link" @click="askLeave">{{ $t('games.show.leave') }}</button>
@@ -339,7 +339,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
 
                 <!-- only the creator books the field; the others see who will -->
                 <p v-if="!g.booking && !can.book && ['joined', 'accepted'].includes(g.me ?? '') && ['open', 'full'].includes(g.status)" class="card blk orgbook">
-                    <Icon name="calendar" size="sm" />{{ $t('games.show.organiserBooks', { name: g.creator.name }) }}
+                    <Icon name="calendar" size="sm" />{{ $t('games.show.organiser_books', { name: g.creator.name }) }}
                 </p>
                 <section v-if="g.booking" :class="['card blk bk', { off: !holding }]">
                     <div class="row between">
@@ -348,7 +348,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     </div>
                     <div>
                         <Link :href="route('places.show', { venue: g.booking.venue.slug })" class="bname">{{ g.booking.venue.name }}</Link>
-                        <div class="muted small">{{ $t(`player.size.${g.booking.field.size}`) }} {{ g.booking.field.format }} · {{ $t(`player.district.${g.booking.venue.district}`) }}</div>
+                        <div class="muted small">{{ $t(`player.size.${g.booking.field.size}`) }} {{ g.booking.field.format }} · {{ $t(`common.districts.${g.booking.venue.district}`) }}</div>
                     </div>
                     <div class="when">{{ bookWhen(g.booking) }}</div>
                     <div class="row between small">
@@ -356,7 +356,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                         <span class="code">{{ g.booking.code }}</span>
                     </div>
                     <p class="small" :class="g.booking.status === 'accepted' ? 'okt' : 'muted'" style="margin: 0">
-                        {{ g.booking.status === 'pending' ? $t('games.show.bookingPending') : g.booking.status === 'accepted' ? $t('games.show.bookingAccepted') : $t('games.show.bookingOff') }}
+                        {{ g.booking.status === 'pending' ? $t('games.show.booking_pending') : g.booking.status === 'accepted' ? $t('games.show.booking_accepted') : $t('games.show.booking_off') }}
                     </p>
                 </section>
             </aside>
@@ -367,7 +367,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cft">
                 <div class="row">
                     <h3 id="cft">{{ $t(confirm.title, { name: removing?.name ?? '' }) }}</h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="confirm = null"><Icon name="x" /></button>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="confirm = null"><Icon name="x" /></button>
                 </div>
                 <p class="muted">{{ $t(confirm.text, { name: removing?.name ?? '' }) }}</p>
                 <div class="row">
@@ -381,12 +381,12 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
         <div v-if="posEditing" class="scrim" @click.self="posEditing = false">
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pst">
                 <div class="row">
-                    <h3 id="pst">{{ $t('games.pos.title') }}</h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="posEditing = false"><Icon name="x" /></button>
+                    <h3 id="pst">{{ $t('games.position.title') }}</h3>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="posEditing = false"><Icon name="x" /></button>
                 </div>
-                <p class="muted small" style="margin: 8px 0 14px">{{ $t('games.pos.hint') }}</p>
+                <p class="muted small" style="margin: 8px 0 14px">{{ $t('games.position.hint') }}</p>
                 <PositionPicker v-model="posPick" :positions="positions" />
-                <button type="button" class="btn block" style="margin-top: 16px" :disabled="busy" @click="savePos"><Icon name="check" size="sm" />{{ $t('games.pos.save') }}</button>
+                <button type="button" class="btn block" style="margin-top: 16px" :disabled="busy" @click="savePos"><Icon name="check" size="sm" />{{ $t('common.save') }}</button>
             </div>
         </div>
 
@@ -394,12 +394,12 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
         <div v-if="inviting" class="scrim" @click.self="inviting = false">
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ivt">
                 <div class="row">
-                    <h3 id="ivt">{{ $t('games.show.inviteMore') }}</h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="inviting = false"><Icon name="x" /></button>
+                    <h3 id="ivt">{{ $t('games.show.invite_more') }}</h3>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="inviting = false"><Icon name="x" /></button>
                 </div>
-                <p v-if="!friends.length" class="muted">{{ $t('games.show.inviteNone') }}</p>
+                <p v-if="!friends.length" class="muted">{{ $t('games.show.invite_none') }}</p>
                 <template v-else>
-                    <input v-model="q" type="search" class="input" style="margin: 12px 0 8px" :placeholder="$t('games.create.search')" :aria-label="$t('games.create.search')" />
+                    <input v-model="q" type="search" class="input" style="margin: 12px 0 8px" :placeholder="$t('common.search_friends')" :aria-label="$t('common.search_friends')" />
                     <ul class="flist">
                         <li v-for="f in shownFriends" :key="f.id">
                             <label :class="{ on: picked.includes(f.id) }">
@@ -411,7 +411,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                         </li>
                     </ul>
                     <button type="button" class="btn block" style="margin-top: 14px" :disabled="busy || !picked.length" @click="sendInvites">
-                        <Icon name="send" size="sm" />{{ $t('games.show.inviteSend', { n: String(picked.length) }) }}
+                        <Icon name="send" size="sm" />{{ $t('games.show.invite_send', { n: String(picked.length) }) }}
                     </button>
                 </template>
             </div>
@@ -422,17 +422,17 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
             <div class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="bkt">
                 <div class="row">
                     <h3 id="bkt">{{ $t('games.show.book') }}</h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="booking = false"><Icon name="x" /></button>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="booking = false"><Icon name="x" /></button>
                 </div>
-                <p class="muted small" style="margin: 8px 0 14px">{{ $t('games.show.bookNote') }}</p>
+                <p class="muted small" style="margin: 8px 0 14px">{{ $t('games.show.book_note') }}</p>
                 <div class="field">
-                    <label for="bp">{{ $t('games.show.place') }}</label>
+                    <label for="bp">{{ $t('common.place') }}</label>
                     <select id="bp" v-model="form.place" class="input">
-                        <option v-for="p in places" :key="p.id" :value="p.id">{{ p.name }} · {{ $t(`player.district.${p.district}`) }}</option>
+                        <option v-for="p in places" :key="p.id" :value="p.id">{{ p.name }} · {{ $t(`common.districts.${p.district}`) }}</option>
                     </select>
                 </div>
                 <div v-if="place" class="field" style="margin-top: 12px">
-                    <label>{{ $t('games.show.fieldLabel') }}</label>
+                    <label>{{ $t('common.field') }}</label>
                     <div class="chips">
                         <button v-for="f in place.fields" :key="f.id" type="button" class="chip" :aria-pressed="form.field_id === f.id" @click="form.field_id = f.id">
                             {{ $t(`player.size.${f.size}`) }} {{ f.format }}
@@ -440,15 +440,15 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     </div>
                 </div>
                 <div class="field" style="margin-top: 12px">
-                    <label>{{ $t('games.show.day') }}</label>
+                    <label>{{ $t('common.day') }}</label>
                     <div class="days">
                         <button v-for="d in days" :key="d.date" type="button" :class="['day', { we: d.weekend }]" :aria-pressed="form.date === d.date" @click="form.date = d.date">
-                            <small>{{ d.k === 0 ? $t('player.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
+                            <small>{{ d.k === 0 ? $t('common.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
                         </button>
                     </div>
                 </div>
                 <div v-if="field" class="field" style="margin-top: 12px">
-                    <label>{{ $t('games.show.duration') }}</label>
+                    <label>{{ $t('common.duration') }}</label>
                     <div class="chips">
                         <button v-for="m in field.durations" :key="m" type="button" class="chip" :aria-pressed="form.minutes === m" @click="form.minutes = m">{{ dur(m) }}</button>
                     </div>
@@ -457,7 +457,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     <label>{{ $t('games.show.start') }}</label>
                     <div :class="['starts', { dim: slotsLoading }]">
                         <button v-for="h in starts ?? []" :key="h" type="button" :class="['st', { on: form.start === hhmm(h) }]" @click="form.start = hhmm(h)">{{ hhmm(h) }}</button>
-                        <span v-if="!slotsLoading && starts && !starts.length" class="faint small">{{ $t('games.show.noSlots') }}</span>
+                        <span v-if="!slotsLoading && starts && !starts.length" class="faint small">{{ $t('games.show.no_slots') }}</span>
                         <span v-if="slotsLoading && !starts" class="faint small">{{ $t('games.show.loading') }}</span>
                     </div>
                 </div>
@@ -466,7 +466,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     <div v-if="form.errors[k]" class="err">{{ form.errors[k] }}</div>
                 </div>
                 <button type="button" class="btn block" style="margin-top: 16px" :disabled="form.processing || !form.start || !form.field_id" @click="sendBooking">
-                    <Icon name="send" size="sm" />{{ form.start ? $t('games.show.bookSend', { t: form.start }) : $t('games.show.bookPick') }}
+                    <Icon name="send" size="sm" />{{ form.start ? $t('games.show.book_send', { t: form.start }) : $t('games.show.book_pick') }}
                 </button>
             </div>
         </div>

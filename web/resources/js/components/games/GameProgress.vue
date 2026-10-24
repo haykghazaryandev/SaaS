@@ -15,14 +15,14 @@ const pct = (n: number) => Math.min(100, Math.round((n / Math.max(1, props.total
     <div :class="['gprog', { big, forming, over }]">
         <div class="lbl">
             <b v-if="over" class="lead">{{ $t('games.card.players', { in: String(inCount), total: String(total) }) }}</b>
-            <b v-else-if="forming" class="lead">{{ $tChoice('games.card.moreToOpen', toOpen, { n: String(toOpen) }) }}</b>
-            <b v-else-if="left" class="lead">{{ $tChoice('games.card.spotsLeft', left, { n: String(left) }) }}</b>
-            <b v-else class="lead">{{ $t('games.card.isFull') }}</b>
+            <b v-else-if="forming" class="lead">{{ $tChoice('games.card.more_to_open', toOpen, { n: String(toOpen) }) }}</b>
+            <b v-else-if="left" class="lead">{{ $tChoice('games.card.spots_left', left, { n: String(left) }) }}</b>
+            <b v-else class="lead">{{ $t('games.card.is_full') }}</b>
             <span v-if="!over" class="cnt">{{ inCount }}/{{ total }}</span>
         </div>
         <div class="bar" role="progressbar" :aria-valuenow="inCount" :aria-valuemax="total" aria-valuemin="0">
             <i :style="{ width: pct(inCount) + '%' }" />
-            <s v-if="forming" :style="{ left: pct(minToOpen) + '%' }" :title="$t('games.card.toOpen', { in: String(inCount), min: String(minToOpen) })" />
+            <s v-if="forming" :style="{ left: pct(minToOpen) + '%' }" :title="$t('games.card.to_open', { in: String(inCount), min: String(minToOpen) })" />
         </div>
     </div>
 </template>

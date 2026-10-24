@@ -250,7 +250,7 @@ class SettingsController extends OwnerController
         $from = CarbonImmutable::createFromFormat('Y-m-d\TH:i', $data['from'], LocalTime::tz());
         $to = CarbonImmutable::createFromFormat('Y-m-d\TH:i', $data['to'], LocalTime::tz());
         if ($to->lessThanOrEqualTo($from)) {
-            throw ValidationException::withMessages(['to' => __('owner.settings.closure_bad')]);
+            throw ValidationException::withMessages(['to' => __('common.end_after_start')]);
         }
         if ($to->isPast()) {
             throw ValidationException::withMessages(['to' => __('owner.settings.closure_past')]);

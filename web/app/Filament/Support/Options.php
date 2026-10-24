@@ -14,7 +14,7 @@ final class Options
 
     public static function districts(): array
     {
-        return collect(self::DISTRICTS)->mapWithKeys(fn ($d) => [$d => __('admin.district.'.$d)])->all();
+        return collect(self::DISTRICTS)->mapWithKeys(fn ($d) => [$d => __('common.districts.'.$d)])->all();
     }
 
     public static function amenities(): array
@@ -25,7 +25,7 @@ final class Options
     /** 0 = Sunday … 6 = Saturday (as in opening_hours / price_rules); listed Monday first. */
     public static function weekdays(): array
     {
-        return collect([1, 2, 3, 4, 5, 6, 0])->mapWithKeys(fn ($d) => [$d => __('admin.weekday.'.$d)])->all();
+        return collect([1, 2, 3, 4, 5, 6, 0])->mapWithKeys(fn ($d) => [$d => __('common.weekdays.'.$d)])->all();
     }
 
     public static function venueStatuses(): array

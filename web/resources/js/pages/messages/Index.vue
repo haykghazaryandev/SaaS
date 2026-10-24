@@ -5,7 +5,7 @@ import { type ChatItem, chatTitle, shortWhen, sysText, userName } from '@/compos
 import { useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Chats: direct and game chats with the last message; unread ones bold with a count; closed (archived) chats below.
@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
         <div class="msgs">
             <header class="mhead">
                 <h1 class="page-title">{{ $t('messages.title') }}</h1>
-                <button type="button" class="btn sm" @click="openPicker"><Icon name="edit" size="sm" />{{ $t('messages.newMessage') }}</button>
+                <button type="button" class="btn sm" @click="openPicker"><Icon name="edit" size="sm" />{{ $t('messages.new_message') }}</button>
             </header>
 
             <section v-if="chats.length" class="clist">
@@ -102,7 +102,7 @@ onBeforeUnmount(() => {
                         </span>
                         <span class="crow">
                             <span :class="['cprev', { sys: c.last?.type === 'system' }]">{{ preview(c) }}</span>
-                            <span v-if="c.unread" class="badge-dot" :aria-label="$t('messages.unreadN', { n: String(c.unread) })">{{ c.unread > 99 ? '99+' : c.unread }}</span>
+                            <span v-if="c.unread" class="badge-dot" :aria-label="$t('messages.unread_count', { n: String(c.unread) })">{{ c.unread > 99 ? '99+' : c.unread }}</span>
                         </span>
                     </span>
                 </Link>
@@ -110,12 +110,12 @@ onBeforeUnmount(() => {
             <div v-else class="empty-state">
                 <span class="es-ico"><Icon name="chat" /></span>
                 <h3>{{ $t('messages.empty') }}</h3>
-                <p>{{ $t('messages.emptyHint') }}</p>
-                <Link v-if="hasFind" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('messages.findPlayers') }}</Link>
+                <p>{{ $t('messages.empty_hint') }}</p>
+                <Link v-if="hasFind" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('common.find_players') }}</Link>
             </div>
 
             <template v-if="archived.length">
-                <h2 class="sec">{{ $t('messages.archivedTitle') }}</h2>
+                <h2 class="sec">{{ $t('messages.archived_title') }}</h2>
                 <section class="clist off">
                     <Link v-for="c in archived" :key="c.id" :href="route('messages.show', c.id)" class="list-row citem">
                         <span v-if="c.type === 'game'" class="cav"><Icon name="ball" /></span>
@@ -137,15 +137,15 @@ onBeforeUnmount(() => {
             <div v-if="picking" class="scrim" @click.self="picking = false">
                 <div class="sheet psheet" role="dialog" aria-modal="true" aria-labelledby="nmt">
                     <div class="sheet-head">
-                        <h3 id="nmt">{{ $t('messages.newMessage') }}</h3>
-                        <button type="button" class="x" :aria-label="$t('player.close')" @click="picking = false"><Icon name="x" /></button>
+                        <h3 id="nmt">{{ $t('messages.new_message') }}</h3>
+                        <button type="button" class="x" :aria-label="$t('common.close')" @click="picking = false"><Icon name="x" /></button>
                     </div>
-                    <input v-if="(friends ?? []).length > 6" v-model="q" type="search" class="input" :placeholder="$t('messages.searchFriends')" :aria-label="$t('messages.searchFriends')" />
-                    <p v-if="loadingFriends && !friends" class="muted">{{ $t('messages.loading') }}</p>
+                    <input v-if="(friends ?? []).length > 6" v-model="q" type="search" class="input" :placeholder="$t('common.search_friends')" :aria-label="$t('common.search_friends')" />
+                    <p v-if="loadingFriends && !friends" class="muted">{{ $t('common.loading') }}</p>
                     <div v-else-if="friends && !friends.length" class="empty-state plain">
                         <span class="es-ico"><Icon name="users" /></span>
-                        <p>{{ $t('messages.noFriends') }}</p>
-                        <Link v-if="hasFind" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('messages.findPlayers') }}</Link>
+                        <p>{{ $t('messages.no_friends') }}</p>
+                        <Link v-if="hasFind" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('common.find_players') }}</Link>
                     </div>
                     <div v-else class="plist">
                         <button v-for="f in shownFriends" :key="f.id" type="button" class="list-row" :disabled="busyId !== null" @click="start(f.id)">

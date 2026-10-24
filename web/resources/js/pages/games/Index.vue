@@ -6,7 +6,7 @@ import { useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { GameCard as Card } from '@/types/games';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans } from '@/lib/i18n';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Games: open games everyone can join and "My games" (invites, forming, upcoming, past).
@@ -67,7 +67,7 @@ function apply() {
 }
 const dayText = (d: string) => {
     const x = props.days.find((y) => y.date === d);
-    return !x ? d : x.k === 0 ? trans('player.today') : `${wdName(x.wd)} ${x.day}`;
+    return !x ? d : x.k === 0 ? trans('common.today') : `${wdName(x.wd)} ${x.day}`;
 };
 function onKey(e: KeyboardEvent) {
     if (e.key === 'Escape') sheet.value = false;
@@ -82,21 +82,21 @@ const showRule = ref(false);
 
 <template>
     <PlayerLayout>
-        <Head :title="$t('games.title')" />
+        <Head :title="$t('common.games')" />
 
         <section class="ghead">
             <div style="min-width: 0">
-                <h1 class="page-title">{{ $t('games.index.h1') }}</h1>
+                <h1 class="page-title">{{ $t('games.index.heading') }}</h1>
                 <p class="muted lead">{{ $t('games.index.lead') }}</p>
             </div>
-            <Link v-if="user" class="btn" :href="route('games.create')"><Icon name="plus" />{{ $t('games.index.create') }}</Link>
-            <Link v-else class="btn" :href="route('login')"><Icon name="user" />{{ $t('games.index.loginCreate') }}</Link>
+            <Link v-if="user" class="btn" :href="route('games.create')"><Icon name="plus" />{{ $t('common.create_game') }}</Link>
+            <Link v-else class="btn" :href="route('login')"><Icon name="user" />{{ $t('games.index.login_to_create') }}</Link>
         </section>
 
         <div class="tabs" role="tablist">
-            <button role="tab" :aria-selected="tab === 'open'" @click="setTab('open')">{{ $t('games.index.tabOpen') }}<span class="n">{{ games.length }}</span></button>
+            <button role="tab" :aria-selected="tab === 'open'" @click="setTab('open')">{{ $t('games.index.tab_open') }}<span class="n">{{ games.length }}</span></button>
             <button role="tab" :aria-selected="tab === 'mine'" @click="setTab('mine')">
-                {{ $t('games.index.tabMine') }}<span v-if="mine?.invites.length" class="badge-dot warn" :aria-label="$t('games.mine.invites')">{{ mine.invites.length }}</span>
+                {{ $t('games.index.tab_mine') }}<span v-if="mine?.invites.length" class="badge-dot warn" :aria-label="$t('games.mine.invites')">{{ mine.invites.length }}</span>
                 <span v-else-if="mine" class="n">{{ myCount }}</span>
             </button>
         </div>
@@ -105,7 +105,7 @@ const showRule = ref(false);
         <section v-show="tab === 'open'">
             <div class="fbar">
                 <div class="chips" role="group" :aria-label="$t('games.index.size')">
-                    <button type="button" class="chip" :aria-pressed="!filters.size" @click="go({ size: null })">{{ $t('games.index.all') }}</button>
+                    <button type="button" class="chip" :aria-pressed="!filters.size" @click="go({ size: null })">{{ $t('common.all') }}</button>
                     <button v-for="s in sizes" :key="s" type="button" class="chip" :aria-pressed="filters.size === s" @click="go({ size: filters.size === s ? null : s })">
                         <i :class="['field-dot', s === 'big' || Number(s) >= 7 ? 'big' : 'small']" />{{ sizeLabel(s) }}
                     </button>
@@ -116,29 +116,29 @@ const showRule = ref(false);
             </div>
             <div v-if="moreCount" class="active-f">
                 <button v-if="filters.day" type="button" class="pill" @click="go({ day: null })">{{ dayText(filters.day) }} <Icon name="x" size="sm" /></button>
-                <button v-if="filters.district" type="button" class="pill" @click="go({ district: null })">{{ $t(`player.district.${filters.district}`) }} <Icon name="x" size="sm" /></button>
+                <button v-if="filters.district" type="button" class="pill" @click="go({ district: null })">{{ $t(`common.districts.${filters.district}`) }} <Icon name="x" size="sm" /></button>
                 <button v-if="filters.time" type="button" class="pill" @click="go({ time: null })">{{ $t(`player.home.${filters.time}`) }} <Icon name="x" size="sm" /></button>
             </div>
 
             <div :class="['grid c3', { dim: loading }]">
                 <GameCard v-for="g in games" :key="g.id" :game="g" :invite="g.me === 'invited'">
                     <template v-if="g.me === 'invited'">
-                        <button type="button" class="btn outline sm" @click="post('games.respond', g.id, { accept: false })">{{ $t('games.decline') }}</button>
-                        <button type="button" class="btn sm" @click="post('games.respond', g.id, { accept: true })">{{ $t('games.accept') }}</button>
+                        <button type="button" class="btn outline sm" @click="post('games.respond', g.id, { accept: false })">{{ $t('common.decline') }}</button>
+                        <button type="button" class="btn sm" @click="post('games.respond', g.id, { accept: true })">{{ $t('common.accept') }}</button>
                     </template>
                     <template v-else-if="!isIn(g) && g.status === 'open' && !g.mine">
                         <button v-if="user" type="button" class="btn sm" @click="post('games.join', g.id)"><Icon name="plus" size="sm" />{{ $t('games.join') }}</button>
                         <Link v-else class="btn sm" :href="route('login')">{{ $t('games.join') }}</Link>
                     </template>
-                    <Link v-else class="btn outline sm" :href="route('games.show', g.id)">{{ $t('games.open') }}</Link>
+                    <Link v-else class="btn outline sm" :href="route('games.show', g.id)">{{ $t('common.open') }}</Link>
                 </GameCard>
             </div>
             <div v-if="!games.length" class="empty-state">
                 <span class="es-ico"><Icon name="ball" /></span>
-                <h3>{{ anyFilter ? $t('games.index.emptyFilteredTitle') : $t('games.index.emptyTitle') }}</h3>
-                <p>{{ anyFilter ? $t('games.index.emptyFiltered') : $t('games.index.empty') }}</p>
+                <h3>{{ anyFilter ? $t('games.index.empty_filtered_title') : $t('games.index.empty_title') }}</h3>
+                <p>{{ anyFilter ? $t('games.index.empty_filtered') : $t('games.index.empty') }}</p>
                 <button v-if="anyFilter" type="button" class="btn outline sm" @click="go({ size: null, district: null, day: null, time: null })">{{ $t('games.index.reset') }}</button>
-                <Link v-else-if="user" class="btn sm" :href="route('games.create')"><Icon name="plus" size="sm" />{{ $t('games.index.createOwn') }}</Link>
+                <Link v-else-if="user" class="btn sm" :href="route('games.create')"><Icon name="plus" size="sm" />{{ $t('games.index.create_own') }}</Link>
             </div>
         </section>
 
@@ -156,7 +156,7 @@ const showRule = ref(false);
                 <div v-if="showRule" class="rule">
                     <p>{{ $t('games.rule.text') }}</p>
                     <div class="ex">
-                        <span v-for="[s, n] in [[3, 2], [5, 3], [7, 5], [11, 7]]" :key="s" class="pill">{{ s }}×{{ s }} → {{ $t('games.rule.ex', { n: String(n), total: String(s * 2) }) }}</span>
+                        <span v-for="[s, n] in [[3, 2], [5, 3], [7, 5], [11, 7]]" :key="s" class="pill">{{ s }}×{{ s }} → {{ $t('games.rule.example', { n: String(n), total: String(s * 2) }) }}</span>
                     </div>
                 </div>
 
@@ -164,8 +164,8 @@ const showRule = ref(false);
                     <h2>{{ $t('games.mine.invites') }} <span class="cnt">{{ mine.invites.length }}</span></h2>
                     <div class="grid c3">
                         <GameCard v-for="g in mine.invites" :key="g.id" :game="g" invite>
-                            <button type="button" class="btn outline sm" @click="post('games.respond', g.id, { accept: false })">{{ $t('games.decline') }}</button>
-                            <button type="button" class="btn sm" @click="post('games.respond', g.id, { accept: true })"><Icon name="check" size="sm" />{{ $t('games.accept') }}</button>
+                            <button type="button" class="btn outline sm" @click="post('games.respond', g.id, { accept: false })">{{ $t('common.decline') }}</button>
+                            <button type="button" class="btn sm" @click="post('games.respond', g.id, { accept: true })"><Icon name="check" size="sm" />{{ $t('common.accept') }}</button>
                         </GameCard>
                     </div>
                 </div>
@@ -174,7 +174,7 @@ const showRule = ref(false);
                         <h2>{{ $t(`games.mine.${k}`) }} <span class="cnt">{{ mine[k].length }}</span></h2>
                         <div class="grid c3">
                             <GameCard v-for="g in mine[k]" :key="g.id" :game="g">
-                                <Link class="btn outline sm" :href="route('games.show', g.id)">{{ $t('games.open') }}</Link>
+                                <Link class="btn outline sm" :href="route('games.show', g.id)">{{ $t('common.open') }}</Link>
                             </GameCard>
                         </div>
                     </div>
@@ -182,7 +182,7 @@ const showRule = ref(false);
                 <div v-if="!myCount && !mine.past.length" class="empty-state">
                     <span class="es-ico"><Icon name="users" /></span>
                     <p>{{ $t('games.mine.empty') }}</p>
-                    <Link class="btn sm" :href="route('games.create')"><Icon name="plus" size="sm" />{{ $t('games.index.create') }}</Link>
+                    <Link class="btn sm" :href="route('games.create')"><Icon name="plus" size="sm" />{{ $t('common.create_game') }}</Link>
                 </div>
             </template>
         </section>
@@ -193,34 +193,34 @@ const showRule = ref(false);
                 <div class="sheet fsheet" role="dialog" aria-modal="true" aria-labelledby="fst">
                     <div class="sheet-head">
                         <h3 id="fst">{{ $t('games.index.filters') }}</h3>
-                        <button type="button" class="x" :aria-label="$t('player.close')" @click="sheet = false"><Icon name="x" /></button>
+                        <button type="button" class="x" :aria-label="$t('common.close')" @click="sheet = false"><Icon name="x" /></button>
                     </div>
                     <div class="field">
-                        <label>{{ $t('games.index.day') }}</label>
+                        <label>{{ $t('common.day') }}</label>
                         <div class="days" role="group">
-                            <button type="button" class="day any" :aria-pressed="!draft.day" @click="draft.day = null"><b>{{ $t('games.index.anyDay') }}</b></button>
+                            <button type="button" class="day any" :aria-pressed="!draft.day" @click="draft.day = null"><b>{{ $t('common.any_day') }}</b></button>
                             <button v-for="d in days" :key="d.date" type="button" :class="['day', { we: d.weekend }]" :aria-pressed="draft.day === d.date" @click="draft.day = d.date">
-                                <small>{{ d.k === 0 ? $t('player.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
+                                <small>{{ d.k === 0 ? $t('common.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
                             </button>
                         </div>
                     </div>
                     <div class="field">
-                        <label>{{ $t('games.district') }}</label>
+                        <label>{{ $t('common.district') }}</label>
                         <div class="chips wrap" role="group">
-                            <button type="button" class="chip" :aria-pressed="!draft.district" @click="draft.district = null">{{ $t('player.home.anyDistrict') }}</button>
-                            <button v-for="d in districts" :key="d" type="button" class="chip" :aria-pressed="draft.district === d" @click="draft.district = d">{{ $t(`player.district.${d}`) }}</button>
+                            <button type="button" class="chip" :aria-pressed="!draft.district" @click="draft.district = null">{{ $t('player.home.any_district') }}</button>
+                            <button v-for="d in districts" :key="d" type="button" class="chip" :aria-pressed="draft.district === d" @click="draft.district = d">{{ $t(`common.districts.${d}`) }}</button>
                         </div>
                     </div>
                     <div class="field">
                         <label>{{ $t('games.index.time') }}</label>
                         <div class="chips wrap" role="group">
-                            <button type="button" class="chip" :aria-pressed="!draft.time" @click="draft.time = null">{{ $t('games.index.anyTime') }}</button>
+                            <button type="button" class="chip" :aria-pressed="!draft.time" @click="draft.time = null">{{ $t('common.any_time') }}</button>
                             <button v-for="t in TIMES" :key="t" type="button" class="chip" :aria-pressed="draft.time === t" @click="draft.time = t">{{ $t(`player.home.${t}`) }}</button>
                         </div>
                     </div>
                     <div class="sfoot">
                         <button type="button" class="btn link" @click="draft = { day: null, district: null, time: null }">{{ $t('games.index.clear') }}</button>
-                        <button type="button" class="btn" @click="apply">{{ $t('games.index.showGames') }}</button>
+                        <button type="button" class="btn" @click="apply">{{ $t('games.index.show_games') }}</button>
                     </div>
                 </div>
             </div>

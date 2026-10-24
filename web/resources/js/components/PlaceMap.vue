@@ -43,16 +43,16 @@ defineExpose({ routeUrl });
 <template>
     <div class="pmap">
         <div class="pmap-top">
-            <div class="seg" role="group" :aria-label="$t('map.provider')">
+            <div class="seg" role="group" :aria-label="$t('common.map')">
                 <button type="button" :aria-pressed="provider === 'google'" @click="use('google')">Google</button>
                 <button type="button" :aria-pressed="provider === 'yandex'" @click="use('yandex')">Yandex</button>
             </div>
-            <a class="btn sm" :href="routeUrl" target="_blank" rel="noopener">{{ $t('map.route') }}</a>
+            <a class="btn sm" :href="routeUrl" target="_blank" rel="noopener">{{ $t('common.directions') }}</a>
         </div>
         <iframe
             :key="provider"
             :src="src"
-            :title="name || $t('map.title')"
+            :title="name || $t('common.map')"
             :style="{ height: height + 'px' }"
             loading="lazy"
             referrerpolicy="no-referrer-when-downgrade"

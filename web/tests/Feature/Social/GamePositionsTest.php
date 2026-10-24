@@ -51,11 +51,11 @@ it('rejects an unknown position', function () {
 
 it('changes and clears my own position', function () {
     [$game, $c] = posGame();
-    $this->actingAs($c)->patch("/games/{$game->id}/position", ['position' => 'defender'])->assertSessionHas('success', __('games.done.position'));
+    $this->actingAs($c)->patch("/games/{$game->id}/position", ['position' => 'defender'])->assertSessionHas('success', __('games.flash.position'));
     expect(positionOf($game, $c))->toBe('defender');
     $this->actingAs($c)->patch("/games/{$game->id}/position", ['position' => 'midfielder']);
     expect(positionOf($game, $c))->toBe('midfielder');
-    $this->actingAs($c)->patch("/games/{$game->id}/position", ['position' => null])->assertSessionHas('success', __('games.done.positionCleared'));
+    $this->actingAs($c)->patch("/games/{$game->id}/position", ['position' => null])->assertSessionHas('success', __('games.flash.position_cleared'));
     expect(positionOf($game, $c))->toBeNull();
 });
 

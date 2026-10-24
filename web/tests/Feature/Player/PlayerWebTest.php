@@ -101,7 +101,7 @@ it('shows booking rule errors nicely', function () {
 
 it('asks a guest to log in before sending a request', function () {
     $this->post('/bookings', ['field_id' => $this->small->id, 'date' => $this->date, 'start' => '19:00', 'minutes' => 60])
-        ->assertSessionHasErrors(['booking' => __('player.verify.loginFirst')]);
+        ->assertSessionHasErrors(['booking' => __('player.verify.login_first')]);
     expect(Booking::count())->toBe(0);
 });
 

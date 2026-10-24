@@ -18,11 +18,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cs-t">
                 <div class="row" style="align-items: flex-start">
                     <h3 id="cs-t" style="margin: 0; overflow-wrap: anywhere">{{ title }}</h3>
-                    <button type="button" class="x" :aria-label="$t('player.close')" @click="emit('close')"><Icon name="x" /></button>
+                    <button type="button" class="x" :aria-label="$t('common.close')" @click="emit('close')"><Icon name="x" /></button>
                 </div>
                 <p v-if="text" class="muted" style="margin: 10px 0 18px; font-size: 14px">{{ text }}</p>
                 <div class="row">
-                    <button type="button" class="btn ghost" style="flex: 1" @click="emit('close')">{{ $t('friends.cancelBtn') }}</button>
+                    <button type="button" class="btn ghost" style="flex: 1" @click="emit('close')">{{ $t('common.cancel') }}</button>
                     <button type="button" class="btn red" style="flex: 1" :disabled="busy" @click="emit('confirm')">{{ yes }}</button>
                 </div>
             </div>

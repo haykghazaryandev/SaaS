@@ -40,7 +40,7 @@ class BookingController extends Controller
         // guests log in first (free with Telegram in the booking sheet, or by email)
         $user = $request->user();
         if (! $user) {
-            throw ValidationException::withMessages(['booking' => __('player.verify.loginFirst')]);
+            throw ValidationException::withMessages(['booking' => __('player.verify.login_first')]);
         }
         if (! $user->name && ! empty($data['name'])) {
             $user->forceFill(['name' => $data['name']])->save();
@@ -71,6 +71,6 @@ class BookingController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', __('player.my.cancelDone'));
+        return back()->with('success', __('player.my_bookings.cancel_done'));
     }
 }

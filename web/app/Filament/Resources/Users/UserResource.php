@@ -73,10 +73,10 @@ class UserResource extends Resource
     {
         return $schema->components([
             Section::make()->columns(2)->schema([
-                TextInput::make('name')->label(__('admin.user.name'))->maxLength(60),
+                TextInput::make('name')->label(__('common.name'))->maxLength(60),
                 TextInput::make('username')->label(__('admin.user.username'))->maxLength(32)->regex('/^[a-z0-9_.]+$/')->unique(ignoreRecord: true),
-                Select::make('locale')->label(__('admin.user.locale'))->options(['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'])->required(),
-                Textarea::make('bio')->label(__('admin.user.bio'))->maxLength(300)->columnSpanFull(),
+                Select::make('locale')->label(__('common.language'))->options(['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'])->required(),
+                Textarea::make('bio')->label(__('common.about'))->maxLength(300)->columnSpanFull(),
             ]),
         ]);
     }
@@ -85,24 +85,24 @@ class UserResource extends Resource
     {
         return $schema->components([
             Section::make(__('admin.user.profile'))->columns(3)->schema([
-                TextEntry::make('name')->label(__('admin.user.name'))->placeholder('—'),
-                TextEntry::make('phone')->label(__('admin.user.phone'))->formatStateUsing(fn ($state) => Phone::format($state))->copyable(),
+                TextEntry::make('name')->label(__('common.name'))->placeholder('—'),
+                TextEntry::make('phone')->label(__('common.phone'))->formatStateUsing(fn ($state) => Phone::format($state))->copyable(),
                 TextEntry::make('username')->label(__('admin.user.username'))->placeholder('—')->prefix('@'),
-                TextEntry::make('locale')->label(__('admin.user.locale')),
+                TextEntry::make('locale')->label(__('common.language')),
                 TextEntry::make('registered_at')->label(__('admin.user.registered'))->dateTime('d.m.Y H:i', 'Asia/Yerevan')->placeholder(__('admin.user.guest')),
                 TextEntry::make('last_seen_at')->label(__('admin.user.last_seen'))->since()->placeholder('—'),
             ]),
             Section::make(__('admin.user.safety'))->columns(3)->schema([
-                TextEntry::make('status')->label(__('admin.user.status'))->badge()
+                TextEntry::make('status')->label(__('common.status'))->badge()
                     ->getStateUsing(fn (User $record) => $record->isBlocked() ? 'blocked' : 'active')
                     ->formatStateUsing(fn ($state) => __('admin.user.status_'.$state))
                     ->color(fn ($state) => $state === 'blocked' ? 'danger' : 'success'),
                 TextEntry::make('blocked_until')->label(__('admin.user.blocked_until'))->dateTime('d.m.Y H:i', 'Asia/Yerevan')->placeholder('—'),
                 TextEntry::make('no_show_count')->label(__('admin.user.no_shows')),
-                TextEntry::make('bookings_count')->label(__('admin.user.bookings'))->getStateUsing(fn (User $record) => $record->bookings()->count()),
+                TextEntry::make('bookings_count')->label(__('common.bookings'))->getStateUsing(fn (User $record) => $record->bookings()->count()),
                 IconEntry::make('telegram')->label('Telegram')->boolean()->falseColor('gray')->getStateUsing(fn (User $record) => $record->hasTelegram()),
                 TextEntry::make('telegram_linked_at')->label(__('admin.user.telegram_linked'))->dateTime('d.m.Y H:i', 'Asia/Yerevan')->placeholder('—'),
-                TextEntry::make('places')->label(__('admin.user.places'))->columnSpanFull()->placeholder('—')
+                TextEntry::make('places')->label(__('common.places'))->columnSpanFull()->placeholder('—')
                     ->getStateUsing(fn (User $record) => $record->venues()->get()->map(fn ($v) => $v->name.' ('.__('admin.staff.role_'.$v->pivot->role).')')->implode(', ')),
             ]),
         ]);
@@ -114,33 +114,33 @@ class UserResource extends Resource
             ->recordTitleAttribute('name')
             ->modifyQueryUsing(fn (Builder $query) => $query->withCount('bookings')->with('venues'))
             ->defaultSort('created_at', 'desc')
-            ->searchPlaceholder(__('admin.user.search'))
+            ->searchPlaceholder(__('common.search_people'))
             ->splitSearchTerms(false)
             ->columns([
-                TextColumn::make('name')->label(__('admin.user.name'))->weight('bold')->placeholder('—')->sortable()
+                TextColumn::make('name')->label(__('common.name'))->weight('bold')->placeholder('—')->sortable()
                     ->description(fn (User $u) => $u->username ? '@'.$u->username : null)
                     ->searchable(query: fn (Builder $query, string $search) => self::search($query, $search)),
-                TextColumn::make('phone')->label(__('admin.user.phone'))->formatStateUsing(fn ($state) => Phone::format($state))->copyable(),
-                TextColumn::make('role')->label(__('admin.user.role'))->badge()
+                TextColumn::make('phone')->label(__('common.phone'))->formatStateUsing(fn ($state) => Phone::format($state))->copyable(),
+                TextColumn::make('role')->label(__('common.role'))->badge()
                     ->getStateUsing(fn (User $u) => $u->is_admin ? 'admin' : ($u->venues->isNotEmpty() ? 'owner' : ($u->isRegistered() ? 'player' : 'guest')))
                     ->formatStateUsing(fn ($state) => __('admin.user.role_'.$state))
                     ->color(fn ($state) => match ($state) {
                         'admin' => 'danger', 'owner' => 'primary', 'player' => 'gray', default => 'warning'
                     }),
-                TextColumn::make('bookings_count')->label(__('admin.user.bookings'))->sortable()->alignCenter(),
+                TextColumn::make('bookings_count')->label(__('common.bookings'))->sortable()->alignCenter(),
                 TextColumn::make('no_show_count')->label(__('admin.user.no_shows'))->sortable()->alignCenter()
                     ->color(fn ($state) => $state > 0 ? 'danger' : null),
                 IconColumn::make('telegram')->label('Telegram')->boolean()->falseColor('gray')->getStateUsing(fn (User $u) => $u->hasTelegram()),
-                TextColumn::make('status')->label(__('admin.user.status'))->badge()
+                TextColumn::make('status')->label(__('common.status'))->badge()
                     ->getStateUsing(fn (User $u) => $u->isBlocked() ? 'blocked' : 'active')
                     ->formatStateUsing(fn ($state) => __('admin.user.status_'.$state))
                     ->color(fn ($state) => $state === 'blocked' ? 'danger' : 'success'),
                 TextColumn::make('created_at')->label(__('admin.user.created'))->since()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('status')->label(__('admin.user.status'))->options(['active' => __('admin.user.status_active'), 'blocked' => __('admin.user.status_blocked')]),
+                SelectFilter::make('status')->label(__('common.status'))->options(['active' => __('admin.user.status_active'), 'blocked' => __('admin.user.status_blocked')]),
                 TernaryFilter::make('telegram')->label('Telegram')->nullable()->attribute('telegram_chat_id'),
-                Filter::make('owners')->label(__('admin.user.only_owners'))->query(fn (Builder $query) => $query->has('venues')),
+                Filter::make('owners')->label(__('common.owners_and_staff'))->query(fn (Builder $query) => $query->has('venues')),
                 Filter::make('no_shows')->label(__('admin.user.with_no_shows'))->query(fn (Builder $query) => $query->where('no_show_count', '>', 0)),
                 TrashedFilter::make(),
             ])
@@ -171,7 +171,7 @@ class UserResource extends Resource
     public static function moderationActions(): array
     {
         return [
-            Action::make('block')->label(__('admin.user.block'))->icon('heroicon-o-no-symbol')->color('danger')
+            Action::make('block')->label(__('common.block'))->icon('heroicon-o-no-symbol')->color('danger')
                 ->visible(fn (User $record) => ! $record->isBlocked() && ! $record->is_admin)
                 ->schema([
                     DateTimePicker::make('until')->label(__('admin.user.block_until'))->helperText(__('admin.user.block_until_help'))
@@ -184,7 +184,7 @@ class UserResource extends Resource
                         : ['status' => 'blocked', 'blocked_until' => null])->save();
                     Notification::make()->success()->title(__('admin.user.blocked_done'))->send();
                 }),
-            Action::make('unblock')->label(__('admin.user.unblock'))->icon('heroicon-o-check-circle')->color('success')
+            Action::make('unblock')->label(__('common.unblock'))->icon('heroicon-o-check-circle')->color('success')
                 ->visible(fn (User $record) => $record->isBlocked())
                 ->requiresConfirmation()
                 ->action(function (User $record) {
