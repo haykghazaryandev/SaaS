@@ -43,7 +43,18 @@ export interface NextFree {
     start: number;
 }
 
+export interface MyTime {
+    id: number;
+    code: string;
+    status: 'pending' | 'accepted';
+    field: number;
+    /** local hours, e.g. 20.5 = 20:30 */
+    start: number;
+    end: number;
+}
 export interface SlotsPayload {
+    /** the player's own requests / bookings this day (their times are "yours") */
+    mine?: MyTime[];
     date: string;
     hours: [number, number] | null;
     fields: {

@@ -8,7 +8,7 @@ import TelegramConnect from '@/components/TelegramConnect.vue';
 import { amd, hhmm, useShared } from '@/composables/useShared';
 import { dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
-import type { DayInfo, FieldInfo, PlayerBooking, SlotsPayload } from '@/types/player';
+import type { DayInfo, FieldInfo, MyTime, PlayerBooking, SlotsPayload } from '@/types/player';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -274,7 +274,7 @@ const AMEN_ICON: Record<string, string> = { parking: 'car', showers: 'shower', l
 // ---------- request ----------
 const form = useForm({ field_id: 0, date: '', start: '', minutes: 60, team_name: '', note: '', name: '' });
 // guests confirm who they are with Telegram (free) right in the sheet, then the request is sent
-const sheet = ref<null | 'login' | 'name' | 'taken'>(null);
+const sheet = ref<null | 'login' | 'name' | 'taken' | 'mine'>(null);
 const okBooking = ref<PlayerBooking | null>(null);
 const loginUrl = computed(() => route('login', { redirect: window.location.pathname + window.location.search }));
 
@@ -370,6 +370,29 @@ const alertBusy = ref(false);
 const alertError = ref<string | null>(null);
 const watchedAlert = (t: number) =>
     field.value ? (props.alerts ?? []).find((a) => a.field === field.value!.id && a.date === date.value && same(toHours(a.start), t)) : undefined;
+// ---------- my own request / booking among the times ----------
+/** the player's own booking covering this start time on the picked field */
+const myAt = (t: number) => (field.value ? (slots.value.mine ?? []).find((m) => m.field === field.value!.id && t >= m.start - 1e-9 && t < m.end - 1e-9) : undefined);
+const mineOpen = ref<MyTime | null>(null);
+const cancelBusy = ref(false);
+function openMine(m: MyTime) {
+    mineOpen.value = m;
+    sheet.value = 'mine';
+}
+function cancelMine() {
+    const m = mineOpen.value;
+    if (!m || !window.confirm(trans(m.status === 'pending' ? 'player.place.mineWithdrawAsk' : 'player.place.mineCancelAsk'))) return;
+    cancelBusy.value = true;
+    router.post(route('bookings.cancel', m.id), {}, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            sheet.value = null;
+            load(true);
+        },
+        onFinish: () => (cancelBusy.value = false),
+    });
+}
 function openTaken(t: number) {
     seeHint();
     takenAt.value = t;
@@ -549,9 +572,21 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         </div>
                         <div v-if="allStarts.length" :class="['slots', { dim: loading, pulse }]">
                             <template v-for="s in allStarts" :key="s.t">
+                                <!-- my own request / booking: a tap shows it (status, code, cancel) -->
+                                <button
+                                    v-if="s.taken && myAt(s.t)"
+                                    type="button"
+                                    :class="['tslot mine', myAt(s.t)!.status]"
+                                    aria-haspopup="dialog"
+                                    :title="$t('player.place.mineTitle')"
+                                    :aria-label="`${hhmm(s.t)} · ${$t('player.place.mineTitle')}`"
+                                    @click="openMine(myAt(s.t)!)"
+                                >
+                                    {{ hhmm(s.t) }}
+                                </button>
                                 <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
                                 <button
-                                    v-if="s.taken"
+                                    v-else-if="s.taken"
                                     type="button"
                                     :class="['tslot taken', { watched: watchedAlert(s.t) }]"
                                     aria-disabled="true"
@@ -579,6 +614,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 <span><i class="lg free pk" />{{ $t('player.place.primeTag') }} · {{ amd(field.price.max) }} {{ $t('player.perHour') }}</span>
                             </template>
                             <span v-else-if="free.length"><i class="lg free" />{{ $t('player.place.stFree') }} · {{ amd(dayRate) }} {{ $t('player.perHour') }}</span>
+                            <span v-if="(slots.mine ?? []).some((m) => m.field === field!.id)"><i class="lg you" />{{ $t('player.place.mineTitle') }}</span>
                         </div>
                         <p v-if="hasTaken" class="bell-hint"><Icon name="bell" size="sm" />{{ $t('player.alert.legend') }}</p>
                     </div>
@@ -716,6 +752,26 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     <TelegramLogin context="booking" @done="onLoggedIn" />
                     <div v-if="form.processing" class="muted" style="text-align: center; font-size: 13px; margin-top: 10px">{{ $t('player.verify.sending') }}</div>
                     <Link :href="loginUrl" class="email-alt">{{ $t('auth.withEmail') }}</Link>
+                </template>
+                <template v-else-if="sheet === 'mine' && mineOpen && field">
+                    <div class="row" style="margin-bottom: 6px">
+                        <h3 id="vt">{{ $t(mineOpen.status === 'pending' ? 'player.place.mineWaiting' : 'player.place.mineConfirmed') }}</h3>
+                        <button type="button" class="x" :aria-label="$t('player.close')" @click="closeSheets"><Icon name="x" /></button>
+                    </div>
+                    <p class="muted" style="margin: 0 0 12px; font-size: 14px">
+                        {{ dateLong(date) }} · {{ cname(field) }} · {{ hhmm(mineOpen.start) }}–{{ hhmm(mineOpen.end) }}
+                    </p>
+                    <div class="row" style="gap: 8px; margin-bottom: 14px">
+                        <StatusPill :status="mineOpen.status" />
+                        <span class="pill mono">{{ mineOpen.code }}</span>
+                    </div>
+                    <p v-if="mineOpen.status === 'pending'" style="margin: 0 0 14px; font-size: 14px">{{ $t('player.place.mineWaitingSub') }}</p>
+                    <div class="minebtns">
+                        <Link class="btn block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('player.ok.my') }}</Link>
+                        <button type="button" class="btn outline block hot" :disabled="cancelBusy" @click="cancelMine">
+                            {{ $t(mineOpen.status === 'pending' ? 'player.my.withdraw' : 'player.my.cancel') }}
+                        </button>
+                    </div>
                 </template>
                 <template v-else-if="sheet === 'taken' && takenAt != null && field">
                     <div class="row" style="margin-bottom: 6px">
@@ -858,6 +914,11 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .tslot.taken .tt { text-decoration: line-through; }
 .tslot.taken:hover { background: transparent; border-color: var(--muted); color: var(--muted); }
 .tslot.taken.watched { color: var(--muted); border-style: solid; }
+/* my own request (waiting) or booking (confirmed): blue "yours", tappable */
+.tslot.mine { background: var(--you-soft); color: var(--you); border: 1px solid rgba(92, 200, 255, .4); }
+.tslot.mine.pending { border-style: dashed; }
+.minebtns { display: grid; gap: 8px; }
+.btn.outline.hot { color: var(--hot); border-color: rgba(255, 107, 107, .4); }
 .tslot .bell { width: 11px; height: 11px; margin-left: 4px; vertical-align: -1px; color: var(--faint); }
 .tslot.taken:hover .bell { color: var(--muted); }
 .tslot.taken.watched .bell { color: var(--accent); }
@@ -878,6 +939,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .tgl span { display: inline-flex; gap: 6px; align-items: center; }
 .tgl .lg { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
 .tgl .free { background: var(--free-soft); box-shadow: inset 0 0 0 1px rgba(94, 240, 168, .4); }
+.tgl .you { background: var(--you-soft); box-shadow: inset 0 0 0 1px rgba(92, 200, 255, .5); }
 .tgl .lg.pk { position: relative; }
 .tgl .lg.pk::after { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: var(--warn); }
 .err-box { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--hot-soft); color: var(--hot); font-size: 13.5px; font-weight: 700; }

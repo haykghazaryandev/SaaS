@@ -381,6 +381,5 @@ h3 { font-size: 17px; margin: 0; }
 
 /* An open sheet: the page behind it does not scroll (it used to, and could leave the sheet half off-screen) */
 html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
-/* Inside Telegram: fit sheets to Telegram's visible area (it changes when the app is minimised and reopened) */
-.in-tg .scrim { bottom: auto; height: var(--tg-viewport-height, 100dvh); }
-.in-tg .sheet { max-height: calc(var(--tg-viewport-height, 100dvh) - 12px); }
+/* Inside Telegram the scrim (fixed, inset 0) is the visible area; sheets never grow taller than it */
+.in-tg .sheet { max-height: calc(100% - 12px); }

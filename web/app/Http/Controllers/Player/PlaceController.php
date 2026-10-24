@@ -59,7 +59,7 @@ class PlaceController extends Controller
                 'minutes' => $field && in_array($minutes, $field->durations ?? [], true) ? $minutes : $field?->default_duration,
                 'start' => is_string($start) && preg_match('/^\d{2}:\d{2}$/', $start) ? $start : null,
             ],
-            'slots' => $present->slots($venue, $day),
+            'slots' => $present->slots($venue, $day) + ['mine' => $this->mine($request, $venue, $day)],
             'booked' => $booked,
             // why a new request can't be sent right now (told before tapping "Book", not after): too many waiting, or a pause
             'limit' => ($u = $request->user()) ? [
@@ -90,6 +90,28 @@ class PlaceController extends Controller
         $fieldId = $request->integer('field') ?: null;
         abort_if($fieldId && ! $venue->fields()->whereKey($fieldId)->exists(), 404);
 
-        return response()->json($present->slots($venue, $present->pickDay($request->query('date')), $fieldId, $request->integer('minutes') ?: null));
+        $day = $present->pickDay($request->query('date'));
+
+        return response()->json($present->slots($venue, $day, $fieldId, $request->integer('minutes') ?: null) + ['mine' => $this->mine($request, $venue, $day)]);
+    }
+
+    /**
+     * The player's own requests and bookings on this day at this place: their times are "yours" (blue), and a tap
+     * shows the booking (waiting / confirmed, code, cancel) instead of "notify me if it frees up".
+     */
+    private function mine(Request $request, Venue $venue, \Carbon\CarbonImmutable $day): array
+    {
+        if (! $request->user()) {
+            return [];
+        }
+
+        return Booking::where('user_id', $request->user()->id)->where('venue_id', $venue->id)->holding()
+            ->where('starts_at', '<', $day->addDay()->utc())->where('ends_at', '>', $day->utc())->orderBy('starts_at')->get()
+            ->map(function (Booking $b) use ($day) {
+                $from = LocalTime::hourOf($b->starts_at->toImmutable()->setTimezone(LocalTime::tz()), $day);
+
+                return ['id' => $b->id, 'code' => $b->code, 'status' => $b->status->value, 'field' => $b->field_id,
+                    'start' => round($from, 2), 'end' => round($from + $b->durationMinutes() / 60, 2)];
+            })->values()->all();
     }
 }
