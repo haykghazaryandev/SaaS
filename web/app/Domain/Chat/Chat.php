@@ -193,9 +193,9 @@ class Chat
             foreach ($memberIds as $uid) {
                 ChatUpdated::dispatch($uid, $c->id);
             }
-            // people who don't read it within a minute hear about it from the bot
+            // members without the app open hear about it from the bot, right away
             if ($m->type === 'text') {
-                ChatTelegramDigest::dispatch($m->id)->delay(now()->addSeconds(ChatTelegramDigest::DELAY_SECONDS));
+                ChatTelegramDigest::dispatch($m->id);
             }
         });
 

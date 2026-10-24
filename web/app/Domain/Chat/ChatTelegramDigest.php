@@ -14,35 +14,49 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * A new chat message, one minute later: the bot tells the members who have not read it yet
+ * A new chat message: the bot tells, right away, the members who don't have Bookball open
  * ("💬 Aram: Who brings the ball? (+3 more)", with a button that opens the chat in the Mini App).
- * Skipped for people who read it in that minute (they are looking at the chat), muted chats, and anyone
- * the bot already told about this chat in the last 5 minutes (a busy chat does not send 30 messages).
+ * People with the app open see it live (no Telegram); muted chats and switched-off chat notifications are skipped.
+ * A busy chat: within 30 s of a Telegram message about it, new ones are collected into one follow-up 30 s later.
  */
 class ChatTelegramDigest implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    public const DELAY_SECONDS = 60;
+    /** after a Telegram message about a chat, the next ones are collected for this long */
+    public const GROUP_SECONDS = 30;
 
-    public const QUIET_MINUTES = 5;
-
-    public function __construct(public int $messageId) {}
+    /** $followUp: the collected messages of a busy chat (sent about the chat's newest message) */
+    public function __construct(public int $messageId, public bool $followUp = false) {}
 
     public function handle(TelegramBot $bot): void
     {
         $m = Message::with('conversation.game', 'user')->find($this->messageId);
+        if ($m && $this->followUp) {
+            $m = Message::with('conversation.game', 'user')->where('conversation_id', $m->conversation_id)->where('type', 'text')->latest('id')->first();
+        }
         if (! $m || $m->type !== 'text' || ! $m->conversation || $m->conversation->isArchived()) {
             return;
         }
         $c = $m->conversation;
+        $collect = false;
         $members = ConversationParticipant::with('user')->where('conversation_id', $c->id)->whereNull('left_at')
             ->where('user_id', '!=', $m->user_id)->get();
         foreach ($members as $p) {
             $u = $p->user;
             if (! $u?->telegram_chat_id || ! $u->wantsTelegram('chats') || ($p->muted_until && $p->muted_until->isFuture())
                 || ($p->last_read_message_id && $p->last_read_message_id >= $m->id)
-                || ($p->notified_at && $p->notified_at->greaterThan(now()->subMinutes(self::QUIET_MINUTES)))) {
+                || $u->isActiveNow()) {   // the app is open: they see it live
+                continue;
+            }
+            if ($p->notified_at && $p->notified_at->greaterThan(now()->subSeconds(self::GROUP_SECONDS))) {
+                $collect = true;   // told a moment ago: this one goes with the follow-up
+
+                continue;
+            }
+            // a follow-up only for messages that came after the last Telegram message about this chat
+            if ($this->followUp && $p->notified_at && ! Message::where('conversation_id', $c->id)->where('type', 'text')
+                ->where('user_id', '!=', $u->id)->where('created_at', '>', $p->notified_at)->exists()) {
                 continue;
             }
             $unread = Message::where('conversation_id', $c->id)->where('type', 'text')->where('user_id', '!=', $u->id)
@@ -57,6 +71,10 @@ class ChatTelegramDigest implements ShouldQueue
             } catch (Throwable $e) {
                 Log::warning('chat telegram digest failed', ['user' => $u->id, 'error' => $e->getMessage()]);   // blocked the bot etc.
             }
+        }
+        // one follow-up per chat for the collected messages
+        if ($collect && \Illuminate\Support\Facades\Cache::add('chat-digest:'.$c->id, 1, self::GROUP_SECONDS + 5)) {
+            self::dispatch($m->id, true)->delay(now()->addSeconds(self::GROUP_SECONDS));
         }
     }
 }
