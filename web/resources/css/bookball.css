@@ -96,14 +96,15 @@ button { cursor: pointer; }
 /* bottom tab bar on phones */
 .tabbar { display: none; }
 @media (max-width: 900px) {
-  body:has(.tabbar) { padding-bottom: calc(92px + var(--sab)); }
-  /* floating, rounded and lifted above the home indicator; five equal tabs so long Armenian labels fit */
-  .tabbar { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(8px + var(--sab)); z-index: 50; background: rgba(20, 25, 21, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line-2); border-radius: 22px; box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.8); padding: 4px; }
+  body:has(.tabbar) { padding-bottom: calc(76px + var(--sab)); }
+  /* attached to the bottom edge, rounded top corners; only a short strip under the icons for the home indicator
+     (iPhone: its 34px area minus 16px = 18px, chosen on staging 2026-10-24; other phones 10px) */
+  .tabbar { --tab-under: max(10px, calc(var(--sab) - 16px)); display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: rgba(16, 20, 17, 0.98); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line-2); border-bottom: 0; border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px -14px rgba(0, 0, 0, 0.8); padding: 6px 6px var(--tab-under); }
   .tabbar a { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: var(--faint); padding: 7px 0 6px; border-radius: 18px; }
   .tabbar a[aria-current="page"] { background: rgba(200, 255, 61, 0.08); }
   /* players (5 tabs): icons only; the tab you are on shows its name in a green pill, so long words never squeeze.
      The other names stay readable for screen readers (visually hidden, not removed). */
-  .papp .tabbar { justify-content: space-between; align-items: center; gap: 2px; padding: 6px 12px 6px 6px; }
+  .papp .tabbar { justify-content: space-between; align-items: center; gap: 2px; padding: 6px 14px var(--tab-under) 8px; }
   .papp .tabbar a { flex: 0 0 auto; flex-direction: row; justify-content: center; gap: 0; min-width: 50px; padding: 11px 12px; border-radius: 16px; }
   .papp .tabbar a .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .papp .tabbar a[aria-current="page"] { flex: 0 1 auto; min-width: 0; gap: 14px; padding: 11px 16px 11px 13px; background: rgba(200, 255, 61, 0.14); }
@@ -264,7 +265,7 @@ h3 { font-size: 17px; margin: 0; }
 .toast { animation: bb-toast .2s ease-out; }
 .toast.error { background: var(--hot); color: #fff; }
 @keyframes bb-toast { from { opacity: 0; transform: translate(-50%, 8px); } }
-@media (max-width: 900px) { body:has(.tabbar) .toast { bottom: calc(104px + var(--sab)); } }
+@media (max-width: 900px) { body:has(.tabbar) .toast { bottom: calc(80px + var(--sab)); } }
 @media (max-width: 600px) { .toast { border-radius: 16px; width: calc(100vw - 32px); } }
 
 /* footer */
@@ -395,5 +396,5 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 /* Inside Telegram the scrim (fixed, inset 0) is the visible area; sheets never grow taller than it */
 .in-tg .sheet { max-height: calc(100% - 12px); }
 
-/* Telegram on iPhone: a minimum free space above the home indicator for bottom bars */
-.tg-ios { --tg-min-bottom: 20px; }
+/* Telegram on iPhone: the home indicator area (34px) even if Telegram reports none */
+.tg-ios { --tg-min-bottom: 34px; }

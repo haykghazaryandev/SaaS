@@ -310,7 +310,7 @@
 .oapp .ofab { display: none; }
 @media (max-width: 900px) {
   .oapp .phead .btn.new { display: none; }
-  .oapp .ofab { display: inline-flex; align-items: center; gap: 8px; position: fixed; right: 16px; bottom: calc(100px + var(--sab)); z-index: 45; border: 0; border-radius: 999px; padding: 13px 18px 13px 15px; background: var(--grad); color: var(--on-accent); font-weight: 800; font-size: 14.5px; box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .8), 0 6px 20px -8px rgba(200, 255, 61, .5); }
+  .oapp .ofab { display: inline-flex; align-items: center; gap: 8px; position: fixed; right: 16px; bottom: calc(84px + var(--sab)); z-index: 45; border: 0; border-radius: 999px; padding: 13px 18px 13px 15px; background: var(--grad); color: var(--on-accent); font-weight: 800; font-size: 14.5px; box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .8), 0 6px 20px -8px rgba(200, 255, 61, .5); }
   .oapp .omain { padding-bottom: 96px; }
 }
 
@@ -390,7 +390,7 @@
 .oapp .otoast.undo button { border: 0; border-radius: 999px; padding: 7px 14px; background: var(--ink); color: var(--bg); font-weight: 800; font-size: 13.5px; flex: none; }
 .oapp .otoast .ubar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--accent); transform-origin: left; animation: ubar linear forwards; }
 @keyframes ubar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-@media (max-width: 900px) { .oapp .otoast { bottom: calc(100px + var(--sab)); } .oapp .otoast.undo { left: 16px; right: 16px; transform: none; max-width: none; z-index: 96; } }
+@media (max-width: 900px) { .oapp .otoast { bottom: calc(84px + var(--sab)); } .oapp .otoast.undo { left: 16px; right: 16px; transform: none; max-width: none; z-index: 96; } }
 
 /* schedule: date strip + calendar + Now; field toggle on phones */
 .oapp .datebar .chips.fade { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 28px), transparent); padding: 2px 22px 2px 6px; }
@@ -420,7 +420,7 @@
 .oapp .savebar .sb-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .oapp .savebar .sb-t b { font-size: 14px; }
 .oapp .savebar .sb-t small { font-size: 12.5px; }
-@media (max-width: 900px) { .oapp .savebar { left: 12px; right: 12px; bottom: calc(96px + var(--sab)); } }
+@media (max-width: 900px) { .oapp .savebar { left: 12px; right: 12px; bottom: calc(80px + var(--sab)); } }
 @media (max-width: 480px) { .oapp .savebar { flex-wrap: wrap; } .oapp .savebar .sb-t { flex-basis: 100%; } .oapp .savebar .btn { flex: 1; } }
 .oapp .money { position: relative; display: block; }
 .oapp .money .input { padding-right: 30px; font-variant-numeric: tabular-nums; }

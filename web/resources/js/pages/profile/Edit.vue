@@ -193,6 +193,14 @@ function unblock(p: PlayerCard) {
             </aside>
         </div>
 
+        <!-- owners and the admin: their panels (on phones and in the Telegram Mini App there is no other way in) -->
+        <section v-if="user?.isOwner || user?.isAdmin" class="card pad panels">
+            <h2>{{ $t('profile.panels') }}</h2>
+            <Link v-if="user?.isOwner" class="btn ghost block" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('profile.ownerPanel') }}</Link>
+            <!-- the admin panel is not part of this app (Filament): a full page load -->
+            <a v-if="user?.isAdmin" class="btn ghost block" href="/admin"><Icon name="settings" size="sm" />{{ $t('profile.adminPanel') }}</a>
+        </section>
+
         <div class="outrow">
             <Link :href="route('logout')" method="post" as="button" class="btn outline out"><Icon name="logout" size="sm" />{{ $t('profile.logout') }}</Link>
         </div>
@@ -201,6 +209,8 @@ function unblock(p: PlayerCard) {
 </template>
 
 <style scoped>
+.panels { max-width: 820px; margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.panels h2 { font-size: 17px; margin: 0 0 4px; }
 .phead { margin-top: 28px; display: flex; gap: 16px; align-items: center; }
 .phead h1 { font-size: clamp(22px, 3vw, 30px); margin: 2px 0 2px; overflow-wrap: anywhere; }
 .see { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-weight: 700; font-size: 13px; }

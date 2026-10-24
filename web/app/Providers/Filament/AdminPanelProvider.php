@@ -51,6 +51,24 @@ class AdminPanelProvider extends PanelProvider
                 .fi-btn.fi-color-primary:not(.fi-outlined):hover{background-color:#b6f02a!important}
                 .fi-btn.fi-color-primary:not(.fi-outlined)>.fi-icon{color:#0d1404!important}
             </style>'))
+            // opened inside the Telegram Mini App (Profile → Admin panel): Telegram's back button returns to Bookball
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => new HtmlString(<<<'HTML'
+                <script>
+                    try {
+                        if (sessionStorage.getItem('bb.tg')) document.write('<script src="https://telegram.org/js/telegram-web-app.js"><\/script>');
+                    } catch (e) {}
+                </script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var w = window.Telegram && window.Telegram.WebApp;
+                        if (!w || !w.initData) return;
+                        w.ready(); w.expand();
+                        try { w.setHeaderColor('#0a0d0b'); w.setBackgroundColor('#0a0d0b'); } catch (e) {}
+                        w.BackButton.show();
+                        w.BackButton.onClick(function () { if (history.length > 1) history.back(); else location.href = '/me/profile'; });
+                    });
+                </script>
+                HTML))
             ->navigationGroups([
                 NavigationGroup::make()->label(fn () => __('admin.nav.places')),
                 NavigationGroup::make()->label(fn () => __('admin.nav.people')),

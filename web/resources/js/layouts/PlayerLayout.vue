@@ -151,7 +151,7 @@ watch(() => page.url, () => (menu.value = false));
 .app-main { flex: 1 0 auto; width: 100%; padding-bottom: 40px; }
 .papp.guest .app-main { padding-bottom: 0; }
 @media (max-width: 900px) {
-    .papp.with-tabbar { --app-bottom: calc(92px + var(--sab)); }
+    .papp.with-tabbar { --app-bottom: calc(76px + var(--sab)); }
     .app-main { padding-bottom: 24px; }
     /* fullscreen (chat on phones): the page fills the screen */
     .papp.fs { --app-top: 0px; height: 100dvh; min-height: 0; overflow: hidden; }

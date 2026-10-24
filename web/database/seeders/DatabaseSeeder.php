@@ -13,12 +13,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(AdminSeeder::class);
         if (app()->isProduction()) {
+            $this->call(AdminSeeder::class);
             $this->command?->warn('Production: demo places, people and games are not seeded.');
 
             return;
         }
-        $this->call([VenueSeeder::class, DemoSeeder::class, SocialSeeder::class]);
+        $this->call([VenueSeeder::class, AdminSeeder::class, DemoSeeder::class, SocialSeeder::class]);
     }
 }

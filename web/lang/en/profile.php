@@ -43,4 +43,5 @@ return [
         'bad' => 'This file is not a photo we can read. Try a JPG or PNG.',
         'uploading' => 'Uploading…',
     ],
+    'panels' => 'Panels', 'ownerPanel' => 'Owner panel: your place', 'adminPanel' => 'Admin panel',
 ];
