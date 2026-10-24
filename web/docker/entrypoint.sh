@@ -31,8 +31,10 @@ else
 fi
 
 # Config from Railway variables (and the settings file above).
-# Route/view/event caches are built into the image (Dockerfile); only config depends on env.
+# View/event caches are built into the image (Dockerfile); config and routes depend on env.
 php artisan config:cache
+# routes after config: Livewire's endpoint (/livewire-<hash>, the admin panel) is derived from APP_KEY
+php artisan route:cache
 
 # The web process prepares everything before it serves: migrations, seeders (they only add
 # what is missing; production gets only the admin) and the Telegram webhook + bot menu.

@@ -52,9 +52,9 @@ COPY --from=assets /app/public/build ./public/build
 
 # Optimised autoloader (post-autoload-dump scripts run package:discover + filament:upgrade,
 # which publishes the gitignored Filament assets), then the env-independent caches.
-# config:cache is NOT done here: it depends on the Railway variables (docker/entrypoint.sh).
+# config:cache and route:cache are NOT done here: they depend on the Railway variables
+# (Livewire's route prefix is derived from APP_KEY), see docker/entrypoint.sh.
 RUN composer dump-autoload --optimize --classmap-authoritative --no-dev \
-    && php artisan route:cache \
     && php artisan view:cache \
     && php artisan event:cache \
     && mkdir -p storage/app/public storage/app/private storage/logs \
