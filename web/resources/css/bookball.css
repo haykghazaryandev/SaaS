@@ -101,6 +101,13 @@ button { cursor: pointer; }
   .tabbar { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(8px + var(--sab)); z-index: 50; background: rgba(20, 25, 21, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line-2); border-radius: 22px; box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.8); padding: 4px; }
   .tabbar a { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: var(--faint); padding: 7px 0 6px; border-radius: 18px; }
   .tabbar a[aria-current="page"] { background: rgba(200, 255, 61, 0.08); }
+  /* players (5 tabs): icons only; the tab you are on shows its name in a green pill, so long words never squeeze.
+     The other names stay readable for screen readers (visually hidden, not removed). */
+  .papp .tabbar { justify-content: space-between; align-items: center; gap: 2px; padding: 6px 12px 6px 6px; }
+  .papp .tabbar a { flex: 0 0 auto; flex-direction: row; justify-content: center; gap: 0; min-width: 50px; padding: 11px 12px; border-radius: 16px; }
+  .papp .tabbar a .tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .papp .tabbar a[aria-current="page"] { flex: 0 1 auto; min-width: 0; gap: 14px; padding: 11px 16px 11px 13px; background: rgba(200, 255, 61, 0.14); }
+  .papp .tabbar a[aria-current="page"] .tl { position: static; width: auto; height: auto; clip: auto; font-size: 13.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
   .tabbar a[aria-current="page"] { color: var(--accent); }
 }
 

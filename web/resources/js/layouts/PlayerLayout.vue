@@ -137,7 +137,7 @@ watch(() => page.url, () => (menu.value = false));
             </div>
         </footer>
         <nav v-if="showTabbar" class="tabbar" :aria-label="$t('nav.main')">
-            <Link v-for="n in tabs" :key="n.key" :href="n.href" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
+            <Link v-for="n in tabs" :key="n.key" :href="n.href" :title="$t(n.tab ?? n.short)" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
                 <span class="ti"><Icon :name="n.icon" size="lg" /><span v-if="badge(n.badge)" :class="['badge-dot', 'tb', { warn: n.warn }]">{{ badge(n.badge) }}</span></span>
                 <span class="tl">{{ $t(n.tab ?? n.short) }}</span>
             </Link>
@@ -169,8 +169,6 @@ watch(() => page.url, () => (menu.value = false));
 
 .tabbar .ti { position: relative; display: grid; place-items: center; }
 .tabbar .tb { position: absolute; top: -6px; left: calc(100% - 8px); box-shadow: 0 0 0 2px rgb(12, 16, 13); }
-.tabbar .tl { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tabbar a { min-width: 0; }
 
 .umenu { position: relative; }
 .ubtn { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 2px solid transparent; background: none; transition: border-color .15s; }
