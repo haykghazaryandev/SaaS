@@ -13,11 +13,17 @@ use Illuminate\Support\Facades\Notification;
 /**
  * Demo friends, games and chats for the seeded players (+374 93 000 100 … 159).
  * Player 100 ("you" in the demo) has friends, a forming game, an open game with a chat, invites and a direct chat.
+ * Safe to run again: skipped when there are already games or friendships.
  */
 class SocialSeeder extends Seeder
 {
     public function run(): void
     {
+        if (Game::exists() || Friendship::exists()) {
+            $this->command?->info('Friends, games and chats: already there, skipped.');
+
+            return;
+        }
         Notification::fake();   // no Telegram / broadcasts while seeding
         mt_srand(2026);
         $players = User::where('phone', 'like', '+37493000%')->orderBy('phone')->get()->values();
@@ -98,5 +104,6 @@ class SocialSeeder extends Seeder
         $d = $chat->direct($me, User::find($friends[0]));
         $chat->send($d, User::find($friends[0]), 'Are you coming on Thursday?');
         $chat->send($d, $me, 'Yes, see you at 21:00!');
+        $this->command?->info('Friends, games and chats: added.');
     }
 }

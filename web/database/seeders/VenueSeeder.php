@@ -8,7 +8,10 @@ use App\Models\PriceRule;
 use App\Models\Venue;
 use Illuminate\Database\Seeder;
 
-/** The 8 demo places of the prototype (made up), each with a small 5×5 and a big 11×11 field. */
+/**
+ * The 8 demo places of the prototype (made up), each with a small 5×5 and a big 11×11 field.
+ * Safe to run again: a place that already exists is left as it is (owners may have changed hours and prices).
+ */
 class VenueSeeder extends Seeder
 {
     public function run(): void
@@ -41,28 +44,32 @@ class VenueSeeder extends Seeder
                 ['day' => 9000, 'prime' => 12000], ['day' => 28000, 'prime' => 35000], [40.1747, 44.4436]],
         ];
 
+        $added = 0;
         foreach ($places as [$slug, $name, $district, $address, $rating, $reviews, $open, $amenities, $about, $small, $big, $geo]) {
-            $venue = Venue::updateOrCreate(['slug' => $slug], [
+            if (Venue::withTrashed()->where('slug', $slug)->exists()) {
+                continue;
+            }
+            $added++;
+            $venue = Venue::create(['slug' => $slug,
                 'name' => $name, 'district' => $district, 'address' => $address, 'description' => $about,
                 'lat' => $geo[0], 'lng' => $geo[1], 'rating_avg' => $rating, 'rating_count' => $reviews,
                 'phone' => sprintf('+37410%06d', 200000 + crc32($slug) % 700000),   // demo landline numbers
                 'amenities' => $amenities, 'rules' => [], 'status' => 'active',
             ]);
-            $venue->openingHours()->delete();
             foreach (range(0, 6) as $wd) {
                 OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => sprintf('%02d:00', $open[0]), 'closes_at' => sprintf('%02d:00', $open[1])]);
             }
             foreach ([['small', $small, [60, 90, 120], 60, 0], ['big', $big, [90, 120], 90, 1]] as [$size, $p, $durations, $def, $sort]) {
-                $field = Field::updateOrCreate(['venue_id' => $venue->id, 'size' => $size], [
+                $field = Field::create(['venue_id' => $venue->id, 'size' => $size,
                     'format' => $size === 'small' ? '5×5' : '11×11', 'surface' => $p['surface'] ?? 'turf', 'indoor' => $p['indoor'] ?? false,
                     'max_players' => $size === 'small' ? 10 : 22, 'durations' => $durations, 'default_duration' => $def, 'sort' => $sort, 'active' => true,
                 ]);
-                $field->priceRules()->delete();
                 // weekdays before 18:00 = day price; weekday evenings and all weekend = prime price
                 PriceRule::create(['field_id' => $field->id, 'weekdays' => [1, 2, 3, 4, 5], 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => $p['day'], 'priority' => 1]);
                 PriceRule::create(['field_id' => $field->id, 'weekdays' => [1, 2, 3, 4, 5], 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => $p['prime'], 'priority' => 1]);
                 PriceRule::create(['field_id' => $field->id, 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $p['prime'], 'priority' => 2]);
             }
         }
+        $this->command?->info("Places: {$added} added, ".(count($places) - $added).' already there.');
     }
 }

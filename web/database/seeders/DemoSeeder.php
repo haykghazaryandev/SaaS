@@ -13,8 +13,9 @@ use App\Support\LocalTime;
 use Illuminate\Database\Seeder;
 
 /**
- * Demo people and bookings so the apps look alive: an admin, one owner per place, 60 players,
+ * Demo people and bookings so the apps look alive: one owner per place, 60 players,
  * and bookings for the past 7 and next 14 days (some still waiting for the owner).
+ * Safe to run again: existing people are kept as they are, bookings are added only when there are none.
  */
 class DemoSeeder extends Seeder
 {
@@ -29,27 +30,29 @@ class DemoSeeder extends Seeder
         mt_srand(374);
         $now = now();
 
-        // you: the only admin (change ADMIN_PHONE in .env before seeding)
-        $admin = User::updateOrCreate(['phone' => env('ADMIN_PHONE', '+37499000000')], ['name' => 'Admin', 'locale' => 'en', 'phone_verified_at' => $now, 'registered_at' => $now]);
-        $admin->forceFill(['is_admin' => true])->save();
-
         // one owner per place: +374 91 000 001 … 008
         foreach (Venue::orderBy('id')->get() as $i => $venue) {
-            $owner = User::updateOrCreate(['phone' => sprintf('+3749100000%d', $i + 1)], [
+            $owner = User::firstOrCreate(['phone' => sprintf('+3749100000%d', $i + 1)], [
                 'name' => self::FIRST[$i].' '.self::LAST[$i + 4], 'locale' => 'hy', 'phone_verified_at' => $now, 'registered_at' => $now,
             ]);
             $venue->staff()->syncWithoutDetaching([$owner->id => ['role' => 'owner']]);
         }
 
         // players: +374 93 000 100 …
-        $players = collect(range(0, 59))->map(fn ($i) => User::updateOrCreate(['phone' => sprintf('+37493000%03d', 100 + $i)], [
+        $players = collect(range(0, 59))->map(fn ($i) => User::firstOrCreate(['phone' => sprintf('+37493000%03d', 100 + $i)], [
             'name' => self::FIRST[$i % 20].' '.self::LAST[($i * 7) % 16], 'locale' => ['hy', 'ru', 'en'][$i % 3],
             'phone_verified_at' => $now, 'registered_at' => $now,
             'username' => strtolower(self::FIRST[$i % 20]).($i + 10),
         ]));
 
-        // bookings
-        Booking::query()->delete();
+        $this->command?->info('Demo people: '.Venue::count().' owners and 60 players (+374 93 000 100 … 159).');
+
+        // bookings: only into an empty table, never over real ones
+        if (Booking::exists()) {
+            $this->command?->info('Bookings: already there, skipped.');
+
+            return;
+        }
         $prices = app(PriceCalculator::class);
         foreach (Field::with(['venue.openingHours', 'priceRules'])->get() as $field) {
             for ($d = -7; $d <= 14; $d++) {
@@ -90,5 +93,6 @@ class DemoSeeder extends Seeder
                 }
             }
         }
+        $this->command?->info('Bookings: '.Booking::count().' added.');
     }
 }

@@ -127,8 +127,14 @@ needs one token and one workflow job per environment.)
 - Push to `staging` or merge to `main`: tests, then Railway deploys the four services.
 - Rollback: dashboard > service > Deployments > Rollback.
 - Logs: dashboard, or `railway logs --service web` after `railway link`.
-- One-off command: `railway run --service web php artisan db:seed`, or the service shell
-  in the dashboard. Any command works as `/app/docker/entrypoint.sh php artisan ...`.
+- One-off command: the `web` service shell (dashboard > web > the running deployment >
+  Shell, or `railway ssh --service web`). Any command works as
+  `/app/docker/entrypoint.sh php artisan ...`. (`railway run` runs on your laptop with the
+  Railway variables, and the internal database hostname is not reachable from there.)
+- Demo data: `php artisan db:seed --force` in the `web` shell. Each seeder only adds what is
+  missing (places by slug, people by phone, bookings and games only into empty tables), so
+  it is safe to run again on staging. Set `ADMIN_PHONE` first: that phone becomes the admin.
+  On production it seeds only the admin.
 - Local dev stays as in `web/INSTALL.md`; the Docker image is for Railway only.
 
 ## Known trade-offs
