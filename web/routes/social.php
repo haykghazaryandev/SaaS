@@ -4,18 +4,11 @@ use App\Http\Controllers\Social\FriendsController;
 use App\Http\Controllers\Social\NotificationController;
 use App\Http\Controllers\Social\ProfileController;
 use App\Http\Controllers\Social\SafetyController;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 // social pages of the player web (see README): friends, profiles, blocking / reports, the notification bell
 
-// /u/{player}: a username, or the id for players without one
-Route::bind('player', function (string $value) {
-    $user = User::where('username', mb_strtolower($value))->first()
-        ?? (ctype_digit($value) ? User::find((int) $value) : null);
-
-    return $user ?? abort(404);
-});
+// /u/{player}: a username or an id, resolved in AppServiceProvider (bindings in route files are lost with route:cache)
 
 Route::middleware('auth')->group(function () {
     Route::get('friends', [FriendsController::class, 'index'])->name('friends.index');

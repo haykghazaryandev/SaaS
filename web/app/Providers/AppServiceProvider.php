@@ -10,7 +10,9 @@ use App\Domain\Booking\Events\BookingChanged;
 use Carbon\CarbonImmutable;
 use App\Domain\Games\Games;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +27,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        // /u/{player}: a username, or the id for players without one.
+        // Here and not in routes/social.php: route files are not loaded when routes are cached (production).
+        Route::bind('player', function (string $value) {
+            $user = User::where('username', mb_strtolower($value))->first()
+                ?? (ctype_digit($value) ? User::find((int) $value) : null);
+
+            return $user ?? abort(404);
+        });
 
         // behind Railway's proxy PHP sees plain http: an https APP_URL means every generated URL is https
         // (Filament assets, favicon, redirects), otherwise the browser blocks them as mixed content
