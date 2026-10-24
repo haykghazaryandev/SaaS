@@ -27,7 +27,8 @@ class TelegramChannel
             return;
         }
         $log = ['user_id' => $notifiable instanceof User ? $notifiable->id : null, 'channel' => 'telegram', 'chat_id' => $chatId, 'type' => $message->type,
-            'payload' => ['text' => $message->text, 'buttons' => $message->buttons]];
+            // link buttons log in whoever opens them: keep only the page, not the signed link
+            'payload' => ['text' => $message->text, 'buttons' => array_map(fn ($row) => array_map(fn ($b) => str_starts_with($b[1], 'http') ? [$b[0], parse_url($b[1], PHP_URL_PATH).'?…'] : $b, $row), $message->buttons)]];
         try {
             $res = $this->bot->sendMessage($chatId, $message->text, $message->buttons);
             NotificationLog::create($log + ['status' => ($res['logged'] ?? false) ? 'logged' : 'sent', 'sent_at' => now(),

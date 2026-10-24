@@ -2,6 +2,7 @@
 
 namespace App\Domain\Notifications;
 
+use App\Domain\Auth\LoginLinks;
 use App\Domain\Auth\TelegramLoginFlow;
 use App\Domain\Booking\Actions\DecideBooking;
 use App\Domain\Booking\BookingException;
@@ -78,7 +79,7 @@ class TelegramUpdateHandler
         if ($result === 'expired') {
             $this->reply($chatId, 'telegram.login.expired', $locale);
         } elseif ($result === 'approved') {
-            $this->bot->sendWithButtons($chatId, __('telegram.login.done', ['name' => $known?->name ? ', '.e($known->name) : ''], $locale), $this->appLinks($locale), $this->langButton($locale));
+            $this->bot->sendWithButtons($chatId, __('telegram.login.done', ['name' => $known?->name ? ', '.e($known->name) : ''], $locale), $this->appLinks($locale, $known), $this->langButton($locale));
         } else {
             $this->bot->askContact($chatId, __('telegram.login.ask', [], $locale), __('telegram.login.button', [], $locale));
         }
@@ -96,7 +97,7 @@ class TelegramUpdateHandler
         $key = ['approved' => 'telegram.login.done', 'linked' => 'telegram.login.linked'][$result] ?? 'telegram.login.'.$result;
         $ok = in_array($result, ['approved', 'linked'], true);
         $text = __($key, ['name' => $user?->name ? ', '.e($user->name) : '', 'url' => rtrim(config('app.url'), '/')], $locale);
-        $ok ? $this->bot->sendWithButtons($chatId, $text, $this->appLinks($locale), $this->langButton($locale))
+        $ok ? $this->bot->sendWithButtons($chatId, $text, $this->appLinks($locale, $user), $this->langButton($locale))
             : $this->bot->sendAndHideKeyboard($chatId, $text);
     }
 
@@ -132,12 +133,13 @@ class TelegramUpdateHandler
         }
     }
 
-    /** Buttons that open Bookball: book a field, find players. */
-    private function appLinks(string $locale): array
+    /** Buttons that open Bookball (book a field, find players), logged in as $user when known. */
+    private function appLinks(string $locale, ?User $user = null): array
     {
         $url = rtrim(config('app.url'), '/');
+        $open = fn (string $path) => $user ? app(LoginLinks::class)->make($user, $path) : $url.$path;
 
-        return [[__('telegram.login.btnBook', [], $locale), $url.'/?lang='.$locale], [__('telegram.login.btnGames', [], $locale), $url.'/games?lang='.$locale]];
+        return [[__('telegram.login.btnBook', [], $locale), $open('/?lang='.$locale)], [__('telegram.login.btnGames', [], $locale), $open('/games?lang='.$locale)]];
     }
 
     private function callback(array $q): void

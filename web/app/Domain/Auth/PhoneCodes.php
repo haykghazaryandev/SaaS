@@ -58,6 +58,7 @@ class PhoneCodes
             $user->restore();
         }
         $user->forceFill(['phone_verified_at' => $user->phone_verified_at ?? now(), 'last_seen_at' => now()])->save();
+        $user->syncAdmin();
 
         return $user;
     }

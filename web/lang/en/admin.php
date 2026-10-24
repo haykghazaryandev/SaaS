@@ -75,6 +75,9 @@ return [
         'only_owners' => 'Owners and staff', 'with_no_shows' => 'With no-shows',
         'block' => 'Block', 'block_until' => 'Block until', 'block_until_help' => 'Leave empty to block until you unblock.',
         'blocked_done' => 'User blocked', 'unblock' => 'Unblock', 'unblocked_done' => 'User unblocked',
+        'erase' => 'Delete completely', 'erase_title' => 'Delete :name completely?',
+        'erase_help' => 'Removes the account, friends, chats membership, games and alerts. Bookings stay for the places, without the account. The next login with this phone registers a new account. This cannot be undone.',
+        'erased' => 'User deleted',
         'reset_no_shows' => 'Reset no-shows', 'reset_no_shows_help' => 'Sets the no-show count to 0 and removes the booking ban.', 'reset_done' => 'No-shows reset',
     ],
 

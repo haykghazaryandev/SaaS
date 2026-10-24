@@ -73,6 +73,9 @@ return [
     // php artisan app:deploy (runs on every container start): also seed what is missing
     'seed_on_deploy' => (bool) env('SEED_ON_DEPLOY', true),
 
+    // the admin of the Filament panel: whoever logs in with this phone (and db:seed creates it)
+    'admin_phone' => env('ADMIN_PHONE'),
+
     'locales' => ['hy', 'ru', 'en'],
 
     /*

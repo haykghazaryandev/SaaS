@@ -183,7 +183,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
 
             <div :class="['grid c3', { dim: loading }]">
                 <article v-for="v in venues" :key="v.id" class="card vcard">
-                    <Link class="art" :href="placeUrl(v)" :aria-label="v.name">
+                    <Link class="art" :href="placeUrl(v)" :prefetch="['hover', 'click']" :aria-label="v.name">
                         <div class="court-art"><CourtSvg :size="filters.size || 'big'" :color="filters.size !== 'small' ? pitchColor(big(v)?.surface) : undefined" /></div>
                         <div class="lights" />
                         <div class="badges">
@@ -193,7 +193,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                     </Link>
                     <div class="body">
                         <div class="row between">
-                            <h3><Link :href="placeUrl(v)">{{ v.name }}</Link></h3>
+                            <h3><Link :href="placeUrl(v)" :prefetch="['hover', 'click']">{{ v.name }}</Link></h3>
                             <span v-if="v.rating" class="rating"><Icon name="star" size="sm" />{{ v.rating.toFixed(1) }}</span>
                         </div>
                         <div class="meta">
@@ -205,10 +205,10 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                             <div v-for="fl in v.fields" :key="fl.id" class="fslots">
                                 <span class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ fl.format }}</span>
                                 <template v-if="fl.starts.length">
-                                    <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl, h)" :aria-label="`${fl.format} ${hhmm(h)}`">{{ hhmm(h) }}</Link>
-                                    <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)">{{ $t('player.home.more', { n: String(fl.more) }) }}</Link>
+                                    <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl, h)" :prefetch="['hover', 'click']" :aria-label="`${fl.format} ${hhmm(h)}`">{{ hhmm(h) }}</Link>
+                                    <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)" :prefetch="['hover', 'click']">{{ $t('player.home.more', { n: String(fl.more) }) }}</Link>
                                 </template>
-                                <Link v-else-if="fl.next" class="next-free" :href="placeUrl(v, fl, fl.next.start, fl.next.date)">
+                                <Link v-else-if="fl.next" class="next-free" :href="placeUrl(v, fl, fl.next.start, fl.next.date)" :prefetch="['hover', 'click']">
                                     {{ $t('player.home.nextFree', { t: nextLabel(fl.next.date, days[0]?.date ?? '', hhmm(fl.next.start), true) }) }}<Icon name="arrow" size="sm" />
                                 </Link>
                                 <span v-else class="muted" style="font-size: 12.5px">

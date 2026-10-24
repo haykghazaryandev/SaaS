@@ -27,6 +27,9 @@ import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+// load a page when the pointer is over a link or it is pressed, so it opens without waiting
+const PREFETCH: ('hover' | 'click')[] = ['hover', 'click'];
+
 const props = withDefaults(defineProps<{ hideTabbar?: boolean; fullscreen?: boolean }>(), { hideTabbar: false, fullscreen: false });
 
 const { user } = useShared();
@@ -88,9 +91,9 @@ watch(() => page.url, () => (menu.value = false));
     <div :class="['papp', { 'with-tabbar': showTabbar, fs: fullscreen, guest: !user }]">
         <header class="top">
             <div class="wrap">
-                <Link :href="route('home')" class="brand" :aria-label="'Bookball'"><Logo /></Link>
+                <Link :href="route('home')" class="brand" :prefetch="PREFETCH" :aria-label="'Bookball'"><Logo /></Link>
                 <nav class="nav" :aria-label="$t('nav.main')">
-                    <Link v-for="n in nav" :key="n.key" :href="n.href" :aria-current="active(n.match) ? 'page' : undefined">
+                    <Link v-for="n in nav" :key="n.key" :href="n.href" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
                         <Icon :name="n.icon" /><span class="nl">{{ $t(n.label) }}</span><span class="ns">{{ $t(n.short) }}</span
                         ><span v-if="badge(n.badge)" :class="['badge-dot', { warn: n.warn }]">{{ badge(n.badge) }}</span>
                     </Link>
@@ -115,8 +118,8 @@ watch(() => page.url, () => (menu.value = false));
                                         <span>{{ user.username ? '@' + user.username : user.phone }}</span>
                                     </span>
                                 </div>
-                                <Link role="menuitem" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                                <Link role="menuitem" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('nav.bookings') }}</Link>
+                                <Link role="menuitem" :href="route('me.profile')" :prefetch="PREFETCH"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
+                                <Link role="menuitem" :href="route('me.bookings')" :prefetch="PREFETCH"><Icon name="ticket" size="sm" />{{ $t('nav.bookings') }}</Link>
                                 <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my.finish') }}</Link>
                                 <Link v-if="user.isOwner" role="menuitem" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
                                 <hr />
@@ -134,7 +137,7 @@ watch(() => page.url, () => (menu.value = false));
             </div>
         </footer>
         <nav v-if="showTabbar" class="tabbar" :aria-label="$t('nav.main')">
-            <Link v-for="n in tabs" :key="n.key" :href="n.href" :aria-current="active(n.match) ? 'page' : undefined">
+            <Link v-for="n in tabs" :key="n.key" :href="n.href" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
                 <span class="ti"><Icon :name="n.icon" size="lg" /><span v-if="badge(n.badge)" :class="['badge-dot', 'tb', { warn: n.warn }]">{{ badge(n.badge) }}</span></span>
                 <span class="tl">{{ $t(n.tab ?? n.short) }}</span>
             </Link>

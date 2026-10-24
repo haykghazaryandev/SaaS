@@ -54,11 +54,19 @@ class Notice extends Notification implements ShouldQueue
 
     public function toTelegram(object $notifiable): ?TelegramMessage
     {
-        $text = __('notice.'.$this->type, array_map(fn ($v) => e((string) $v), $this->params), $notifiable->preferredLocale());
-        if ($this->link) {
-            $text .= "\n".rtrim(config('app.url'), '/').$this->link;
+        $locale = $notifiable->preferredLocale();
+        $text = __('notice.'.$this->type, array_map(fn ($v) => e((string) $v), $this->params), $locale);
+        if (! $this->link) {
+            return new TelegramMessage('notice.'.$this->type, $text);
+        }
+        // a button that opens the page logged in (https only); on a local http site the plain address instead
+        $url = $notifiable instanceof \App\Models\User
+            ? app(\App\Domain\Auth\LoginLinks::class)->make($notifiable, $this->link, \App\Domain\Auth\LoginLinks::NOTICE_MINUTES)
+            : rtrim(config('app.url'), '/').$this->link;
+        if (! str_starts_with($url, 'https://')) {
+            return new TelegramMessage('notice.'.$this->type, $text."\n".rtrim(config('app.url'), '/').$this->link);
         }
 
-        return new TelegramMessage('notice.'.$this->type, $text);
+        return new TelegramMessage('notice.'.$this->type, $text, [[[__('telegram.button.open', [], $locale), $url]]]);
     }
 }

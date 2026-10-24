@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Support;
+
+/**
+ * The seeded demo accounts can log in without Telegram on local and staging (never in production):
+ * phone + a code shown on screen. Players +374 93 000 100 … 159, owners +374 91 000 001 … 009.
+ */
+class TestAccounts
+{
+    public static function enabled(): bool
+    {
+        return ! app()->isProduction();
+    }
+
+    public static function is(?string $phone): bool
+    {
+        return self::enabled() && (bool) preg_match('/^\+374(93000(1[0-5]\d)|9100000[1-9])$/', (string) $phone);
+    }
+}

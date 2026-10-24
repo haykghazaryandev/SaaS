@@ -105,13 +105,19 @@ class TelegramBot
         return $res->json() ?? ['ok' => false];
     }
 
+    /** Rows of [text, callback_data] or [text, https url] (link buttons; Telegram refuses http/localhost, those are left out). */
     private function markup(array $buttons): array
     {
-        if (! $buttons) {
-            return [];
+        $rows = [];
+        foreach ($buttons as $row) {
+            $row = array_values(array_filter(array_map(fn ($b) => preg_match('#^https?://#', $b[1])
+                ? (str_starts_with($b[1], 'https://') ? ['text' => $b[0], 'url' => $b[1]] : null)
+                : ['text' => $b[0], 'callback_data' => $b[1]], $row)));
+            if ($row) {
+                $rows[] = $row;
+            }
         }
-        $rows = array_map(fn ($row) => array_map(fn ($b) => ['text' => $b[0], 'callback_data' => $b[1]], $row), $buttons);
 
-        return ['reply_markup' => ['inline_keyboard' => $rows]];
+        return $rows ? ['reply_markup' => ['inline_keyboard' => $rows]] : [];
     }
 }

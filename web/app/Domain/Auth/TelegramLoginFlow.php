@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  *    - otherwise the bot shows a "📱 Share my phone number" button
  * 3. the user shares their contact; Telegram sends the phone number of their OWN account
  *    (we check contact.user_id == from.id), so the phone is confirmed — no paid code needed
- * 4. the account is found or created by that phone, the chat is linked (booking messages), the login is approved
+ * 4. the account is found or created by that phone (registered at once with the Telegram name), the chat is linked, the login is approved
  * 5. the browser that started it (the token is kept in its session) completes the login.
  */
 class TelegramLoginFlow
@@ -137,7 +137,13 @@ class TelegramLoginFlow
             if ($user->trashed()) {
                 $user->restore();
             }
-            $user->forceFill(['phone_verified_at' => $user->phone_verified_at ?? now(), 'name' => $user->name ?: $name, 'last_seen_at' => now()])->save();
+            // the Telegram name is enough to register: no extra "welcome" form (name and username can be changed in the profile)
+            $name = $user->name ?: $name;
+            $user->forceFill([
+                'phone_verified_at' => $user->phone_verified_at ?? now(), 'name' => $name, 'last_seen_at' => now(),
+                'registered_at' => $user->registered_at ?? ($name ? now() : null),
+            ])->save();
+            $user->syncAdmin();
 
             return $user;
         });

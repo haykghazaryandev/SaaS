@@ -17,6 +17,7 @@ const props = defineProps<{
     email: string | null;
     telegram: { bot: string; simulate: boolean };
     phoneCode: boolean;
+    testAccounts?: boolean;
 }>();
 const page = usePage<SharedData>();
 
@@ -71,7 +72,7 @@ function resend() {
             <TelegramLogin :to="to" />
             <div class="or"><span>{{ $t('auth.or') }}</span></div>
             <button type="button" class="btn ghost block" @click="mode = 'email'"><Icon name="msg" size="sm" />{{ $t('auth.withEmail') }}</button>
-            <button v-if="phoneCode" type="button" class="linkish" @click="mode = 'phone'">{{ $t('auth.withPhoneDev') }}</button>
+            <button v-if="phoneCode" type="button" class="linkish" @click="mode = 'phone'">{{ $t(testAccounts ? 'auth.withTestAccount' : 'auth.withPhoneDev') }}</button>
         </div>
 
         <!-- 2. email -->
@@ -88,7 +89,7 @@ function resend() {
 
         <!-- 3. phone + code (development / Gateway) -->
         <form v-else @submit.prevent="sendPhone">
-            <p class="muted" style="margin: 8px 0 20px">{{ $t('auth.sub') }}</p>
+            <p class="muted" style="margin: 8px 0 20px">{{ $t(testAccounts ? 'auth.testHint' : 'auth.sub') }}</p>
             <div class="field">
                 <label for="phone">{{ $t('auth.phone') }}</label>
                 <div class="row" style="gap: 8px">

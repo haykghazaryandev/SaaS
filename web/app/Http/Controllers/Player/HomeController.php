@@ -23,6 +23,8 @@ class HomeController extends Controller
         $today = LocalTime::now()->startOfDay();
 
         $venues = Venue::active()->with(['openingHours', 'fields.priceRules'])->orderByDesc('rating_avg')->orderBy('name')->get();
+        // each field knows its (already loaded) place: no extra query per field for the place and its hours
+        $venues->each(fn (Venue $v) => $v->fields->each(fn ($f) => $f->setRelation('venue', $v)));
         $districts = $venues->pluck('district')->unique()->sort()->values()->all();
         $shown = $district ? $venues->where('district', $district)->values() : $venues;
         $sizes = $size ? [$size] : ['small', 'big'];

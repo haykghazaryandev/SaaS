@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Auth\EmailCodes;
+use App\Domain\Auth\LoginLinks;
 use App\Domain\Auth\PhoneCodes;
 use App\Domain\Auth\TelegramLoginFlow;
 use App\Domain\Notifications\TelegramBot;
 use App\Models\TelegramLogin;
 use App\Models\User;
 use App\Support\Phone;
+use App\Support\TestAccounts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -39,6 +41,7 @@ class AuthController extends Controller
             'email' => $request->session()->get('otp_email'),
             'telegram' => ['bot' => config('services.telegram.bot_username'), 'simulate' => $this->canSimulate($bot)],
             'phoneCode' => $this->phoneCodeEnabled(),
+            'testAccounts' => ! $this->realPhoneCodes() && TestAccounts::enabled(),
         ]);
     }
 
@@ -88,6 +91,32 @@ class AuthController extends Controller
         return response()->json(['status' => 'approved']);
     }
 
+    /** A link from our Telegram bot: log in as that person and open the page. */
+    public function loginLink(Request $request, LoginLinks $links)
+    {
+        $to = LoginLinks::safePath($request->query('to'));
+        $user = $links->consume($request);
+        if (! $user) {
+            // expired or used: if this browser is logged in, just open the page; otherwise log in first
+            return $request->user() ? redirect($to) : redirect()->route('login', ['redirect' => $to]);
+        }
+        if (! $request->user()?->is($user)) {
+            if ($request->user()) {
+                Auth::guard('web')->logout();
+            }
+            Auth::login($user, remember: true);
+            $request->session()->regenerate();
+        }
+        $user->forceFill(['last_seen_at' => now()])->save();
+        if (! $user->isRegistered() || ! $user->phone) {
+            $request->session()->put('url.intended', url($to));
+
+            return redirect()->route('welcome');
+        }
+
+        return str_starts_with($to, '/admin') && ! $user->is_admin ? redirect('/') : redirect($to);
+    }
+
     // ---------- 2. email code ----------
 
     public function emailSend(Request $request, EmailCodes $codes)
@@ -121,6 +150,10 @@ class AuthController extends Controller
         $phone = Phone::normalize($request->input('phone'));
         if (! $phone) {
             throw ValidationException::withMessages(['phone' => __('auth.phone.invalid')]);
+        }
+        // without the paid Gateway (staging): only the demo accounts, their code is shown on screen
+        if (! $this->realPhoneCodes() && ! TestAccounts::is($phone)) {
+            throw ValidationException::withMessages(['phone' => __('auth.phone.test_only')]);
         }
         $codes->send($phone, $request->ip());
         $request->session()->put('otp_phone', $phone);
@@ -253,6 +286,12 @@ class AuthController extends Controller
     }
 
     private function phoneCodeEnabled(): bool
+    {
+        return $this->realPhoneCodes() || TestAccounts::enabled();
+    }
+
+    /** Codes to any phone: the paid Telegram Gateway, or development (code on screen). */
+    private function realPhoneCodes(): bool
     {
         return config('services.otp_driver') === 'gateway' || config('app.debug');
     }

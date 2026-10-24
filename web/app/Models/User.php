@@ -75,6 +75,15 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         return Friendship::between($this->id, $id)?->status === 'accepted';
     }
 
+    /** ADMIN_PHONE is always the admin, also after the account was deleted and registered again. */
+    public function syncAdmin(): void
+    {
+        $admin = \App\Support\Phone::normalize((string) config('app.admin_phone'));
+        if ($admin && $this->phone === $admin && ! $this->is_admin) {
+            $this->forceFill(['is_admin' => true])->save();
+        }
+    }
+
     public function isRegistered(): bool
     {
         return $this->registered_at !== null;

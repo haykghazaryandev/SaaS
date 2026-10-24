@@ -191,6 +191,24 @@ class UserResource extends Resource
                     $record->forceFill(['status' => 'active', 'blocked_until' => null])->save();
                     Notification::make()->success()->title(__('admin.user.unblocked_done'))->send();
                 }),
+            // testing registration again with the same phone; also for "delete my data" requests
+            Action::make('erase')->label(__('admin.user.erase'))->icon('heroicon-o-trash')->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading(fn (User $record) => __('admin.user.erase_title', ['name' => $record->name ?: $record->phone]))
+                ->modalDescription(__('admin.user.erase_help'))
+                ->modalSubmitActionLabel(__('admin.user.erase'))
+                ->action(function (User $record, Action $action) {
+                    $self = $record->is(auth()->user());
+                    app(\App\Domain\Auth\AccountEraser::class)->erase($record);
+                    Notification::make()->success()->title(__('admin.user.erased'))->send();
+                    if ($self) {
+                        auth()->guard('web')->logout();
+                        request()->session()->invalidate();
+                        $action->redirect(route('login'));
+                    } else {
+                        $action->redirect(UserResource::getUrl('index'));
+                    }
+                }),
             Action::make('resetNoShows')->label(__('admin.user.reset_no_shows'))->icon('heroicon-o-arrow-path')->color('warning')
                 ->visible(fn (User $record) => $record->no_show_count > 0 || $record->blocked_until)
                 ->requiresConfirmation()

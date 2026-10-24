@@ -20,6 +20,9 @@ return [
     'button' => [
         'accept' => 'Accept',
         'decline' => 'Decline',
+        'my_bookings' => '📋 My bookings',
+        'schedule' => '📅 Open schedule',
+        'open' => '↗ Open in Bookball',
     ],
     'status' => [
         'pending' => 'Waiting',
@@ -39,7 +42,7 @@ return [
     'bot' => [
         'hello' => "👋 Hi! This is the Bookball bot.\n\nTo get booking updates here, open your profile on :url and tap «Connect Telegram».",
         'already' => '👋 Your Telegram is already connected to Bookball. Booking updates will come here.',
-        'linked' => "✅ Done:name! Telegram is connected to your Bookball account.\nBooking confirmations and updates will come here.",
+        'linked' => "✅ Your phone is confirmed and Telegram is connected:name.\n\nOpen Bookball with the buttons below: you're already logged in there.",
         'link_expired' => '⚠️ This link has expired or was already used. Tap «Connect Telegram» on the site again.',
         'help' => 'I only send booking updates. Book and manage your games on :url',
         'not_allowed' => 'You can not answer requests of this place.',
@@ -59,7 +62,7 @@ return [
         'btnGames' => '👥 Find players',
         'ask' => "👋 To log in to Bookball, tap the button below. Telegram will share the phone number of your account, so we know it's really you.",
         'button' => "📱 Share my phone number",
-        'done' => "✅ You're logged in:name! Go back to the browser or app.\n\nBooking updates will come here.",
+        'done' => "✅ You're logged in:name!\n\nGo back to the browser, or open Bookball with the buttons below (you're already logged in there).\n\nBooking updates will come here.",
         'linked' => "✅ Your phone is confirmed and Telegram is connected:name. Log in at :url with «Log in with Telegram».",
         'expired' => "⌛ This login link has expired. Go back to the website and tap «Log in with Telegram» again.",
         'not_own' => "Please use the button below: it shares the number of your own Telegram account.",

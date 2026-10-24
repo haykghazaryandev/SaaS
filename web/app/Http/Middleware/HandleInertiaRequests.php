@@ -38,12 +38,14 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
-            // development only: the last login code, so you can log in without Telegram
+            // development (and the demo accounts on staging): the last login code, so you can log in without Telegram
             'devCode' => function () use ($request) {
+                $phone = config('services.otp_driver') === 'log' ? $request->session()->get('otp_phone') : null;
                 if (! config('app.debug')) {
-                    return null;
+                    // staging: the demo accounts only
+                    return \App\Support\TestAccounts::is($phone) ? Cache::get('dev-otp:'.$phone) : null;
                 }
-                $key = $request->session()->get('otp_email') ?? (config('services.otp_driver') === 'log' ? $request->session()->get('otp_phone') : null);
+                $key = $request->session()->get('otp_email') ?? $phone;
 
                 return $key ? Cache::get('dev-otp:'.$key) : null;
             },

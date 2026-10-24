@@ -33,6 +33,8 @@ Route::middleware('guest')->group(function () {
     Route::post('login/email', [AuthController::class, 'emailSend'])->name('login.email');
     Route::post('login/email/verify', [AuthController::class, 'emailVerify'])->name('login.email.verify');
 });
+// links in our Telegram messages that open the site logged in (signed, single-use)
+Route::get('l/{user}', [AuthController::class, 'loginLink'])->middleware('throttle:30,1')->name('login.link');
 Route::middleware('auth')->group(function () {
     Route::get('welcome', [AuthController::class, 'welcome'])->name('welcome');
     Route::post('welcome', [AuthController::class, 'register'])->name('welcome.store');

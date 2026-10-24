@@ -2,7 +2,9 @@
 
 namespace App\Domain\Notifications;
 
+use App\Domain\Auth\LoginLinks;
 use App\Models\Booking;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -39,7 +41,14 @@ class BookingNotification extends Notification implements ShouldQueue
     public function toTelegram(object $notifiable): ?TelegramMessage
     {
         $b = $this->booking->loadMissing('venue', 'field');
+        $message = $this->audience === 'owner' ? BookingTexts::owner($b, $this->type) : BookingTexts::player($b, $this->type, $this->changes);
+        if (! $notifiable instanceof User) {
+            return $message;
+        }
+        // one more row: open the booking page, already logged in
+        [$label, $path] = $this->audience === 'owner' ? ['telegram.button.schedule', '/owner'] : ['telegram.button.my_bookings', '/me/bookings'];
+        $link = app(LoginLinks::class)->make($notifiable, $path, LoginLinks::NOTICE_MINUTES);
 
-        return $this->audience === 'owner' ? BookingTexts::owner($b, $this->type) : BookingTexts::player($b, $this->type, $this->changes);
+        return new TelegramMessage($message->type, $message->text, [...$message->buttons, [[__($label), $link]]]);
     }
 }

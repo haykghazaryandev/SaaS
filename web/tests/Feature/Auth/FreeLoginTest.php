@@ -40,11 +40,12 @@ it('logs in with Telegram: the bot asks for the phone, Telegram confirms it, the
     tgUpdate(['from' => $from, 'contact' => ['user_id' => 555001, 'phone_number' => '37494112233', 'first_name' => 'Gor', 'last_name' => 'Avetisyan']]);
     $this->getJson("/login/telegram/{$token}")->assertJson(['status' => 'approved']);
 
-    $this->postJson("/login/telegram/{$token}/complete")->assertOk()->assertJson(['redirect' => route('welcome')]);
+    // registered at once with the Telegram name: no welcome form
+    $this->postJson("/login/telegram/{$token}/complete")->assertOk()->assertJson(['redirect' => route('home')]);
     $this->assertAuthenticated();
     $u = User::where('phone', '+37494112233')->first();
     expect($u->phone_verified_at)->not->toBeNull()->and($u->telegram_chat_id)->toBe(555001)
-        ->and($u->name)->toBe('Gor Avetisyan')->and($u->locale)->toBe('ru');
+        ->and($u->name)->toBe('Gor Avetisyan')->and($u->locale)->toBe('ru')->and($u->isRegistered())->toBeTrue();
     // a login can be used once
     auth()->logout();
     expect($this->postJson("/login/telegram/{$token}/complete")->status())->toBeIn([404, 422]);
@@ -94,7 +95,7 @@ it('lets a guest log in with Telegram in the booking sheet and then book', funct
     $this->postJson("/login/telegram/{$token}/complete", ['context' => 'booking'])->assertOk();
     $this->post('/bookings', ['field_id' => $small->id, 'date' => at(0)->toDateString(), 'start' => '20:00', 'minutes' => 60])->assertSessionHasNoErrors();
     $b = Booking::first();
-    expect($b->source)->toBe(BookingSource::WebGuest)->and($b->contact_phone)->toBe('+37493556677')->and($b->contact_name)->toBe('Davit');
+    expect($b->source)->toBe(BookingSource::Player)->and($b->contact_phone)->toBe('+37493556677')->and($b->contact_name)->toBe('Davit');
 });
 
 it('logs in by email and asks for a phone on the welcome page', function () {

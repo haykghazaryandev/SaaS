@@ -77,5 +77,8 @@
  "auth.welcome.phone": "Phone number (the place may call you about a booking)",
  "map.provider": "Map",
  "map.route": "Directions",
- "map.title": "Map"
+ "map.title": "Map",
+ "auth.withTestAccount": "Test accounts (no Telegram)",
+ "auth.phone.test_only": "Here only the test accounts log in with a code. Use Telegram for your own number.",
+ "auth.testHint": "Test accounts: players 93 000 100 … 159, owners 91 000 001 … 008. The code is shown on screen."
 }
