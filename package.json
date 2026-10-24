@@ -1,0 +1,12 @@
+{
+  "name": "bookball-infra",
+  "private": true,
+  "description": "Railway Infrastructure as Code (.railway/railway.ts). The Laravel app lives in web/.",
+  "scripts": {
+    "railway:plan": "railway config plan",
+    "railway:apply": "railway config apply"
+  },
+  "devDependencies": {
+    "railway": "latest"
+  }
+}
