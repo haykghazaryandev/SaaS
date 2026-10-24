@@ -7,7 +7,7 @@ import { useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { PlayerCard } from '@/types/social';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 // ---------- profile photo: pick → position it in the circle (move / zoom) → upload ----------
 const photo = useForm<{ photo: File | null }>({ photo: null });
@@ -40,10 +40,19 @@ const props = defineProps<{
         url: string;
     };
     options: { positions: string[]; districts: string[]; locales: string[] };
+    notify: Record<string, boolean>;
     blocked: PlayerCard[];
 }>();
 
 const { user } = useShared();
+
+// ---------- notifications ----------
+const notifs = reactive({ ...props.notify });
+const notifKeys = computed(() => ['bookings', 'games', 'friends', 'chats', 'alerts', ...(user.value?.isOwner ? ['requests'] : []), 'sound']);
+function setNotif(key: string, on: boolean) {
+    notifs[key] = on;
+    router.patch(route('me.notifications'), { key, on }, { preserveScroll: true, preserveState: true, onError: () => (notifs[key] = !on) });
+}
 const form = useForm({
     name: props.profile.name ?? '',
     username: props.profile.username ?? '',
@@ -193,6 +202,16 @@ function unblock(p: PlayerCard) {
             </aside>
         </div>
 
+        <!-- notifications: what comes by Telegram (per kind), and the sound in the app; each switch saves at once -->
+        <section class="card pad notif">
+            <h2>{{ $t('profile.notif.title') }}</h2>
+            <p class="muted small">{{ profile.telegram ? $t('profile.notif.sub') : $t('profile.notif.noTelegram') }}</p>
+            <label v-for="k in notifKeys" :key="k" class="sw">
+                <span><b>{{ $t(`profile.notif.${k}`) }}</b><small class="muted">{{ $t(`profile.notif.${k}Help`) }}</small></span>
+                <input type="checkbox" role="switch" :checked="notifs[k]" :disabled="!profile.telegram && k !== 'sound'" @change="setNotif(k, ($event.target as HTMLInputElement).checked)" />
+            </label>
+        </section>
+
         <!-- owners and the admin: their panels (on phones and in the Telegram Mini App there is no other way in) -->
         <section v-if="user?.isOwner || user?.isAdmin" class="card pad panels">
             <h2>{{ $t('profile.panels') }}</h2>
@@ -209,6 +228,17 @@ function unblock(p: PlayerCard) {
 </template>
 
 <style scoped>
+.notif { max-width: 820px; margin-top: 16px; display: flex; flex-direction: column; gap: 4px; }
+.notif h2 { font-size: 17px; margin: 0; }
+.notif > p { margin: 0 0 8px; }
+.sw { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.sw span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sw small { font-size: 12.5px; }
+.sw input { appearance: none; -webkit-appearance: none; flex: none; width: 46px; height: 28px; border-radius: 999px; background: var(--surface-3); position: relative; cursor: pointer; transition: background .15s; }
+.sw input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); transition: transform .15s; }
+.sw input:checked { background: var(--accent); }
+.sw input:checked::after { transform: translateX(18px); background: var(--on-accent); }
+.sw input:disabled { opacity: .4; }
 .panels { max-width: 820px; margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .panels h2 { font-size: 17px; margin: 0 0 4px; }
 .phead { margin-top: 28px; display: flex; gap: 16px; align-items: center; }

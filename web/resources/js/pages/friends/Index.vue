@@ -202,7 +202,7 @@ const remove = (p: PlayerCard) => router.delete(route('friends.remove', p.id), o
 .search > .ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .search .input { padding-left: 40px; }
 .search.big { max-width: none; }
-.search.big .input { height: 48px; font-size: 15px; border-radius: 14px; }
+.search.big .input { height: 48px; border-radius: 14px; }
 .spin { position: absolute; right: 14px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border: 2px solid var(--line-2); border-top-color: var(--accent); border-radius: 50%; animation: sp 0.7s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
 .hint { margin: 0 0 6px; font-size: 13.5px; }

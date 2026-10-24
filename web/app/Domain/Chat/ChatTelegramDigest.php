@@ -40,7 +40,7 @@ class ChatTelegramDigest implements ShouldQueue
             ->where('user_id', '!=', $m->user_id)->get();
         foreach ($members as $p) {
             $u = $p->user;
-            if (! $u?->telegram_chat_id || ($p->muted_until && $p->muted_until->isFuture())
+            if (! $u?->telegram_chat_id || ! $u->wantsTelegram('chats') || ($p->muted_until && $p->muted_until->isFuture())
                 || ($p->last_read_message_id && $p->last_read_message_id >= $m->id)
                 || ($p->notified_at && $p->notified_at->greaterThan(now()->subMinutes(self::QUIET_MINUTES)))) {
                 continue;

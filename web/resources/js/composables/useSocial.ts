@@ -1,6 +1,7 @@
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import type { SocialCounts } from '@/types';
 import type { Notice } from '@/types/social';
+import { ping } from '@/lib/sound';
 import { reactive } from 'vue';
 
 /**
@@ -103,10 +104,23 @@ async function onNotice(n: Record<string, unknown>) {
     const text = item?.text || (typeof n.text === 'string' ? n.text : '');
     const link = item?.link ?? (typeof n.link === 'string' ? n.link : null);
     if (text) showToast(text, link);
+    if (soundOn()) ping();
     // the place answered a booking while "My bookings" is open: show the new status at once
     if (link?.startsWith('/me/bookings') && window.location.pathname.startsWith('/me/bookings')) {
         router.reload();
     }
+}
+
+/** The user's "sound" setting (shared props; Profile → Notifications). */
+function soundOn(): boolean {
+    return (usePage().props as { auth?: { user?: { sound?: boolean } | null } }).auth?.user?.sound !== false;
+}
+
+/** A new chat message (unread went up) while that chat is not on the screen: the sound. */
+async function onChat() {
+    const before = social.counts.messages;
+    await refresh();
+    if (social.counts.messages > before && !window.location.pathname.startsWith('/messages/') && soundOn()) ping();
 }
 
 /** Listen on the user's channels once per Echo connection (echo.ts makes a new one when the user changes). */
@@ -116,7 +130,7 @@ function attach() {
     attached = e;
     try {
         e.private(`App.Models.User.${liveFor}`).notification(onNotice);
-        e.private(`user.${liveFor}`).listen('.chat.updated', refreshSoon);
+        e.private(`user.${liveFor}`).listen('.chat.updated', onChat);
     } catch {
         attached = null;
     }

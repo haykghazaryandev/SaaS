@@ -26,7 +26,8 @@ export interface ChatItem {
     id: number;
     type: 'direct' | 'game';
     archived: boolean;
-    other: { id: number; name: string; username: string | null } | null;
+    // direct chats; online = seen in the last 2 minutes (User::isActiveNow), lastSeen an ISO time
+    other: { id: number; name: string; username: string | null; avatar?: string | null; online?: boolean; lastSeen?: string | null } | null;
     game: {
         id: number;
         format: string;
@@ -94,6 +95,18 @@ export function shortWhen(iso: string | null): string {
     if (key === dayKey(new Date())) return clock(iso);
     if (key > dayKey(new Date(Date.now() - 6 * 864e5))) return wdName(weekday(key));
     return dateShort(key);
+}
+
+/** chat header: "online" / "last seen today at 14:20" / "last seen yesterday at 21:05" / "last seen 12.10" (Yerevan time) */
+export function lastSeenText(online: boolean | undefined, iso: string | null | undefined): string {
+    if (online) return trans('messages.online');
+    if (!iso) return '';
+    const key = dayKey(iso);
+    if (key === dayKey(new Date())) return trans('messages.seenToday', { time: clock(iso) });
+    if (key === dayKey(new Date(Date.now() - 864e5))) return trans('messages.seenYesterday', { time: clock(iso) });
+    const [y, m, d] = key.split('-');
+    // another year: 12.10.2025
+    return trans('messages.seenDate', { date: y === dayKey(new Date()).slice(0, 4) ? `${d}.${m}` : `${d}.${m}.${y}` });
 }
 
 // ---------- JSON calls (session cookie + CSRF from the XSRF cookie) ----------

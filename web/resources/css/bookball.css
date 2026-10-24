@@ -15,6 +15,7 @@
  *   Status     .status-pill.pending|.confirmed|.manual|.off   (booking states; add a text label, the dot is automatic)
  *   Fields     .field-dot.small|.big   (5x5 / 11x11 dot)    text colors .c-small .c-big
  *   Forms      .field > label + .input (input/select/textarea)  .hint  .err
+ *              phones / touch: text fields are always 16px (iOS zooms into smaller ones), never set a smaller size on them
  *   Segmented  .seg (+ .seg.block for full width) > button[aria-pressed="true"]   2-3 options
  *   Badges     .badge-dot (count bubble, e.g. "3"; .badge-dot.sm is a plain 8px dot; position it yourself)
  *   Cards      .card  .card.pad (18px padding)  .card.hover (lift on hover)  .list-row (a 64px tappable row)
@@ -406,3 +407,11 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 
 /* Telegram on iPhone: the home indicator area (34px) even if Telegram reports none */
 @media (min-height: 700px) { .tg-ios { --tg-min-bottom: 34px; } }   /* iPhones with a home indicator (not the SE) */
+
+/* iPhone: Safari / Telegram zoom into a focused field whose text is under 16px, and the zoomed page then slides
+   sideways. On phones and touch screens every text field is 16px (pages must not set a smaller size on them). */
+@media (max-width: 900px), (pointer: coarse) {
+  input:where(:not([type="checkbox"], [type="radio"], [type="range"])), textarea, select { font-size: 16px; }
+}
+/* fullscreen pages (the chat on phones) never scroll sideways, even if something inside is too wide */
+@media (max-width: 900px) { html:has(.papp.fs), html:has(.papp.fs) body { overflow-x: clip; } }

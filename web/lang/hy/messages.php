@@ -64,4 +64,10 @@ return [
     'emoji' => 'Էմոջի',
     'emojiFootball' => 'Ֆուտբոլ',
     'emojiReactions' => 'Ռեակցիաներ',
+    // online / last seen (chat header, chat list)
+    'online' => 'առցանց',
+    'onlineN' => ':n առցանց',
+    'seenToday' => 'եղել է այսօր՝ :time',
+    'seenYesterday' => 'եղել է երեկ՝ :time',
+    'seenDate' => 'եղել է :date',
 ];

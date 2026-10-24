@@ -61,6 +61,8 @@ class ChatController extends Controller
         return Inertia::render('messages/Show', [
             'chat' => $this->item($conversation, $me, 0) + [
                 'members' => $conversation->participants->whereNull('left_at')->count(),
+                // game chats: how many other members are online now (direct chats have other.online / other.lastSeen)
+                'online' => $this->onlineCount($conversation, $me),
                 'lastReadId' => $mine?->last_read_message_id,
             ],
             'messages' => $msgs->take(self::PAGE)->reverse()->values()->map(fn ($m) => ChatPresenter::message($m))->all(),
@@ -98,6 +100,7 @@ class ChatController extends Controller
     public function send(Request $request, Conversation $conversation): JsonResponse
     {
         $data = $request->validate(['body' => ['required', 'string', 'max:'.Message::MAX_LENGTH], 'reply_to' => ['nullable', 'integer']]);
+        $request->user()->touchLastSeen(10);
 
         return $this->attempt(fn () => ChatPresenter::message(
             $this->chat->send($conversation, $request->user(), $data['body'], $data['reply_to'] ?? null)->load(['user', 'replyTo.user'])
@@ -114,8 +117,23 @@ class ChatController extends Controller
         if ($id > 0) {
             $this->chat->markRead($conversation, $me, $id);
         }
+        $me->touchLastSeen(10);   // reading a chat = online (more often than the once-a-minute middleware)
 
         return response()->json(['ok' => true]);
+    }
+
+    /** The chat header refreshes "online" / "last seen" with this every minute (members only). */
+    public function presence(Request $request, Conversation $conversation): JsonResponse
+    {
+        $me = $request->user();
+        $this->authorizeMember($conversation, $me);
+        $conversation->load('participants.user');
+        $other = $conversation->type === 'direct' ? $conversation->participants->firstWhere('user_id', '!=', $me->id)?->user : null;
+
+        return response()->json([
+            'other' => $other ? self::seen($other) : null,
+            'online' => $this->onlineCount($conversation, $me),
+        ]);
     }
 
     public function update(Request $request, Message $message): JsonResponse
@@ -177,7 +195,7 @@ class ChatController extends Controller
         $other = null;
         if ($c->type === 'direct') {
             $u = $c->participants->firstWhere('user_id', '!=', $me->id)?->user;
-            $other = $u ? ['id' => $u->id, 'name' => self::name($u), 'username' => $u->username, 'avatar' => $u->avatarUrl()] : null;
+            $other = $u ? ['id' => $u->id, 'name' => self::name($u), 'username' => $u->username, 'avatar' => $u->avatarUrl()] + self::seen($u) : null;
         }
         $g = $c->game;
         $last = $c->relationLoaded('latestMessage') ? $c->latestMessage : null;
@@ -205,6 +223,22 @@ class ChatController extends Controller
             'unread' => $unread,
             'at' => $c->last_message_at?->toIso8601String(),
         ];
+    }
+
+    /** "online" / "last seen" of a user, only ever shown to people who share a chat with them */
+    private static function seen(User $u): array
+    {
+        return ['online' => $u->isActiveNow(), 'lastSeen' => $u->last_seen_at?->toIso8601String()];
+    }
+
+    /** game chats: members (not me) online now; the participants with their users are loaded already */
+    private function onlineCount(Conversation $c, User $me): ?int
+    {
+        if ($c->type !== 'game') {
+            return null;
+        }
+
+        return $c->participants->whereNull('left_at')->where('user_id', '!=', $me->id)->filter(fn ($p) => $p->user?->isActiveNow())->count();
     }
 
     private static function name(User $u): string

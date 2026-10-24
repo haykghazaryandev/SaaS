@@ -62,7 +62,20 @@ class ProfileController extends Controller
             ],
             'options' => ['positions' => self::POSITIONS, 'districts' => self::districts(), 'locales' => config('app.locales')],
             'blocked' => fn () => $this->cards->cards($u, User::whereIn('id', UserBlock::where('blocker_id', $u->id)->select('blocked_id'))->orderBy('name')->get()),
+            // Telegram messages per category + the sound in the app (all on unless switched off)
+            'notify' => collect([...User::NOTIFY_CATEGORIES, 'sound'])->mapWithKeys(fn ($k) => [$k => $k === 'sound' ? $u->wantsSound() : $u->wantsTelegram($k)]),
         ]);
+    }
+
+    /** Profile → Notifications: one switch at a time (saved at once). */
+    public function notifications(Request $request)
+    {
+        $keys = [...User::NOTIFY_CATEGORIES, 'sound'];
+        $data = $request->validate(['key' => ['required', 'in:'.implode(',', $keys)], 'on' => 'required|boolean']);
+        $u = $request->user();
+        $u->forceFill(['notify_prefs' => [...($u->notify_prefs ?? []), $data['key'] => (bool) $data['on']]])->save();
+
+        return back();
     }
 
     public function update(Request $request)

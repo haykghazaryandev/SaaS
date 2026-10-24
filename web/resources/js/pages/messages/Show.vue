@@ -3,9 +3,10 @@ import Avatar from '@/components/Avatar.vue';
 import EmojiPicker from '@/components/EmojiPicker.vue';
 import Icon from '@/components/Icon.vue';
 import { whenShort } from '@/composables/useGames';
-import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, sysText, userName } from '@/composables/useChat';
+import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, lastSeenText, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
 import { echoConnected, echoState } from '@/lib/echo';
+import { tgApp } from '@/lib/telegram';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -13,8 +14,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 // A chat screen (direct or game chat). Live over Reverb: private-conversation.{id} ".message" {action, message}
 // and the "typing" whisper; when the socket is down it polls /history?after=<last id> every 5 s.
+// The header shows "online" / "last seen …" (direct) or "N online" (game), refreshed from /presence every minute.
 const props = defineProps<{
-    chat: ChatItem & { members: number; lastReadId: number | null };
+    chat: ChatItem & { members: number; lastReadId: number | null; online: number | null };
     messages: ChatMessage[];
     hasMore: boolean;
     editMinutes: number;
@@ -100,6 +102,7 @@ function upsert(list: ChatMessage[]) {
             else msgs.value.splice(at, 0, m);
             if (m.user?.id !== me.value) added++;
             if (m.user) delete typers.value[m.user.id];
+            sawOther(m.user?.id);
         }
         // quotes of this message follow its edits / deletion
         for (const x of msgs.value) if (x.reply?.id === m.id) x.reply = { ...x.reply, body: m.body, deleted: m.deleted };
@@ -150,8 +153,28 @@ function markRead() {
 function onVisible() {
     if (document.visibilityState === 'visible') {
         markRead();
+        refreshPresence();
         if (!echoConnected()) poll();
     }
+}
+
+// ---------- online / last seen (header) ----------
+const other = ref({ online: !!props.chat.other?.online, lastSeen: props.chat.other?.lastSeen ?? null });
+const onlineN = ref(props.chat.online ?? 0);
+const seenText = computed(() => lastSeenText(other.value.online, other.value.lastSeen));
+async function refreshPresence() {
+    if (document.visibilityState !== 'visible') return;
+    try {
+        const r = await api<{ other: { online: boolean; lastSeen: string | null } | null; online: number | null }>('GET', route('messages.presence', cid));
+        if (r.other) other.value = r.other;
+        onlineN.value = r.online ?? 0;
+    } catch {
+        /* keep the last value */
+    }
+}
+// they just wrote or are typing: online, no need to wait for the next refresh
+function sawOther(id: number | undefined) {
+    if (!isGame && id && id === props.chat.other?.id) other.value = { online: true, lastSeen: new Date().toISOString() };
 }
 
 // ---------- live ----------
@@ -174,6 +197,7 @@ function subscribe() {
         .listen('.message', (e: { action: string; message: ChatMessage }) => receive([e.message]))
         .listenForWhisper('typing', (e: { id: number; name: string }) => {
             if (e.id !== me.value) typers.value[e.id] = { name: e.name, until: Date.now() + 4000 };
+            sawOther(e.id);
         });
 }
 let lastWhisper = 0;
@@ -286,7 +310,7 @@ const confirmDelete = ref(false);
 const reported = ref<number[]>([]);
 const canChange = (m: ChatMessage) => !archived.value && m.type === 'text' && !m.deleted && m.user?.id === me.value && now.value - new Date(m.created_at).getTime() < props.editMinutes * 60e3;
 function toggle(m: ChatMessage) {
-    if (m.deleted || m.type === 'system') return;
+    if (m.deleted || m.type === 'system' || Date.now() - swipedAt < 400) return;
     active.value = active.value === m.id ? null : m.id;
     confirmDelete.value = false;
 }
@@ -295,6 +319,51 @@ function reply(m: ChatMessage) {
     replying.value = m;
     active.value = null;
     input.value?.focus();
+}
+
+// ---------- swipe right to reply (touch screens, like WhatsApp) ----------
+// The bubble follows the finger (up to SWIPE_MAX px) with a reply arrow on its left; past SWIPE_AT it replies on release.
+// The direction is decided on the first 10 px, so scrolling the list up / down never starts a swipe.
+const SWIPE_AT = 60;
+const SWIPE_MAX = 80;
+const drag = ref<{ id: number; dx: number } | null>(null);
+let sw: { m: ChatMessage; x: number; y: number; dir: '' | 'h'; armed: boolean } | null = null;
+let swipedAt = 0;
+const canSwipe = (m: ChatMessage) => !archived.value && !m.deleted && m.type !== 'system';
+function swStart(e: TouchEvent, m: ChatMessage) {
+    sw = null;
+    if (e.touches.length !== 1 || !canSwipe(m)) return;
+    sw = { m, x: e.touches[0].clientX, y: e.touches[0].clientY, dir: '', armed: false };
+}
+function swMove(e: TouchEvent) {
+    if (!sw) return;
+    const dx = e.touches[0].clientX - sw.x;
+    const dy = e.touches[0].clientY - sw.y;
+    if (!sw.dir) {
+        if (Math.hypot(dx, dy) < 10) return;
+        // only a clearly horizontal move to the right is a swipe; anything else is scrolling
+        if (dx <= 0 || Math.abs(dx) <= Math.abs(dy) * 1.5) {
+            sw = null;
+            return;
+        }
+        sw.dir = 'h';
+        sw.x += 10; // start from here, so the bubble doesn't jump by the 10 px
+    }
+    const d = Math.max(0, Math.min(SWIPE_MAX, dx - 10));
+    drag.value = { id: sw.m.id, dx: d };
+    // a light tick when it is far enough (once per crossing), like WhatsApp
+    if (d >= SWIPE_AT !== sw.armed) {
+        sw.armed = d >= SWIPE_AT;
+        if (sw.armed) tgApp()?.HapticFeedback?.impactOccurred('light');
+    }
+}
+function swEnd() {
+    const s = sw;
+    sw = null;
+    drag.value = null; // springs back (CSS transition)
+    if (!s?.dir) return;
+    swipedAt = Date.now(); // no tap menu right after a swipe
+    if (s.armed) reply(s.m); // reply() focuses the box; still inside the touch gesture, so iOS opens the keyboard
 }
 function edit(m: ChatMessage) {
     replying.value = null;
@@ -341,6 +410,7 @@ const quoteText = (r: NonNullable<ChatMessage['reply']>) => (r.deleted ? trans('
 // ---------- lifecycle ----------
 let pollTimer: number | undefined;
 let clockTimer: number | undefined;
+let presenceTimer: number | undefined;
 onMounted(async () => {
     subscribe();
     pollTimer = window.setInterval(() => {
@@ -348,6 +418,7 @@ onMounted(async () => {
         if (!echoConnected() && document.visibilityState === 'visible') poll();
     }, 5000);
     clockTimer = window.setInterval(() => (now.value = Date.now()), 1000);
+    presenceTimer = window.setInterval(refreshPresence, 60e3);
     document.addEventListener('visibilitychange', onVisible);
     await nextTick();
     const first = firstUnread && document.getElementById(`m${firstUnread}`);
@@ -359,6 +430,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
     clearInterval(pollTimer);
     clearInterval(clockTimer);
+    clearInterval(presenceTimer);
     clearTimeout(readTimer);
     document.removeEventListener('visibilitychange', onVisible);
     if (subscribed) window.Echo?.leave(channelName);
@@ -376,8 +448,11 @@ onBeforeUnmount(() => {
                 <div class="ht">
                     <b>{{ chatTitle(chat) }}</b>
                     <span v-if="chat.game" class="hs">
-                        {{ $t(`messages.status.${chat.game.status}`) }} · {{ $t('messages.players', { n: String(chat.game.players), t: String(chat.game.total) }) }} · {{ $t('messages.members', { n: String(chat.members) }) }}
+                        {{ $t(`messages.status.${chat.game.status}`) }} · {{ $t('messages.players', { n: String(chat.game.players), t: String(chat.game.total) }) }} ·
+                        <!-- "N online" before the member count: on phones the end of this line is cut -->
+                        <template v-if="onlineN"><span class="on">{{ $t('messages.onlineN', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}
                     </span>
+                    <span v-else-if="seenText" :class="['hs', { on: other.online }]"><i v-if="other.online" class="on-dot" aria-hidden="true" />{{ seenText }}</span>
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
                 <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.openGame')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.openGame') }}</span></Link>
@@ -413,7 +488,20 @@ onBeforeUnmount(() => {
                             <span v-if="!r.mine && isGame" class="mav" :aria-hidden="true"><Avatar v-if="r.tail" :id="r.m.user?.id ?? null" :name="userName(r.m.user)" :src="r.m.user?.avatar" size="sm" /></span>
                             <div class="mcol">
                                 <span v-if="!r.mine && isGame && r.head" class="mname">{{ userName(r.m.user) }}</span>
-                                <div :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id }]" role="button" tabindex="0" :aria-label="$t('messages.actions')" @click="toggle(r.m)" @keydown.enter.prevent="toggle(r.m)">
+                                <div
+                                    :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id, drag: drag?.id === r.m.id }]"
+                                    :style="drag?.id === r.m.id ? { transform: `translateX(${drag.dx}px)` } : undefined"
+                                    role="button"
+                                    tabindex="0"
+                                    :aria-label="$t('messages.actions')"
+                                    @click="toggle(r.m)"
+                                    @keydown.enter.prevent="toggle(r.m)"
+                                    @touchstart.passive="swStart($event, r.m)"
+                                    @touchmove.passive="swMove"
+                                    @touchend="swEnd"
+                                    @touchcancel="swEnd"
+                                >
+                                    <svg v-if="drag?.id === r.m.id" class="ico swipe-ico" :style="{ opacity: Math.min(1, drag.dx / SWIPE_AT), transform: `translateY(-50%) scale(${drag.dx >= SWIPE_AT ? 1 : 0.7})` }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
                                     <button v-if="r.m.reply && !r.m.deleted" type="button" class="quote" @click.stop="jumpTo(r.m.reply.id)">
                                         <b>{{ r.m.reply.user?.id === me ? $t('messages.you') : userName(r.m.reply.user) }}</b>
                                         <span>{{ quoteText(r.m.reply) }}</span>
@@ -489,6 +577,8 @@ onBeforeUnmount(() => {
 .ht { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ht b { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hs { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs.on, .hs .on { color: var(--free); }
+.on-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--free); margin-right: 5px; vertical-align: 1px; }
 .gbar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0; min-height: 44px; }
 .gb-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 13.5px; font-weight: 700; }
 .gb-main .ico { color: var(--muted); }
@@ -523,7 +613,10 @@ onBeforeUnmount(() => {
 .mcol { display: flex; flex-direction: column; max-width: min(78%, 560px); min-width: 0; }
 .mine .mcol { align-items: flex-end; }
 .mname { font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 3px 10px; }
-.bubble { position: relative; background: var(--surface-3); border-radius: 16px; padding: 7px 12px 6px; cursor: pointer; min-width: 0; max-width: 100%; transition: box-shadow 0.2s; }
+.bubble { position: relative; background: var(--surface-3); border-radius: 16px; padding: 7px 12px 6px; cursor: pointer; min-width: 0; max-width: 100%; transition: box-shadow 0.2s, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2); touch-action: pan-y; -webkit-tap-highlight-color: transparent; }
+/* swipe to reply: no transition while the finger drags it; the arrow sits left of the bubble */
+.bubble.drag { transition: box-shadow 0.2s; }
+.swipe-ico { position: absolute; left: -32px; top: 50%; width: 22px; height: 22px; padding: 3px; border-radius: 50%; background: var(--surface-2); color: var(--accent-2); transition: transform 0.15s; pointer-events: none; }
 .mrow:not(.tail) .bubble { border-bottom-left-radius: 6px; }
 .mrow:not(.head) .bubble { border-top-left-radius: 6px; }
 .mine .bubble { background: rgba(200, 255, 61, 0.14); border: 1px solid rgba(200, 255, 61, 0.22); }
@@ -556,7 +649,7 @@ onBeforeUnmount(() => {
 .mt span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .x { border: 0; background: var(--surface-2); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; }
 .box { display: flex; gap: 8px; align-items: flex-end; }
-.box textarea { flex: 1; min-width: 0; resize: none; background: var(--surface); border: 1px solid var(--line-2); border-radius: 20px; padding: 9px 14px; font-size: 15px; line-height: 1.4; max-height: 150px; outline: none; }
+.box textarea { flex: 1; min-width: 0; resize: none; background: var(--surface); border: 1px solid var(--line-2); border-radius: 20px; padding: 9px 14px; line-height: 1.4; max-height: 150px; outline: none; }
 .box textarea:focus { border-color: rgba(200, 255, 61, 0.5); }
 .send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; }
 .send:disabled { background: var(--surface-2); color: var(--faint); cursor: not-allowed; }

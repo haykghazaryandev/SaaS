@@ -64,4 +64,10 @@ return [
     'emoji' => 'Emoji',
     'emojiFootball' => 'Football',
     'emojiReactions' => 'Reactions',
+    // online / last seen (chat header, chat list)
+    'online' => 'online',
+    'onlineN' => ':n online',
+    'seenToday' => 'last seen today at :time',
+    'seenYesterday' => 'last seen yesterday at :time',
+    'seenDate' => 'last seen :date',
 ];

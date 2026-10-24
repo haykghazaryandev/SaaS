@@ -11,12 +11,14 @@ import { router } from '@inertiajs/vue3';
 import { startEcho } from './lib/echo';
 import TgAppGate from './components/TgAppGate.vue';
 import { installSheetSwipe } from './lib/sheetSwipe';
+import { unlockSound } from './lib/sound';
 
 // live updates (Reverb): connect only while someone is logged in; follow logins / logouts done without a full page load
 type AuthProps = { auth?: { user?: { id: number } | null } };
 router.on('navigate', (e) => startEcho((e.detail.page.props as AuthProps).auth?.user?.id));
 
 installSheetSwipe();   // bottom sheets close with a downward swipe on phones
+unlockSound();   // phones allow the notification sound only after the first tap
 
 // Fresh pages: something changed (booked, withdrew, accepted, joined…) → forget the preloaded pages, so the next page
 // shows the change; and "back" asks the server again instead of showing the old page as it was.

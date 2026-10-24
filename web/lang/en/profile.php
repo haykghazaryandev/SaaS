@@ -44,4 +44,16 @@ return [
         'uploading' => 'Uploading…',
     ],
     'panels' => 'Panels', 'ownerPanel' => 'Owner panel: your place', 'adminPanel' => 'Admin panel',
+    'notif' => [
+        'title' => 'Notifications',
+        'sub' => 'What the Bookball bot sends you in Telegram. In the app you always see everything under the bell.',
+        'noTelegram' => 'Connect Telegram to get messages there. In the app you always see everything under the bell.',
+        'bookings' => 'My bookings', 'bookingsHelp' => 'Answers from the place, reminders, your team',
+        'games' => 'Games', 'gamesHelp' => 'Invites, players joining, a field booked',
+        'friends' => 'Friends', 'friendsHelp' => 'Friend requests and accepted requests',
+        'chats' => 'Chat messages', 'chatsHelp' => 'When you don\'t read a message within a minute',
+        'alerts' => 'Free times', 'alertsHelp' => '"Notify me if it frees up"',
+        'requests' => 'Requests for my place', 'requestsHelp' => 'New requests, late teams, "team not here?"',
+        'sound' => 'Sound in the app', 'soundHelp' => 'A short sound for new notices and messages',
+    ],
 ];

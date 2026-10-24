@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'telegram_chat_id' => 'integer',
             'telegram_linked_at' => 'datetime',
             'telegram_verified_at' => 'datetime',
+            'notify_prefs' => 'array',
             'phone_verified_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'registered_at' => 'datetime',
@@ -44,6 +45,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'penalty_reset_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Mark the user as seen now (TouchLastSeen; "online" in chats and isActiveNow() read it), at most once per $every seconds (called on every request, so it must stay cheap).
+     * A plain query update: no updated_at, no model events.
+     */
+    public function touchLastSeen(int $every = 60): void
+    {
+        $now = now();
+        if ($this->last_seen_at !== null && $this->last_seen_at->gt($now->copy()->subSeconds($every))) {
+            return;
+        }
+        static::query()->whereKey($this->id)->toBase()->update(['last_seen_at' => $now]);
+        $this->last_seen_at = $now;
+        $this->syncOriginalAttribute('last_seen_at');
     }
 
     /** Places this user works for (owner or staff). */
@@ -85,6 +101,26 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         if ($admin && $this->phone === $admin && ! $this->is_admin) {
             $this->forceFill(['is_admin' => true])->save();
         }
+    }
+
+    /** Telegram message categories a person can switch off (Profile → Notifications); all on by default. */
+    public const NOTIFY_CATEGORIES = ['bookings', 'games', 'friends', 'chats', 'alerts', 'requests'];
+
+    public function wantsTelegram(string $category): bool
+    {
+        return (bool) (($this->notify_prefs ?? [])[$category] ?? true);
+    }
+
+    /** A sound in the app for new notices and chat messages. */
+    public function wantsSound(): bool
+    {
+        return (bool) (($this->notify_prefs ?? [])['sound'] ?? true);
+    }
+
+    /** Using Bookball right now (a page in the last 2 minutes): no need to repeat social news by Telegram. */
+    public function isActiveNow(): bool
+    {
+        return $this->last_seen_at !== null && $this->last_seen_at->greaterThan(now()->subMinutes(2));
     }
 
     /** Too many no-shows: no new booking requests until booking_ban_until (Penalties). */

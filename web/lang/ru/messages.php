@@ -64,4 +64,10 @@ return [
     'emoji' => 'Эмодзи',
     'emojiFootball' => 'Футбол',
     'emojiReactions' => 'Реакции',
+    // online / last seen (chat header, chat list)
+    'online' => 'в сети',
+    'onlineN' => ':n в сети',
+    'seenToday' => 'был(а) сегодня в :time',
+    'seenYesterday' => 'был(а) вчера в :time',
+    'seenDate' => 'был(а) :date',
 ];

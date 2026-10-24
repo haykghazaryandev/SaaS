@@ -30,6 +30,7 @@ class HandleInertiaRequests extends Middleware
                     'telegram' => $user->hasTelegram(),
                     'isAdmin' => (bool) $user->is_admin,
                     'isOwner' => fn () => $user->venues()->exists(),
+                    'sound' => $user->wantsSound(),   // a sound for new notices and chat messages (Profile → Notifications)
                 ] : null,
             ],
             // header badges: unread notifications, unread chat messages, friend requests waiting (lazy: only computed when sent)

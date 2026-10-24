@@ -34,7 +34,10 @@ class BookingNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return [TelegramChannel::class];
+        // switched off in Profile → Notifications: "My bookings" for players, "Requests for my place" for staff
+        $category = $this->audience === 'owner' ? 'requests' : 'bookings';
+
+        return ! method_exists($notifiable, 'wantsTelegram') || $notifiable->wantsTelegram($category) ? [TelegramChannel::class] : [];
     }
 
     public function toTelegram(object $notifiable): ?TelegramMessage

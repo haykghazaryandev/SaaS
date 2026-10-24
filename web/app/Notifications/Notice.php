@@ -23,10 +23,14 @@ class Notice extends Notification implements ShouldQueue
     use Queueable;
 
     /** Types that also go to Telegram (people connected the bot to hear about these). */
-    public const TELEGRAM = ['slot_free', 'friend_request', 'game_invite', 'game_opened', 'game_full', 'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed',
-        'booking_reminder_day', 'booking_reminder_hour', 'booking_team_invite', 'booking_team_joined',
+    public const TELEGRAM = ['slot_free', 'friend_request', 'friend_accepted', 'game_invite', 'game_opened', 'game_joined', 'game_full', 'game_expired',
+        'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed',
+        'booking_reminder_day', 'booking_reminder_hour', 'booking_team_invite', 'booking_team_joined', 'booking_team_declined',
         'booking_team_confirmed', 'booking_team_changed', 'booking_team_cancelled',
         'booking_late', 'booking_not_here', 'booking_no_show', 'booking_ban', 'booking_rate'];
+
+    /** Categories that always go by Telegram (if switched on), even while the person uses the app: they matter. */
+    private const ALWAYS = ['bookings', 'requests', 'alerts'];
 
     /**
      * $buttons: Telegram button rows under the message, [[label key, callback data, label params], …],
@@ -37,11 +41,27 @@ class Notice extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         $via = ['database', 'broadcast'];
-        if (in_array($this->type, self::TELEGRAM, true) && $notifiable->telegram_chat_id) {
+        $cat = $this->category();
+        if (in_array($this->type, self::TELEGRAM, true) && $notifiable->telegram_chat_id
+            && (! method_exists($notifiable, 'wantsTelegram') || $notifiable->wantsTelegram($cat))
+            // social news (friends, games) only when the app is not open: in the app the bell and the toast show it
+            && (in_array($cat, self::ALWAYS, true) || ! method_exists($notifiable, 'isActiveNow') || ! $notifiable->isActiveNow())) {
             $via[] = TelegramChannel::class;
         }
 
         return $via;
+    }
+
+    /** bookings | requests (for the place's staff) | games | friends | alerts */
+    public function category(): string
+    {
+        return match (true) {
+            in_array($this->type, ['booking_late', 'booking_not_here'], true) => 'requests',
+            str_starts_with($this->type, 'booking_') => 'bookings',
+            str_starts_with($this->type, 'game_') => 'games',
+            str_starts_with($this->type, 'friend_') => 'friends',
+            default => 'alerts',
+        };
     }
 
     public function toArray(object $notifiable): array

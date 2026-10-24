@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::get('u/{player}', [ProfileController::class, 'show'])->name('users.show');
     Route::get('me/profile', [ProfileController::class, 'edit'])->name('me.profile');
     Route::patch('me/profile', [ProfileController::class, 'update'])->name('me.profile.update');
+    Route::patch('me/notifications', [ProfileController::class, 'notifications'])->middleware('throttle:60,1')->name('me.notifications');
 
     Route::get('notifications', [NotificationController::class, 'index'])->middleware('throttle:120,1')->name('notifications.index');
     Route::post('notifications/read', [NotificationController::class, 'read'])->middleware('throttle:120,1')->name('notifications.read');

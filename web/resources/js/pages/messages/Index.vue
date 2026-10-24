@@ -91,7 +91,10 @@ onBeforeUnmount(() => {
             <section v-if="chats.length" class="clist">
                 <Link v-for="c in chats" :key="c.id" :href="route('messages.show', c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
                     <span v-if="c.type === 'game'" class="cav"><Icon name="ball" /></span>
-                    <Avatar v-else :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
+                    <span v-else class="avw">
+                        <Avatar :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
+                        <i v-if="c.other?.online" class="on-dot" role="img" :aria-label="$t('messages.online')" />
+                    </span>
                     <span class="cmain">
                         <span class="crow">
                             <b class="ctitle">{{ chatTitle(c) }}</b>
@@ -158,6 +161,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* the other person is online (seen in the last 2 minutes) */
+.avw { position: relative; display: inline-grid; flex: none; }
+.on-dot { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--free); border: 2px solid var(--surface); }
 .msgs { max-width: 760px; margin: 0 auto; padding: 24px 0 40px; }
 .mhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; min-width: 0; }
 .mhead h1 { min-width: 0; overflow-wrap: anywhere; }
