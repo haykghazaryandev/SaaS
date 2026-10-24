@@ -95,7 +95,11 @@ function setUp(w: TgWebApp) {
     } catch {
         /* older Telegram apps */
     }
-    // Telegram's own back button instead of the browser's
+    // back from another app (or Telegram shrank us to half height): full height again, so sheets fit
+    const reexpand = () => !w.isExpanded && w.expand();
+    w.onEvent?.('activated', reexpand);
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reexpand());
+        // Telegram's own back button instead of the browser's
     const syncBack = () => (location.pathname === '/' ? w.BackButton.hide() : w.BackButton.show());
     w.BackButton.onClick(() => (history.length > 1 ? history.back() : router.visit('/')));
     router.on('navigate', syncBack);

@@ -133,6 +133,7 @@ onBeforeUnmount(() => {
             <p class="muted small">{{ $t('profile.photo.positionHint') }}</p>
             <div
                 class="stage"
+                data-noswipe
                 :style="{ width: VIEW + 'px', height: VIEW + 'px' }"
                 tabindex="0"
                 :aria-label="$t('profile.photo.positionHint')"

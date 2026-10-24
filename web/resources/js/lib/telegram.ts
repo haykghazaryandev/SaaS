@@ -15,6 +15,8 @@ export interface TgWebApp {
     openTelegramLink(url: string): void;
     requestContact(callback: (shared: boolean) => void): void;
     BackButton: { show(): void; hide(): void; onClick(cb: () => void): void };
+    onEvent?(event: string, cb: () => void): void;
+    isExpanded?: boolean;
     HapticFeedback?: { impactOccurred(style: 'light' | 'medium' | 'heavy'): void };
 }
 

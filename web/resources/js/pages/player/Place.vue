@@ -48,6 +48,7 @@ const props = defineProps<{
     initial: { date: string; field: number | null; minutes: number | null; start: string | null };
     slots: SlotsPayload;
     booked: PlayerBooking | null;
+    limit: { pending: number; maxPending: number; bannedUntil: string | null } | null;
     /** the player's "notify me if it frees up" times at this place */
     alerts: SlotAlertInfo[];
 }>();
@@ -277,8 +278,18 @@ const sheet = ref<null | 'login' | 'name' | 'taken'>(null);
 const okBooking = ref<PlayerBooking | null>(null);
 const loginUrl = computed(() => route('login', { redirect: window.location.pathname + window.location.search }));
 
+const bookError = computed(() => (lostStart.value == null ? (form.errors as Record<string, string>).booking ?? null : null));
+// a new request can't be sent: say so before "Book" (G2), with the way out, instead of failing after the tap
+const blocked = computed<string | null>(() => {
+    const l = props.limit;
+    if (!l) return null;
+    if (l.bannedUntil) return trans('player.place.blockedBan', { until: l.bannedUntil });
+    if (l.pending >= l.maxPending) return trans('player.place.blockedPending', { n: String(l.pending) });
+    return null;
+});
+
 function book() {
-    if (!summary.value) return;
+    if (!summary.value || blocked.value) return;
     form.clearErrors();
     notice.value = null;
     if (!user.value) {
@@ -618,8 +629,11 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             </div>
                         </div>
 
+                        <p v-if="blocked" class="why blocked">
+                            <Icon name="clock" size="sm" /><span>{{ blocked }} <Link :href="route('me.bookings')">{{ $t('player.place.blockedLink') }}</Link></span>
+                        </p>
                         <!-- on phones the sticky bar has the Book button, so this one is hidden there -->
-                        <button type="button" class="btn block bookbtn" :disabled="form.processing" @click="book">{{ $t('player.place.bookBtn') }}</button>
+                        <button type="button" class="btn block bookbtn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.bookBtn') }}</button>
                         <ul class="perks">
                             <li><Icon name="wallet" size="sm" />{{ $t('player.place.lPay') }}</li>
                             <li><Icon name="check" size="sm" />{{ $t('player.place.lFree', { h: String(venue.rules.freeCancelHours) }) }}</li>
@@ -631,12 +645,17 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
             </section>
 
             <!-- phones: the choice and the button stay at the bottom of the screen -->
-            <div v-if="summary && !okBooking && !sheet" class="bookbar">
+            <div v-if="summary && !okBooking && !sheet" :class="['bookbar', { haswhy: blocked || bookError }]">
+                <!-- the reason a request can't be sent, or why it failed: right here, not in the card further down -->
+                <p v-if="blocked || bookError" class="bb-why" role="alert">
+                    <Icon :name="blocked ? 'clock' : 'x'" size="sm" /><span>{{ blocked || bookError }}</span>
+                    <Link v-if="blocked" :href="route('me.bookings')">{{ $t('player.place.blockedLink') }}</Link>
+                </p>
                 <button type="button" class="bbinfo" @click="scrollToSummary">
                     <b>{{ range(start!, minutes) }} · {{ amd(summary.total) }}</b>
                     <small>{{ dateRel(date, today) }} · {{ cname(summary.f) }}</small>
                 </button>
-                <button type="button" class="btn" :disabled="form.processing" @click="book">{{ $t('player.place.bookBtn') }}</button>
+                <button type="button" class="btn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.bookBtn') }}</button>
             </div>
 
             <!-- about the place: one compact list -->
@@ -891,10 +910,19 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 
 /* bottom bar on phones */
 .bookbar { display: none; }
+.why.blocked { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--st-pending); margin: 4px 0 8px; }
+.why.blocked .ico { margin-top: 2px; flex: none; }
+.why.blocked a, .bb-why a { color: var(--ink); text-decoration: underline; font-weight: 700; }
+.bb-why { display: none; }
 @media (max-width: 1040px) {
   .bookgrid { grid-template-columns: 1fr; }
   .sumcard { position: static; }
   .bookbtn { display: none; }
+  .bookbar.haswhy { flex-wrap: wrap; }
+  .bookbar .bb-why { display: flex; flex-wrap: wrap; flex-basis: 100%; gap: 4px 6px; align-items: flex-start; margin: 0; font-size: 12.5px; font-weight: 700; color: var(--st-pending); }
+  .bookbar .bb-why span { flex: 1; min-width: 0; }
+  .bookbar .bb-why .ico { margin-top: 2px; flex: none; }
+  .bookbar .bb-why a { flex-basis: 100%; padding-left: 22px; }
   .bookbar { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 45; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; background: rgba(27, 33, 28, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); box-shadow: var(--shadow); }
   .bbinfo { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; color: var(--ink); display: flex; flex-direction: column; }
   .bbinfo b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -79,6 +79,7 @@ return [
         'fieldPrice' => 'from :p / hour',
         'addNote' => 'Add team name or a note (optional)',
         'bookBtn' => 'Book',
+        'blockedPending' => 'You have :n requests waiting for an answer. Send a new one when a place answers, or cancel one.', 'blockedBan' => 'Booking is paused until :until because of missed games.', 'blockedLink' => 'My bookings',
         'bookHint' => 'The field confirms your booking, usually within an hour; you\'ll get a Telegram message. Pay at the field. Free cancellation up to :h h before.',
         'primeWhen' => 'weekday evenings from 18:00 and weekends',
         'back' => 'All fields',

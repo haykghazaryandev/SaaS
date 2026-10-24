@@ -10,10 +10,13 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { router } from '@inertiajs/vue3';
 import { startEcho } from './lib/echo';
 import TgAppGate from './components/TgAppGate.vue';
+import { installSheetSwipe } from './lib/sheetSwipe';
 
 // live updates (Reverb): connect only while someone is logged in; follow logins / logouts done without a full page load
 type AuthProps = { auth?: { user?: { id: number } | null } };
 router.on('navigate', (e) => startEcho((e.detail.page.props as AuthProps).auth?.user?.id));
+
+installSheetSwipe();   // bottom sheets close with a downward swipe on phones
 
 createInertiaApp({
     title: (title) => (title ? `${title} · Bookball` : 'Bookball'),

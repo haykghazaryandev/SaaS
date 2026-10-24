@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerVenues;
 use App\Models\Booking;
 use App\Models\SlotAlert;
+use App\Enums\BookingStatus;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use App\Support\Phone;
@@ -60,6 +61,12 @@ class PlaceController extends Controller
             ],
             'slots' => $present->slots($venue, $day),
             'booked' => $booked,
+            // why a new request can't be sent right now (told before tapping "Book", not after): too many waiting, or a pause
+            'limit' => ($u = $request->user()) ? [
+                'pending' => Booking::where('user_id', $u->id)->where('status', BookingStatus::Pending)->count(),
+                'maxPending' => (int) $venue->rule('max_pending_per_phone'),
+                'bannedUntil' => $u->isBookingBanned() ? $u->booking_ban_until->toImmutable()->setTimezone(LocalTime::tz())->format('d.m.Y') : null,
+            ] : null,
             // the player's "notify me if it frees up" times at this place (a bell on those taken times)
             'alerts' => $request->user() ? SlotAlert::where('user_id', $request->user()->id)->where('venue_id', $venue->id)
                 ->where('starts_at', '>', now())->orderBy('starts_at')->get()
