@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use App\Domain\Games\Games;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        // behind Railway's proxy PHP sees plain http: an https APP_URL means every generated URL is https
+        // (Filament assets, favicon, redirects), otherwise the browser blocks them as mixed content
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
 
         // a game follows its booking: accepted → booked, declined/expired → open again (with chat lines)
         Event::listen(BookingChanged::class, fn (BookingChanged $e) => app(Games::class)->bookingChanged($e->booking, $e->type));
