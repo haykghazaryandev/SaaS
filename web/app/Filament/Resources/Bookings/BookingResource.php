@@ -115,6 +115,19 @@ class BookingResource extends Resource
         ]);
     }
 
+    /**
+     * Default order: what will happen next first (requests and confirmed bookings not over yet, soonest on top),
+     * then everything else: past, cancelled, declined… (newest on top).
+     */
+    public static function soonestFirst(Builder $query): Builder
+    {
+        $next = "ends_at >= now() and status in ('pending', 'accepted')";
+
+        return $query->orderByRaw("case when {$next} then 0 else 1 end")
+            ->orderByRaw("case when {$next} then starts_at end asc")
+            ->orderBy('starts_at', 'desc');
+    }
+
     /** Columns shared by the bookings list and the user's bookings. */
     public static function columns(bool $withVenue = true): array
     {
@@ -140,7 +153,7 @@ class BookingResource extends Resource
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with('venue', 'field', 'user'))
-            ->defaultSort('starts_at', 'desc')
+            ->defaultSort(fn (Builder $query) => BookingResource::soonestFirst($query))
             ->columns(self::columns())
             ->filters([
                 SelectFilter::make('venue_id')->label(__('admin.venue.one'))->relationship('venue', 'name')->searchable()->preload(),

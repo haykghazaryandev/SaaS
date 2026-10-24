@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\RelationManagers;
 
+use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Models\Booking;
 use Filament\Actions\Action;
@@ -27,7 +28,7 @@ class BookingsRelationManager extends RelationManager
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with('venue', 'field'))
-            ->defaultSort('starts_at', 'desc')
+            ->defaultSort(fn (Builder $query) => BookingResource::soonestFirst($query))
             ->columns(BookingResource::columns())
             ->recordActions([
                 Action::make('open')->label(__('admin.booking.open'))->icon('heroicon-o-eye')->color('gray')
