@@ -132,15 +132,9 @@ class OwnerBooking
         });
     }
 
+    /** "Didn't come" (see Attendance: after the start until 12:00 the next day, not after "arrived"). */
     public function noShow(User $by, Booking $booking): Booking
     {
-        if ($booking->status !== BookingStatus::Accepted || $booking->starts_at->isFuture()) {
-            throw new BookingException('not_active');
-        }
-        $booking->update(['status' => BookingStatus::NoShow]);
-        $booking->loadMissing('user')->user?->increment('no_show_count');
-        $this->log($booking, 'no_show', $by);
-
-        return $booking;
+        return app(\App\Domain\Booking\AfterBooking\Attendance::class)->noShow($by, $booking);
     }
 }

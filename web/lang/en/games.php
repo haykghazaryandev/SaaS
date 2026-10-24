@@ -178,7 +178,24 @@ return [
         'bookPick' => 'Choose a start time',
     ],
 
+    // positions in a game (optional); full names are in profile.positions
+    'pos' => [
+        'short' => ['goalkeeper' => 'GK', 'defender' => 'DEF', 'midfielder' => 'MID', 'forward' => 'FWD'],
+        'summary' => 'Positions',
+        'notSet' => 'not set: :n',
+        'noKeeper' => 'No goalkeeper yet',
+        'none' => 'No position',
+        'pick' => 'Your position (optional)',
+        'set' => 'Choose your position',
+        'change' => 'Change your position',
+        'title' => 'Your position in this game',
+        'hint' => 'Optional. It helps everyone see who plays where.',
+        'save' => 'Save',
+    ],
+
     'done' => [
+        'position' => 'Your position is saved.',
+        'positionCleared' => 'Your position is cleared.',
         'accepted' => 'You\'re in the game!',
         'declined' => 'Invite declined.',
         'joined' => 'You joined the game!',

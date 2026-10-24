@@ -49,6 +49,10 @@ export interface BookingRow {
     weekly: boolean;
     started: boolean;
     past: boolean;
+    arrived?: boolean;
+    late_minutes?: number | null;
+    can_arrive?: boolean;
+    can_no_show?: boolean;
     user: { id: number; name: string | null; no_shows: number } | null;
     sent_ago: string | null;
 }
@@ -109,7 +113,7 @@ export const askCancel = (id: number) => {
 };
 
 /** POST an action (accept, decline, cancel, no-show); a broken rule comes back as errors.booking. */
-export function act(name: 'accept' | 'decline' | 'cancel' | 'no-show', id: number, data: Record<string, unknown> = {}, done?: () => void) {
+export function act(name: 'accept' | 'decline' | 'cancel' | 'no-show' | 'arrived', id: number, data: Record<string, unknown> = {}, done?: () => void) {
     router.post(route(`owner.bookings.${name}`, id), data, {
         preserveScroll: true,
         preserveState: true,

@@ -210,11 +210,12 @@ class UserResource extends Resource
                     }
                 }),
             Action::make('resetNoShows')->label(__('admin.user.reset_no_shows'))->icon('heroicon-o-arrow-path')->color('warning')
-                ->visible(fn (User $record) => $record->no_show_count > 0 || $record->blocked_until)
+                ->visible(fn (User $record) => $record->no_show_count > 0 || $record->blocked_until || $record->booking_ban_until)
                 ->requiresConfirmation()
                 ->modalDescription(__('admin.user.reset_no_shows_help'))
                 ->action(function (User $record) {
-                    $record->forceFill(['no_show_count' => 0, 'blocked_until' => null])->save();
+                    app(\App\Domain\Booking\AfterBooking\Penalties::class)->reset($record);
+                    $record->forceFill(['blocked_until' => null])->save();
                     Notification::make()->success()->title(__('admin.user.reset_done'))->send();
                 }),
         ];

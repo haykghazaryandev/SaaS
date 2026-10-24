@@ -11,6 +11,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('games/{game}')->whereNumber('game')->middleware('throttle:60,1')->group(function () {
         Route::post('respond', [GameController::class, 'respond'])->name('games.respond');
         Route::post('join', [GameController::class, 'join'])->name('games.join');
+        Route::patch('position', [GameController::class, 'position'])->name('games.position');
         Route::post('leave', [GameController::class, 'leave'])->name('games.leave');
         Route::post('remove/{user}', [GameController::class, 'remove'])->whereNumber('user')->name('games.remove');
         Route::post('invite', [GameController::class, 'invite'])->name('games.invite');

@@ -22,6 +22,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::post('bookings/{booking}/decline', [BookingController::class, 'decline'])->name('bookings.decline');
     Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('bookings/{booking}/no-show', [BookingController::class, 'noShow'])->name('bookings.no-show');
+    Route::post('bookings/{booking}/arrived', [BookingController::class, 'arrived'])->name('bookings.arrived');
 
     Route::get('settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('settings/prices', [SettingsController::class, 'prices'])->name('settings.prices');

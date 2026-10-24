@@ -3,6 +3,7 @@ import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import GameProgress from '@/components/games/GameProgress.vue';
 import GameStatusPill from '@/components/games/GameStatusPill.vue';
+import PositionPicker from '@/components/games/PositionPicker.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
 import { hasRoute, sizeOf, todayYerevan, whenText, whereText } from '@/composables/useGames';
 import { dateRel, dur, wdName } from '@/composables/usePlayer';
@@ -17,11 +18,13 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 const props = defineProps<{
     game: GameCard & { booking: GameBooking | null; previousId: number | null; invitedCount: number };
     players: { in: GamePlayerRow[]; invited: GamePlayerRow[]; invitedCount: number; declined: GamePlayerRow[] };
-    can: { respond: boolean; join: boolean; joinLogin: boolean; leave: boolean; remove: boolean; invite: boolean; cancel: boolean; book: boolean; playAgain: boolean };
+    can: { respond: boolean; join: boolean; joinLogin: boolean; leave: boolean; remove: boolean; invite: boolean; cancel: boolean; book: boolean; playAgain: boolean; position: boolean };
     conversationId: number | null;
     friends: GamePerson[];
     places: BookPlace[];
     days: { date: string; k: number; wd: number; day: number; weekend: boolean }[];
+    positions: string[];
+    profilePosition: string | null;
 }>();
 
 const g = computed(() => props.game);
@@ -31,12 +34,38 @@ const spotsLeft = computed(() => g.value.total - g.value.in);
 const holding = computed(() => g.value.booking && ['pending', 'accepted'].includes(g.value.booking.status));
 const inviter = computed(() => g.value.invitedBy?.name ?? g.value.creator.name);
 
+// ---------- positions (optional): chosen when joining / accepting (my profile position first), changed in a sheet ----------
+const known = (p: string | null | undefined) => (p && props.positions.includes(p) ? p : null);
+const joinPos = ref<string | null>(known(props.profilePosition));
+const posData = (): Record<string, string> => (joinPos.value ? { position: joinPos.value } : {});
+const myRow = computed(() => props.players.in.find((p) => p.me) ?? null);
+const posFull = (p: string) => trans(`profile.positions.${p}`);
+const posShort = (p: string) => trans(`games.pos.short.${p}`);
+// "Positions: 1 GK · 2 DEF · 0 MID · 1 FWD": shown once somebody picked one, so the organiser sees what is missing
+const posCounts = computed(() => props.positions.map((p) => ({ p, n: props.players.in.filter((x) => x.position === p).length })));
+const posUnset = computed(() => props.players.in.filter((x) => !x.position).length);
+const showPosSummary = computed(() => posUnset.value < props.players.in.length);
+const posEditing = ref(false);
+const posPick = ref<string | null>(null);
+function openPos() {
+    posPick.value = known(myRow.value?.position) ?? known(props.profilePosition);
+    posEditing.value = true;
+}
+function savePos() {
+    busy.value = true;
+    router.patch(route('games.position', g.value.id), { position: posPick.value }, {
+        preserveScroll: true,
+        onSuccess: () => (posEditing.value = false),
+        onFinish: () => (busy.value = false),
+    });
+}
+
 // ---------- actions: ONE main (lime) action by state, the others outline; leave / cancel are text links ----------
 type Act = { key: string; label: string; icon: string; href?: string; run?: () => void };
 const actions = computed<Act[]>(() => {
     const c = props.can;
     const list: Act[] = [];
-    if (c.join) list.push({ key: 'join', label: trans('games.show.join', { n: String(spotsLeft.value) }), icon: 'plus', run: () => post('games.join') });
+    if (c.join) list.push({ key: 'join', label: trans('games.show.join', { n: String(spotsLeft.value) }), icon: 'plus', run: () => post('games.join', posData()) });
     if (c.joinLogin) list.push({ key: 'login', label: trans('games.show.loginToJoin'), icon: 'user', href: route('login') });
     if (c.book) list.push({ key: 'book', label: trans('games.show.book'), icon: 'calendar', run: openBook });
     if (chatUrl.value) list.push({ key: 'chat', label: trans('games.show.chat'), icon: 'chat', href: chatUrl.value });
@@ -163,6 +192,7 @@ function onKey(e: KeyboardEvent) {
     confirm.value = null;
     inviting.value = false;
     booking.value = false;
+    posEditing.value = false;
     rowMenu.value = null;
 }
 onMounted(() => {
@@ -220,9 +250,10 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                 <b>{{ $t('games.card.invitedYou', { name: inviter }) }}</b>
                 <p class="small muted">{{ g.status === 'forming' ? $t('games.show.invitedForming', { n: String(g.minToOpen) }) : $t('games.show.invitedOpen') }}</p>
             </div>
+            <PositionPicker v-model="joinPos" class="bpos" :positions="positions" :label="$t('games.pos.pick')" />
             <div class="row bact">
                 <button type="button" class="btn outline" :disabled="busy" @click="post('games.respond', { accept: false })">{{ $t('games.decline') }}</button>
-                <button type="button" class="btn" :disabled="busy" @click="post('games.respond', { accept: true })"><Icon name="check" size="sm" />{{ $t('games.accept') }}</button>
+                <button type="button" class="btn" :disabled="busy" @click="post('games.respond', { accept: true, ...posData() })"><Icon name="check" size="sm" />{{ $t('games.accept') }}</button>
             </div>
         </section>
 
@@ -230,6 +261,16 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
             <!-- players -->
             <section class="card blk">
                 <h3>{{ $t('games.show.inGame') }} <span class="cnt">{{ players.in.length }}/{{ g.total }}</span></h3>
+                <p v-if="showPosSummary" class="possum small">
+                    <span class="muted">{{ $t('games.pos.summary') }}:</span>
+                    <template v-for="(c, i) in posCounts" :key="c.p">
+                        <span v-if="i" class="faint" aria-hidden="true"> · </span>
+                        <span :class="{ faint: !c.n && c.p !== 'goalkeeper', warnt: !c.n && c.p === 'goalkeeper' }" :title="!c.n && c.p === 'goalkeeper' ? $t('games.pos.noKeeper') : undefined"
+                            >{{ c.n }} <abbr :title="posFull(c.p)">{{ posShort(c.p) }}</abbr></span
+                        >
+                    </template>
+                    <span v-if="posUnset" class="faint"> · {{ $t('games.pos.notSet', { n: String(posUnset) }) }}</span>
+                </p>
                 <ul class="plist">
                     <li v-for="p in players.in" :key="p.id">
                         <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" />
@@ -237,6 +278,12 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                             <span class="n1">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template></span>
                             <small v-if="p.creator">{{ $t('games.show.organiserShort') }}</small>
                         </span>
+                        <!-- my own chip opens the position sheet; the others only show theirs -->
+                        <button v-if="p.me && can.position" type="button" :class="['pill pos', { blue: p.position }]" :title="p.position ? posFull(p.position) : undefined"
+                            :aria-label="p.position ? `${$t('games.pos.change')}: ${posFull(p.position)}` : $t('games.pos.set')" @click="openPos">
+                            <template v-if="p.position">{{ posShort(p.position) }}</template><template v-else><Icon name="plus" size="sm" />{{ $t('games.pos.set') }}</template>
+                        </button>
+                        <abbr v-else-if="p.position" class="pill blue pos" :title="posFull(p.position)"><span aria-hidden="true">{{ posShort(p.position) }}</span><span class="sr-only">{{ posFull(p.position) }}</span></abbr>
                         <div v-if="can.remove && !p.creator" class="menu-wrap">
                             <button type="button" class="menu-btn" aria-haspopup="menu" :aria-expanded="rowMenu === p.id" :aria-label="$t('games.show.more', { name: p.name })" @click.stop="rowMenu = rowMenu === p.id ? null : p.id">⋯</button>
                             <div v-if="rowMenu === p.id" class="menu" role="menu">
@@ -275,6 +322,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
             <!-- actions -->
             <aside class="side">
                 <section v-if="hasActions || !can.respond" class="card blk acts">
+                    <PositionPicker v-if="can.join" v-model="joinPos" :positions="positions" :label="$t('games.pos.pick')" />
                     <template v-for="(a, i) in actions" :key="a.key">
                         <Link v-if="a.href" :class="['btn block', { outline: i > 0 }]" :href="a.href"><Icon :name="a.icon" size="sm" />{{ a.label }}</Link>
                         <button v-else type="button" :class="['btn block', { outline: i > 0 }]" :disabled="busy" @click="a.run?.()"><Icon :name="a.icon" size="sm" />{{ a.label }}</button>
@@ -326,6 +374,19 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     <button type="button" class="btn outline" style="flex: 1" @click="confirm = null">{{ $t('games.show.keep') }}</button>
                     <button type="button" class="btn danger" style="flex: 1" :disabled="busy" @click="confirm.run()">{{ $t(confirm.yes) }}</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- my position in this game -->
+        <div v-if="posEditing" class="scrim" @click.self="posEditing = false">
+            <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pst">
+                <div class="row">
+                    <h3 id="pst">{{ $t('games.pos.title') }}</h3>
+                    <button type="button" class="x" :aria-label="$t('player.close')" @click="posEditing = false"><Icon name="x" /></button>
+                </div>
+                <p class="muted small" style="margin: 8px 0 14px">{{ $t('games.pos.hint') }}</p>
+                <PositionPicker v-model="posPick" :positions="positions" />
+                <button type="button" class="btn block" style="margin-top: 16px" :disabled="busy" @click="savePos"><Icon name="check" size="sm" />{{ $t('games.pos.save') }}</button>
             </div>
         </div>
 
@@ -481,6 +542,15 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
 .flist .nm { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .flist .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; color: transparent; flex: none; }
 .flist label.on .tick { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+.bpos { flex-basis: 100%; }
+.possum { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: baseline; font-weight: 700; margin-top: -4px; }
+.possum abbr, abbr.pos { text-decoration: none; }
+.warnt { color: var(--warn); }
+.pos { flex: none; border: 0; cursor: default; }
+button.pos { cursor: pointer; }
+button.pos:not(.blue) { background: none; border: 1px dashed var(--line-2); }
+button.pos:hover { color: var(--ink); }
 
 .orgbook { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 14px; margin: 0; }
 </style>

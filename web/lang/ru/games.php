@@ -178,7 +178,24 @@ return [
         'bookPick' => 'Выберите время начала',
     ],
 
+    // positions in a game (optional); full names are in profile.positions
+    'pos' => [
+        'short' => ['goalkeeper' => 'ВРТ', 'defender' => 'ЗАЩ', 'midfielder' => 'ПЗЩ', 'forward' => 'НАП'],
+        'summary' => 'Позиции',
+        'notSet' => 'без позиции: :n',
+        'noKeeper' => 'Вратаря пока нет',
+        'none' => 'Без позиции',
+        'pick' => 'Ваша позиция (необязательно)',
+        'set' => 'Выбрать позицию',
+        'change' => 'Сменить позицию',
+        'title' => 'Ваша позиция в этой игре',
+        'hint' => 'Необязательно. Так все видят, кто где играет.',
+        'save' => 'Сохранить',
+    ],
+
     'done' => [
+        'position' => 'Позиция сохранена.',
+        'positionCleared' => 'Позиция убрана.',
         'accepted' => 'Вы в игре!',
         'declined' => 'Приглашение отклонено.',
         'joined' => 'Вы вступили в игру!',

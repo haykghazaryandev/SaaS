@@ -340,6 +340,10 @@
 .oapp .li-t b { font-family: var(--body); font-weight: 800; }
 .oapp .li-t em { font-style: normal; font-family: var(--body); font-weight: 700; }
 .oapp .li-n { font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* at the field: arrived / waiting / "about 10 min late" */
+.oapp .li-at { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; }
+.oapp .li-at.ok { color: var(--st-confirmed); }
+.oapp .li-at.warn { color: var(--st-pending); }
 .oapp .li.cur { padding: 11px 12px; }
 .oapp .li.cur .li-n { font-size: 15.5px; }
 .oapp .li .prog { height: 4px; border-radius: 99px; background: color-mix(in srgb, var(--c) 18%, transparent); margin-top: 7px; overflow: hidden; }

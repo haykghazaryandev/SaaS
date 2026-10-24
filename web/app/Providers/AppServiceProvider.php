@@ -43,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        // at the field: running late, no-shows and their penalty, the booker's team hears the news
+        Event::listen(BookingChanged::class, [\App\Domain\Booking\AfterBooking\AfterBookingListener::class, 'handle']);
+
         // a game follows its booking: accepted → booked, declined/expired → open again (with chat lines)
         Event::listen(BookingChanged::class, fn (BookingChanged $e) => app(Games::class)->bookingChanged($e->booking, $e->type));
 

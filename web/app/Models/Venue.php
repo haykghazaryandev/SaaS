@@ -21,6 +21,7 @@ class Venue extends HasFactoryModel
         'request_expire_min' => 120,   // a request nobody answered expires after this
         'max_pending_per_phone' => 2,  // open requests per phone at the same time
         'auto_accept_regulars' => false,
+        'late_grace_min' => 15,        // after the start: how long the place waits before "team not here?"
     ];
 
     protected $fillable = ['slug', 'name', 'district', 'address', 'description', 'lat', 'lng', 'phone', 'rating_avg', 'rating_count', 'amenities', 'rules', 'status'];

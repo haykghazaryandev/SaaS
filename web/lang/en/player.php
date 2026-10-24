@@ -271,4 +271,30 @@ return [
     'menu' => [
         'account' => 'Account',
     ],
+    'team' => [
+        'title' => 'Your team',
+        'why' => 'Add the players for :venue, :when. They get the booking news and the reminders 24 h and 1 h before.',
+        'add' => 'Add your team', 'manage' => 'Team', 'nudge' => 'Tip: add your friends, they will get the reminders too.',
+        'okTitle' => 'Playing with friends?', 'okSub' => 'Add them to this booking: they get the confirmation and the reminders in Telegram.',
+        'count' => ':n of :max players', 'inTeam' => ':n in the team', 'bookedBy' => 'Booked by :name',
+        'tabFriends' => 'Friends', 'tabPhone' => 'Phone', 'tabLink' => 'Link',
+        'search' => 'Search friends', 'already' => 'in the team', 'pickFriends' => 'Pick friends', 'addN' => 'Add :n',
+        'noFriends' => 'No friends on Bookball yet. Invite by phone or share the link.',
+        'phoneHint' => 'Already on Bookball: added at once. Not yet: they join when they log in with this number. Send them the link too (Link tab).',
+        'phoneSend' => 'Invite', 'phone_added' => ':name is in your team', 'phone_invited' => 'Invited. Send them the link from the Link tab so they can join.',
+        'linkHint' => 'Send this link to your team chat: whoever opens it joins this booking.',
+        'shareText' => 'Join our game at :venue, :when:', 'copy' => 'Copy link', 'copied' => 'Copied', 'copyManual' => 'Copy the link:', 'more' => 'More',
+        'waitingJoin' => 'not joined yet', 'remove' => 'Remove',
+        'added' => '{0} Nobody new was added|{1} :n player added|[2,*] :n players added',
+        'leave' => 'Leave this game', 'leaveAsk' => 'Leave this game? You will not get its reminders anymore.', 'left' => 'You left the game',
+        'joined' => 'You joined the game at :venue',
+    ],
+    'late' => [
+        'ask' => 'Running late?', 'sent' => 'The place knows you are about :min min late', 'said' => 'You told the place: about :min min late',
+    ],
+    'rate' => [
+        'title' => 'How was :venue?', 'stars' => 'Stars', 'n' => ':n of 5', 'comment' => 'Anything to add? (optional)',
+        'commentHint' => 'The field, the lights, the changing rooms…', 'send' => 'Send', 'thanks' => 'Thanks! Your answer helps other players.',
+        'closed' => 'This game can no longer be rated.', 'again' => 'Book this place again',
+    ],
 ];

@@ -153,6 +153,15 @@ class BookingController extends OwnerController
         return back()->with('success', __('owner.flash.no_show'));
     }
 
+    /** "The team is here" (optional; then "how was the field?" goes 30 min after the game). */
+    public function arrived(Request $request, Booking $booking, \App\Domain\Booking\AfterBooking\Attendance $attendance)
+    {
+        $this->ensureSameVenue($request, $booking);
+        $this->attempt(fn () => $attendance->arrived($request->user(), $booking));
+
+        return back()->with('success', __('owner.flash.arrived'));
+    }
+
     // ---------- helpers ----------
 
     /**

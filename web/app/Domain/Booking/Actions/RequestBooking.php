@@ -27,6 +27,9 @@ class RequestBooking
         if ($player->isBlocked()) {
             throw new BookingException('blocked');
         }
+        if ($player->isBookingBanned()) {
+            throw new BookingException('banned');
+        }
         $venue = $field->loadMissing('venue')->venue;
         $pending = Booking::query()->where('user_id', $player->id)->where('status', BookingStatus::Pending)->count();
         if ($pending >= $venue->rule('max_pending_per_phone')) {

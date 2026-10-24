@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Player\BookingController;
+use App\Http\Controllers\Player\BookingTeamController;
+use App\Http\Controllers\Player\RateController;
 use App\Http\Controllers\Player\HomeController;
 use App\Http\Controllers\Player\MyBookingsController;
 use App\Http\Controllers\Player\PlaceController;
@@ -16,6 +18,17 @@ Route::post('bookings', [BookingController::class, 'store'])->middleware('thrott
 Route::middleware('auth')->group(function () {
     Route::get('me/bookings', MyBookingsController::class)->name('me.bookings');
     Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+    // after booking: the team, "running late", "how was the field?"
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('bookings/{booking}/team', [BookingTeamController::class, 'friends'])->name('bookings.team');
+        Route::post('bookings/{booking}/team/phone', [BookingTeamController::class, 'phone'])->name('bookings.team.phone');
+        Route::delete('bookings/{booking}/team/{player}', [BookingTeamController::class, 'destroy'])->name('bookings.team.destroy');
+        Route::post('bookings/{booking}/leave', [BookingTeamController::class, 'leave'])->name('bookings.leave');
+        Route::post('bookings/{booking}/late', [BookingTeamController::class, 'late'])->name('bookings.late');
+        Route::post('rate/{booking}', [RateController::class, 'store'])->name('rate.store');
+    });
+    Route::get('join/{token}', [BookingTeamController::class, 'join'])->name('bookings.join');
+    Route::get('rate/{booking}', [RateController::class, 'show'])->name('rate.show');
     // later: games, messages, friends, profile
 });
 

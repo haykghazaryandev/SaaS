@@ -17,6 +17,12 @@ class Booking extends HasFactoryModel
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'decided_at' => 'datetime',
+            'arrived_at' => 'datetime',
+            'late_at' => 'datetime',
+            'reminded_day_at' => 'datetime',
+            'reminded_hour_at' => 'datetime',
+            'not_here_asked_at' => 'datetime',
+            'rating_asked_at' => 'datetime',
             'status' => BookingStatus::class,
             'source' => BookingSource::class,
         ];
@@ -35,6 +41,20 @@ class Booking extends HasFactoryModel
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** The team the booker added (joined members and pending invites). */
+    public function players(): HasMany
+    {
+        return $this->hasMany(BookingPlayer::class);
+    }
+
+    /** People who get the booking's reminders: the booker and the joined team. */
+    public function attendees(): \Illuminate\Support\Collection
+    {
+        $this->loadMissing(['user', 'players.user']);
+
+        return collect([$this->user])->merge($this->players->where('status', 'joined')->pluck('user'))->filter()->unique('id')->values();
     }
 
     public function events(): HasMany

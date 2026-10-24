@@ -12,6 +12,8 @@ export interface GamePlayerRow extends GamePerson {
     status: string;
     creator: boolean;
     me: boolean;
+    /** optional position in this game: goalkeeper | defender | midfielder | forward */
+    position: string | null;
 }
 
 export interface GameWindow {

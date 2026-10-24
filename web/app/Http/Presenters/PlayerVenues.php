@@ -123,7 +123,8 @@ class PlayerVenues
     }
 
     /** A booking of the player (My bookings, confirmation). */
-    public function booking(Booking $b): array
+    /** $viewer: who looks at it (the booker sees the team controls and the invite link, a team member sees "Leave"). */
+    public function booking(Booking $b, ?\App\Models\User $viewer = null): array
     {
         $start = $b->starts_at->toImmutable()->setTimezone(LocalTime::tz());
         $end = $b->ends_at->toImmutable()->setTimezone(LocalTime::tz());
@@ -131,7 +132,7 @@ class PlayerVenues
         $holding = $b->status->holdsTime();
         $freeHours = (int) $venue->rule('free_cancel_hours');
 
-        return [
+        $row = [
             'id' => $b->id, 'code' => $b->code, 'status' => $b->status->value,
             'venue' => [
                 'slug' => $venue->slug, 'name' => $venue->name, 'district' => $venue->district, 'address' => $venue->tr('address'),
@@ -147,6 +148,33 @@ class PlayerVenues
             'freeCancelHours' => $freeHours,
             // accepted and inside the free-cancellation window: the place may ask to pay
             'lateCancel' => $b->status->value === 'accepted' && $b->starts_at->lessThan(now()->addHours($freeHours)),
+        ];
+        // My bookings: team, "running late", arrival (overrides canCancel for team members)
+        return $viewer ? array_replace($row, $this->afterBooking($b, $viewer)) : $row;
+    }
+
+    /** Team, "running late" and arrival for My bookings. */
+    private function afterBooking(Booking $b, \App\Models\User $viewer): array
+    {
+        $b->loadMissing('players.user', 'user');
+        $booker = $b->user_id === $viewer->id;
+        $team = $b->players->where('status', '!=', 'left')->values()->map(fn ($p) => [
+            'id' => $p->id, 'status' => $p->status,
+            'user' => $p->user ? ['id' => $p->user->id, 'name' => $p->user->name, 'avatar' => $p->user->avatarUrl()] : null,
+            'phone' => $p->user ? null : \App\Support\Phone::format($p->phone),
+        ])->all();
+
+        return [
+            'canCancel' => $booker && $b->status->holdsTime() && $b->starts_at->isFuture(),
+            'role' => $booker ? 'booker' : 'member',
+            'booker' => $booker ? null : ['name' => $b->user?->name, 'avatar' => $b->user?->avatarUrl(), 'id' => $b->user_id],
+            'team' => $team,
+            'teamMax' => max(1, (int) ($b->field->max_players ?: 22) - 1),
+            'inviteUrl' => $booker && $b->status->holdsTime() ? app(\App\Domain\Booking\AfterBooking\BookingTeam::class)->link($b) : null,
+            'canLate' => \App\Domain\Booking\AfterBooking\Attendance::canSayLate($b),
+            'lateOptions' => \App\Domain\Booking\AfterBooking\Attendance::LATE_OPTIONS,
+            'lateMinutes' => $b->late_minutes,
+            'arrived' => $b->arrived_at !== null,
         ];
     }
 

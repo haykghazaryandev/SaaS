@@ -24,8 +24,10 @@ class CancelBooking
             }
             $late = $by === 'player' && $booking->status === BookingStatus::Accepted
                 && $booking->starts_at->lessThan(now()->addHours($booking->venue->rule('free_cancel_hours')));
+            // less than 2 h before an accepted game: counts as half a no-show (Penalties)
+            $short = $late && $booking->starts_at->lessThan(now()->addHours(\App\Domain\Booking\AfterBooking\Penalties::SHORT_CANCEL_HOURS));
             $booking->update(['status' => BookingStatus::Cancelled, 'cancelled_by' => $by, 'cancel_reason' => $reason]);
-            $this->log($booking, 'cancelled', $actor, array_filter(['by' => $by, 'reason' => $reason, 'late' => $late ?: null]));
+            $this->log($booking, 'cancelled', $actor, array_filter(['by' => $by, 'reason' => $reason, 'late' => $late ?: null, 'short' => $short ?: null]));
 
             return $booking;
         });

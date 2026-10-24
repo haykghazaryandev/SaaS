@@ -3,6 +3,7 @@
 namespace App\Domain\Notifications;
 
 use App\Domain\Auth\LoginLinks;
+use App\Domain\Booking\AfterBooking;
 use App\Domain\Auth\TelegramLoginFlow;
 use App\Domain\Booking\Actions\DecideBooking;
 use App\Domain\Booking\BookingException;
@@ -163,6 +164,9 @@ class TelegramUpdateHandler
 
             return;
         }
+        if ($this->afterBooking($q, $user, $chatId, $messageId)) {
+            return;
+        }
         if (! preg_match('/^(accept|decline):(\d+)$/', (string) ($q['data'] ?? ''), $mm)) {
             $this->bot->answerCallbackQuery($q['id']);
 
@@ -186,6 +190,97 @@ class TelegramUpdateHandler
             $by = $booking->decided_by ? (User::find($booking->decided_by) ?? $user) : $user;
             $this->bot->editMessageText($chatId, $messageId, BookingTexts::ownerDecided($booking, $by));
         }
+    }
+
+    /**
+     * Buttons of the after-booking messages (AfterBooking\Reminders):
+     * the player: late:{id}:{min}, cantcome:{id} → cancelyes:{id}, rate:{id}:{stars};
+     * the place: arrived:{id}, noshow:{id}, wait:{id}.
+     */
+    private function afterBooking(array $q, ?User $user, int $chatId, int $messageId): bool
+    {
+        if (! preg_match('/^(late|cantcome|cancelyes|rate|arrived|noshow|wait):(\d+)(?::(\d+))?$/', (string) ($q['data'] ?? ''), $m)) {
+            return false;
+        }
+        [, $action, $id] = $m;
+        $arg = (int) ($m[3] ?? 0);
+        $booking = Booking::with('venue', 'field', 'user', 'players')->find((int) $id);
+        $staff = in_array($action, ['arrived', 'noshow', 'wait'], true);
+        $allowed = $user && $booking && ! $user->isBlocked()
+            && ($staff ? $user->worksAt($booking->venue_id) : ($action === 'late' || $action === 'rate' ? $booking->attendees()->contains('id', $user->id) : $booking->user_id === $user->id));
+        if (! $allowed) {
+            $this->bot->answerCallbackQuery($q['id'], __('telegram.bot.not_allowed'), true);
+
+            return true;
+        }
+        try {
+            $answer = match ($action) {
+                'late' => $this->replyLate($booking, $user, $arg),
+                'cantcome' => $this->askCancel($booking, $chatId),
+                'cancelyes' => $this->cancelFromBot($booking, $user, $chatId, $messageId),
+                'rate' => $this->rateFromBot($booking, $user, $arg, $chatId, $messageId),
+                'arrived' => $this->staffAnswer($chatId, $messageId, app(AfterBooking\Attendance::class)->arrived($user, $booking), 'telegram.after.arrived_done', $user),
+                'noshow' => $this->staffAnswer($chatId, $messageId, app(AfterBooking\Attendance::class)->noShow($user, $booking), 'telegram.after.no_show_done', $user),
+                'wait' => __('telegram.after.waiting'),
+            };
+            $this->bot->answerCallbackQuery($q['id'], $answer);
+        } catch (BookingException $e) {
+            $this->bot->answerCallbackQuery($q['id'], __('booking.error.'.$e->reason), true);
+        }
+
+        return true;
+    }
+
+    private function replyLate(Booking $b, User $user, int $minutes): string
+    {
+        app(AfterBooking\Attendance::class)->late($user, $b, $minutes);
+
+        return __('telegram.after.late_sent', ['min' => $minutes]);
+    }
+
+    private function askCancel(Booking $b, int $chatId): string
+    {
+        $text = __('telegram.after.cancel_ask', $this->esc(AfterBooking\BookingPeople::params($b)));
+        $free = $b->starts_at->greaterThan(now()->addHours((int) $b->venue->rule('free_cancel_hours')));
+        $this->bot->sendMessage($chatId, $text.($free ? '' : "\n\n".__('telegram.after.cancel_late')), [[[__('telegram.after.cancel_yes'), "cancelyes:{$b->id}"]]]);
+
+        return '';
+    }
+
+    private function cancelFromBot(Booking $b, User $user, int $chatId, int $messageId): string
+    {
+        app(\App\Domain\Booking\Actions\CancelBooking::class)->handle($b, $user, 'player');
+        if ($messageId) {
+            $this->bot->editMessageText($chatId, $messageId, __('telegram.after.cancelled', $this->esc(AfterBooking\BookingPeople::params($b))));
+        }
+
+        return __('telegram.status.cancelled');
+    }
+
+    private function rateFromBot(Booking $b, User $user, int $stars, int $chatId, int $messageId): string
+    {
+        app(AfterBooking\Reviews::class)->rate($b, $user, $stars);
+        if ($messageId) {
+            $this->bot->editMessageText($chatId, $messageId, __('telegram.after.rated', ['stars' => str_repeat('⭐', $stars)] + $this->esc(AfterBooking\BookingPeople::params($b))));
+        }
+
+        return __('telegram.after.thanks');
+    }
+
+    /** Message texts are HTML: escape names and places. */
+    private function esc(array $params): array
+    {
+        return array_map(fn ($v) => e((string) $v), $params);
+    }
+
+    /** The place answered "team not here?": replace the buttons with who answered what. */
+    private function staffAnswer(int $chatId, int $messageId, Booking $b, string $key, User $by): string
+    {
+        if ($messageId) {
+            $this->bot->editMessageText($chatId, $messageId, __($key, ['by' => e($by->name)] + $this->esc(AfterBooking\BookingPeople::params($b))));
+        }
+
+        return __($key.'_short');
     }
 
     private function reply(int $chatId, string $key, string $locale, array $replace = []): void

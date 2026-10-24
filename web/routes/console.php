@@ -14,6 +14,10 @@ Illuminate\Support\Facades\Schedule::call(function () {
     $jobs->completeEnded();
 })->everyMinute()->name('bookings:expire-and-complete')->withoutOverlapping();
 
+// after booking: reminders 24 h and 1 h before, "team not here?" to the place, "how was the field?" after the game
+Illuminate\Support\Facades\Schedule::call(fn () => app(App\Domain\Booking\AfterBooking\Reminders::class)->run())
+    ->everyMinute()->name('bookings:reminders')->withoutOverlapping();
+
 // games and chats: cancel games that did not reach 30% in 48 h, mark booked games as played,
 // make quiet game chats read-only after 7 days and delete them 30 days later
 Illuminate\Support\Facades\Schedule::call(function () {

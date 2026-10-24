@@ -762,8 +762,17 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <div v-if="user && !user.telegram && canLinkTelegram" class="tg-box">
                     <TelegramConnect compact />
                 </div>
+                <!-- the team gets the news and the reminders too -->
+                <div class="okteam">
+                    <Icon name="users" />
+                    <div>
+                        <b>{{ $t('player.team.okTitle') }}</b>
+                        <p class="muted">{{ $t('player.team.okSub') }}</p>
+                    </div>
+                </div>
                 <div class="okacts">
-                    <Link class="btn block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('player.ok.my') }}</Link>
+                    <Link class="btn block" :href="route('me.bookings', { team: okBooking.id })"><Icon name="users" size="sm" />{{ $t('player.team.add') }}</Link>
+                    <Link class="btn ghost block" :href="route('me.bookings')"><Icon name="ticket" size="sm" />{{ $t('player.ok.my') }}</Link>
                 </div>
             </div>
         </div>
@@ -772,6 +781,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 
 <style scoped>
 .pg { overflow-x: clip; }
+.okteam { display: flex; gap: 12px; align-items: flex-start; background: var(--surface-2); border-radius: 14px; padding: 12px 14px; margin: 0 0 12px; }
+.okteam > .ico { color: var(--accent); margin-top: 2px; flex: none; }
+.okteam b { font-size: 14.5px; }
+.okteam p { margin: 2px 0 0; font-size: 13px; }
 .backlink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; margin: 20px 0 14px; }
 .backlink:hover { color: var(--accent); }
 

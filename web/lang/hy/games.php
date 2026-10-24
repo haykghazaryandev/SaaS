@@ -178,7 +178,24 @@ return [
         'bookPick' => 'Ընտրիր սկսելու ժամը',
     ],
 
+    // positions in a game (optional); full names are in profile.positions
+    'pos' => [
+        'short' => ['goalkeeper' => 'ԴՊ', 'defender' => 'ՊՇ', 'midfielder' => 'ԿՊ', 'forward' => 'ՀՐ'],
+        'summary' => 'Դիրքեր',
+        'notSet' => 'առանց դիրքի՝ :n',
+        'noKeeper' => 'Դարպասապահ դեռ չկա',
+        'none' => 'Առանց դիրքի',
+        'pick' => 'Քո դիրքը (ըստ ցանկության)',
+        'set' => 'Ընտրիր դիրքդ',
+        'change' => 'Փոխել դիրքդ',
+        'title' => 'Քո դիրքն այս խաղում',
+        'hint' => 'Պարտադիր չէ։ Այսպես բոլորը կտեսնեն, թե ով որտեղ է խաղում։',
+        'save' => 'Պահպանել',
+    ],
+
     'done' => [
+        'position' => 'Քո դիրքը պահպանված է։',
+        'positionCleared' => 'Քո դիրքը հանված է։',
         'accepted' => 'Դու խաղում ես։',
         'declined' => 'Հրավերը մերժված է։',
         'joined' => 'Դու միացար խաղին։',

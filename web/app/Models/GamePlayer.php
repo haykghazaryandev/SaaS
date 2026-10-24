@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GamePlayer extends Model
 {
-    protected $fillable = ['game_id', 'user_id', 'status', 'invited_by', 'side', 'responded_at'];
+    /** Optional position in this game (the same values as the profile position). */
+    public const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward'];
+
+    protected $fillable = ['game_id', 'user_id', 'status', 'invited_by', 'side', 'position', 'responded_at'];
 
     protected function casts(): array
     {

@@ -12,6 +12,7 @@ use App\Http\Presenters\PlayerGames;
 use App\Http\Presenters\PlayerVenues;
 use App\Models\Field;
 use App\Models\Game;
+use App\Models\GamePlayer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
@@ -208,7 +209,10 @@ class GameController extends Controller
                 'invitedCount' => $game->players->where('status', P::Invited)->count(),
             ],
             'players' => $this->present->players($game, $me),
-            'can' => $can,
+            'can' => [...$can, 'position' => $in && in_array($status, S::ACTIVE, true)],
+            // the position choice (join, accept, change) starts from my profile position
+            'positions' => GamePlayer::POSITIONS,
+            'profilePosition' => $me?->position,
             'conversationId' => $in && $game->conversation ? $game->conversation->id : null,
             'friends' => $friends,
             'places' => $places,
@@ -221,13 +225,24 @@ class GameController extends Controller
     public function respond(Request $request, Game $game)
     {
         $accept = $request->boolean('accept');
+        $position = $this->positionFrom($request);
 
-        return $this->run(fn () => $this->games->respond($game, $request->user(), $accept), $accept ? __('games.done.accepted') : __('games.done.declined'), $request);
+        return $this->run(fn () => $this->games->respond($game, $request->user(), $accept, $position), $accept ? __('games.done.accepted') : __('games.done.declined'), $request);
     }
 
     public function join(Request $request, Game $game)
     {
-        return $this->run(fn () => $this->games->join($game, $request->user()), __('games.done.joined'), $request);
+        $position = $this->positionFrom($request);
+
+        return $this->run(fn () => $this->games->join($game, $request->user(), $position), __('games.done.joined'), $request);
+    }
+
+    /** PATCH /games/{game}/position: change or clear my own position in the game. */
+    public function position(Request $request, Game $game)
+    {
+        $position = $this->positionFrom($request);
+
+        return $this->run(fn () => $this->games->setPosition($game, $request->user(), $position), $position ? __('games.done.position') : __('games.done.positionCleared'), $request);
     }
 
     public function leave(Request $request, Game $game)
@@ -305,6 +320,14 @@ class GameController extends Controller
         }
 
         return back()->with('success', $done instanceof \Closure ? $done() : $done);
+    }
+
+    /** The optional position of join / accept / change; empty means "no position". */
+    private function positionFrom(Request $request): ?string
+    {
+        $data = $request->validate(['position' => ['nullable', 'string', Rule::in(GamePlayer::POSITIONS)]]);
+
+        return $data['position'] ?? null;
     }
 
     /** Games need a finished registration (a name the other players can see). */

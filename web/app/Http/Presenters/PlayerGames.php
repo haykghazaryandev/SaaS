@@ -96,6 +96,7 @@ class PlayerGames
         $creator = $me && $me->id === $g->creator_id;
         $map = fn ($list) => $list->map(fn (GamePlayer $p) => [
             ...$this->person($p->user), 'status' => $p->status->value, 'creator' => $p->user_id === $g->creator_id, 'me' => $me && $p->user_id === $me->id,
+            'position' => $p->position,
         ])->values()->all();
 
         return [

@@ -39,6 +39,8 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'email_verified_at' => 'datetime',
             'registered_at' => 'datetime',
             'blocked_until' => 'datetime',
+            'booking_ban_until' => 'datetime',
+            'penalty_reset_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
     }
@@ -82,6 +84,12 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         if ($admin && $this->phone === $admin && ! $this->is_admin) {
             $this->forceFill(['is_admin' => true])->save();
         }
+    }
+
+    /** Too many no-shows: no new booking requests until booking_ban_until (Penalties). */
+    public function isBookingBanned(): bool
+    {
+        return $this->booking_ban_until !== null && $this->booking_ban_until->isFuture();
     }
 
     public function isRegistered(): bool

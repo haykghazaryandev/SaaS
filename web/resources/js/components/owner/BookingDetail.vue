@@ -30,8 +30,13 @@ const holds = computed(() => b.value && ['pending', 'accepted'].includes(b.value
 const sourceLabel = computed(() => (b.value ? trans(`owner.source.${b.value.source}`) : ''));
 
 function noShow() {
-    if (!b.value) return;
+    if (!b.value || !window.confirm(trans('owner.a.no_show_ask'))) return;
     act('no-show', b.value.id, {}, () => emit('close'));
+}
+// "the team is here" (optional): then "how was the field?" goes to the players 30 min after the game
+function arrived() {
+    if (!b.value) return;
+    act('arrived', b.value.id, {}, () => emit('close'));
 }
 function accept() {
     if (!b.value) return;
@@ -56,6 +61,9 @@ function edit() {
                 <span :class="['pill', pill?.cls]">{{ pill?.label }}</span>
                 <span class="pill mono">{{ b.code }}</span>
                 <span v-if="b.weekly" class="pill">{{ $t('owner.b.weekly') }}</span>
+                <span v-if="b.arrived" class="pill green">{{ $t('owner.b.arrived') }}</span>
+                <span v-else-if="b.late_minutes && !b.past" class="pill warn">{{ $t('owner.b.late', { min: String(b.late_minutes) }) }}</span>
+                <span v-else-if="b.status === 'accepted' && b.started && !b.past" class="pill warn">{{ $t('owner.b.waiting') }}</span>
                 <button type="button" class="x" :aria-label="$t('owner.close')" @click="emit('close')"><Icon name="x" /></button>
             </div>
             <h3 style="font-size: 22px; margin-bottom: 2px">{{ b.name }}</h3>
@@ -143,7 +151,10 @@ function edit() {
                 <button v-if="b.status === 'accepted' && !b.started" type="button" class="btn ghost hot" data-test="cancel" @click="askCancel(b.id)">
                     {{ $t('owner.a.cancel') }}
                 </button>
-                <button v-if="b.status === 'accepted' && b.started" type="button" class="btn ghost hot" data-test="noshow" @click="noShow">
+                <button v-if="b.can_arrive" type="button" class="btn" data-test="arrived" @click="arrived">
+                    <Icon name="check" size="sm" />{{ $t('owner.a.arrived') }}
+                </button>
+                <button v-if="b.can_no_show" type="button" class="btn ghost hot" data-test="noshow" @click="noShow">
                     {{ $t('owner.a.no_show') }}
                 </button>
                 <a v-if="b.tel" class="btn ghost" :href="`tel:${b.tel}`"><Icon name="phone" size="sm" />{{ $t('owner.a.call') }}</a>

@@ -186,6 +186,12 @@ const chartDays = computed(() =>
                                 ><b>{{ $t('owner.today_page.now') }}</b> · {{ $t('owner.today_page.ends', { t: hhmm(l.current.end) }) }}</span
                             >
                             <span class="li-n">{{ l.current.team || l.current.name }}</span>
+                            <span v-if="l.current.arrived" class="li-at ok"><Icon name="check" size="sm" />{{ $t('owner.b.arrived') }}</span>
+                            <span v-else-if="l.current.status === 'accepted'" class="li-at warn"
+                                ><Icon name="clock" size="sm" />{{
+                                    l.current.late_minutes ? $t('owner.b.late', { min: String(l.current.late_minutes) }) : $t('owner.b.waiting')
+                                }}</span
+                            >
                             <span class="prog"><i :style="{ width: l.progress + '%' }" /></span>
                         </button>
                         <div class="nowl" aria-hidden="true">
@@ -203,6 +209,7 @@ const chartDays = computed(() =>
                                 >{{ hhmm(b.start) }}–{{ hhmm(b.end) }}<em v-if="statusLabel(kindOf(b))"> · {{ statusLabel(kindOf(b)) }}</em></span
                             >
                             <span class="li-n">{{ b.team || b.name }}</span>
+                            <span v-if="b.late_minutes" class="li-at warn"><Icon name="clock" size="sm" />{{ $t('owner.b.late', { min: String(b.late_minutes) }) }}</span>
                         </button>
                         <Link v-if="l.more" class="li-more" :href="route('owner.schedule')">{{
                             $t('owner.today_page.more_later', { n: l.more })

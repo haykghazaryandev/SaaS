@@ -102,9 +102,12 @@ class Games
         return $n;
     }
 
-    public function respond(Game $game, User $user, bool $accept): Game
+    /** $position: optional, the place I want to play in this game (see GamePlayer::POSITIONS). */
+    public function respond(Game $game, User $user, bool $accept, ?string $position = null): Game
     {
-        return DB::transaction(function () use ($game, $user, $accept) {
+        $position = $this->position($position);
+
+        return DB::transaction(function () use ($game, $user, $accept, $position) {
             $game = Game::lockForUpdate()->findOrFail($game->id);
             $row = GamePlayer::where('game_id', $game->id)->where('user_id', $user->id)->where('status', P::Invited)->first();
             if (! $row) {
@@ -118,17 +121,19 @@ class Games
             if (! in_array($game->status->value, ['forming', 'open'], true) || $game->inCount() >= $game->total_players) {
                 throw new SocialException('game_closed');
             }
-            $row->update(['status' => P::Accepted, 'responded_at' => now()]);
+            $row->update(['status' => P::Accepted, 'position' => $position, 'responded_at' => now()]);
             $this->afterJoin($game, $user);
 
             return $this->settle($game);
         });
     }
 
-    /** Join an open game that is shown to everyone. */
-    public function join(Game $game, User $user): Game
+    /** Join an open game that is shown to everyone ($position: optional, see respond()). */
+    public function join(Game $game, User $user, ?string $position = null): Game
     {
-        return DB::transaction(function () use ($game, $user) {
+        $position = $this->position($position);
+
+        return DB::transaction(function () use ($game, $user, $position) {
             $game = Game::lockForUpdate()->findOrFail($game->id);
             if ($game->status !== S::Open) {
                 throw new SocialException('game_closed');
@@ -146,12 +151,28 @@ class Games
             if ($game->inCount() >= $game->total_players) {
                 throw new SocialException('game_closed');
             }
-            $row->fill(['status' => P::Joined, 'responded_at' => now()])->save();
+            $row->fill(['status' => P::Joined, 'position' => $position, 'responded_at' => now()])->save();
             $this->afterJoin($game, $user);
             $game->creator->notify(new Notice('game_joined', ['name' => $user->name, 'format' => $game->format()], '/games/'.$game->id));
 
             return $this->settle($game);
         });
+    }
+
+    /** Change or clear (null) my own position; only players who are in an active game. */
+    public function setPosition(Game $game, User $user, ?string $position): GamePlayer
+    {
+        $position = $this->position($position);
+        if (! in_array($game->status->value, S::ACTIVE, true)) {
+            throw new SocialException('game_closed');
+        }
+        $row = GamePlayer::where('game_id', $game->id)->where('user_id', $user->id)->whereIn('status', P::IN)->first();
+        if (! $row) {
+            throw new SocialException('not_member');
+        }
+        $row->update(['position' => $position]);
+
+        return $row;
     }
 
     public function leave(Game $game, User $user): Game
@@ -274,6 +295,16 @@ class Games
     }
 
     // ---------- helpers ----------
+
+    /** The controller validates; this only keeps bad values out of the table when called from elsewhere. */
+    private function position(?string $position): ?string
+    {
+        if ($position !== null && ! in_array($position, GamePlayer::POSITIONS, true)) {
+            throw new \InvalidArgumentException("Unknown position: {$position}");
+        }
+
+        return $position;
+    }
 
     private function mustBeIn(Game $game, User $u): void
     {

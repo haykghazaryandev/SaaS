@@ -23,9 +23,16 @@ class Notice extends Notification implements ShouldQueue
     use Queueable;
 
     /** Types that also go to Telegram (people connected the bot to hear about these). */
-    public const TELEGRAM = ['slot_free', 'friend_request', 'game_invite', 'game_opened', 'game_full', 'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed'];
+    public const TELEGRAM = ['slot_free', 'friend_request', 'game_invite', 'game_opened', 'game_full', 'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed',
+        'booking_reminder_day', 'booking_reminder_hour', 'booking_team_added', 'booking_team_joined',
+        'booking_team_confirmed', 'booking_team_changed', 'booking_team_cancelled',
+        'booking_late', 'booking_not_here', 'booking_no_show', 'booking_ban', 'booking_rate'];
 
-    public function __construct(public string $type, public array $params = [], public ?string $link = null) {}
+    /**
+     * $buttons: Telegram button rows under the message, [[label key, callback data, label params], …],
+     * translated in the recipient's language when the message is sent, e.g. [[['telegram.button.late', 'late:12:10', ['min' => 10]]]].
+     */
+    public function __construct(public string $type, public array $params = [], public ?string $link = null, public array $buttons = []) {}
 
     public function via(object $notifiable): array
     {
@@ -56,17 +63,18 @@ class Notice extends Notification implements ShouldQueue
     {
         $locale = $notifiable->preferredLocale();
         $text = __('notice.'.$this->type, array_map(fn ($v) => e((string) $v), $this->params), $locale);
+        $rows = array_map(fn ($row) => array_map(fn ($b) => [__($b[0], $b[2] ?? [], $locale), $b[1]], $row), $this->buttons);
         if (! $this->link) {
-            return new TelegramMessage('notice.'.$this->type, $text);
+            return new TelegramMessage('notice.'.$this->type, $text, $rows);
         }
         // a button that opens the page logged in (https only); on a local http site the plain address instead
         $url = $notifiable instanceof \App\Models\User
             ? app(\App\Domain\Auth\LoginLinks::class)->make($notifiable, $this->link, \App\Domain\Auth\LoginLinks::NOTICE_MINUTES)
             : rtrim(config('app.url'), '/').$this->link;
         if (! str_starts_with($url, 'https://')) {
-            return new TelegramMessage('notice.'.$this->type, $text."\n".rtrim(config('app.url'), '/').$this->link);
+            return new TelegramMessage('notice.'.$this->type, $text."\n".rtrim(config('app.url'), '/').$this->link, $rows);
         }
 
-        return new TelegramMessage('notice.'.$this->type, $text, [[[__('telegram.button.open', [], $locale), $url]]]);
+        return new TelegramMessage('notice.'.$this->type, $text, [...$rows, [[__('telegram.button.open', [], $locale), $url]]]);
     }
 }

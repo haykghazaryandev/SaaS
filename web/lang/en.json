@@ -80,5 +80,10 @@
  "map.title": "Map",
  "auth.withTestAccount": "Test accounts (no Telegram)",
  "auth.phone.test_only": "Here only the test accounts log in with a code. Use Telegram for your own number.",
- "auth.testHint": "Test accounts: players 93 000 100 … 159, owners 91 000 001 … 008. The code is shown on screen."
+ "auth.testHint": "Test accounts: players 93 000 100 … 159, owners 91 000 001 … 008. The code is shown on screen.",
+ "booking.error.banned": "You missed games too often, so booking is paused for a while. See your notices for the date.",
+ "booking.error.not_yours": "Only the person who booked can do this.",
+ "booking.error.team_full": "The team is full for this field.",
+ "booking.error.bad_phone": "Enter a valid Armenian mobile number.",
+ "booking.error.rate_closed": "This game can't be rated anymore."
 }

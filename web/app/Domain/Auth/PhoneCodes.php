@@ -59,6 +59,7 @@ class PhoneCodes
         }
         $user->forceFill(['phone_verified_at' => $user->phone_verified_at ?? now(), 'last_seen_at' => now()])->save();
         $user->syncAdmin();
+        app(\App\Domain\Booking\AfterBooking\BookingTeam::class)->claimInvites($user);
 
         return $user;
     }

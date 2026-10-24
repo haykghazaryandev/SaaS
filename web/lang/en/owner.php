@@ -32,18 +32,18 @@ return [
         'recurring' => 'Regular booking (weekly)', 'game' => 'Booked for a game', 'tournament' => 'Tournament',
     ],
     'a' => [
-        'accept' => 'Accept', 'decline' => 'Decline', 'edit' => 'Edit', 'cancel' => 'Cancel booking', 'no_show' => 'Mark no-show',
+        'accept' => 'Accept', 'decline' => 'Decline', 'edit' => 'Edit', 'cancel' => 'Cancel booking', 'no_show' => 'Didn\'t come', 'arrived' => 'Arrived', 'no_show_ask' => 'Mark that the team didn\'t come? The player is told, and it counts against them.',
         'call' => 'Call', 'save' => 'Save', 'create' => 'Create booking', 'keep' => 'Keep it',
     ],
     'b' => [
         'field' => 'Field', 'when' => 'When', 'duration' => 'Duration', 'price' => 'Price', 'phone' => 'Phone', 'team' => 'Team',
         'player' => 'Bookball player', 'no_shows' => 'no-shows: :n', 'note_player' => 'Player note', 'note_owner' => 'Private note',
         'decline_reason' => 'Decline reason', 'cancel_reason' => 'Cancel reason', 'history' => 'History', 'weekly' => 'Weekly',
-        'tg_hint' => 'The player gets every change in Telegram', 'no_phone' => 'No phone, so no Telegram messages',
+        'tg_hint' => 'The player gets every change in Telegram', 'arrived' => 'Arrived', 'waiting' => 'Waiting for the team', 'late' => 'About :min min late', 'no_phone' => 'No phone, so no Telegram messages',
     ],
     'history' => [
         'requested' => 'Request sent', 'accepted' => 'Accepted', 'declined' => 'Declined', 'changed' => 'Changed',
-        'cancelled' => 'Cancelled', 'expired' => 'Expired (no answer)', 'no_show' => 'Marked as no-show', 'created_by_owner' => 'Added by the place',
+        'cancelled' => 'Cancelled', 'expired' => 'Expired (no answer)', 'no_show' => 'Marked as no-show', 'created_by_owner' => 'Added by the place', 'arrived' => 'Arrived', 'late' => 'Said they are late',
         'player' => 'player', 'system' => 'Bookball', 'reason' => 'Reason',
         'fields' => [
             'field_id' => 'Field', 'starts_at' => 'Start', 'ends_at' => 'End', 'price' => 'Price', 'contact_name' => 'Name',
@@ -64,7 +64,7 @@ return [
     ],
     'flash' => [
         'accepted' => 'Accepted · the player gets a Telegram message', 'declined' => 'Declined · the player gets a Telegram message',
-        'cancelled' => 'Booking cancelled', 'no_show' => 'Marked as no-show', 'saved' => 'Saved', 'created' => 'Booking added',
+        'cancelled' => 'Booking cancelled', 'no_show' => 'Marked as no-show', 'arrived' => 'Marked as arrived', 'saved' => 'Saved', 'created' => 'Booking added',
         'created_n' => ':n bookings added', 'skipped' => 'busy dates skipped: :dates', 'weekly_none' => 'All these dates are busy. Nothing was added.',
         'prices_saved' => 'Prices saved', 'closure_added' => 'Closure added', 'closure_overlap' => ':n bookings in this time are kept: call the players',
         'closure_removed' => 'Closure removed',
@@ -106,7 +106,7 @@ return [
         'rules' => 'Booking rules', 'auto' => 'Auto-accept regular customers', 'auto_s' => 'Players who often play here are confirmed at once',
         'free_cancel' => 'Free cancellation', 'free_cancel_s' => 'Players can cancel for free until this time before the game',
         'notice' => 'Minimum notice', 'notice_s' => 'How long before the start a request can be sent',
-        'expire' => 'Answer within', 'expire_s' => 'A request nobody answered expires after this time',
+        'grace' => 'Wait for late teams', 'grace_s' => 'Then you get a Telegram message: "Team not here?" with Arrived / Didn\'t come', 'expire' => 'Answer within', 'expire_s' => 'A request nobody answered expires after this time',
         'h_before' => ':n h before', 'none' => 'No limit', 'min' => ':n min', 'hours_n' => ':n h',
         'closures' => 'Closures', 'closures_note' => 'Close a field or the whole place for a time. Players can’t book it.',
         'no_closures' => 'No closures planned.', 'whole_place' => 'Whole place', 'reason' => 'Reason', 'from' => 'From', 'to' => 'To',

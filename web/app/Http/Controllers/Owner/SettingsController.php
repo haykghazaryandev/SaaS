@@ -31,6 +31,7 @@ class SettingsController extends OwnerController
         'min_notice_min' => 'required|integer|min:0|max:2880',
         'request_expire_min' => 'required|integer|min:15|max:2880',
         'auto_accept_regulars' => 'required|boolean',
+        'late_grace_min' => 'sometimes|integer|min:0|max:60',   // "team not here?" this long after the start
     ];
 
     public function show(Request $request, PriceCalculator $prices)
@@ -227,8 +228,10 @@ class SettingsController extends OwnerController
     {
         $data = array_intersect_key($data, self::RULES);
         $data['auto_accept_regulars'] = (bool) $data['auto_accept_regulars'];
-        foreach (['free_cancel_hours', 'min_notice_min', 'request_expire_min'] as $k) {
-            $data[$k] = (int) $data[$k];
+        foreach (['free_cancel_hours', 'min_notice_min', 'request_expire_min', 'late_grace_min'] as $k) {
+            if (array_key_exists($k, $data)) {
+                $data[$k] = (int) $data[$k];
+            }
         }
         $venue->forceFill(['rules' => [...($venue->rules ?? []), ...$data]])->save();
     }

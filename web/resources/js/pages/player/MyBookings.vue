@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import Avatar from '@/components/Avatar.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
+import TeamSheet, { type FriendRow } from '@/components/player/TeamSheet.vue';
 import TelegramBanner from '@/components/player/TelegramBanner.vue';
 import { amd, useShared } from '@/composables/useShared';
 import { dateLong, dayDiff, directionLinks, nextLabel, yerevanToday } from '@/composables/usePlayer';
@@ -11,6 +13,8 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // My bookings: the title, then upcoming bookings grouped under day headers (no past bookings), in compact cards.
+// Also the games a friend added you to ("Booked by Aram", with "Leave"). The booker adds the team (TeamSheet): they get
+// the reminders too. "Running late?" chips from 3 h before until the grace time after the start tell the place.
 // Each card: "Directions" (a menu with Google Maps / Yandex Maps) and "Call place"; Cancel in the ⋯ menu with a
 // confirmation sheet. Then the "notify me if it frees up" times. No profile block: logout lives in Profile.
 interface AlertRow {
@@ -28,6 +32,8 @@ interface AlertRow {
 const props = defineProps<{
     upcoming: PlayerBooking[];
     alerts: AlertRow[];
+    friends: FriendRow[];
+    openTeam: number | null;
 }>();
 const { user } = useShared();
 
@@ -102,6 +108,21 @@ function cancel() {
         },
     );
 }
+// ---------- the team ----------
+const teamFor = ref<number | null>(props.openTeam);   // ?team=<id> right after booking opens it
+const teamBooking = computed(() => props.upcoming.find((b) => b.id === teamFor.value && b.role === 'booker') ?? null);
+const teamPeople = (b: PlayerBooking) => (b.team ?? []).filter((p) => p.status === 'joined' && p.user).map((p) => p.user!);
+function leave(b: PlayerBooking) {
+    menuFor.value = null;
+    if (window.confirm(trans('player.team.leaveAsk'))) router.post(route('bookings.leave', b.id), {}, { preserveScroll: true });
+}
+
+// ---------- running late ----------
+const lateOpen = ref<number | null>(null);
+function sayLate(b: PlayerBooking, minutes: number) {
+    router.post(route('bookings.late', b.id), { minutes }, { preserveScroll: true, onSuccess: () => (lateOpen.value = null) });
+}
+
 function removeAlert(a: AlertRow) {
     router.delete(route('alerts.destroy', a.id), { preserveScroll: true });
 }
@@ -151,7 +172,7 @@ const canLinkTelegram = computed(() => {
                 <div class="bk-main">
                     <div class="bk-l1">
                         <h3><Link :href="route('places.show', { venue: b.venue.slug })">{{ b.venue.name }}</Link></h3>
-                        <div v-if="b.canCancel" class="menu-wrap">
+                        <div v-if="b.canCancel || b.role === 'member'" class="menu-wrap">
                             <button
                                 type="button"
                                 class="menu-btn"
@@ -164,8 +185,14 @@ const canLinkTelegram = computed(() => {
                             </button>
                             <div v-if="menuFor === `more-${b.id}`" class="menu" role="menu">
                                 <Link role="menuitem" :href="placeUrl(b)"><Icon name="calendar" size="sm" />{{ $t('player.my.openPlace') }}</Link>
-                                <button role="menuitem" type="button" class="danger" @click="askCancel(b)">
+                                <button v-if="b.role === 'booker'" role="menuitem" type="button" @click="(menuFor = null), (teamFor = b.id)">
+                                    <Icon name="users" size="sm" />{{ $t('player.team.manage') }}
+                                </button>
+                                <button v-if="b.canCancel" role="menuitem" type="button" class="danger" @click="askCancel(b)">
                                     <Icon name="x" size="sm" />{{ b.status === 'pending' ? $t('player.my.withdraw') : $t('player.my.cancel') }}
+                                </button>
+                                <button v-if="b.role === 'member'" role="menuitem" type="button" class="danger" @click="leave(b)">
+                                    <Icon name="logout" size="sm" />{{ $t('player.team.leave') }}
                                 </button>
                             </div>
                         </div>
@@ -189,6 +216,29 @@ const canLinkTelegram = computed(() => {
                     <div v-if="b.status === 'declined' && b.declineReason" class="extra hot">{{ $t('player.my.reason', { r: b.declineReason }) }}</div>
                     <div v-if="b.status === 'cancelled' && b.cancelledBy && b.cancelledBy !== 'player'" class="extra">
                         {{ b.cancelledBy === 'owner' ? $t('player.my.byPlace') : $t('player.my.bySystem') }}<template v-if="b.cancelReason"> · {{ $t('player.my.reason', { r: b.cancelReason }) }}</template>
+                    </div>
+                    <!-- the team: avatars, "Booked by" for members, "Add your team" for the booker -->
+                    <div v-if="b.role" class="teamrow">
+                        <span v-if="b.role === 'member' && b.booker" class="by">
+                            <Avatar :id="b.booker.id" :name="b.booker.name" :src="b.booker.avatar" size="xs" />{{ $t('player.team.bookedBy', { name: b.booker.name ?? '' }) }}
+                        </span>
+                        <span v-if="teamPeople(b).length" class="faces" :title="teamPeople(b).map((u) => u.name).join(', ')">
+                            <Avatar v-for="u in teamPeople(b).slice(0, 5)" :id="u.id" :key="u.id" :name="u.name" :src="u.avatar" size="xs" />
+                            <small>{{ $t('player.team.inTeam', { n: String(teamPeople(b).length + 1) }) }}</small>
+                        </span>
+                        <button v-if="b.role === 'booker'" type="button" :class="['btn sm', teamPeople(b).length ? 'link' : 'ghost']" @click="teamFor = b.id">
+                            <Icon name="users" size="sm" />{{ teamPeople(b).length ? $t('player.team.manage') : $t('player.team.add') }}
+                        </button>
+                    </div>
+                    <p v-if="b.role === 'booker' && !(b.team ?? []).length && b.status !== 'cancelled'" class="hint-team">{{ $t('player.team.nudge') }}</p>
+                    <!-- running late? -->
+                    <div v-if="b.lateMinutes" class="late-said"><Icon name="clock" size="sm" />{{ $t('player.late.said', { min: String(b.lateMinutes) }) }}</div>
+                    <div v-if="b.canLate" class="late">
+                        <button v-if="lateOpen !== b.id" type="button" class="btn outline sm" @click="lateOpen = b.id"><Icon name="clock" size="sm" />{{ $t('player.late.ask') }}</button>
+                        <div v-else class="chips" role="group" :aria-label="$t('player.late.ask')">
+                            <button v-for="m in b.lateOptions ?? []" :key="m" type="button" class="chip" @click="sayLate(b, m)">~{{ m }} {{ $t('player.min') }}</button>
+                            <button type="button" class="chip" :aria-label="$t('player.close')" @click="lateOpen = null"><Icon name="x" size="sm" /></button>
+                        </div>
                     </div>
                     <div v-if="freeUntil(b)" class="rule"><Icon name="check" size="sm" />{{ $t('player.my.freeUntil', { t: freeUntil(b) ?? '' }) }}</div>
                     <div class="acts">
@@ -231,6 +281,8 @@ const canLinkTelegram = computed(() => {
                 </div>
             </div>
         </section>
+
+        <TeamSheet v-if="teamBooking" :booking="teamBooking" :friends="friends" @close="teamFor = null" />
 
         <!-- cancel -->
         <div v-if="cancelling" class="scrim" @click.self="cancelling = null">
@@ -286,6 +338,16 @@ const canLinkTelegram = computed(() => {
 .extra.hot { color: var(--hot); }
 .rule { display: flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 700; color: var(--st-confirmed); }
 .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.teamrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 4px; font-size: 13px; }
+.teamrow .by { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 700; }
+.faces { display: inline-flex; align-items: center; }
+.faces :deep(.avatar-c) { margin-right: -6px; box-shadow: 0 0 0 2px var(--surface); }
+.faces small { margin-left: 12px; color: var(--muted); font-weight: 700; }
+.teamrow .btn.link { padding-left: 0; }
+.hint-team { margin: 0; font-size: 12.5px; color: var(--muted); }
+.late { margin-top: 4px; }
+.late .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.late-said { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 700; color: var(--st-pending); }
 .acts:empty { display: none; }
 
 .alerts { padding: 4px 12px; }

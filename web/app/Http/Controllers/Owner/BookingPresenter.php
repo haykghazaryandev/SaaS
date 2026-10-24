@@ -61,6 +61,11 @@ final class BookingPresenter
             'weekly' => $b->series_id !== null,
             'started' => $b->starts_at->isPast(),
             'past' => $b->ends_at->isPast(),
+            // at the field: "Arrived ✓" (optional), "about 10 min late", "Didn't come" until 12:00 the next day
+            'arrived' => $b->arrived_at !== null,
+            'late_minutes' => $b->late_minutes,
+            'can_arrive' => \App\Domain\Booking\AfterBooking\Attendance::canArrive($b),
+            'can_no_show' => \App\Domain\Booking\AfterBooking\Attendance::canNoShow($b),
             'user' => $b->relationLoaded('user') && $b->user ? ['id' => $b->user->id, 'name' => $b->user->name, 'avatar' => $b->user->avatarUrl(), 'no_shows' => (int) $b->user->no_show_count] : null,
             'sent_ago' => $b->created_at?->locale(app()->getLocale())->diffForHumans(),
         ];

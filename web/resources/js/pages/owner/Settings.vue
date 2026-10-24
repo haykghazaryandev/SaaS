@@ -37,7 +37,7 @@ const props = defineProps<{
     place: { name: string; address: string | null; district: string; phone: string | null; tel: string | null; status: string };
     prices: PriceRow[];
     hours: HourRow[];
-    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean };
+    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number };
     closures: ClosureRow[];
 }>();
 const owner = useOwner();
@@ -182,6 +182,7 @@ function removePhone() {
 const CANCEL_H = [0, 2, 6, 12, 24, 48];
 const NOTICE = [0, 30, 60, 120, 240];
 const EXPIRE = [30, 60, 120, 240, 720];
+const GRACE = [5, 10, 15, 20, 30];
 const mins = (m: number) =>
     m === 0 ? trans('owner.settings.none') : m < 60 ? trans('owner.settings.min', { n: m }) : trans('owner.settings.hours_n', { n: m / 60 });
 const withCurrent = (list: number[], v: number) => [...new Set([...list, v])].sort((a, b) => a - b);
@@ -478,6 +479,15 @@ const fmtRange = (c: ClosureRow) =>
                                 :aria-label="$t('owner.settings.expire')"
                             >
                                 <option v-for="n in withCurrent(EXPIRE, state.rules.request_expire_min)" :key="n" :value="n">{{ mins(n) }}</option>
+                            </select>
+                        </div>
+                        <div class="srow stack">
+                            <div>
+                                <b>{{ $t('owner.settings.grace') }}</b
+                                ><small>{{ $t('owner.settings.grace_s') }}</small>
+                            </div>
+                            <select v-model.number="state.rules.late_grace_min" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.grace')">
+                                <option v-for="n in withCurrent(GRACE, state.rules.late_grace_min)" :key="n" :value="n">{{ mins(n) }}</option>
                             </select>
                         </div>
                         <span v-if="errOf('rules')" class="err">{{ errOf('rules') }}</span>
