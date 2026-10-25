@@ -8,6 +8,7 @@ export interface ChatUser {
     id: number;
     name: string | null;
     username: string | null;
+    avatar?: string | null;
 }
 export interface ChatMessage {
     id: number;

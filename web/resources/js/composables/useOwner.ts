@@ -1,3 +1,4 @@
+import type { FormDataConvertible } from '@inertiajs/core';
 import { hhmm } from '@/composables/useShared';
 import { router, usePage } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
@@ -53,7 +54,7 @@ export interface BookingRow {
     late_minutes?: number | null;
     can_arrive?: boolean;
     can_no_show?: boolean;
-    user: { id: number; name: string | null; no_shows: number } | null;
+    user: { id: number; name: string | null; avatar?: string | null; no_shows: number } | null;
     sent_ago: string | null;
 }
 
@@ -113,8 +114,7 @@ export const askCancel = (id: number) => {
 };
 
 /** POST an action (accept, decline, cancel, no-show); a broken rule comes back as errors.booking. */
-export function act(name: 'accept' | 'decline' | 'cancel' | 'no-show' | 'arrived', id: number, data: Record<string, unknown> = {}, done?: () => void) {
-    // @ts-ignore
+export function act(name: 'accept' | 'decline' | 'cancel' | 'no-show' | 'arrived', id: number, data: Record<string, FormDataConvertible> = {}, done?: () => void) {
     router.post(route(`owner.bookings.${name}`, id), data, {
         preserveScroll: true,
         preserveState: true,

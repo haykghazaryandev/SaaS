@@ -47,7 +47,7 @@ export interface GameCard {
     window: GameWindow | null;
     note: string | null;
     creator: GamePerson;
-    avatars: { id?: number; initials: string; name: string | null }[];
+    avatars: { id?: number; initials: string; name: string | null; avatar?: string | null }[];
     booking: GameBooking | null;
     me: string | null;
     mine: boolean;

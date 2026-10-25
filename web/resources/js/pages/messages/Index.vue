@@ -12,7 +12,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 // Chats: direct and game chats with the last message; unread ones bold with a count; closed (archived) chats below.
 // "New message" opens a friend picker (friends are loaded on demand) and starts the direct chat (messages.direct).
 // Live: private-user.{id} ".chat.updated" reloads the list.
-const props = defineProps<{ chats: ChatItem[]; archived: ChatItem[]; friends?: { id: number; name: string; username: string | null }[] }>();
+const props = defineProps<{ chats: ChatItem[]; archived: ChatItem[]; friends?: { id: number; name: string; username: string | null; avatar?: string | null }[] }>();
 const { user } = useShared();
 
 function preview(c: ChatItem): string {

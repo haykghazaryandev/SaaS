@@ -100,7 +100,8 @@ function pickField(id: number) {
 }
 
 const status = computed(() => {
-    if (form.errors.booking) return { ok: false, text: form.errors.booking };
+    const ruleError = (form.errors as Record<string, string | undefined>).booking;
+    if (ruleError) return { ok: false, text: ruleError };
     if (!quote.value || !moved.value) return null;
     return quote.value.problem ? { ok: false, text: quote.value.message || '' } : { ok: true, text: trans('owner.form.free') };
 });

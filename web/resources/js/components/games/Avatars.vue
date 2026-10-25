@@ -2,7 +2,7 @@
 import Avatar from '@/components/Avatar.vue';
 
 // A row of overlapping avatars (the shared Avatar, G3), "+N" for the rest.
-defineProps<{ people: { id?: number; initials: string; name: string | null }[]; more?: number }>();
+defineProps<{ people: { id?: number; initials: string; name: string | null; avatar?: string | null }[]; more?: number }>();
 </script>
 
 <template>

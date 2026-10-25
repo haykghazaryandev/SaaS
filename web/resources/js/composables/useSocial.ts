@@ -36,7 +36,6 @@ const POLL_MS = 30_000;
 let liveFor: number | null = null;
 let pollTimer: number | undefined;
 let toastTimer: number | undefined;
-let refreshTimer: number | undefined;
 let attached: EchoLike | null = null;
 
 function xsrf(): string {
@@ -73,11 +72,6 @@ export async function refresh(): Promise<void> {
     }
 }
 
-/** A few events can come at once (a chat message to many people): refresh once. */
-function refreshSoon() {
-    clearTimeout(refreshTimer);
-    refreshTimer = window.setTimeout(refresh, 400);
-}
 
 /** Mark one notice (or all of them) as read. */
 export async function markRead(id?: string): Promise<void> {
@@ -107,7 +101,6 @@ async function onNotice(n: Record<string, unknown>) {
     // Laravel puts the notification class in "type". The broadcast text is in the user's saved language;
     // the bell list is rendered in the page language, so prefer that text once it is loaded.
     social.counts.notifications++;
-    clearTimeout(refreshTimer);
     await refresh();
     const item = social.items.find((i) => i.id === n.id);
     const text = item?.text || (typeof n.text === 'string' ? n.text : '');

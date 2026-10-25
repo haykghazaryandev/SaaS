@@ -27,7 +27,7 @@ DB_DATABASE=bookball_test_2 ./vendor/bin/pest   # second test database
 vendor/bin/pint                       # PHP style
 npm run lint                          # ESLint --fix
 npm run format                        # Prettier
-npx vue-tsc --noEmit                  # TS check (a few known warnings: numbers passed to translations)
+npx vue-tsc --noEmit                  # TS check (CI runs it and ESLint: both must be clean)
 ```
 
 PostgreSQL is required (MySQL/SQLite will not work: bookings rely on an exclusion constraint + btree_gist). Redis is

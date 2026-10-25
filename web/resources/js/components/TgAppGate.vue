@@ -53,7 +53,7 @@ async function login() {
         const userId = (page.props.auth as { user?: { id: number } | null })?.user?.id;
         // already logged in as this person on this page: nothing to do; otherwise show the page with the account
         const samePage = new URL(d.redirect, location.origin).pathname === location.pathname;
-        if (userId !== d.user_id) samePage ? router.reload() : go(d.redirect);
+        if (userId !== d.user_id && samePage) router.reload();
         else if (!samePage) go(d.redirect);
     } catch (e) {
         error.value = (e as Error).message;

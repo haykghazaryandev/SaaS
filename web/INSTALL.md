@@ -151,7 +151,7 @@ Notes:
 vendor/bin/pint            # PHP (Laravel style)
 npm run lint               # ESLint (fixes what it can)
 npm run format             # Prettier
-npx vue-tsc --noEmit       # TypeScript check (a few known warnings: numbers passed to translations)
+npx vue-tsc --noEmit       # TypeScript check (CI runs it and ESLint: both must be clean)
 ```
 
 ---
