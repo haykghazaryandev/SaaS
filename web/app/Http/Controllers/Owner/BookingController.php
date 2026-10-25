@@ -51,7 +51,19 @@ class BookingController extends OwnerController
             'message' => $problem ? __('booking.error.'.$problem) : null,
             'player' => $player ? ['name' => $player->name, 'no_shows' => (int) $player->no_show_count] : null,
             'phoneValid' => ! filled($data['phone'] ?? null) || $phone !== null,
+            // the start times of the chosen day for this field and length, like the booking page: free (green) and taken
+            ...$this->dayStarts($availability, $field, LocalTime::day($data['date']), (int) $data['minutes'], $ignore),
         ]);
+    }
+
+    private function dayStarts(Availability $availability, Field $field, CarbonImmutable $day, int $minutes, ?int $ignore): array
+    {
+        $busy = $availability->busy($field, $day, $ignore);
+
+        return [
+            'starts' => $availability->freeStarts($field, $day, $minutes, false, $busy),
+            'taken' => $availability->takenStarts($field, $day, $minutes, false, $busy),
+        ];
     }
 
     public function store(Request $request, OwnerBooking $owner)

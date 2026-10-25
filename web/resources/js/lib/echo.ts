@@ -1,6 +1,6 @@
 import { configureEcho, echo } from '@laravel/echo-vue';
 import type Echo from 'laravel-echo';
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Live updates over Laravel Reverb (see README "Real time").
 // One connection per logged-in user, shared by window.Echo and the @laravel/echo-vue hooks (useEcho, useEchoNotification).
@@ -82,3 +82,36 @@ export function stopEcho(): void {
 
 /** true while the websocket is up (otherwise pages fall back to polling) */
 export const echoConnected = () => echoState.value === 'connected';
+
+/**
+ * Listen to one event on a channel while the calling component lives ("private" = private-…, else a public channel).
+ * Joins again when the connection comes back or the user changes (a new Echo). Call inside setup().
+ */
+export function useLive(channel: () => string | null, event: string, cb: (data: Record<string, unknown>) => void, isPrivate = false): void {
+    let joined: { echo: Echo<'reverb'>; name: string } | null = null;
+    const leave = () => {
+        if (joined) {
+            try {
+                joined.echo.leave(joined.name);
+            } catch {
+                /* gone */
+            }
+        }
+        joined = null;
+    };
+    const join = () => {
+        const e = window.Echo;
+        const name = channel();
+        if (!e || !name || echoState.value !== 'connected') return;
+        if (joined && joined.echo === e && joined.name === name) return;
+        leave();
+        (isPrivate ? e.private(name) : e.channel(name)).listen(`.${event}`, cb);
+        joined = { echo: e, name };
+    };
+    onMounted(join);
+    const stop = watch([echoState, channel], join);
+    onBeforeUnmount(() => {
+        stop();
+        leave();
+    });
+}

@@ -5,7 +5,7 @@ import { dur, useOwner, weekdayOf, type FormOpts } from '@/composables/useOwner'
 import { hhmm } from '@/composables/useShared';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Create or edit a booking (phone calls, walk-ins, regular teams). The price comes from the place's prices and can be changed.
 const props = defineProps<{ opts: FormOpts }>();
@@ -43,15 +43,19 @@ const quote = ref<{
     message: string | null;
     player: { name: string | null; no_shows: number } | null;
     phoneValid: boolean;
+    starts?: number[];
+    taken?: number[];
 } | null>(null);
 
-const times = computed(() => {
-    const h = owner.value.hours[weekdayOf(form.date || owner.value.today)] ?? [0, 24];
-    const out: string[] = [];
-    for (let t = h[0]; t < h[1]; t += 0.5) out.push(hhmm(t));
-    if (!out.includes(form.start)) out.unshift(form.start);
-    return out;
+// start times of the day for this field and length (from the quote): free ones to pick, taken ones struck through
+const chips = computed(() => {
+    const q = quote.value;
+    if (!q?.starts) return [];
+    const out = [...q.starts.map((t) => ({ t: hhmm(t), h: t, taken: false })), ...(q.taken ?? []).map((t) => ({ t: hhmm(t), h: t, taken: true }))];
+    if (!out.some((c) => c.t === form.start)) out.push({ t: form.start, h: toH(form.start), taken: !!q.problem });
+    return out.sort((a, c) => a.h - c.h);
 });
+const toH = (t: string) => Number(t.slice(0, 2)) + Number(t.slice(3, 5)) / 60;
 const durations = computed(() => {
     const set = new Set([60, 90, 120, 150, 180, ...(fields.value.find((f) => f.id === form.field_id)?.durations ?? []), form.minutes]);
     return [...set].sort((a, c) => a - c);
@@ -79,6 +83,13 @@ async function refresh() {
         });
         if (!r.ok || my !== seq) return;
         quote.value = await r.json();
+        // a new day or length: if the picked time isn't free, take the first free one at or after it
+        const got = quote.value;
+        if (got?.problem && got.starts?.length && moved.value) {
+            const h = toH(form.start);
+            const next = got.starts.find((t) => t >= h - 1e-9) ?? got.starts[0];
+            if (hhmm(next) !== form.start) form.start = hhmm(next);
+        }
         // keep the price of an edited booking until its time changes; new bookings follow the price list
         if (!touched.value && quote.value && (!b || moved.value)) form.price = quote.value.price;
     } catch {
@@ -92,6 +103,10 @@ const later = () => {
 watch(() => [form.field_id, form.date, form.start, form.minutes], refresh);
 watch(() => form.phone, later);
 onMounted(refresh);
+// someone else booked or freed a time meanwhile (OwnerLayout passes on the live signal)
+const onLive = () => refresh();
+onMounted(() => window.addEventListener('bb:schedule', onLive));
+onBeforeUnmount(() => window.removeEventListener('bb:schedule', onLive));
 
 function pickField(id: number) {
     form.field_id = id;
@@ -144,16 +159,28 @@ function submit() {
                     <input id="fd" v-model="form.date" class="input" type="date" required />
                 </div>
                 <div class="field">
-                    <label for="fs">{{ $t('owner.form.start') }}</label>
-                    <select id="fs" v-model="form.start" class="input">
-                        <option v-for="t in times" :key="t" :value="t">{{ t }}</option>
-                    </select>
-                </div>
-                <div class="field">
                     <label for="fu">{{ $t('common.duration') }}</label>
                     <select id="fu" v-model.number="form.minutes" class="input">
                         <option v-for="d in durations" :key="d" :value="d">{{ dur(d) }}</option>
                     </select>
+                </div>
+                <!-- start: the day's times like on the booking page (green = free, struck = taken) -->
+                <div class="field fstart">
+                    <label>{{ $t('owner.form.start') }}</label>
+                    <div v-if="chips.length" class="tchips" role="group" :aria-label="$t('owner.form.start')">
+                        <button
+                            v-for="c in chips"
+                            :key="c.t"
+                            type="button"
+                            :class="['tc', { taken: c.taken, on: c.t === form.start }]"
+                            :aria-pressed="c.t === form.start"
+                            :disabled="c.taken && c.t !== form.start"
+                            @click="form.start = c.t"
+                        >
+                            {{ c.t }}
+                        </button>
+                    </div>
+                    <p v-else-if="quote" class="faint nofree">{{ $t('owner.form.no_free') }}</p>
                 </div>
                 <div class="field">
                     <label for="fp">{{ $t('owner.form.price') }}</label>

@@ -209,7 +209,8 @@ it('gives the schedule day, week and list data', function () {
         ->where('view', 'week')
         ->has('week.days', 7)
         ->where("week.days.0.fields.{$this->small->id}.pending", 1)
-        ->where("week.days.0.fields.{$this->small->id}.blocks.0.kind", 'pending'));
+        ->where("week.days.0.fields.{$this->small->id}.blocks.0.kind", 'pending')
+        ->where("week.days.0.fields.{$this->small->id}.free", [[8, 20], [21, 24]]));
     $this->actingAs($this->owner)->get('/owner/schedule?view=list')->assertInertia(fn (Assert $p) => $p->where('view', 'list')->has('list.rows', 1));
     $this->actingAs($this->owner)->get('/owner/schedule?view=nope')->assertSessionHasErrors('view');
 });
@@ -337,4 +338,54 @@ it('saves prices, hours, rules and the place phone with one "Save changes"', fun
 
     // staff can't
     $this->actingAs($this->staff)->put('/owner/settings', ['phone' => '091000000'])->assertForbidden();
+});
+
+// ---------- live schedule and walk-ins ----------
+
+it('lets the place book the half hour that has already begun, but not earlier', function () {
+    [$day, $t2000, $t2030] = [at(0), at(20), at(20.5)];
+    $this->travelTo(App\Support\LocalTime::at($day, 20 + 40 / 60)); // 20:40
+    $avail = app(Availability::class);
+    expect($avail->problem($this->small, $t2030, 60, forPlayer: false))->toBeNull()
+        ->and($avail->problem($this->small, $t2000, 60, forPlayer: false))->toBe('past')
+        ->and($avail->problem($this->small, $t2030, 60))->toBe('past')
+        ->and($avail->freeStarts($this->small, $day, 60, false))->toContain(20.5)->not->toContain(20.0);
+});
+
+it('tells owner pages and the booking page at once when the times change', function () {
+    Illuminate\Support\Facades\Event::fake([App\Domain\Booking\Events\ScheduleChanged::class]);
+    $b = pendingRequest($this, 20);
+    $day = at(20)->toDateString();
+    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Booking\Events\ScheduleChanged::class,
+        fn ($e) => $e->venueId === $this->venue->id && $e->dates === [$day]
+            && collect($e->broadcastOn())->map->name->all() === ["private-venue.{$this->venue->id}", "place.{$this->venue->id}"]);
+    // a moved booking updates both days; a reminder written to the row does not count
+    Illuminate\Support\Facades\Event::fake([App\Domain\Booking\Events\ScheduleChanged::class]);
+    $b->update(['reminded_day_at' => now()]);
+    Illuminate\Support\Facades\Event::assertNotDispatched(App\Domain\Booking\Events\ScheduleChanged::class);
+    $b->update(['starts_at' => at(20, 1)->utc(), 'ends_at' => at(21, 1)->utc()]);
+    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Booking\Events\ScheduleChanged::class, fn ($e) => $e->dates === [at(20, 1)->toDateString(), $day]);
+});
+
+
+it('lists the free time of each field the way players see it, also where a request expired', function () {
+    pendingRequest($this, 20);
+    app(OwnerBooking::class)->create($this->owner, $this->small, at(10), 90, ['name' => 'Morning']);
+    Booking::create([
+        'code' => 'BB-903', 'venue_id' => $this->venue->id, 'field_id' => $this->small->id, 'user_id' => $this->player->id,
+        'starts_at' => at(14)->utc(), 'ends_at' => at(15)->utc(), 'status' => 'expired', 'source' => 'player', 'contact_name' => 'Nobody answered', 'price' => 1,
+    ]);
+    Closure::create(['venue_id' => $this->venue->id, 'field_id' => null, 'starts_at' => at(22)->utc(), 'ends_at' => at(23)->utc(), 'reason' => 'Lights']);
+    $date = at(0)->toDateString();
+    $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
+        ->where("day.free.{$this->small->id}", [[8, 10], [11.5, 20], [21, 22], [23, 24]])
+        ->where("day.free.{$this->big->id}", [[8, 22], [23, 24]]));
+});
+
+it('gives the booking form the free and taken start times of the day', function () {
+    app(OwnerBooking::class)->create($this->owner, $this->small, at(20), 60, ['name' => 'Busy']);
+    $q = ['field_id' => $this->small->id, 'date' => at(0)->toDateString(), 'start' => '19:00', 'minutes' => 60];
+    $r = $this->actingAs($this->owner)->getJson('/owner/bookings/quote?'.http_build_query($q))->assertOk()->json();
+    expect($r['starts'])->toContain(8, 19, 21, 23)->not->toContain(19.5, 20, 20.5, 23.5)
+        ->and($r['taken'])->toBe([19.5, 20, 20.5]);
 });

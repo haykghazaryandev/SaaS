@@ -3409,6 +3409,11 @@
         "hy": "Զանգերի, այցելուների և մշտական թիմերի համար",
         "ru": "Для звонков, гостей без брони и постоянных команд"
     },
+    "owner.form.no_free": {
+        "en": "No free time on this day for this length. Try another day, field or length.",
+        "hy": "Այս օրը այս տևողությամբ ազատ ժամ չկա։ Փորձեք այլ օր, դաշտ կամ տևողություն։",
+        "ru": "В этот день нет свободного времени такой длины. Попробуйте другой день, поле или длительность."
+    },
     "owner.form.note_placeholder": {
         "en": "Only your staff sees it",
         "hy": "Տեսնում են միայն ձեր աշխատակիցները",
@@ -3614,10 +3619,20 @@
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
     },
+    "owner.schedule.book": {
+        "en": "Book",
+        "hy": "Ամրագրել",
+        "ru": "Забронировать"
+    },
     "owner.schedule.booked": {
         "en": ":h h booked · :n bookings",
         "hy": ":h ժ ամրագրված · :n ամրագրում",
         "ru": "занято :h ч · броней: :n"
+    },
+    "owner.schedule.bookings_n": {
+        "en": "Bookings: :n",
+        "hy": "Ամրագրումներ՝ :n",
+        "ru": "Брони: :n"
     },
     "owner.schedule.calendar": {
         "en": "Pick a date",
@@ -3638,6 +3653,16 @@
         "en": "Day",
         "hy": "Օր",
         "ru": "День"
+    },
+    "owner.schedule.earlier": {
+        "en": "Earlier today",
+        "hy": "Այսօր ավելի վաղ",
+        "ru": "Раньше сегодня"
+    },
+    "owner.schedule.earlier_n": {
+        "en": "Bookings: :n",
+        "hy": "Ամրագրումներ՝ :n",
+        "ru": "Брони: :n"
     },
     "owner.schedule.expired": {
         "en": "Expired",
@@ -3664,6 +3689,16 @@
         "hy": "Սպասող",
         "ru": "Ожидают"
     },
+    "owner.schedule.free_len": {
+        "en": ":d free",
+        "hy": ":d ազատ",
+        "ru": ":d свободно"
+    },
+    "owner.schedule.free_row": {
+        "en": "Free",
+        "hy": "Ազատ",
+        "ru": "Свободно"
+    },
     "owner.schedule.hint": {
         "en": "Tap an empty time to add a booking",
         "hy": "Հպեք ազատ ժամին՝ ամրագրում ավելացնելու համար",
@@ -3679,20 +3714,40 @@
         "hy": "Ցանկ",
         "ru": "Список"
     },
+    "owner.schedule.more_n": {
+        "en": "+:n more",
+        "hy": "+ևս :n",
+        "ru": "ещё :n"
+    },
     "owner.schedule.next": {
         "en": "Forward",
         "hy": "Առաջ",
         "ru": "Вперёд"
+    },
+    "owner.schedule.no_free_left": {
+        "en": "No free time left",
+        "hy": "Ազատ ժամ չի մնացել",
+        "ru": "Свободного времени не осталось"
     },
     "owner.schedule.none": {
         "en": "Nothing found",
         "hy": "Ոչինչ չի գտնվել",
         "ru": "Ничего не найдено"
     },
+    "owner.schedule.past_day": {
+        "en": "This day has passed",
+        "hy": "Այս օրն անցել է",
+        "ru": "Этот день прошёл"
+    },
     "owner.schedule.pending_count": {
         "en": ":n waiting",
         "hy": ":n սպասող",
         "ru": "ждут ответа: :n"
+    },
+    "owner.schedule.playing": {
+        "en": "Playing now",
+        "hy": "Հիմա խաղում են",
+        "ru": "Сейчас играют"
     },
     "owner.schedule.prev": {
         "en": "Back",
@@ -3710,9 +3765,9 @@
         "ru": "Поиск по имени, телефону, команде или коду"
     },
     "owner.schedule.show_inactive": {
-        "en": "Show declined and cancelled",
-        "hy": "Ցույց տալ մերժվածներն ու չեղարկվածները",
-        "ru": "Показать отклонённые и отменённые"
+        "en": "Show expired, declined and cancelled",
+        "hy": "Ցույց տալ ժամկետանցները, մերժվածներն ու չեղարկվածները",
+        "ru": "Показать истёкшие, отклонённые и отменённые"
     },
     "owner.schedule.shown": {
         "en": "Showing :n of :m",
@@ -3728,6 +3783,11 @@
         "en": "Tap a day to open it",
         "hy": "Հպեք օրվան՝ բացելու համար",
         "ru": "Нажмите на день, чтобы открыть"
+    },
+    "owner.schedule.weekly": {
+        "en": "every week",
+        "hy": "ամեն շաբաթ",
+        "ru": "каждую неделю"
     },
     "owner.see_all": {
         "en": "See all",

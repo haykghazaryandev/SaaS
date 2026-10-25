@@ -6,6 +6,7 @@ import {
     daysBetween,
     decisions,
     dotOf,
+    dur,
     fdate,
     longDate,
     openBooking,
@@ -45,12 +46,20 @@ const props = defineProps<{
     nowHour: number;
     strip: string[];
     pendingDays: string[];
-    day?: { open: number; close: number; closed: boolean; hours: [number, number] | null; bookings: BookingRow[]; closures: Closure[] };
+    day?: {
+        open: number;
+        close: number;
+        closed: boolean;
+        hours: [number, number] | null;
+        bookings: BookingRow[];
+        closures: Closure[];
+        free: Record<number, [number, number][]>;
+    };
     week?: {
         days: {
             date: string;
             hours: [number, number] | null;
-            fields: Record<number, { blocks: WeekBlock[]; count: number; pending: number; pct: number }>;
+            fields: Record<number, { blocks: WeekBlock[]; count: number; pending: number; pct: number; free: [number, number][] }>;
         }[];
     };
     list?: { from: string; to: string; rows: BookingRow[] };
@@ -60,7 +69,6 @@ const fields = computed(() => owner.value.fields);
 
 usePoll(30000, { only: ['day', 'week', 'list', 'pendingDays', 'owner', 'nowHour'] });
 
-const PX = 60; // pixels per hour
 const read = (k: string, d: string) => {
     try {
         return localStorage.getItem(k) ?? d;
@@ -137,37 +145,60 @@ watch(
     () => nextTick(centerChip),
 );
 
-// ---------- day view ----------
-const sw = ref<HTMLElement>();
-const dayRange = computed(() => (props.day ? [props.day.open, props.day.close] : [8, 24]));
-const slots = computed(() => {
-    const [o, c] = dayRange.value;
-    const out: { t: number; past: boolean }[] = [];
-    for (let t = o; t < c; t += 0.5) out.push({ t, past: isPastDay.value || (isToday.value && t + 0.5 <= now.value) });
-    return out;
-});
+// ---------- day view: one list per field, top to bottom (like the booking page) ----------
+// free gaps come from the server with the same rules as the booking page; past hours of today fold into "Earlier today"
+type Item =
+    | { type: 'b'; key: string; start: number; end: number; b: BookingRow }
+    | { type: 'free'; key: string; start: number; end: number }
+    | { type: 'closed'; key: string; start: number; end: number; c: Closure }
+    | { type: 'now'; key: string; start: number; end: number };
 // answered on this device but still inside the Undo window
 const kindOf = (b: BookingRow): Kind => (decisions.hidden[b.id] === 'accepted' ? 'accepted' : decisions.hidden[b.id] === 'declined' ? 'off' : b.kind);
-const blocksOf = (fid: number) =>
-    (props.day?.bookings ?? []).filter((b) => b.field_id === fid && b.date === props.date && (showOff.value || kindOf(b) !== 'off'));
+// expired, declined and cancelled don't hold the time (players can book it): hidden unless "Show…" is on
+const isOff = (b: BookingRow) => ['off', 'expired'].includes(kindOf(b));
 const closuresOf = (fid: number) => (props.day?.closures ?? []).filter((c) => c.field_id === null || c.field_id === fid);
-const top = (h: number) => (h - dayRange.value[0]) * PX;
+function itemsOf(fid: number): { earlier: Item[]; later: Item[] } {
+    const d = props.day;
+    if (!d) return { earlier: [], later: [] };
+    const list: Item[] = [
+        ...d.bookings
+            .filter((b) => b.field_id === fid && b.date === props.date && (showOff.value || !isOff(b)))
+            .map((b) => ({ type: 'b' as const, key: 'b' + b.id, start: b.start, end: b.end, b })),
+        ...(d.free[fid] ?? []).map(([s0, e0]) => ({ type: 'free' as const, key: 'f' + s0, start: s0, end: e0 })),
+        ...closuresOf(fid).map((c) => ({ type: 'closed' as const, key: 'z' + c.id, start: c.start, end: c.end, c })),
+    ].sort((x, y) => x.start - y.start || (x.type === 'b' && isOff(x.b) ? 1 : 0) - (y.type === 'b' && isOff(y.b) ? 1 : 0));
+    if (isPastDay.value) return { earlier: [], later: list };
+    if (!isToday.value) return { earlier: [], later: list };
+    const earlier = list.filter((i) => i.end <= now.value + 1e-9);
+    const later = list.filter((i) => i.end > now.value + 1e-9);
+    // the now line: after what is going on right now, before what starts later
+    const at = later.findIndex((i) => i.start > now.value);
+    later.splice(at < 0 ? later.length : at, 0, { type: 'now', key: 'now', start: now.value, end: now.value });
+    return { earlier, later };
+}
+const earlierOpen = ref(false);
+watch(
+    () => props.date,
+    () => (earlierOpen.value = false),
+);
+const earlierCount = (items: Item[]) => items.filter((i) => i.type === 'b' && !isOff(i.b)).length;
 function headOf(fid: number) {
     const list = (props.day?.bookings ?? []).filter((b) => b.field_id === fid && ['pending', 'accepted', 'owner', 'noshow'].includes(kindOf(b)));
     return { h: +list.reduce((s, b) => s + b.minutes / 60, 0).toFixed(1), n: list.length, p: list.filter((b) => kindOf(b) === 'pending').length };
 }
-function scrollDay() {
-    const el = sw.value;
-    if (!el || !props.day) return;
-    const o = props.day.open;
-    const first = props.day.bookings
-        .filter((b) => b.kind !== 'off')
-        .map((b) => b.start)
-        .sort((a, b) => a - b)[0];
-    const target = isToday.value && now.value > o ? now.value - 1 : first != null ? first - 0.5 : o;
-    el.scrollTop = Math.max(0, (target - o) * PX);
+// "Playing now" / "by you · every week" / "sent 12 min ago" under the name
+function subOf(b: BookingRow): string {
+    const bits: string[] = [];
+    if (b.team && b.name) bits.push(b.name);
+    if (b.weekly) bits.push(trans('owner.schedule.weekly'));
+    if (kindOf(b) === 'pending' && b.sent_ago) bits.push(b.sent_ago);
+    if (b.phone) bits.push(b.phone);
+    return bits.join(' · ');
 }
-// "Now": today's day view, scrolled so the now-line is in sight
+const pillFor = (b: BookingRow) =>
+    b.started && !b.past && ['accepted', 'owner'].includes(kindOf(b)) ? { cls: 'green', label: trans('owner.schedule.playing') } : rowPill(b);
+const lenOf = (a: number, b: number) => dur(Math.round((b - a) * 60));
+// "Now": today's day view, scrolled so the now line is in sight
 const wantNow = ref(false);
 function goNow() {
     if (props.view !== 'day' || !isToday.value) {
@@ -178,10 +209,7 @@ function goNow() {
     scrollNow();
 }
 function scrollNow() {
-    const el = sw.value;
-    if (!el || !props.day) return;
-    el.scrollTop = Math.max(0, top(now.value) - el.clientHeight / 3);
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    document.querySelector('.drow.now')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 watch(
     () => props.day,
@@ -204,28 +232,13 @@ function openPicker() {
         el.click();
     }
 }
-onMounted(scrollDay);
-watch(
-    () => [props.date, props.view],
-    () => nextTick(scrollDay),
-);
 function newAt(fid: number, t: number) {
     openForm({ field_id: fid, date: props.date, start: t });
 }
 
-// ---------- week view ----------
-const weekSpan = computed(() => {
-    const hs = (props.week?.days ?? []).map((d) => d.hours).filter(Boolean) as [number, number][];
-    return hs.length ? [Math.min(...hs.map((h) => h[0])), Math.max(...hs.map((h) => h[1]))] : [8, 24];
-});
-const wpos = (b: WeekBlock) => {
-    const [o, c] = weekSpan.value;
-    return { left: ((b.start - o) / (c - o)) * 100 + '%', width: ((b.end - b.start) / (c - o)) * 100 + '%' };
-};
-const scale = computed(() => {
-    const [o, c] = weekSpan.value;
-    return [0, 0.25, 0.5, 0.75, 1].map((k) => hhmm(Math.round(o + (c - o) * k)));
-});
+// ---------- week view: one card per day with its free time, like the booking page ----------
+const weekPast = (d: string) => daysBetween(props.today, d) < 0;
+const gapText = (g: [number, number]) => `${hhmm(g[0])}–${hhmm(g[1])}`;
 
 // ---------- list view ----------
 const qs = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -252,14 +265,8 @@ function setStatus(s: string) {
 }
 
 const fieldOf = (id: number) => fields.value.find((f) => f.id === id);
-const legend = computed(() => [
-    ['pending', trans('owner.status.pending')],
-    ['accepted', trans('owner.status.accepted')],
-    ['owner', trans('owner.status.owner')],
-    ['off', trans('owner.schedule.legend_inactive')],
-    ['closed', trans('common.closed')],
-]);
 const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.hidden[b.id] ?? b.status });
+const WEEK_CHIPS = 4;
 </script>
 
 <template>
@@ -329,7 +336,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
         </div>
 
         <!-- phones: one field at a time -->
-        <div v-if="narrow && view !== 'list' && fields.length > 1" class="seg lanesw" role="group" :aria-label="$t('common.field')">
+        <div v-if="narrow && view === 'day' && fields.length > 1" class="seg lanesw" role="group" :aria-label="$t('common.field')">
             <button
                 v-for="f in fields"
                 :key="f.id"
@@ -343,153 +350,122 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
             </button>
         </div>
 
-        <!-- day -->
+        <!-- day: the day as a list per field (fields side by side on a computer) -->
         <template v-if="view === 'day' && day">
             <h2 style="font-size: 18px; margin: 4px 0 12px">
                 {{ relDay(date, today) }}<template v-if="Math.abs(daysBetween(today, date)) <= 1"> · {{ longDate(date) }}</template>
             </h2>
             <div v-if="day.closed" class="closed-note"><Icon name="clock" size="sm" />{{ $t('owner.schedule.closed_day') }}</div>
-            <div ref="sw" class="sched-wrap">
-                <div
-                    :class="['sched', { one: shownFields.length === 1 }]"
-                    :style="{ gridTemplateColumns: `58px repeat(${shownFields.length}, minmax(${narrow ? 0 : 220}px, 1fr))` }"
-                >
-                    <div class="colh" style="padding: 0" />
-                    <div v-for="f in shownFields" :key="'h' + f.id" class="colh">
+            <div class="dlists" :style="{ gridTemplateColumns: `repeat(${shownFields.length}, minmax(0, 1fr))` }">
+                <section v-for="f in shownFields" :key="'d' + f.id" class="dlist" :data-field="f.id">
+                    <header class="dhead">
                         <i :class="['fdot', dotOf(f.size)]" />
-                        <span style="min-width: 0">
-                            <b>{{ f.label }}</b>
-                            <small
-                                >{{ $t('owner.schedule.booked', { h: headOf(f.id).h, n: headOf(f.id).n })
-                                }}<template v-if="headOf(f.id).p">
-                                    · <span style="color: var(--warn)">{{ $t('owner.schedule.pending_count', { n: headOf(f.id).p }) }}</span></template
-                                ></small
-                            >
-                        </span>
-                    </div>
-                    <div class="times" :style="{ height: (dayRange[1] - dayRange[0]) * PX + 'px' }">
-                        <div v-for="t in dayRange[1] - dayRange[0] + 1" :key="t" :style="{ top: (t - 1) * PX + 'px' }">
-                            {{ t - 1 + dayRange[0] < dayRange[1] ? hhmm(t - 1 + dayRange[0]) : '' }}
-                        </div>
-                    </div>
-                    <div
-                        v-for="f in shownFields"
-                        :key="'c' + f.id"
-                        class="col"
-                        :data-field="f.id"
-                        :style="{ height: (dayRange[1] - dayRange[0]) * PX + 'px' }"
-                    >
-                        <button
-                            v-for="s in slots"
-                            :key="s.t"
-                            type="button"
-                            :class="['slot', { half: s.t % 1, past: s.past }]"
-                            :style="{ top: top(s.t) + 'px', height: PX / 2 + 'px' }"
-                            :tabindex="s.past ? -1 : undefined"
-                            :aria-label="s.past ? undefined : `${$t('common.new_booking')} ${hhmm(s.t)}`"
-                            @click="!s.past && newAt(f.id, s.t)"
+                        <b>{{ f.label }}</b>
+                        <small
+                            >{{ $t('owner.schedule.booked', { h: String(headOf(f.id).h), n: String(headOf(f.id).n) })
+                            }}<template v-if="headOf(f.id).p">
+                                · <span class="p">{{ $t('owner.schedule.pending_count', { n: String(headOf(f.id).p) }) }}</span></template
+                            ></small
                         >
-                            {{ s.past ? '' : '+ ' + hhmm(s.t) }}
+                    </header>
+                    <template v-for="part in [itemsOf(f.id)]" :key="part.later.length + '-' + part.earlier.length">
+                        <button v-if="part.earlier.length" type="button" class="earlier" :aria-expanded="earlierOpen" @click="earlierOpen = !earlierOpen">
+                            <span>{{ $t('owner.schedule.earlier') }}</span>
+                            <span
+                                >{{ $t('owner.schedule.earlier_n', { n: String(earlierCount(part.earlier)) }) }}
+                                <Icon name="arrow" size="sm" :class="['chev', { flip: earlierOpen }]"
+                            /></span>
                         </button>
-                        <div
-                            v-for="c in closuresOf(f.id)"
-                            :key="'z' + c.id"
-                            class="blk closed"
-                            :style="{ top: top(c.start) + 1 + 'px', height: (c.end - c.start) * PX - 3 + 'px' }"
-                        >
-                            <div class="bi">
-                                <div class="bt">{{ hhmm(c.start) }}–{{ hhmm(c.end) }}</div>
-                                <div class="bn" style="color: var(--hot)">{{ $t('common.closed') }}</div>
-                                <div class="bx">{{ c.reason }}</div>
-                            </div>
-                        </div>
-                        <div v-if="isToday && now > dayRange[0] && now < dayRange[1]" class="nowline" :style="{ left: 0, top: top(now) + 'px' }" />
-                        <div
-                            v-for="b in blocksOf(f.id)"
-                            :key="b.id"
-                            :class="['blk', kindOf(b), { done: b.past && !['off', 'expired'].includes(kindOf(b)) }]"
-                            role="button"
-                            tabindex="0"
-                            data-test="block"
-                            :style="{ top: top(b.start) + 1 + 'px', height: (b.end - b.start) * PX - 3 + 'px' }"
-                            @click="openBooking(b.id)"
-                            @keydown.enter.self="openBooking(b.id)"
-                        >
-                            <div class="bi">
-                                <div class="bt">
-                                    {{ hhmm(b.start) }}–{{ hhmm(b.end)
-                                    }}<template v-if="['off', 'expired', 'noshow', 'owner'].includes(kindOf(b))"> · {{ rowPill(b).label }}</template>
+                        <div v-if="part.earlier.length && earlierOpen" class="drows was">
+                            <template v-for="i in part.earlier" :key="i.key">
+                                <div v-if="i.type === 'b'" :class="['drow bk', kindOf(i.b), { off: isOff(i.b) }]" role="button" tabindex="0" data-test="block" @click="openBooking(i.b.id)" @keydown.enter.self="openBooking(i.b.id)">
+                                    <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}<small>{{ lenOf(i.start, i.end) }}</small></span>
+                                    <span class="what"><b>{{ i.b.team || i.b.name || '—' }}</b><small>{{ subOf(i.b) }}</small></span>
+                                    <span :class="['pill', pillFor(i.b).cls]">{{ pillFor(i.b).label }}</span>
                                 </div>
-                                <div class="bn">{{ b.team || b.name }}</div>
-                                <div v-if="b.minutes >= 60" class="bx">{{ b.team ? b.name : b.phone || '' }}</div>
-                            </div>
-                            <div v-if="kindOf(b) === 'pending'" class="ba">
-                                <button type="button" class="ok" :title="$t('common.accept')" data-test="block-accept" @click.stop="accept(b.id, b)">
-                                    <Icon name="check" size="sm" /><span>{{ $t('common.accept') }}</span>
-                                </button>
-                                <button type="button" class="no" :title="$t('common.decline')" @click.stop="askDecline(b.id, whoOf(b))">
-                                    <Icon name="x" size="sm" /><span>{{ $t('common.decline') }}</span>
-                                </button>
-                            </div>
+                                <div v-else-if="i.type === 'closed'" class="drow closed">
+                                    <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}</span>
+                                    <span class="what"><b>{{ $t('common.closed') }}</b><small>{{ i.c.reason }}</small></span>
+                                </div>
+                            </template>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="legend-row">
-                <span v-for="l in legend" :key="l[0]"><i :class="l[0]" />{{ l[1] }}</span>
-                <span class="faint" style="margin-left: auto">{{ $t('owner.schedule.hint') }}</span>
+                        <div v-if="part.later.length" class="drows">
+                            <template v-for="i in part.later" :key="i.key">
+                                <div v-if="i.type === 'now'" class="drow now">{{ hhmm(now) }}</div>
+                                <button v-else-if="i.type === 'free'" type="button" class="drow free" data-test="free" @click="newAt(f.id, i.start)">
+                                    <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}<small>{{ $t('owner.schedule.free_len', { d: lenOf(i.start, i.end) }) }}</small></span>
+                                    <span class="what"><b>{{ $t('owner.schedule.free_row') }}</b></span>
+                                    <span class="add"><Icon name="plus" size="sm" />{{ $t('owner.schedule.book') }}</span>
+                                </button>
+                                <div v-else-if="i.type === 'closed'" class="drow closed">
+                                    <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}</span>
+                                    <span class="what"><b>{{ $t('common.closed') }}</b><small>{{ i.c.reason }}</small></span>
+                                </div>
+                                <div
+                                    v-else
+                                    :class="['drow bk', kindOf(i.b), { off: isOff(i.b), done: i.b.past }]"
+                                    role="button"
+                                    tabindex="0"
+                                    data-test="block"
+                                    @click="openBooking(i.b.id)"
+                                    @keydown.enter.self="openBooking(i.b.id)"
+                                >
+                                    <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}<small>{{ lenOf(i.start, i.end) }}</small></span>
+                                    <span class="what"><b>{{ i.b.team || i.b.name || '—' }}</b><small>{{ subOf(i.b) }}</small></span>
+                                    <span :class="['pill', pillFor(i.b).cls]">{{ pillFor(i.b).label }}</span>
+                                    <div v-if="kindOf(i.b) === 'pending'" class="acts">
+                                        <button type="button" class="btn sm" data-test="block-accept" @click.stop="accept(i.b.id, i.b)">
+                                            <Icon name="check" size="sm" />{{ $t('common.accept') }}
+                                        </button>
+                                        <button type="button" class="btn sm danger" @click.stop="askDecline(i.b.id, whoOf(i.b))">
+                                            <Icon name="x" size="sm" />{{ $t('common.decline') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        <p v-if="!day.closed && !part.later.some((i) => i.type === 'free') && !isPastDay" class="faint dnone">{{ $t('owner.schedule.no_free_left') }}</p>
+                    </template>
+                </section>
             </div>
         </template>
 
-        <!-- week -->
+        <!-- week: one card per day; free time as green chips like the booking page (tap = book), the card opens the day -->
         <template v-else-if="view === 'week' && week">
-            <div class="sched-wrap" style="max-height: none; min-height: 0">
-                <div :class="['week', { one: shownFields.length === 1 }]" :style="{ gridTemplateColumns: `96px repeat(${shownFields.length}, 1fr)` }">
-                    <div class="wh" />
-                    <div v-for="f in shownFields" :key="'wh' + f.id" class="wh"><i :class="['fdot', dotOf(f.size)]" />{{ f.label }}</div>
-                    <template v-for="d in week.days" :key="d.date">
-                        <div :class="['wd', { today: d.date === today }]" style="cursor: pointer" @click="go({ date: d.date, view: 'day' })">
-                            <b>{{ d.date === today ? $t('common.today') : fdate(d.date, { weekday: 'short' }) }}</b
-                            ><span class="muted">{{ fdate(d.date, { day: 'numeric', month: 'short' }) }}</span>
-                        </div>
-                        <div
-                            v-for="f in shownFields"
-                            :key="d.date + f.id"
-                            :class="['wc', { closedday: !d.hours }]"
-                            data-test="week-cell"
-                            @click="go({ date: d.date, view: 'day' })"
-                        >
-                            <div class="strip">
-                                <i
-                                    v-for="b in d.fields[f.id]?.blocks ?? []"
-                                    :key="b.id"
-                                    :class="b.kind"
-                                    :style="wpos(b)"
-                                    :title="`${hhmm(b.start)} ${b.name}`"
-                                />
+            <div class="wcards">
+                <article v-for="d in week.days" :key="d.date" :class="['wcard', { today: d.date === today, was: weekPast(d.date) }]" data-test="week-cell" @click="go({ date: d.date, view: 'day' })">
+                    <header>
+                        <b>{{ Math.abs(daysBetween(today, d.date)) <= 1 ? relDay(d.date, today) : fdate(d.date, { weekday: 'long' }) }}</b>
+                        <span class="muted">{{ fdate(d.date, { day: 'numeric', month: 'short' }) }}</span>
+                        <Icon name="arrow" size="sm" class="go" />
+                    </header>
+                    <div v-if="!d.hours" class="faint wline">{{ $t('owner.schedule.closed_day') }}</div>
+                    <template v-else>
+                        <div v-for="f in fields" :key="d.date + f.id" class="wf">
+                            <div class="wfh">
+                                <i :class="['fdot', dotOf(f.size)]" /><b>{{ f.format }}</b>
+                                <span class="muted">{{ $t('owner.schedule.bookings_n', { n: String(d.fields[f.id]?.count ?? 0) }) }}</span>
+                                <span v-if="d.fields[f.id]?.pending" class="pill warn">{{ $t('owner.schedule.pending_count', { n: String(d.fields[f.id].pending) }) }}</span>
                             </div>
-                            <div class="wmeta">
-                                <span>{{
-                                    d.hours ? `${d.fields[f.id]?.pct ?? 0}% · ${d.fields[f.id]?.count ?? 0}` : $t('owner.schedule.closed_short')
-                                }}</span>
-                                <span v-if="d.fields[f.id]?.pending" class="p">{{
-                                    $t('owner.schedule.pending_count', { n: d.fields[f.id].pending })
-                                }}</span>
+                            <div v-if="weekPast(d.date)" class="faint wline">{{ $t('owner.schedule.past_day') }}</div>
+                            <div v-else-if="d.fields[f.id]?.free?.length" class="wfree">
+                                <button
+                                    v-for="g in d.fields[f.id].free.slice(0, WEEK_CHIPS)"
+                                    :key="g[0]"
+                                    type="button"
+                                    class="fchip"
+                                    @click.stop="openForm({ field_id: f.id, date: d.date, start: g[0] })"
+                                >
+                                    {{ gapText(g) }}
+                                </button>
+                                <span v-if="d.fields[f.id].free.length > WEEK_CHIPS" class="faint more">{{ $t('owner.schedule.more_n', { n: String(d.fields[f.id].free.length - WEEK_CHIPS) }) }}</span>
                             </div>
+                            <div v-else class="faint wline">{{ $t('owner.schedule.no_free_left') }}</div>
                         </div>
                     </template>
-                    <div />
-                    <div v-for="(f, i) in shownFields" :key="'sc' + f.id" :style="i ? 'border-left: 1px solid var(--line)' : ''">
-                        <div class="wscale">
-                            <span v-for="s in scale" :key="s">{{ s }}</span>
-                        </div>
-                    </div>
-                </div>
+                </article>
             </div>
-            <div class="legend-row">
-                <span v-for="l in legend.slice(0, 4)" :key="l[0]"><i :class="l[0]" />{{ l[1] }}</span>
-                <span class="faint" style="margin-left: auto">{{ $t('owner.schedule.week_hint') }}</span>
-            </div>
+            <p class="faint" style="font-size: 12.5px; margin: 10px 0 0">{{ $t('owner.schedule.week_hint') }}</p>
         </template>
 
         <!-- list -->

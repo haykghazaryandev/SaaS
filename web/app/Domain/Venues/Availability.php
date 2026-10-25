@@ -68,7 +68,7 @@ class Availability
             return 'bad_duration';
         }
         $now = LocalTime::now();
-        if ($start->lessThan($now)) {
+        if ($start->lessThan($forPlayer ? $now : $this->ownerEarliest($venue, $now))) {
             return 'past';
         }
         if ($forPlayer) {
@@ -86,6 +86,15 @@ class Availability
         }
 
         return null;
+    }
+
+    /** The place may still book the time step that has already begun (a team walks in at 20:40 and plays from 20:30). */
+    private function ownerEarliest(Venue $venue, CarbonImmutable $now): CarbonImmutable
+    {
+        $step = max(1, (int) $venue->rule('step_min'));
+        $midnight = $now->startOfDay();
+
+        return $midnight->addMinutes(intdiv((int) $midnight->diffInMinutes($now), $step) * $step);
     }
 
     public function isFree(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true, ?int $ignoreBookingId = null): bool
@@ -147,7 +156,7 @@ class Availability
         $step = $venue->rule('step_min') / 60;
         $busy ??= $this->busy($field, $day);
         $now = LocalTime::now();
-        $earliest = $forPlayer ? $now->addMinutes($venue->rule('min_notice_min')) : $now;
+        $earliest = $forPlayer ? $now->addMinutes($venue->rule('min_notice_min')) : $this->ownerEarliest($venue, $now);
         if ($forPlayer && $day->greaterThan($now->startOfDay()->addDays($venue->rule('horizon_days')))) {
             return [];
         }
@@ -186,7 +195,7 @@ class Availability
         }
         $step = $venue->rule('step_min') / 60;
         $busy ??= $this->busy($field, $day);
-        $earliest = $forPlayer ? $now->addMinutes($venue->rule('min_notice_min')) : $now;
+        $earliest = $forPlayer ? $now->addMinutes($venue->rule('min_notice_min')) : $this->ownerEarliest($venue, $now);
         $out = [];
         for ($h = $hours[0]; $h + $minutes / 60 <= $hours[1] + 1e-9; $h += $step) {
             if (LocalTime::at($day, $h)->lessThan($earliest)) {
@@ -238,6 +247,36 @@ class Availability
         }
 
         return $out;
+    }
+
+    /**
+     * Free time of a field on a local day for the place, as [[from, to], …] in hours, at least one time step long.
+     * Opening hours minus holding bookings and closures; on today it starts at the time step that has begun.
+     */
+    public function freeGaps(Field $field, CarbonImmutable $day, ?array $busy = null): array
+    {
+        $venue = $field->loadMissing('venue.openingHours')->venue;
+        $hours = $this->hours($venue, $day);
+        if (! $hours || ! $field->active) {
+            return [];
+        }
+        $step = max(1, (int) $venue->rule('step_min')) / 60;
+        $from = max($hours[0], LocalTime::hourOf($this->ownerEarliest($venue, LocalTime::now()), $day->startOfDay()));
+        $blocks = $busy ?? $this->busy($field, $day);
+        usort($blocks, fn ($a, $b) => $a[0] <=> $b[0]);
+        $out = [];
+        $at = $from;
+        foreach ($blocks as [$a, $b]) {
+            if ($a > $at + 1e-9) {
+                $out[] = [$at, min($a, $hours[1])];
+            }
+            $at = max($at, $b);
+        }
+        if ($at < $hours[1] - 1e-9) {
+            $out[] = [$at, $hours[1]];
+        }
+
+        return array_values(array_map(fn ($g) => [round($g[0], 2), round($g[1], 2)], array_filter($out, fn ($g) => $g[1] - $g[0] >= $step - 1e-9)));
     }
 
     /** All bookings of a place for a local day (owner schedule), grouped by field id. */

@@ -11,6 +11,14 @@ class Booking extends HasFactoryModel
 {
     protected $guarded = ['id', 'time_range'];
 
+    protected static function booted(): void
+    {
+        // owner pages and the booking page update at once
+        static::created(fn (Booking $b) => \App\Domain\Booking\Events\ScheduleChanged::forBooking($b));
+        static::updated(fn (Booking $b) => \App\Domain\Booking\Events\ScheduleChanged::forBooking($b, updated: true));
+        static::deleted(fn (Booking $b) => \App\Domain\Booking\Events\ScheduleChanged::forBooking($b));
+    }
+
     protected function casts(): array
     {
         return [

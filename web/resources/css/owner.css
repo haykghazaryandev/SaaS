@@ -141,7 +141,8 @@
 .oapp .blk.pending { --c: var(--st-pending); border-color: color-mix(in srgb, var(--c) 55%, transparent); }
 /* expired (nobody answered) and declined/cancelled: grey outline, text keeps full contrast */
 .oapp .blk.expired, .oapp .blk.off { --c: var(--st-off); background: var(--bg-2); border: 1px dashed color-mix(in srgb, var(--st-off) 80%, transparent); box-shadow: none; color: var(--muted); }
-.oapp .blk.off { left: 50%; z-index: 1; }
+.oapp .blk.off, .oapp .blk.side { left: 50%; z-index: 1; }
+.oapp .blk.expired .bn { text-decoration: line-through; text-decoration-color: var(--st-off); }
 .oapp .blk.off .bn { text-decoration: line-through; text-decoration-color: var(--st-off); }
 .oapp .blk .ba { display: flex; gap: 5px; flex: none; }
 .oapp .blk .ba button { border: 0; border-radius: 8px; padding: 5px 9px; font-weight: 800; font-size: 12px; display: inline-flex; gap: 4px; align-items: center; }
@@ -438,3 +439,74 @@
   .oapp .kv { grid-template-columns: 18px 1fr; }
   .oapp .kv > span, .oapp .kv > b, .oapp .kv > .phone-edit, .oapp .kv > .addphone { grid-column: 2; }
 }
+
+/* ---------- schedule: day as a list per field, week as day cards (like the booking page) ---------- */
+.oapp .dlists { display: grid; gap: 16px; align-items: start; }
+.oapp .dlist { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.oapp .dhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 2px 4px; }
+.oapp .dhead b { font-size: 15px; }
+.oapp .dhead small { color: var(--muted); font-size: 12.5px; flex-basis: 100%; }
+.oapp .dhead .p { color: var(--warn); font-weight: 700; }
+.oapp .earlier { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 700; text-align: left; }
+.oapp .earlier span:last-child { display: inline-flex; align-items: center; gap: 6px; }
+.oapp .earlier .chev { transform: rotate(90deg); transition: transform .15s; }
+.oapp .earlier .chev.flip { transform: rotate(-90deg); }
+.oapp .drows { display: flex; flex-direction: column; gap: 6px; }
+.oapp .drows.was { opacity: .75; }
+.oapp .drow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; width: 100%; padding: 10px 12px; border-radius: 13px; text-align: left; font: inherit; color: var(--ink); }
+.oapp .drow .tm { font-family: var(--mono); font-size: 13px; width: 100px; flex: none; line-height: 1.3; white-space: nowrap; }
+.oapp .drow .tm small { display: block; font-family: var(--body); font-size: 11.5px; color: var(--faint); }
+.oapp .drow .what { flex: 1; min-width: 0; }
+.oapp .drow .what b { display: block; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oapp .drow .what small { display: block; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.oapp .drow.free { background: transparent; border: 1px dashed rgba(94, 240, 168, .35); color: var(--free); cursor: pointer; }
+.oapp .drow.free:hover { background: var(--free-soft); }
+.oapp .drow.free .what b { color: var(--free); }
+.oapp .drow.free .add { display: inline-flex; align-items: center; gap: 4px; background: var(--free-soft); border-radius: 9px; padding: 5px 10px; font-weight: 800; font-size: 13px; }
+.oapp .drow.bk { --c: var(--st-confirmed); cursor: pointer; background: color-mix(in srgb, var(--c) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); box-shadow: inset 3px 0 0 var(--c); }
+.oapp .drow.bk .tm { color: var(--c); }
+.oapp .drow.bk.owner { --c: var(--st-manual); }
+.oapp .drow.bk.pending { --c: var(--st-pending); }
+.oapp .drow.bk.noshow { --c: var(--hot); }
+.oapp .drow.bk.off { --c: var(--st-off); background: var(--bg-2); border-style: dashed; box-shadow: none; color: var(--muted); }
+.oapp .drow.bk.off .what b { text-decoration: line-through; color: var(--muted); }
+.oapp .drow.bk.done:not(.off) { opacity: .8; }
+.oapp .drow.bk .acts { flex-basis: 100%; display: flex; gap: 8px; padding-left: 106px; }
+.oapp .drow.closed { background: repeating-linear-gradient(135deg, rgba(255, 107, 107, .08) 0 8px, transparent 8px 16px), var(--bg-2); border: 1px dashed rgba(255, 107, 107, .4); color: var(--hot); }
+.oapp .drow.closed .what b { color: var(--hot); }
+.oapp .drow.now { padding: 0 2px; gap: 8px; color: var(--hot); font-family: var(--mono); font-size: 11.5px; font-weight: 800; flex-wrap: nowrap; }
+.oapp .drow.now::after { content: ''; flex: 1; height: 2px; border-radius: 2px; background: var(--hot); }
+.oapp .dnone { font-size: 13px; margin: 2px 2px 0; }
+@media (max-width: 420px) {
+  .oapp .drow { padding: 10px; gap: 4px 8px; }
+  .oapp .drow .tm { width: auto; font-size: 12.5px; }
+  .oapp .drow.bk .acts { padding-left: 0; }
+  .oapp .drow.bk .acts .btn { flex: 1; justify-content: center; }
+}
+
+.oapp .wcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.oapp .wcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: border-color .15s; }
+.oapp .wcard:hover { border-color: var(--line-2); }
+.oapp .wcard.today { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.oapp .wcard.today header b { color: var(--accent); }
+.oapp .wcard.was { opacity: .6; }
+.oapp .wcard header { display: flex; align-items: baseline; gap: 8px; }
+.oapp .wcard header b { font-size: 15.5px; }
+.oapp .wcard header .go { margin-left: auto; color: var(--faint); align-self: center; }
+.oapp .wf { display: flex; flex-direction: column; gap: 6px; }
+.oapp .wfh { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.oapp .wfree { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.oapp .fchip { font-family: var(--mono); font-size: 13px; padding: 6px 9px; border-radius: 9px; background: var(--free-soft); color: var(--free); border: 1px solid rgba(94, 240, 168, .22); }
+.oapp .fchip:hover { background: rgba(94, 240, 168, .22); }
+.oapp .wfree .more { font-size: 12.5px; }
+.oapp .wline { font-size: 13px; }
+
+/* booking form: start times as chips like the booking page */
+.oapp .fstart { grid-column: 1 / -1; }
+.oapp .tchips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 196px; overflow-y: auto; padding: 1px; }
+.oapp .tc { font-family: var(--mono); font-size: 13.5px; width: 68px; padding: 7px 0; text-align: center; border-radius: 9px; background: var(--free-soft); color: var(--free); border: 1px solid rgba(94, 240, 168, .22); }
+.oapp .tc:hover:not(:disabled) { background: rgba(94, 240, 168, .22); }
+.oapp .tc.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.oapp .tc.taken { background: transparent; color: var(--faint); border: 1px dashed var(--line-2); text-decoration: line-through; cursor: default; }
+.oapp .tc.taken.on { color: var(--hot); border-color: var(--hot); text-decoration: none; background: var(--hot-soft); }
+.oapp .nofree { font-size: 13px; margin: 0; }

@@ -19,3 +19,6 @@ Broadcast::channel('conversation.{id}', function ($user, $id) {
 
 // everyone with Bookball open: "online" in chats is who is in this channel (it empties the moment the app closes)
 Broadcast::channel('online', fn ($user) => ['id' => $user->id]);
+
+// a place's schedule (owner pages): its owner and staff
+Broadcast::channel('venue.{id}', fn ($user, $id) => $user->venues()->whereKey((int) $id)->exists());

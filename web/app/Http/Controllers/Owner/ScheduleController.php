@@ -79,8 +79,14 @@ class ScheduleController extends OwnerController
                 'end' => min(24, round(LocalTime::hourOf($c->ends_at->toImmutable(), $date), 2)),
             ])->values();
 
+        // free gaps per field: the "Free 16:30–17:30 · + Book" rows (same rules as the booking page, without the player limits)
+        $active = $venue->fields->where('active', true)->values();
+        $busy = $availability->busyMany($active, $date);
+        $free = $active->mapWithKeys(fn ($f) => [$f->id => $availability->freeGaps($f, $date, $busy[$f->id] ?? [])])->all();
+
         return [
             'open' => (float) $open,
+            'free' => (object) $free,
             'close' => (float) $close,
             'closed' => $hours === null,
             'hours' => $hours,
@@ -92,21 +98,25 @@ class ScheduleController extends OwnerController
     private function week($venue, CarbonImmutable $date, Availability $availability, VenueStats $stats): array
     {
         $bookings = $stats->bookings($venue, $date, $date->addDays(7));
+        $active = $venue->fields->where('active', true)->values();
         $days = [];
         for ($i = 0; $i < 7; $i++) {
             $day = $date->addDays($i);
             $key = $day->toDateString();
+            $busy = $availability->busyMany($active, $day);
             $list = $bookings->filter(fn (Booking $b) => $b->starts_at->setTimezone(LocalTime::tz())->toDateString() === $key);
             $fields = [];
             foreach ($venue->fields as $f) {
                 $mine = $list->where('field_id', $f->id);
-                $holding = $mine->filter(fn (Booking $b) => in_array($b->status->value, BookingPresenter::USED, true));
+                // a request nobody answered before its start is not holding the time any more
+                $holding = $mine->filter(fn (Booking $b) => in_array($b->status->value, BookingPresenter::USED, true) && BookingPresenter::kind($b) !== 'expired');
                 $fields[$f->id] = [
                     'blocks' => $holding->map(fn ($b) => BookingPresenter::row($b))
                         ->map(fn ($r) => ['id' => $r['id'], 'start' => $r['start'], 'end' => $r['end'], 'kind' => $r['kind'], 'name' => $r['team'] ?: $r['name']])->values(),
                     'count' => $holding->count(),
                     'pending' => $holding->filter(fn (Booking $b) => BookingPresenter::kind($b) === 'pending')->count(),
                     'pct' => $stats->occupancy($venue, $f->id, $day, $bookings),
+                    'free' => $f->active ? $availability->freeGaps($f, $day, $busy[$f->id] ?? []) : [],
                 ];
             }
             $days[] = ['date' => $key, 'hours' => $availability->hours($venue, $day), 'fields' => $fields];

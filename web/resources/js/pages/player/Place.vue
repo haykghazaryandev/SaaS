@@ -8,6 +8,7 @@ import TelegramConnect from '@/components/TelegramConnect.vue';
 import { amd, hhmm, useShared } from '@/composables/useShared';
 import { dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
+import { useLive } from '@/lib/echo';
 import type { DayInfo, FieldInfo, MyTime, PlayerBooking, SlotsPayload } from '@/types/player';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
@@ -194,7 +195,19 @@ onMounted(() => {
 onBeforeUnmount(() => {
     clearInterval(timer);
     document.removeEventListener('visibilitychange', onVisible);
+    clearTimeout(liveT);
 });
+// live: a time of this place was booked or freed on the day shown → refresh the times at once
+let liveT: number | undefined;
+useLive(
+    () => `place.${props.venue.id}`,
+    'schedule.changed',
+    (d) => {
+        if (!(d.dates as string[] | undefined)?.includes(date.value)) return;
+        clearTimeout(liveT);
+        liveT = window.setTimeout(() => load(true), 300);
+    },
+);
 watch(
     () => props.slots,
     (s) => {

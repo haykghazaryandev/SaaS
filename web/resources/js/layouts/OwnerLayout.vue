@@ -9,6 +9,7 @@ import Logo from '@/components/Logo.vue';
 import OwnerSheets from '@/components/owner/OwnerSheets.vue';
 import { decisions, openForm, sheets, useOwner, type FormOpts } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
+import { useLive } from '@/lib/echo';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount } from 'vue';
 
@@ -35,6 +36,21 @@ const off = router.on('navigate', () => {
     sheets.reason = null;
 });
 onBeforeUnmount(off);
+
+// live: a booking or closure of this place changed (a player sent a request, staff on another phone answered…):
+// reload the page's data at once and let an open booking form check its time again
+let reloadT: number | undefined;
+useLive(
+    () => (owner.value?.venue ? `venue.${owner.value.venue.id}` : null),
+    'schedule.changed',
+    (d) => {
+        clearTimeout(reloadT);
+        reloadT = window.setTimeout(() => router.reload(), 300);
+        window.dispatchEvent(new CustomEvent('bb:schedule', { detail: d }));
+    },
+    true,
+);
+onBeforeUnmount(() => clearTimeout(reloadT));
 </script>
 
 <template>
