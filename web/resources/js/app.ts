@@ -9,6 +9,7 @@ import { ZiggyVue } from 'ziggy-js';
 import TgAppGate from './components/TgAppGate.vue';
 import { startEcho } from './lib/echo';
 import { i18n, loadTexts } from './lib/i18n';
+import { installPwa } from './lib/pwa';
 import { installSheetSwipe } from './lib/sheetSwipe';
 import { unlockSound } from './lib/sound';
 
@@ -22,6 +23,7 @@ router.on('navigate', (e) => {
 });
 
 installSheetSwipe(); // bottom sheets close with a downward swipe on phones
+installPwa(); // the phone may offer "Add to Home Screen" (app icon, full screen)
 unlockSound(); // phones allow the notification sound only after the first tap
 
 // Fresh pages: something changed (booked, withdrew, accepted, joined…) → forget the preloaded pages, so the next page

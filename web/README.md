@@ -81,6 +81,13 @@ composer run dev     # app :8000 + queue + Reverb :8080 + logs + Vite
 - **Errors:** `App\Domain\Social\SocialException($reason)`; the text is `__('social.error.<reason>')`.
 - **Demo data** (`SocialSeeder`): player **+374 93 000 100** has friends, two of their own games (one open with a chat, one forming), an invite and a direct chat.
 
+## Installable web app ("Add to Home Screen")
+The site installs on the phone as an app icon that opens full screen (the cheap step before the React Native app):
+`public/manifest.webmanifest`, the head tags in `resources/views/app.blade.php`, and `public/sw.js`, registered by
+`resources/js/lib/pwa.ts` (not inside Telegram). The worker caches nothing on purpose, so a deploy is live at once; offline
+and push are not part of this. The icons (`public/icons/*`, `public/favicon.*`) are rendered from `resources/icons/icon.svg`
+with `npm run icons` (edit the SVG, run it, commit the files). iOS has no install prompt: Share → "Add to Home Screen".
+
 ## Design system
 Dark theme with a lime accent, in `resources/css/bookball.css`. The class reference is also at the top of that file. The rules come from `../docs/ux-review-2026-10-22.md` (G1–G8).
 
