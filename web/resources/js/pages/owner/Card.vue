@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
+import CashbackLevel, { type Level } from '@/components/club/CashbackLevel.vue';
 import QrScanner from '@/components/owner/QrScanner.vue';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -18,20 +19,19 @@ interface Entry {
     at: string;
 }
 const props = defineProps<{
-    card: { code: string; balance: number; discount: number; note: string | null; scanned: boolean };
+    card: { code: string; balance: number; note: string | null; scanned: boolean };
     player: { id: number; name: string | null; phone: string | null; tel: string | null; avatar: string | null; no_shows: number };
-    cashback: number;
+    level: Level;
     history: Entry[];
 }>();
 const opts = { preserveScroll: true, preserveState: true };
 const r = (name: string, extra: Record<string, unknown> = {}) => route(name, { code: props.card.code, ...extra });
 const num = (v: string | number) => Number(String(v ?? '').replace(/\D/g, '')) || 0;
 const scan = ref(false);
-const money = reactive({ topup: '', discount: String(props.card.discount) });
+const money = reactive({ topup: '' });
 function topUp() {
     if (num(money.topup)) router.post(r('owner.cards.topup'), { amount: num(money.topup) }, { ...opts, onSuccess: () => (money.topup = '') });
 }
-const saveDiscount = () => router.post(r('owner.cards.discount'), { discount: num(money.discount) }, opts);
 const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 </script>
 
@@ -46,7 +46,7 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
                 </h1>
                 <a v-if="player.tel" class="muted" :href="`tel:${player.tel}`">{{ player.phone }}</a>
                 <div class="row" style="gap: 6px; margin-top: 6px; flex-wrap: wrap">
-                    <span v-if="card.discount" class="pill">−{{ card.discount }}%</span>
+                    <span v-if="level.pct" class="pill green">{{ $t('club.cashback.now', { p: level.pct }) }}</span>
                     <span v-if="card.scanned" class="pill green"><Icon name="check" size="sm" />{{ $t('owner.club.scanned') }}</span>
                 </div>
             </div>
@@ -67,15 +67,12 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
                     <small>{{ $t('owner.club.scan_to_topup') }}</small>
                     <button type="button" class="btn" data-test="scan-card" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
                 </div>
-                <p class="faint small">{{ $t('owner.club.bill_hint') }}<template v-if="cashback"> {{ $t('owner.club.cashback_note', { p: cashback }) }}</template></p>
+                <p class="faint small">{{ $t('owner.club.bill_hint') }}<template v-if="level.pct"> {{ $t('owner.club.cashback_note', { p: level.pct }) }}</template></p>
             </section>
+            <!-- cashback: moves up by itself with what the card has paid here (levels: Settings) -->
             <section class="card panel">
-                <div class="sec-h"><h2>{{ $t('owner.club.discount') }}</h2></div>
-                <form class="row" style="gap: 8px" @submit.prevent="saveDiscount">
-                    <span class="money" style="width: 120px"><input v-model="money.discount" class="input" inputmode="numeric" /><span>%</span></span>
-                    <button class="btn ghost sm">{{ $t('common.save') }}</button>
-                </form>
-                <p class="faint small">{{ $t('owner.club.discount_hint') }}</p>
+                <div class="sec-h"><h2>{{ $t('owner.settings.cashback') }}</h2></div>
+                <CashbackLevel :level="level" />
             </section>
         </div>
 

@@ -4,11 +4,11 @@ namespace App\Domain\Club;
 
 use App\Domain\Booking\BookingException;
 use App\Models\CardEntry;
-use App\Notifications\Notice;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
+use App\Notifications\Notice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -75,16 +75,6 @@ class Cards
         });
     }
 
-    public function setDiscount(VenueCard $card, int $pct, ?string $note = null): VenueCard
-    {
-        if ($pct < 0 || $pct > 100) {
-            throw new BookingException('bad_amount');
-        }
-        $card->update(['discount_pct' => $pct] + ($note !== null ? ['note' => $note] : []));
-
-        return $card;
-    }
-
     /** A line of history and the new balance (the card row is locked by the caller). */
     public function entry(VenueCard $card, int $amount, string $kind, ?User $by, ?string $note = null, ?Payment $payment = null): CardEntry
     {
@@ -94,10 +84,52 @@ class Cards
             'note' => $note, 'created_by' => $by?->id]);
     }
 
-    /** The discount (%) a player has at a place: from their card, 0 without one. */
-    public static function discountFor(int $venueId, ?int $userId): int
+    // ---------- cashback: grows with what the card has paid at the place ----------
+
+    /** The place's levels, lowest first: [['from' => 50000, 'pct' => 3], …]. Below the first level: no cashback. */
+    public static function tiers(Venue $venue): array
     {
-        return $userId ? (int) VenueCard::where('venue_id', $venueId)->where('user_id', $userId)->value('discount_pct') : 0;
+        return self::cleanTiers((array) $venue->rule('cashback_tiers'));
+    }
+
+    /** Whole numbers, sorted by "from", one level per "from", at most 8. */
+    public static function cleanTiers(array $tiers): array
+    {
+        return collect($tiers)->filter(fn ($t) => is_array($t) && isset($t['from'], $t['pct']))
+            ->map(fn ($t) => ['from' => max(0, (int) $t['from']), 'pct' => max(0, min(50, (int) $t['pct']))])
+            ->sortBy('from')->unique('from')->take(8)->values()->all();
+    }
+
+    /** Everything this card has paid at its place (payments from the card; top-ups and corrections don't count). */
+    public static function spent(VenueCard $card): int
+    {
+        return (int) -CardEntry::where('card_id', $card->id)->where('kind', 'pay')->sum('amount');
+    }
+
+    /**
+     * The card's level after $spent paid: ['pct' => 3, 'spent' => 62000, 'next' => ['from' => 150000, 'pct' => 5, 'left' => 88000] | null].
+     */
+    public static function level(Venue $venue, int $spent): array
+    {
+        $pct = 0;
+        $next = null;
+        foreach (self::tiers($venue) as $t) {
+            if ($spent >= $t['from']) {
+                $pct = $t['pct'];
+            } elseif ($t['pct'] > $pct) {
+                $next = $t + ['left' => $t['from'] - $spent];
+                break;
+            }
+        }
+
+        return ['pct' => $pct, 'spent' => $spent, 'next' => $next];
+    }
+
+    public static function levelOf(VenueCard $card): array
+    {
+        $card->loadMissing('venue');
+
+        return self::level($card->venue, self::spent($card));
     }
 
     public function ensureFeature(Venue $venue): void

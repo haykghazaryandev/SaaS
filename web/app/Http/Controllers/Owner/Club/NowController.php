@@ -11,11 +11,12 @@ use App\Models\Product;
 use App\Support\LocalTime;
 use App\Support\Phone;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 
 /**
  * Owner → Now: the desk of a club. Every table: the booked game playing on it (who, since when, its check live:
- * time + items, the discount, the total, the player's card), a finished game waiting to be paid, or free (and
+ * time + items, the total, the player's card), a finished game waiting to be paid, or free (and
  * its next booking). Add a cola to the check, "Stop" → the check → card / cash / both. Games come from bookings.
  */
 class NowController extends OwnerController
@@ -66,7 +67,7 @@ class NowController extends OwnerController
     {
         abort_if(app()->isProduction(), 404);
         $this->ensureOwner($request);
-        \Illuminate\Support\Facades\Artisan::call('club:demo-now', ['venue' => $this->venue($request)->slug]);
+        Artisan::call('club:demo-now', ['venue' => $this->venue($request)->slug]);
 
         return back()->with('success', __('owner.club.demo_added'));
     }

@@ -7,21 +7,17 @@ import { Link, router, usePoll } from '@inertiajs/vue3';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-// The desk: every table now. A game shows its check live (time so far + what they took, the player's discount,
+// The desk: every table now. A game shows its check live (time so far + what they took,
 // the total, their card); "+ Cola" adds to it; "Stop" fixes the time and opens the check to take the money.
 // A free table shows its next booking. Games come from bookings (Schedule).
 interface Bill {
     minutes: number;
     running: boolean;
-    timeFull: number;
-    timeDiscount: number;
     time: number;
     items: { id: number; product_id: number | null; name: string; qty: number; sum: number }[];
     itemsTotal: number;
-    itemsDiscount: number;
-    discountPct: number;
     total: number;
-    card: { code: string; balance: number } | null;
+    card: { code: string; balance: number; cashback: number } | null;
     /** while playing: the price stays until this time, then each step adds this much */
     next: { until: string; step: number; adds: number } | null;
 }
@@ -102,7 +98,7 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
 
                     <div class="check">
                         <div class="ln">
-                            <span>{{ $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: c.game.bill.minutes }) }}</span><b>{{ amd(c.game.bill.timeFull) }}</b>
+                            <span>{{ $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: c.game.bill.minutes }) }}</span><b>{{ amd(c.game.bill.time) }}</b>
                         </div>
                         <!-- the shop: one line; a tap opens the products (photo, price, − / +) -->
                         <button v-if="products.length || c.game.bill.items.length" type="button" class="ln shopln" data-test="shop" @click="shopFor = c.game.id">
@@ -112,9 +108,6 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
                                 ></span
                             ><b>{{ amd(c.game.bill.itemsTotal) }}</b><Icon name="plus" size="sm" class="plus" />
                         </button>
-                        <div v-if="c.game.bill.timeDiscount || c.game.bill.itemsDiscount" class="ln disc">
-                            <span>{{ $t('owner.club.card_discount_all', { p: c.game.bill.discountPct }) }}</span><b>−{{ amd(c.game.bill.timeDiscount + c.game.bill.itemsDiscount) }}</b>
-                        </div>
                         <div class="ln total">
                             <span>{{ c.state === 'playing' ? $t('owner.club.if_stop_now') : $t('player.place.total') }}</span><b>{{ amd(c.game.bill.total) }}</b>
                         </div>

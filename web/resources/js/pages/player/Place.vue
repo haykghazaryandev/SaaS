@@ -59,13 +59,11 @@ const props = defineProps<{
     features?: string[];
     /** the club parts: my card here (null: no cards; false: not made yet), trainings, shop, open tournaments */
     club?: {
-        card: { balance: number; discount: number } | false | null;
+        card: { balance: number; cashback: number } | false | null;
         products: { id: number; name: string; description: string | null; price: number; final: number; discount_pct: number; in_stock: boolean; photo: string | null }[];
         tournaments: { code: string; title: string; when: string; from: number }[];
     };
 }>();
-// my discount at this place (my card): already in the price the place gets
-const myDiscount = computed(() => (props.club?.card ? props.club.card.discount : 0));
 const getCard = () => router.post(route('places.card', props.venue.slug));
 const has = (f: string) => !props.features || props.features.includes(f);
 const isTables = computed(() => props.sport === 'pingpong');
@@ -287,8 +285,7 @@ const summary = computed(() => {
     // a training: its own price per hour for the whole time
     const p = purpose.value === 'training' && f.trainingPrice != null ? { ...base, total: Math.round((f.trainingPrice * minutes.value) / 60), dayMin: 0, primeMin: 0 } : base;
     const wd = props.days.find((d) => d.date === date.value);
-    const d = myDiscount.value;
-    return { f, ...p, total: d ? Math.round((p.total * (100 - d)) / 100) : p.total, full: p.total, discount: d, weekday: wd ? !wd.weekend : true };
+    return { f, ...p, weekday: wd ? !wd.weekend : true };
 });
 const hoursToday = computed(() => slots.value.hours);
 /** "Every day 08:00–24:00", or runs of days with the same hours: "Mon–Fri 08:00–24:00", "Sat–Sun 09:00–23:00" */
@@ -726,9 +723,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         </div>
                         <div class="totalrow">
                             <span>{{ $t('player.place.total') }}</span>
-                            <b><s v-if="summary.discount" class="faint" style="font-weight: 400; margin-right: 6px">{{ amd(summary.full) }}</s>{{ amd(summary.total) }}</b>
+                            <b>{{ amd(summary.total) }}</b>
                         </div>
-                        <div v-if="summary.discount" class="rate">{{ $t('club.your_discount', { p: summary.discount }) }}</div>
                         <div class="rate" :class="{ prime: summary.primeMin }">
                             <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.price_mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
                             <template v-else-if="summary.primeMin">{{ $t('player.place.prime_rate', { p: amd(summary.f.price.max) }) }}</template>
@@ -782,7 +778,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     <Icon name="qr" size="lg" />
                     <span class="mc">
                         <b>{{ $t('club.my_card_here') }}</b>
-                        <small v-if="club.card">{{ amd(club.card.balance) }}<template v-if="club.card.discount"> · {{ $t('club.your_discount', { p: club.card.discount }) }}</template></small>
+                        <small v-if="club.card">{{ amd(club.card.balance) }}<template v-if="club.card.cashback"> · {{ $t('club.cashback.now', { p: club.card.cashback }) }}</template></small>
                         <small v-else>{{ $t('club.card_pitch') }}</small>
                     </span>
                     <Link v-if="club.card" class="btn sm" :href="route('me.cards', { venue: venue.slug })">{{ $t('club.show_qr') }}</Link>

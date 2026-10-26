@@ -14,7 +14,7 @@ const props = defineProps<{
     player: { id: number; name: string | null; phone: string | null; tel: string | null; avatar: string | null; no_shows: number };
     sport: string;
     rating: { rating: number | null; intl_id: string | null; history: { old: number | null; new: number | null; note: string | null; where: string | null; at: string }[] };
-    card: { code: string; balance: number; discount: number } | null;
+    card: { code: string; balance: number; cashback: number } | null;
     bookings: (BookingRow & { field: string; purpose?: string; paid?: boolean })[];
 }>();
 const owner = useOwner();

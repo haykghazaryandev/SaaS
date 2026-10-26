@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers\Player;
 
+use App\Domain\Club\Cards;
+use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerVenues;
 use App\Models\Booking;
+use App\Models\Product;
 use App\Models\SlotAlert;
-use App\Enums\BookingStatus;
+use App\Models\Tournament;
 use App\Models\Venue;
+use App\Models\VenueCard;
 use App\Support\LocalTime;
 use App\Support\Phone;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 /** A place: its two fields, free start times for a day, price, and the booking request. */
@@ -121,7 +127,7 @@ class PlaceController extends Controller
      * The player's own requests and bookings on this day at this place: their times are "yours" (blue), and a tap
      * shows the booking (waiting / confirmed, code, cancel) instead of "notify me if it frees up".
      */
-    private function mine(Request $request, Venue $venue, \Carbon\CarbonImmutable $day, ?\Illuminate\Support\Collection $groups = null): array
+    private function mine(Request $request, Venue $venue, CarbonImmutable $day, ?Collection $groups = null): array
     {
         // a booking on "Table 3" shows on the tables group the page offers
         $repOf = [];
@@ -144,19 +150,19 @@ class PlaceController extends Controller
             })->values()->all();
     }
 
-    /** Shop, open tournaments and "my card" (with its discount) for the place page. */
+    /** Shop, open tournaments and "my card" (with its cashback level) for the place page. */
     private function club(Request $request, Venue $venue): array
     {
         $user = $request->user();
         $card = $user && ($venue->hasFeature('wallet') || $venue->hasFeature('rating'))
-            ? \App\Models\VenueCard::where('venue_id', $venue->id)->where('user_id', $user->id)->first() : null;
+            ? VenueCard::where('venue_id', $venue->id)->where('user_id', $user->id)->first() : null;
 
         return [
-            'card' => ($venue->hasFeature('wallet') || $venue->hasFeature('rating')) ? ($card ? ['balance' => $card->balance, 'discount' => $venue->hasFeature('wallet') ? $card->discount_pct : 0] : false) : null,
-            'products' => $venue->hasFeature('shop') ? \App\Models\Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
+            'card' => ($venue->hasFeature('wallet') || $venue->hasFeature('rating')) ? ($card ? ['balance' => $card->balance, 'cashback' => $venue->hasFeature('wallet') ? Cards::level($venue, Cards::spent($card))['pct'] : 0] : false) : null,
+            'products' => $venue->hasFeature('shop') ? Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
                     'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'photo' => $p->photoUrl()])->values()->all() : [],
-            'tournaments' => $venue->hasFeature('tournaments') ? \App\Models\Tournament::where('venue_id', $venue->id)->where('status', 'open')->where('starts_at', '>', now())
+            'tournaments' => $venue->hasFeature('tournaments') ? Tournament::where('venue_id', $venue->id)->where('status', 'open')->where('starts_at', '>', now())
                 ->orderBy('starts_at')->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title,
                     'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price')])->values()->all() : [],
         ];

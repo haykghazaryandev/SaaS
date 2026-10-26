@@ -212,7 +212,7 @@ function unblock(p: PlayerCard) {
             </label>
         </section>
 
-        <!-- club cards: one per club, each with its own QR (balance, discount, history) -->
+        <!-- club cards: one per club, each with its own QR (balance, cashback, history) -->
         <section class="card pad panels">
             <h2>{{ $t('club.my_cards') }}</h2>
             <p class="muted" style="margin: 0 0 10px; font-size: 13.5px">{{ $t('club.my_cards_sub') }}</p>

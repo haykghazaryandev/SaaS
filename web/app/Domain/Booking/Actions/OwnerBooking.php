@@ -2,6 +2,7 @@
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\AfterBooking\Attendance;
 use App\Domain\Booking\BookingException;
 use App\Domain\Venues\Availability;
 use App\Domain\Venues\PriceCalculator;
@@ -53,8 +54,7 @@ class OwnerBooking
                 'contact_phone' => $phone,
                 'series_id' => $series?->id,
                 'purpose' => ($data['purpose'] ?? 'play') === 'training' ? 'training' : 'play',
-                'price' => $data['price'] ?? (int) round($this->prices->price($field, $start, $minutes, ($data['purpose'] ?? 'play') === 'training' ? 'training' : 'play')
-                    * (100 - ($player && $field->venue?->hasFeature('wallet') ? \App\Domain\Club\Cards::discountFor($field->venue_id, $player->id) : 0)) / 100),
+                'price' => $data['price'] ?? $this->prices->price($field, $start, $minutes, ($data['purpose'] ?? 'play') === 'training' ? 'training' : 'play'),
                 'team_name' => $data['team_name'] ?? null,
                 'note_owner' => $data['note_owner'] ?? null,
                 'decided_by' => $by->id,
@@ -143,6 +143,6 @@ class OwnerBooking
     /** "Didn't come" (see Attendance: after the start until 12:00 the next day, not after "arrived"). */
     public function noShow(User $by, Booking $booking): Booking
     {
-        return app(\App\Domain\Booking\AfterBooking\Attendance::class)->noShow($by, $booking);
+        return app(Attendance::class)->noShow($by, $booking);
     }
 }

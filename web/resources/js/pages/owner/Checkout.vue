@@ -8,22 +8,18 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
-// The check of a game: the time (full price, the player's discount) + what they took (a cola) = the total,
+// The check of a game: the time + what they took (a cola) = the total,
 // then the money: from the player's card (we know it from the booking), in cash, or part each (1 450 + 50).
 // A booking made by phone without an account: scan the player's card to find it.
 interface Bill {
     minutes: number;
     running: boolean;
     stopped: boolean;
-    timeFull: number;
-    timeDiscount: number;
     time: number;
     items: { id: number; product_id: number | null; name: string; qty: number; price_each: number; sum: number }[];
     itemsTotal: number;
-    itemsDiscount: number;
-    discountPct: number;
     total: number;
-    card: { code: string; balance: number } | null;
+    card: { code: string; balance: number; cashback: number } | null;
     paid: boolean;
 }
 const props = defineProps<{
@@ -73,7 +69,7 @@ function pay() {
             <section class="card panel">
                 <div class="sec-h"><h2>{{ $t('owner.club.bill') }}</h2></div>
                 <div class="bline">
-                    <span>{{ booking.purpose === 'training' ? $t('club.training') : $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: bill.minutes }) }}</span><b>{{ amd(bill.timeFull) }}</b>
+                    <span>{{ booking.purpose === 'training' ? $t('club.training') : $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: bill.minutes }) }}</span><b>{{ amd(bill.time) }}</b>
                 </div>
                 <!-- the shop: one line; a tap opens the products (photo, price, − / +) -->
                 <button type="button" class="bline shopln" :disabled="bill.paid" data-test="shop" @click="shopOpen = true">
@@ -83,9 +79,6 @@ function pay() {
                         ></span
                     ><b>{{ amd(bill.itemsTotal) }}</b><Icon v-if="!bill.paid" name="plus" size="sm" class="plus" />
                 </button>
-                <div v-if="bill.timeDiscount || bill.itemsDiscount" class="bline disc">
-                    <span>{{ $t('owner.club.card_discount_all', { p: bill.discountPct }) }}</span><b>−{{ amd(bill.timeDiscount + bill.itemsDiscount) }}</b>
-                </div>
                 <div class="bline total">
                     <span>{{ bill.running ? $t('owner.club.if_stop_now') : $t('player.place.total') }}</span><b data-test="total">{{ amd(bill.total) }}</b>
                 </div>
@@ -114,6 +107,10 @@ function pay() {
                         >
                         <label class="field"><span>{{ $t('owner.club.cash') }}</span><span class="money"><input :value="cash" class="input" disabled /><span>֏</span></span></label>
                     </div>
+                    <!-- the card's cashback level: this much comes back onto it -->
+                    <p v-if="canCard && fromCard > 0 && bill.card!.cashback" class="faint" style="font-size: 12.5px; margin: 0">
+                        {{ $t('owner.club.cashback_note', { p: bill.card!.cashback }) }} +{{ amd(Math.floor((fromCard * bill.card!.cashback) / 100)) }}
+                    </p>
                     <p v-if="tooMuch" class="err">{{ $t('booking.error.low_balance') }}</p>
                     <button type="button" class="btn block big" :disabled="tooMuch" data-test="take-payment" @click="pay">
                         <Icon name="check" size="sm" />

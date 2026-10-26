@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Owner;
 
+use App\Domain\Club\Cards;
 use App\Domain\Venues\Courts;
 use App\Domain\Venues\PriceCalculator;
 use App\Enums\FieldSize;
@@ -34,7 +35,13 @@ class SettingsController extends OwnerController
         'request_expire_min' => 'required|integer|min:15|max:2880',
         'auto_accept_regulars' => 'required|boolean',
         'late_grace_min' => 'sometimes|integer|min:0|max:60',   // "team not here?" this long after the start
-        'cashback_pct' => 'sometimes|integer|min:0|max:50',     // club card: % back onto the card
+        'cashback_tiers' => 'sometimes|array|max:8',            // club cards: [{from: 50000, pct: 3}, …] (Cards::level)
+    ];
+
+    /** The cashback levels, item by item. */
+    private const TIER_RULES = [
+        'cashback_tiers.*.from' => 'required|integer|min:0|max:100000000',
+        'cashback_tiers.*.pct' => 'required|integer|min:0|max:50',
     ];
 
     public function show(Request $request, PriceCalculator $prices)
@@ -125,7 +132,7 @@ class SettingsController extends OwnerController
     {
         $this->ensureOwner($request);
         $venue = $this->venue($request);
-        $data = $request->validate(self::RULES);
+        $data = $request->validate(self::RULES + self::TIER_RULES);
         $this->saveRules($venue, $data);
 
         return back()->with('success', __('owner.flash.saved'));
@@ -148,7 +155,7 @@ class SettingsController extends OwnerController
         }
         if ($request->has('rules')) {
             $rules['rules'] = 'array';
-            foreach (self::RULES as $k => $r) {
+            foreach (self::RULES + self::TIER_RULES as $k => $r) {
                 $rules["rules.$k"] = $r;
             }
         }
@@ -289,6 +296,9 @@ class SettingsController extends OwnerController
     {
         $data = array_intersect_key($data, self::RULES);
         $data['auto_accept_regulars'] = (bool) $data['auto_accept_regulars'];
+        if (array_key_exists('cashback_tiers', $data)) {
+            $data['cashback_tiers'] = Cards::cleanTiers($data['cashback_tiers']);
+        }
         foreach (['free_cancel_hours', 'min_notice_min', 'request_expire_min', 'late_grace_min'] as $k) {
             if (array_key_exists($k, $data)) {
                 $data[$k] = (int) $data[$k];

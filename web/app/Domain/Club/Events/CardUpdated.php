@@ -7,7 +7,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 
-/** Live: one of a player's club cards changed (balance, discount): their "My cards" reloads. Channel: private-user.{id}. */
+/** Live: one of a player's club cards changed (balance, a new card): their "My cards" reloads. Channel: private-user.{id}. */
 class CardUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
     use Dispatchable;

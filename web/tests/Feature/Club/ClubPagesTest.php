@@ -3,9 +3,12 @@
 use App\Domain\Club\Cards;
 use App\Models\Booking;
 use App\Models\Product;
+use App\Models\SportRating;
 use App\Models\Tournament;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\LocalTime;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -44,7 +47,7 @@ it('sends a scanned QR to the card for staff, to my cards for the player, to the
     $this->get('/c/'.str_repeat('a', 20))->assertNotFound();
 });
 
-it('tops a card up only after a scan; the discount and the rating need none', function () {
+it('tops a card up only after a scan; the rating needs none', function () {
     $base = '/owner/cards/'.$this->card->code;
     $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->component('owner/Card')->where('card.scanned', false));
     $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertSessionHasErrors('booking');
@@ -53,8 +56,9 @@ it('tops a card up only after a scan; the discount and the rating need none', fu
     $this->actingAs($this->owner)->get('/c/'.$this->card->code)->assertRedirect(route('owner.cards.show', $this->card->code));
     $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertRedirect()->assertSessionHasNoErrors();
     expect($this->card->fresh()->balance)->toBe(10000);
-    $this->actingAs($this->owner)->post("$base/discount", ['discount' => 10])->assertRedirect()->assertSessionHasNoErrors();
-    expect($this->card->fresh()->discount_pct)->toBe(10);
+    // no discount per card any more: cashback comes by itself (levels in Settings)
+    $this->actingAs($this->owner)->post("$base/discount", ['discount' => 10])->assertNotFound();
+    $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->where('level.pct', 0)->where('level.next.from', 50000));
     // no free "take from card": money comes off a card only on a game's check
     $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000])->assertNotFound();
     $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450, 'intl_id' => 'ARM-7'])->assertRedirect();
@@ -67,7 +71,7 @@ it('lists everybody who played here, with filters', function () {
     $other = User::factory()->create(['name' => 'Vardan']);
     Booking::create(['code' => 'BB-801', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $other->id,
         'starts_at' => now()->subDays(2), 'ends_at' => now()->subDays(2)->addHour(), 'status' => 'completed', 'source' => 'player', 'contact_name' => 'Vardan', 'price' => 1]);
-    App\Models\SportRating::create(['user_id' => $other->id, 'sport' => 'football', 'rating' => 1600]);
+    SportRating::create(['user_id' => $other->id, 'sport' => 'football', 'rating' => 1600]);
     $this->actingAs($this->owner)->get('/owner/players')->assertInertia(fn (Assert $p) => $p->where('total', 2)->has('players', 2));
     $this->actingAs($this->owner)->get('/owner/players?min=1500')->assertInertia(fn (Assert $p) => $p->has('players', 1)->where('players.0.name', 'Vardan')->where('players.0.visits', 1));
     $this->actingAs($this->owner)->get('/owner/players?card=yes')->assertInertia(fn (Assert $p) => $p->has('players', 1)->where('players.0.id', $this->player->id));
@@ -94,7 +98,7 @@ it('takes the check at the desk: items, card + cash', function () {
 it('shows every table now: a game with its live check, a free one its next booking', function () {
     $this->club->update(['rules' => ['min_notice_min' => 0]]);
     $small = $this->club->fields->firstWhere('size.value', 'small');
-    $start = App\Support\LocalTime::now()->startOfDay()->addHours(12);
+    $start = LocalTime::now()->startOfDay()->addHours(12);
     $this->travelTo($start->addMinutes(20));
     $b = Booking::create(['code' => 'BB-555', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $this->player->id,
         'starts_at' => $start->utc(), 'ends_at' => $start->addHour()->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000]);
@@ -108,7 +112,7 @@ it('shows every table now: a game with its live check, a free one its next booki
 it('puts demo games on the club tables at any hour (not in production)', function () {
     $club = makeClub(3, ['slug' => 'demo-club', 'features' => ['booking', 'wallet', 'shop']]);
     $club->staff()->attach($this->owner->id, ['role' => 'owner']);
-    $this->travelTo(App\Support\LocalTime::now()->startOfDay()->addMinutes(20));   // 00:20, the club is closed
+    $this->travelTo(LocalTime::now()->startOfDay()->addMinutes(20));   // 00:20, the club is closed
     $this->artisan('club:demo-now', ['venue' => 'demo-club'])->assertSuccessful();
     $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $club->id]);
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p
@@ -135,6 +139,15 @@ it('registers for a tournament by its link, without an account', function () {
 it('lets the owner add test games from the Now page outside production', function () {
     $this->actingAs($this->owner)->post('/owner/now/demo')->assertRedirect();
     $this->app['env'] = 'production';
-    $this->withoutMiddleware(Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+    $this->withoutMiddleware(ValidateCsrfToken::class)
         ->actingAs($this->owner)->post('/owner/now/demo')->assertNotFound();
+});
+
+it('lets the owner set the cashback levels in Settings: sorted, one per amount, within limits', function () {
+    $rules = ['free_cancel_hours' => 6, 'min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => false];
+    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => $rules + ['cashback_tiers' => [['from' => 200000, 'pct' => 6], ['from' => 80000, 'pct' => 2], ['from' => 80000, 'pct' => 4]]]])
+        ->assertSessionHasNoErrors();
+    expect($this->club->fresh()->rule('cashback_tiers'))->toEqual([['from' => 80000, 'pct' => 2], ['from' => 200000, 'pct' => 6]]);
+    $this->actingAs($this->owner)->get('/owner/settings')->assertInertia(fn (Assert $p) => $p->where('rules.cashback_tiers.1.pct', 6));
+    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => $rules + ['cashback_tiers' => [['from' => 1000, 'pct' => 90]]]])->assertSessionHasErrors('rules.cashback_tiers.0.pct');
 });

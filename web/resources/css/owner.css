@@ -546,3 +546,10 @@
 .oapp .pill.hot { background: var(--hot-soft); color: var(--hot); }
 .oapp .drow .ctag.tr { background: color-mix(in srgb, var(--st-manual) 22%, transparent); color: var(--st-manual); }
 .oapp .drow .paidmark { color: var(--free); margin-left: 6px; vertical-align: -2px; }
+
+/* Settings: cashback levels ("50 000 ֏ → 3%") */
+.oapp .tiers { display: grid; gap: 8px; }
+.oapp .tier { display: flex; align-items: center; gap: 8px; }
+.oapp .tier .money { flex: 1 1 140px; min-width: 0; }
+.oapp .tier .money.pct { flex: 0 0 86px; }
+.oapp .tiers > .btn { justify-self: start; }

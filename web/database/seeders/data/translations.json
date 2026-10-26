@@ -275,14 +275,14 @@
         "ru": "Расписание для игроков, посещения и оплата"
     },
     "admin.feature.wallet": {
-        "en": "Player cards (QR, balance, discount)",
-        "hy": "Խաղացողի քարտեր (QR, հաշիվ, զեղչ)",
-        "ru": "Карты игроков (QR, баланс, скидка)"
+        "en": "Player cards (QR, balance, cashback)",
+        "hy": "Խաղացողի քարտեր (QR, հաշիվ, քեշբեք)",
+        "ru": "Карты игроков (QR, баланс, кэшбэк)"
     },
     "admin.feature.wallet_help": {
-        "en": "A card per player with a QR: top-ups, payments, discounts, cashback",
-        "hy": "Քարտ յուրաքանչյուր խաղացողի համար՝ QR-ով․ լիցքավորում, վճարումներ, զեղչեր, քեշբեք",
-        "ru": "Карта на игрока с QR: пополнения, оплата, скидки, кэшбэк"
+        "en": "A card per player with a QR: top-ups, payments, cashback that grows with what the card has paid",
+        "hy": "Քարտ յուրաքանչյուր խաղացողի համար՝ QR-ով․ լիցքավորում, վճարումներ, քեշբեք, որն աճում է քարտով վճարածի հետ",
+        "ru": "Карта на игрока с QR: пополнения, оплата, кэшбэк, который растёт с суммой оплат картой"
     },
     "admin.field.active": {
         "en": "Active",
@@ -1349,6 +1349,31 @@
         "hy": "Հաշիվ, զեղչեր և ձեր ռեյթինգը՝ մեկ QR-ով",
         "ru": "Баланс, скидки и ваш рейтинг — по одному QR"
     },
+    "club.cashback.how": {
+        "en": "Pay with the card and part of it comes back onto the card. The more you pay with it, the more comes back:",
+        "hy": "Վճարեք քարտով, և գումարի մի մասը կվերադառնա քարտին։ Որքան շատ վճարեք քարտով, այնքան շատ կվերադառնա․",
+        "ru": "Платите картой, и часть суммы вернётся на неё. Чем больше оплачено картой, тем больше возврат:"
+    },
+    "club.cashback.next": {
+        "en": ":p% cashback from :from paid (:left to go)",
+        "hy": ":p% քեշբեք՝ :from վճարելուց հետո (մնաց :left)",
+        "ru": ":p% кэшбэка с :from оплат (осталось :left)"
+    },
+    "club.cashback.now": {
+        "en": "Cashback :p%",
+        "hy": "Քեշբեք :p%",
+        "ru": "Кэшбэк :p%"
+    },
+    "club.cashback.paid": {
+        "en": "Paid with this card: :sum",
+        "hy": "Այս քարտով վճարված՝ :sum",
+        "ru": "Оплачено этой картой: :sum"
+    },
+    "club.cashback.row": {
+        "en": "from :from — :p%",
+        "hy": ":from-ից՝ :p%",
+        "ru": "от :from — :p%"
+    },
     "club.entry.adjust": {
         "en": "Correction",
         "hy": "Ուղղում",
@@ -1538,11 +1563,6 @@
         "en": "Training",
         "hy": "Մարզում",
         "ru": "Тренировка"
-    },
-    "club.your_discount": {
-        "en": "Your discount :p%",
-        "hy": "Ձեր զեղչը՝ :p%",
-        "ru": "Ваша скидка :p%"
     },
     "common.about": {
         "en": "About",
@@ -3534,6 +3554,11 @@
         "hy": "💳 Ձեր քարտը :venue-ում պատրաստ է։ Ցույց տվեք QR-ը ընդունարանում․ Պրոֆիլ → Իմ քարտերը (հաշիվ, զեղչ, պատմություն)։",
         "ru": "💳 Ваша карта в :venue готова. Покажите QR на ресепшене: Профиль → Мои карты (баланс, скидка, история)."
     },
+    "notice.card_level": {
+        "en": "⭐ Your :venue card now gets :p% cashback on every payment.",
+        "hy": "⭐ Ձեր :venue քարտն այժմ ստանում է :p% քեշբեք յուրաքանչյուր վճարումից։",
+        "ru": "⭐ Ваша карта :venue теперь получает :p% кэшбэка с каждой оплаты."
+    },
     "notice.card_paid": {
         "en": "💳 −:amount from your :venue card. Balance: :balance.",
         "hy": "💳 −:amount ձեր :venue քարտից։ Հաշիվ՝ :balance։",
@@ -3754,11 +3779,6 @@
         "hy": "Քարտ՝ :a",
         "ru": "Карта: :a"
     },
-    "owner.club.card_discount_all": {
-        "en": "Card discount :p%",
-        "hy": "Քարտի զեղչ :p%",
-        "ru": "Скидка по карте :p%"
-    },
     "owner.club.card_no": {
         "en": "Without a card",
         "hy": "Առանց քարտի",
@@ -3828,16 +3848,6 @@
         "en": "Test games are on the tables",
         "hy": "Փորձնական խաղերը սեղաններին են",
         "ru": "Тестовые игры на столах"
-    },
-    "owner.club.discount": {
-        "en": "Discount, %",
-        "hy": "Զեղչ, %",
-        "ru": "Скидка, %"
-    },
-    "owner.club.discount_hint": {
-        "en": "Comes off their games and what they take, automatically.",
-        "hy": "Ավտոմատ կիրառվում է նրա խաղերի և գնումների վրա։",
-        "ru": "Применяется к его играм и покупкам автоматически."
     },
     "owner.club.discounts_given": {
         "en": "Discounts given: :a",
@@ -5189,10 +5199,25 @@
         "hy": "Քեշբեք քարտերին",
         "ru": "Кэшбэк на карты"
     },
-    "owner.settings.cashback_help": {
-        "en": "Part of what a card holder pays goes back onto their card",
-        "hy": "Քարտատիրոջ վճարածի մի մասը վերադառնում է նրա քարտին",
-        "ru": "Часть того, что платит владелец карты, возвращается на его карту"
+    "owner.settings.cashback_add": {
+        "en": "Add a level",
+        "hy": "Ավելացնել մակարդակ",
+        "ru": "Добавить уровень"
+    },
+    "owner.settings.cashback_from": {
+        "en": "Paid from, ֏",
+        "hy": "Վճարված՝ սկսած, ֏",
+        "ru": "Оплачено от, ֏"
+    },
+    "owner.settings.cashback_levels": {
+        "en": "Cashback grows by itself with what a card has paid here in all. Below the first level there is none.",
+        "hy": "Քեշբեքն ինքնաբերաբար աճում է քարտով այստեղ վճարված ընդհանուր գումարի հետ։ Առաջին մակարդակից ցածր քեշբեք չկա։",
+        "ru": "Кэшбэк растёт сам по мере того, сколько всего оплачено картой здесь. Ниже первого уровня его нет."
+    },
+    "owner.settings.cashback_pct": {
+        "en": "Cashback, %",
+        "hy": "Քեշբեք, %",
+        "ru": "Кэшбэк, %"
     },
     "owner.settings.closure_past": {
         "en": "This time has already passed.",

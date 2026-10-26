@@ -2,28 +2,29 @@
 
 namespace App\Models;
 
+use App\Domain\Club\Events\CardUpdated;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/** A player's card at one place: the QR (code) only works there; balance, discount, history. */
+/** A player's card at one place: the QR (code) only works there; balance, cashback level, history. */
 class VenueCard extends Model
 {
-    protected $fillable = ['venue_id', 'user_id', 'code', 'balance', 'discount_pct', 'note'];
+    protected $fillable = ['venue_id', 'user_id', 'code', 'balance', 'note'];
 
     protected static function booted(): void
     {
-        // a new card or a new discount: the player sees it at once
+        // a new card: the player sees it at once (money changes go through card entries)
         static::saved(function (VenueCard $c) {
-            if ($c->wasRecentlyCreated || $c->wasChanged('discount_pct')) {
-                \App\Domain\Club\Events\CardUpdated::dispatch($c->user_id);
+            if ($c->wasRecentlyCreated) {
+                CardUpdated::dispatch($c->user_id);
             }
         });
     }
 
     protected function casts(): array
     {
-        return ['balance' => 'integer', 'discount_pct' => 'integer'];
+        return ['balance' => 'integer'];
     }
 
     public function venue(): BelongsTo

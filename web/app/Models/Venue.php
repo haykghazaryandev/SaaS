@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Sport;
 use App\Models\Concerns\Translatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +23,8 @@ class Venue extends HasFactoryModel
         'max_pending_per_phone' => 2,  // open requests per phone at the same time
         'auto_accept_regulars' => false,
         'late_grace_min' => 15,        // after the start: how long the place waits before "team not here?"
-        'cashback_pct' => 0,           // % of what a card holder pays that goes back onto their card
+        // club cards: % of what a card pays that goes back onto it, by what the card has paid here in all
+        'cashback_tiers' => [['from' => 50000, 'pct' => 3], ['from' => 150000, 'pct' => 5], ['from' => 300000, 'pct' => 7]],
     ];
 
     /**
@@ -36,7 +38,7 @@ class Venue extends HasFactoryModel
         'reviews',   // "How was the place?" after playing
         'games',     // players create and join games here
         // the club package (ping-pong first): off until the admin switches it on for a place
-        'wallet',      // player cards with a QR: balance, discount, cashback
+        'wallet',      // player cards with a QR: balance, cashback by level
         'rating',      // the staff set players' ratings in the place's sport
         'trainings',   // players book a table for a training, at the place's training price
         'shop',        // products with photos, sales at the desk
@@ -128,7 +130,7 @@ class Venue extends HasFactoryModel
         return array_values(array_filter(self::FEATURES, fn ($f) => $this->hasFeature($f)));
     }
 
-    /** @return \App\Enums\Sport[] the sports of the place's active courts */
+    /** @return Sport[] the sports of the place's active courts */
     public function sports(): array
     {
         $sports = [];

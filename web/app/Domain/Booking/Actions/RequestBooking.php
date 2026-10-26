@@ -62,8 +62,7 @@ class RequestBooking
                 'contact_name' => $player->name ?: ($extra['name'] ?? '—'),
                 'contact_phone' => $player->phone,
                 'game_id' => $extra['game_id'] ?? null,
-                // the player's discount at this place (their card) is in the price from the start
-                'price' => $this->discounted($venue, $player->id, $this->prices->price($field, $start, $minutes, $purpose)),
+                'price' => $this->prices->price($field, $start, $minutes, $purpose),
                 'purpose' => $purpose,
                 'team_name' => $extra['team_name'] ?? null,
                 'note_player' => $extra['note'] ?? null,
@@ -72,12 +71,5 @@ class RequestBooking
 
             return $booking;
         });
-    }
-
-    private function discounted(\App\Models\Venue $venue, int $userId, int $price): int
-    {
-        $pct = $venue->hasFeature('wallet') ? \App\Domain\Club\Cards::discountFor($venue->id, $userId) : 0;
-
-        return (int) round($price * (100 - $pct) / 100);
     }
 }

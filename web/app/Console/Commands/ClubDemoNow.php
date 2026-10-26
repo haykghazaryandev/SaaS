@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Domain\Club\Cards;
 use App\Domain\Club\Checkout;
 use App\Domain\Venues\PriceCalculator;
 use App\Models\Booking;
@@ -14,7 +13,7 @@ use Illuminate\Console\Command;
 
 /**
  * Local / staging only: puts games on the demo club's tables right now (any hour), to try Owner → Now:
- * table 1 Aram playing 50 min with 2 colas, table 2 Davit's training (his 10% discount), table 3 a phone-only
+ * table 1 Aram playing 50 min with 2 colas, table 2 Davit's training , table 3 a phone-only
  * booking already stopped and waiting to be paid. Run again: the previous demo games go first.
  */
 class ClubDemoNow extends Command
@@ -57,12 +56,11 @@ class ClubDemoNow extends Command
             Booking::where('field_id', $table->id)->whereIn('status', ['pending', 'accepted'])
                 ->where('starts_at', '<', $start->addMinutes($minutes)->utc())->where('ends_at', '>', $start->utc())->update(['status' => 'cancelled']);
             $full = $prices->price($table, $start, $minutes, $venue->trainingPrice($table->size->value) !== null ? $purpose : 'play');
-            $pct = $player ? Cards::discountFor($venue->id, $player->id) : 0;
             $b = Booking::create([
                 'code' => Booking::newCode(), 'venue_id' => $venue->id, 'field_id' => $table->id, 'user_id' => $player?->id,
                 'starts_at' => $start->utc(), 'ends_at' => $start->addMinutes($minutes)->utc(), 'status' => 'accepted', 'source' => $player ? 'player' : 'owner',
                 'contact_name' => $player?->name ?? 'Gor (phone booking)', 'contact_phone' => $player?->phone ?? '+37491555444',
-                'price' => (int) round($full * (100 - $pct) / 100), 'purpose' => $purpose, 'note_owner' => 'demo-now',
+                'price' => $full, 'purpose' => $purpose, 'note_owner' => 'demo-now',
             ]);
             foreach ($items as $name => $qty) {
                 if ($p = Product::where('venue_id', $venue->id)->where('name', 'ilike', $name.'%')->first()) {

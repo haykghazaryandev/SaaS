@@ -31,12 +31,15 @@ class CardController extends OwnerController
             ->when($q !== '', fn ($w) => $w->whereHas('user', fn ($u) => $u->where('name', 'ilike', "%{$q}%")
                 ->when($digits !== '', fn ($x) => $x->orWhere('phone', 'like', "%{$digits}%"))))
             ->latest('updated_at')->limit(300)->get();
+        // what each card has paid here: its cashback level
+        $spent = CardEntry::whereIn('card_id', $cards->pluck('id'))->where('kind', 'pay')->groupBy('card_id')
+            ->selectRaw('card_id, -sum(amount) as paid')->pluck('paid', 'card_id');
 
         return Inertia::render('owner/Cards', [
             'q' => $q,
             'cards' => $cards->map(fn (VenueCard $c) => [
                 'code' => $c->code, 'name' => $c->user?->name, 'phone' => $c->user?->phone ? Phone::format($c->user->phone) : null,
-                'avatar' => $c->user?->avatarUrl(), 'userId' => $c->user_id, 'balance' => $c->balance, 'discount' => $c->discount_pct,
+                'avatar' => $c->user?->avatarUrl(), 'userId' => $c->user_id, 'balance' => $c->balance, 'cashback' => Cards::level($venue, $spent[$c->id] ?? 0)['pct'],
             ])->values(),
             'totals' => ['cards' => VenueCard::where('venue_id', $venue->id)->count(), 'balance' => (int) VenueCard::where('venue_id', $venue->id)->sum('balance')],
         ]);
@@ -64,12 +67,13 @@ class CardController extends OwnerController
         $user = $card->user;
 
         return Inertia::render('owner/Card', [
-            'card' => ['code' => $card->code, 'balance' => $card->balance, 'discount' => $card->discount_pct, 'note' => $card->note,
+            'card' => ['code' => $card->code, 'balance' => $card->balance, 'note' => $card->note,
                 // a top-up only right after a scan (Cards::SCAN_MINUTES)
                 'scanned' => Cards::scanned($card)],
             'player' => ['id' => $user->id, 'name' => $user->name, 'phone' => $user->phone ? Phone::format($user->phone) : null, 'tel' => $user->phone,
                 'avatar' => $user->avatarUrl(), 'no_shows' => (int) $user->no_show_count],
-            'cashback' => (int) $venue->rule('cashback_pct'),
+            // the cashback level: % now, paid so far, the next level (by itself, from the place's levels)
+            'level' => Cards::level($venue, Cards::spent($card)),
             'history' => CardEntry::where('card_id', $card->id)->with('author:id,name')->latest('id')->limit(60)->get()
                 ->map(fn (CardEntry $e) => ['id' => $e->id, 'amount' => $e->amount, 'kind' => $e->kind, 'note' => $e->note, 'by' => $e->author?->name,
                     'at' => $e->created_at->setTimezone(LocalTime::tz())->format('d.m H:i')])->values(),
@@ -83,15 +87,6 @@ class CardController extends OwnerController
         $this->attempt(fn () => $cards->topUp($card, (int) $data['amount'], $request->user(), $data['note'] ?? null));
 
         return back()->with('success', __('owner.club.topped_up'));
-    }
-
-    public function discount(Request $request, string $code, Cards $cards)
-    {
-        $data = $request->validate(['discount' => 'required|integer|min:0|max:100', 'note' => 'nullable|string|max:200']);
-        $card = $this->card($request, $code);
-        $this->attempt(fn () => $cards->setDiscount($card, (int) $data['discount'], $data['note'] ?? null));
-
-        return back()->with('success', __('owner.flash.saved'));
     }
 
     private function card(Request $request, string $code): VenueCard

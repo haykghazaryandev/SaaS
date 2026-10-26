@@ -12,6 +12,7 @@ use App\Http\Controllers\Owner\ScheduleController;
 use App\Http\Controllers\Owner\SettingsController;
 use App\Http\Controllers\Owner\TodayController;
 use App\Http\Controllers\Owner\VenueSwitchController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // ---------- owner web (/owner): only owners and staff of a place ----------
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(function () {
     Route::get('/', TodayController::class)->name('today');
     // where an owner lands (login, the app's home): a club at its desk ("Now"), a field at Today
-    Route::get('start', fn (\Illuminate\Http\Request $request) => redirect()->route(
+    Route::get('start', fn (Request $request) => redirect()->route(
         collect(['wallet', 'shop'])->contains(fn ($f) => $request->attributes->get('venue')->hasFeature($f)) ? 'owner.now' : 'owner.today'
     ))->name('start');
     Route::post('venue', VenueSwitchController::class)->name('venue');
@@ -54,7 +55,6 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::get('cards/{code}', [CardController::class, 'show'])->where('code', '[a-z0-9]{20}')->name('cards.show');
     Route::prefix('cards/{code}')->where(['code' => '[a-z0-9]{20}'])->name('cards.')->group(function () {
         Route::post('topup', [CardController::class, 'topUp'])->name('topup');
-        Route::post('discount', [CardController::class, 'discount'])->name('discount');
     });
     Route::get('shop', [ShopController::class, 'index'])->name('shop');
     Route::post('shop', [ShopController::class, 'store'])->name('shop.store');

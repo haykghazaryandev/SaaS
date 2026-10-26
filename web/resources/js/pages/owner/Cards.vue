@@ -8,7 +8,7 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
-// Cards of the place: balance and discount of each player's card. Looking is free; money on a card changes only
+// Cards of the place: balance and cashback level of each player's card. Looking is free; money on a card changes only
 // after scanning its QR (the player at the desk). A player without a card yet gets one by phone.
 interface Row {
     code: string;
@@ -17,7 +17,7 @@ interface Row {
     avatar: string | null;
     userId: number;
     balance: number;
-    discount: number;
+    cashback: number;
 }
 const props = defineProps<{ q: string; cards: Row[]; totals: { cards: number; balance: number } }>();
 const scan = ref(false);
@@ -53,7 +53,7 @@ const submitAdd = () => add.post(route('owner.cards.store'), { preserveScroll: t
                 <Link v-for="c in cards" :key="c.code" class="prow" :href="route('owner.cards.show', c.code)" data-test="player-row">
                     <Avatar :id="c.userId" :name="c.name" :src="c.avatar" size="sm" />
                     <span class="who"><b>{{ c.name || '—' }}</b><small>{{ c.phone }}</small></span>
-                    <span v-if="c.discount" class="pill">−{{ c.discount }}%</span>
+                    <span v-if="c.cashback" class="pill green">{{ c.cashback }}%</span>
                     <b class="bal">{{ amd(c.balance) }}</b>
                 </Link>
                 <p v-if="!cards.length" class="faint" style="margin: 14px 0 4px">{{ q ? $t('owner.schedule.none') : $t('owner.club.no_cards') }}</p>

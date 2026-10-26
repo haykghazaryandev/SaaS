@@ -39,13 +39,15 @@ interface ClosureRow {
     to: string;
     reason: string | null;
 }
+// a cashback level: from this much paid with the card (in all, at this place), this % back
+type Tier = { from: number; pct: number };
 const props = defineProps<{
     canEdit: boolean;
     place: { name: string; address: string | null; district: string; phone: string | null; tel: string | null; status: string };
     prices: (PriceRow & { count?: number })[];
     courts: CourtKind[];
     hours: HourRow[];
-    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number; cashback_pct: number };
+    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number; cashback_tiers: Tier[] };
     closures: ClosureRow[];
 }>();
 const owner = useOwner();
@@ -87,10 +89,13 @@ const state = reactive({
     hours: [] as HourRow[],
     same: true,
     every: { open: '09:00', close: '23:00' },
-    rules: { ...props.rules },
+    rules: copyRules(props.rules),
     phoneOpen: false,
     phone: '',
 });
+function copyRules(r: typeof props.rules): typeof props.rules {
+    return { ...r, cashback_tiers: (r.cashback_tiers ?? []).map((t) => ({ from: Number(t.from) || 0, pct: Number(t.pct) || 0 })) };
+}
 const allSame = (hs: HourRow[]) => hs.every((h) => h.open !== null && h.open === hs[0].open && h.close === hs[0].close);
 
 /** What "Save changes" sends, per part. */
@@ -98,7 +103,7 @@ function payload() {
     return {
         prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend), training: digits(p.training) === '' ? null : num(p.training) })),
         hours: state.same ? state.hours.map((h) => ({ weekday: h.weekday, ...state.every })) : state.hours.map((h) => ({ ...h })),
-        rules: { ...state.rules },
+        rules: copyRules(state.rules),
         phone: state.phoneOpen && digits(state.phone) ? `+374${digits(state.phone).slice(-8)}` : null,
     };
 }
@@ -108,14 +113,14 @@ function load(p: Payload) {
     state.hours = p.hours.map((h) => ({ ...h }));
     state.same = allSame(state.hours);
     state.every = state.same ? { open: state.hours[0].open!, close: state.hours[0].close! } : { open: '09:00', close: '23:00' };
-    state.rules = { ...p.rules };
+    state.rules = copyRules(p.rules);
     state.phoneOpen = !!p.phone;
     state.phone = p.phone ? fmtPhone(p.phone.slice(4)) : '';
 }
 const initial: Payload = {
     prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend, training: p.training ?? null })),
     hours: ORDER.map((wd) => ({ ...props.hours.find((h) => h.weekday === wd)! })),
-    rules: { ...props.rules },
+    rules: copyRules(props.rules),
     phone: props.place.tel,
 };
 load(initial);
@@ -212,6 +217,11 @@ const GRACE = [5, 10, 15, 20, 30];
 const mins = (m: number) =>
     m === 0 ? trans('owner.settings.no_limit') : m < 60 ? trans('owner.settings.minutes_count', { n: m }) : trans('owner.settings.hours_count', { n: m / 60 });
 const withCurrent = (list: number[], v: number) => [...new Set([...list, v])].sort((a, b) => a - b);
+// cashback levels: the next one starts above the last
+function addTier() {
+    const last = state.rules.cashback_tiers.at(-1);
+    state.rules.cashback_tiers.push(last ? { from: last.from * 2 || 50000, pct: last.pct + 2 } : { from: 50000, pct: 3 });
+}
 
 // closures (added and removed right away: they are actions, not settings)
 const today = owner.value.today;
@@ -557,15 +567,45 @@ const fmtRange = (c: ClosureRow) =>
                                 <option v-for="n in withCurrent(GRACE, state.rules.late_grace_min)" :key="n" :value="n">{{ mins(n) }}</option>
                             </select>
                         </div>
-                        <!-- club cards: % of what a card holder pays that goes back onto their card -->
+                        <!-- club cards: cashback levels by what a card has paid here in all (applied by itself) -->
                         <div v-if="(owner.features ?? []).includes('wallet')" class="srow stack">
                             <div>
                                 <b>{{ $t('owner.settings.cashback') }}</b
-                                ><small>{{ $t('owner.settings.cashback_help') }}</small>
+                                ><small>{{ $t('owner.settings.cashback_levels') }}</small>
                             </div>
-                            <select v-model.number="state.rules.cashback_pct" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.cashback')">
-                                <option v-for="n in withCurrent([0, 1, 2, 3, 5, 7, 10, 15], state.rules.cashback_pct)" :key="n" :value="n">{{ n }}%</option>
-                            </select>
+                            <div class="tiers">
+                                <div v-for="(t, i) in state.rules.cashback_tiers" :key="i" class="tier">
+                                    <span class="money"
+                                        ><input
+                                            v-model.number="t.from"
+                                            class="input"
+                                            inputmode="numeric"
+                                            :disabled="!canEdit"
+                                            :aria-label="$t('owner.settings.cashback_from')" /><span>֏</span></span
+                                    >
+                                    <span class="faint">→</span>
+                                    <span class="money pct"
+                                        ><input
+                                            v-model.number="t.pct"
+                                            class="input"
+                                            inputmode="numeric"
+                                            :disabled="!canEdit"
+                                            :aria-label="$t('owner.settings.cashback_pct')" /><span>%</span></span
+                                    >
+                                    <button
+                                        v-if="canEdit"
+                                        type="button"
+                                        class="btn ghost sm"
+                                        :aria-label="$t('common.remove')"
+                                        @click="state.rules.cashback_tiers.splice(i, 1)"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <button v-if="canEdit && state.rules.cashback_tiers.length < 8" type="button" class="btn ghost sm" @click="addTier">
+                                    + {{ $t('owner.settings.cashback_add') }}
+                                </button>
+                            </div>
                         </div>
                         <span v-if="errOf('rules')" class="err">{{ errOf('rules') }}</span>
                     </section>

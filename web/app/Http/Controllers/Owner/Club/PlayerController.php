@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Owner\Club;
 
+use App\Domain\Club\Cards;
 use App\Domain\Club\Ratings;
 use App\Enums\Sport;
 use App\Http\Controllers\Owner\BookingPresenter;
@@ -15,8 +16,8 @@ use App\Models\Venue;
 use App\Models\VenueCard;
 use App\Support\LocalTime;
 use App\Support\Phone;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 /**
@@ -47,8 +48,8 @@ class PlayerController extends OwnerController
         $rows = User::whereIn('id', $ids)->get(['id', 'name', 'phone', 'avatar_path'])->map(fn (User $u) => [
             'id' => $u->id, 'name' => $u->name, 'phone' => $u->phone ? Phone::format($u->phone) : null, 'tel' => $u->phone, 'avatar' => $u->avatarUrl(),
             'visits' => (int) ($stats[$u->id]->played ?? 0),
-            'last' => isset($stats[$u->id]->last) ? \Carbon\CarbonImmutable::parse($stats[$u->id]->last)->setTimezone(LocalTime::tz())->format('d.m.Y') : null,
-            'lastTs' => isset($stats[$u->id]->last) ? \Carbon\CarbonImmutable::parse($stats[$u->id]->last)->getTimestamp() : 0,
+            'last' => isset($stats[$u->id]->last) ? CarbonImmutable::parse($stats[$u->id]->last)->setTimezone(LocalTime::tz())->format('d.m.Y') : null,
+            'lastTs' => isset($stats[$u->id]->last) ? CarbonImmutable::parse($stats[$u->id]->last)->getTimestamp() : 0,
             'rating' => $ratings[$u->id] ?? null,
             'card' => isset($cards[$u->id]) ? ['balance' => $cards[$u->id]->balance, 'code' => $cards[$u->id]->code] : null,
         ])
@@ -89,7 +90,7 @@ class PlayerController extends OwnerController
                 'history' => RatingChange::where('user_id', $user->id)->where('sport', $sport->value)->with('venue:id,name')->latest('id')->limit(15)->get()
                     ->map(fn (RatingChange $r) => ['old' => $r->old, 'new' => $r->new, 'note' => $r->note, 'where' => $r->venue?->name,
                         'at' => $r->created_at->setTimezone(LocalTime::tz())->format('d.m.Y')])->values()],
-            'card' => $card ? ['code' => $card->code, 'balance' => $card->balance, 'discount' => $card->discount_pct] : null,
+            'card' => $card ? ['code' => $card->code, 'balance' => $card->balance, 'cashback' => Cards::levelOf($card)['pct']] : null,
             'bookings' => $bookings->map(fn (Booking $b) => [...BookingPresenter::row($b), 'field' => BookingPresenter::fieldLabel($b->field)])->values(),
         ]);
     }

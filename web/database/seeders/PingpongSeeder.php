@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Domain\Club\Cards;
 use App\Domain\Club\Shop;
 use App\Domain\Venues\Courts;
+use App\Domain\Venues\PriceCalculator;
 use App\Enums\FieldSize;
+use App\Models\Booking;
 use App\Models\CardEntry;
 use App\Models\Field;
 use App\Models\OpeningHour;
@@ -16,8 +18,6 @@ use App\Models\Tournament;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
-use App\Domain\Venues\PriceCalculator;
-use App\Models\Booking;
 use App\Support\LocalTime;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -130,7 +130,7 @@ class PingpongSeeder extends Seeder
         }
         // trainings are booked like a table, at their own price per hour
         $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
-            'rules' => [...($venue->rules ?? []), 'cashback_pct' => 3, 'training_prices' => ['table' => 6000]]]);
+            'rules' => [...($venue->rules ?? []), 'training_prices' => ['table' => 6000]]]);
         // the shop: drinks with their pictures (data/products/*.png)
         foreach ([['Cola 0.5 l', 500, 'cola'], ['Water 0.5 l', 300, 'water']] as $i => [$name, $price, $img]) {
             $file = new UploadedFile(database_path("seeders/data/products/{$img}.png"), "{$img}.png", 'image/png', null, true);
@@ -139,12 +139,16 @@ class PingpongSeeder extends Seeder
         Tournament::create(['venue_id' => $venue->id, 'sport' => 'pingpong', 'title' => 'November Open', 'code' => 'novopen1',
             'starts_at' => now()->addDays(12)->setTime(7, 0), 'description' => "Singles, groups then play-off.\nBring your own racket.",
             'options' => [['label' => 'Amateur', 'price' => 0], ['label' => 'Standard', 'price' => 5000], ['label' => 'Pro', 'price' => 10000]]]);
-        // two demo players with cards: +374 93 000 100 (Aram) and 101
-        foreach (User::whereIn('phone', ['+37493000100', '+37493000101'])->get() as $k => $u) {
-            $card = VenueCard::firstOrCreate(['venue_id' => $venue->id, 'user_id' => $u->id], ['code' => Cards::newCode(), 'discount_pct' => $k ? 0 : 10]);
+        // two demo players with cards: +374 93 000 100 (Aram, already paid 62 000 ֏ with it: 3% cashback) and 101
+        foreach (User::whereIn('phone', ['+37493000100', '+37493000101'])->orderBy('phone')->get() as $k => $u) {
+            $card = VenueCard::firstOrCreate(['venue_id' => $venue->id, 'user_id' => $u->id], ['code' => Cards::newCode()]);
             if ($card->wasRecentlyCreated) {
+                $paid = $k ? 0 : 62000;
                 $card->update(['balance' => 15000]);
-                CardEntry::create(['card_id' => $card->id, 'amount' => 15000, 'kind' => 'topup', 'note' => 'demo']);
+                CardEntry::create(['card_id' => $card->id, 'amount' => 15000 + $paid, 'kind' => 'topup', 'note' => 'demo']);
+                if ($paid) {
+                    CardEntry::create(['card_id' => $card->id, 'amount' => -$paid, 'kind' => 'pay', 'note' => 'demo']);
+                }
             }
             SportRating::firstOrCreate(['user_id' => $u->id, 'sport' => 'pingpong'], ['rating' => $k ? 1180 : 1420, 'venue_id' => $venue->id]);
         }

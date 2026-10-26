@@ -8,12 +8,13 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
+use App\Notifications\Notice;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The place takes money: for a booking, a training, a shop sale, a tournament fee.
- * Paid from the player's card (the balance goes down) or in cash. The player's card discount comes off first
- * (not for bookings: their price already has it), and the place's cashback (rules.cashback_pct) goes onto the card.
+ * Paid from the player's card (the balance goes down) or in cash. What is paid from the card earns cashback onto it:
+ * the % grows with everything the card has paid at the place (rules.cashback_tiers, Cards::level), by itself.
  */
 class Money
 {
@@ -21,32 +22,37 @@ class Money
 
     /**
      * @param  string  $method  card | cash
-     * @param  bool  $discount  take the card discount off $amount
      */
-    public function charge(Venue $venue, User $by, string $kind, int $amount, string $method, ?User $player = null, ?int $refId = null, ?string $note = null, bool $discount = true, bool $notify = true): Payment
+    public function charge(Venue $venue, User $by, string $kind, int $amount, string $method, ?User $player = null, ?int $refId = null, ?string $note = null, bool $notify = true): Payment
     {
         if (! in_array($kind, Payment::KINDS, true) || ! in_array($method, ['card', 'cash'], true) || $amount < 0) {
             throw new BookingException('bad_amount');
         }
 
-        return DB::transaction(function () use ($venue, $by, $kind, $amount, $method, $player, $refId, $note, $discount, $notify) {
+        return DB::transaction(function () use ($venue, $by, $kind, $amount, $method, $player, $refId, $note, $notify) {
             $card = $player ? VenueCard::where('venue_id', $venue->id)->where('user_id', $player->id)->lockForUpdate()->first() : null;
             if ($method === 'card' && ! $card) {
                 throw new BookingException('no_card');
             }
-            $off = $card && $discount ? (int) round($amount * $card->discount_pct / 100) : 0;
-            $final = $amount - $off;
+            $final = $amount;
             if ($method === 'card' && $card->balance < $final) {
                 throw new BookingException('low_balance');
             }
             $payment = Payment::create(['venue_id' => $venue->id, 'user_id' => $player?->id, 'card_id' => $card?->id,
-                'kind' => $kind, 'method' => $method, 'amount' => $final, 'discount' => $off, 'ref_id' => $refId, 'note' => $note, 'created_by' => $by->id]);
+                'kind' => $kind, 'method' => $method, 'amount' => $final, 'ref_id' => $refId, 'note' => $note, 'created_by' => $by->id]);
             if ($method === 'card') {
+                // the level reached before this payment gives its cashback; crossing a level starts the next one
+                $before = Cards::level($venue, Cards::spent($card));
                 $this->cards->entry($card, -$final, 'pay', $by, $note, $payment);
-            }
-            $back = $card ? (int) floor($final * (int) $venue->rule('cashback_pct') / 100) : 0;
-            if ($back > 0) {
-                $this->cards->entry($card, $back, 'cashback', $by, null, $payment);
+                $back = (int) floor($final * $before['pct'] / 100);
+                if ($back > 0) {
+                    $this->cards->entry($card, $back, 'cashback', $by, null, $payment);
+                }
+                $after = Cards::level($venue, $before['spent'] + $final);
+                if ($after['pct'] > $before['pct']) {
+                    DB::afterCommit(fn () => $player->notify(new Notice('card_level',
+                        ['venue' => $venue->name, 'pct' => $after['pct']], Cards::link($venue))));
+                }
             }
             if ($notify && $method === 'card') {
                 self::tellPaid($venue, $player, $final, $card->fresh()->balance);
@@ -62,7 +68,7 @@ class Money
         if (! $player || $amount <= 0) {
             return;
         }
-        DB::afterCommit(fn () => $player->notify(new \App\Notifications\Notice('card_paid',
+        DB::afterCommit(fn () => $player->notify(new Notice('card_paid',
             ['venue' => $venue->name, 'amount' => Cards::amd($amount), 'balance' => Cards::amd($balance)], Cards::link($venue))));
     }
 }

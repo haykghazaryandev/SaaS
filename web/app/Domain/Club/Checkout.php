@@ -79,19 +79,17 @@ class Checkout
     // ---------- the check ----------
 
     /**
-     * The check: time (full price, the player's discount, what it costs) + items (their discount too) = total,
+     * The check: time (the price list for the minutes played) + items = total,
      * and the player's card here (if they have one). While they still play: as if stopped now.
      */
     public function bill(Booking $booking): array
     {
         $booking->loadMissing('items', 'venue', 'field');
         $card = $this->card($booking);
-        $pct = $this->discountPct($booking);
         $running = ! $booking->stopped_at && ! $booking->paid_at && $booking->starts_at->isPast();
         $minutes = $running ? $this->chargedMinutes($booking, LocalTime::now()) : $booking->durationMinutes();
         $time = $running ? $this->timePrice($booking, $minutes) : ['full' => $this->fullPrice($booking, $minutes), 'price' => (int) $booking->price];
         $items = (int) $booking->items->sum(fn (BookingItem $i) => $i->qty * $i->price_each);
-        $itemsOff = (int) round($items * $pct / 100);
 
         // while playing: until when the price stays, and what each next step adds ("then +1 000 ֏ per 15 min")
         $step = $this->step($booking);
@@ -106,15 +104,12 @@ class Checkout
             'running' => $running,
             'next' => $next,
             'stopped' => $booking->stopped_at !== null,
-            'timeFull' => max($time['full'], $time['price']),
-            'timeDiscount' => max(0, $time['full'] - $time['price']),
             'time' => $time['price'],
             'items' => $booking->items->map(fn (BookingItem $i) => ['id' => $i->id, 'product_id' => $i->product_id, 'name' => $i->name, 'qty' => $i->qty, 'price_each' => $i->price_each, 'sum' => $i->qty * $i->price_each])->values()->all(),
             'itemsTotal' => $items,
-            'itemsDiscount' => $itemsOff,
-            'discountPct' => $pct,
-            'total' => $time['price'] + $items - $itemsOff,
-            'card' => $card ? ['code' => $card->code, 'balance' => $card->balance] : null,
+            'total' => $time['price'] + $items,
+            // the card's cashback on what it pays now (Cards::level)
+            'card' => $card ? ['code' => $card->code, 'balance' => $card->balance, 'cashback' => Cards::levelOf($card)['pct']] : null,
             'paid' => $booking->paid_at !== null,
         ];
     }
@@ -159,7 +154,7 @@ class Checkout
         DB::transaction(function () use ($booking, $bill, $card, $by) {
             $booking->loadMissing('user', 'venue', 'items');
             $timeKind = $booking->purpose === 'training' ? 'training' : 'booking';
-            $shop = $bill['itemsTotal'] - $bill['itemsDiscount'];
+            $shop = $bill['itemsTotal'];
             // the card pays the time first, then the items; cash pays what is left of each (the report keeps them apart)
             $cardTime = min($card, $bill['time']);
             $cardShop = $card - $cardTime;
@@ -169,7 +164,7 @@ class Checkout
             ];
             foreach ($parts as [$kind, $method, $amount]) {
                 if ($amount > 0) {
-                    $this->money->charge($booking->venue, $by, $kind, $amount, $method, $booking->user, $booking->id, $booking->code, discount: false, notify: false);
+                    $this->money->charge($booking->venue, $by, $kind, $amount, $method, $booking->user, $booking->id, $booking->code, notify: false);
                 }
             }
             foreach ($booking->items as $i) {
@@ -196,22 +191,17 @@ class Checkout
         return $booking->open_end ? $played : max($played, $booking->durationMinutes());
     }
 
-    /** ['full' => the price list for these minutes, 'price' => after the player's discount]. */
+    /** ['full' => the price list for these minutes, 'price' => what it costs (the same: no card discounts)]. */
     private function timePrice(Booking $booking, int $minutes): array
     {
         $full = $this->fullPrice($booking, $minutes);
 
-        return ['full' => $full, 'price' => (int) round($full * (100 - $this->discountPct($booking)) / 100)];
+        return ['full' => $full, 'price' => $full];
     }
 
     private function fullPrice(Booking $booking, int $minutes): int
     {
         return $this->prices->price($booking->field, $booking->starts_at->toImmutable(), $minutes, $booking->purpose ?? 'play');
-    }
-
-    private function discountPct(Booking $booking): int
-    {
-        return $booking->venue?->hasFeature('wallet') ? Cards::discountFor($booking->venue_id, $booking->user_id) : 0;
     }
 
     private function step(Booking $booking): int

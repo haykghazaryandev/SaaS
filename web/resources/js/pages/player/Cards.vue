@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CashbackLevel, { type Level } from '@/components/club/CashbackLevel.vue';
 import Icon from '@/components/Icon.vue';
 import { SPORT_ICON } from '@/composables/usePlayer';
 import { amd, useShared } from '@/composables/useShared';
@@ -8,12 +9,13 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
 // My cards: one per club. Show the club's QR at the desk: they top up, take payments from it, mark trainings,
-// see your discount. Each QR works only at its own club. Ratings per sport are here too.
+// see your cashback level (it grows with what the card has paid there). Each QR works only at its own club. Ratings per sport are here too.
 interface Card {
     id: number;
     venue: { slug: string; name: string };
     balance: number;
-    discount: number;
+    level: Level | null;
+    tiers: { from: number; pct: number }[];
     qr: string;
     code: string;
     history: { id: number; amount: number; kind: string; note: string | null; at: string }[];
@@ -24,7 +26,7 @@ const big = ref<Card | null>(null);
 onMounted(() => {
     if (props.open) document.getElementById('card-' + props.open)?.scrollIntoView({ block: 'start' });
 });
-// live: a top-up, a payment, a new discount on one of my cards
+// live: a top-up, a payment, a new cashback level on one of my cards
 const { user } = useShared();
 let reloadT: number | undefined;
 useLive(
@@ -56,13 +58,14 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 
             <article v-for="c in cards" :id="'card-' + c.venue.slug" :key="c.id" class="card ccard">
                 <button type="button" class="chead" :aria-expanded="shown === c.id" @click="shown = shown === c.id ? null : c.id">
-                    <span class="nm"><b>{{ c.venue.name }}</b><small v-if="c.discount">{{ $t('club.your_discount', { p: c.discount }) }}</small></span>
+                    <span class="nm"><b>{{ c.venue.name }}</b><small v-if="c.level?.pct">{{ $t('club.cashback.now', { p: c.level.pct }) }}</small></span>
                     <span class="bal">{{ amd(c.balance) }}</span>
                 </button>
                 <div v-if="shown === c.id" class="cbody">
                     <!-- white around the code: scanners need the light border -->
                     <button type="button" class="qr" :aria-label="$t('club.show_big')" @click="big = c" v-html="c.qr" />
                     <p class="faint small">{{ $t('club.qr_hint', { venue: c.venue.name }) }}</p>
+                    <CashbackLevel v-if="c.level" :level="c.level" :tiers="c.tiers" class="cb" />
                     <div v-for="e in c.history" :key="e.id" class="hist">
                         <span>{{ e.at }}</span><b :class="e.amount > 0 ? 'plus' : 'minus'">{{ sign(e.amount) }}</b><small>{{ $t('club.entry.' + e.kind) }}{{ e.note ? ' · ' + e.note : '' }}</small>
                     </div>
@@ -104,6 +107,8 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 .hist b.plus { color: var(--free); }
 .hist b.minus { color: var(--hot); }
 .hist small { color: var(--muted); }
+/* the level block sits on its own, left aligned (the hint above is centered) */
+.cb { padding: 10px 0 8px; border-bottom: 1px solid var(--line); }
 .cbody .btn { align-self: flex-start; margin-top: 6px; }
 .bigqr { position: fixed; inset: 0; z-index: 200; background: #fff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; }
 .bigqr .qr { width: min(80vw, 420px); padding: 0; }
