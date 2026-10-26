@@ -47,7 +47,7 @@ it('gives a player one card per place, whose code works only at that place', fun
     expect(fn () => $this->cards->forPlayer(makeVenue(), $this->player))->toThrow(BookingException::class);
 });
 
-it('tops up, pays from the card and adds the cashback onto it; cash earns none', function () {
+it('tops up, pays from the card and adds the cashback onto it; a card holder paying cash earns it too', function () {
     $card = $this->cards->forPlayer($this->club, $this->player);
     $this->cards->topUp($card, 10000, $this->owner);
     $p = $this->money->charge($this->club, $this->owner, 'shop', 4000, 'card', $this->player);
@@ -56,9 +56,9 @@ it('tops up, pays from the card and adds the cashback onto it; cash earns none',
         ->and($card->fresh()->balance)->toBe(10000 - 4000 + 200)
         ->and($card->entries()->pluck('kind')->all())->toBe(['cashback', 'pay', 'topup']);
     expect(fn () => $this->money->charge($this->club, $this->owner, 'shop', 100000, 'card', $this->player))->toThrow(BookingException::class, __('booking.error.low_balance'));
-    // cash: the full price, the card doesn't move
+    // cash: the full price; only the cashback (5% of 2 000) goes onto the card
     $cash = $this->money->charge($this->club, $this->owner, 'training', 2000, 'cash', $this->player);
-    expect($cash->amount)->toBe(2000)->and($card->fresh()->balance)->toBe(6200);
+    expect($cash->amount)->toBe(2000)->and($card->fresh()->balance)->toBe(6200 + 100);
     // no card: card payment refused
     expect(fn () => $this->money->charge($this->club, $this->owner, 'shop', 100, 'card', User::factory()->create()))->toThrow(BookingException::class, __('booking.error.no_card'));
 });
@@ -71,17 +71,17 @@ it('moves a card up the cashback levels by itself: 0% until 50 000, then 3%, 5% 
     $this->cards->topUp($card, 1_000_000, $this->owner);
     expect(Cards::levelOf($card))->toBe(['pct' => 0, 'spent' => 0, 'next' => ['from' => 50000, 'pct' => 3, 'left' => 50000]]);
 
-    // 40 000 + 20 000: no cashback yet (the level counts what was paid before); now 60 000 paid → 3%
+    // 40 000 from the card + 20 000 cash: no cashback yet (the level counts what was paid before); now 60 000 paid → 3%
     $this->money->charge($club, $this->owner, 'booking', 40000, 'card', $this->player);
-    $this->money->charge($club, $this->owner, 'booking', 20000, 'card', $this->player);
+    $this->money->charge($club, $this->owner, 'booking', 20000, 'cash', $this->player);
     expect($card->entries()->where('kind', 'cashback')->count())->toBe(0)
         ->and(Cards::levelOf($card->fresh()))->toMatchArray(['pct' => 3, 'spent' => 60000, 'next' => ['from' => 150000, 'pct' => 5, 'left' => 90000]]);
     Notification::assertSentTo($this->player, Notice::class, fn ($n) => $n->type === 'card_level');
 
     $this->money->charge($club, $this->owner, 'booking', 10000, 'card', $this->player);   // 3% → 300
     expect((int) $card->entries()->where('kind', 'cashback')->sum('amount'))->toBe(300);
-    // cash and top-ups don't count towards the level
-    $this->money->charge($club, $this->owner, 'booking', 500000, 'cash', $this->player);
+    // top-ups don't count towards the level; cash without the player (no card) neither
+    $this->money->charge($club, $this->owner, 'booking', 500000, 'cash');
     expect(Cards::spent($card))->toBe(70000);
     $this->money->charge($club, $this->owner, 'booking', 240000, 'card', $this->player);   // 310 000 paid
     expect(Cards::levelOf($card)['pct'])->toBe(7)->and(Cards::levelOf($card)['next'])->toBeNull();
@@ -113,12 +113,12 @@ it('pays a check of time and items: card first (known from the booking, no scan)
     expect($bill['total'])->toBe(16000)->and($bill['card']['balance'])->toBe(13000);
     expect(fn () => $checkout->pay($b, 13000, 1000, $this->owner))->toThrow(BookingException::class);   // not the total
     $checkout->pay($b, 13000, 3000, $this->owner);
-    // the card paid the time (13 000 of 15 000), cash the rest of the time and the items; 5% cashback on the card part only
+    // the card paid the time (13 000 of 15 000), cash the rest of the time and the items; 5% cashback on all of it
     $payments = Payment::where('ref_id', $b->id)->get();
     expect($payments->where('kind', 'booking')->where('method', 'card')->sum('amount'))->toBe(13000)
         ->and($payments->where('kind', 'booking')->where('method', 'cash')->sum('amount'))->toBe(2000)
         ->and($payments->where('kind', 'shop')->sum('amount'))->toBe(1000)
-        ->and($card->fresh()->balance)->toBe(650)
+        ->and($card->fresh()->balance)->toBe(650 + 100 + 50)
         ->and($b->fresh()->paid_at)->not->toBeNull()
         ->and(fn () => $checkout->pay($b->fresh(), 0, 16000, $this->owner))->toThrow(BookingException::class, __('booking.error.already_paid'))
         ->and(fn () => $checkout->addItem($b->fresh(), $cola, 1, $this->owner))->toThrow(BookingException::class);

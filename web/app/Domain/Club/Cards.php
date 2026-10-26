@@ -100,10 +100,10 @@ class Cards
             ->sortBy('from')->unique('from')->take(8)->values()->all();
     }
 
-    /** Everything this card has paid at its place (payments from the card; top-ups and corrections don't count). */
+    /** Everything the card's player has paid at its place, from the card or in cash (top-ups and corrections don't count). */
     public static function spent(VenueCard $card): int
     {
-        return (int) -CardEntry::where('card_id', $card->id)->where('kind', 'pay')->sum('amount');
+        return (int) Payment::where('card_id', $card->id)->where('kind', '!=', 'topup')->sum('amount');
     }
 
     /**

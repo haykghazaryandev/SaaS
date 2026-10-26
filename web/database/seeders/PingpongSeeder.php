@@ -11,6 +11,7 @@ use App\Models\Booking;
 use App\Models\CardEntry;
 use App\Models\Field;
 use App\Models\OpeningHour;
+use App\Models\Payment;
 use App\Models\PriceRule;
 use App\Models\Product;
 use App\Models\SportRating;
@@ -147,7 +148,8 @@ class PingpongSeeder extends Seeder
                 $card->update(['balance' => 15000]);
                 CardEntry::create(['card_id' => $card->id, 'amount' => 15000 + $paid, 'kind' => 'topup', 'note' => 'demo']);
                 if ($paid) {
-                    CardEntry::create(['card_id' => $card->id, 'amount' => -$paid, 'kind' => 'pay', 'note' => 'demo']);
+                    $pay = Payment::create(['venue_id' => $venue->id, 'user_id' => $u->id, 'card_id' => $card->id, 'kind' => 'booking', 'method' => 'card', 'amount' => $paid, 'note' => 'demo']);
+                    CardEntry::create(['card_id' => $card->id, 'amount' => -$paid, 'kind' => 'pay', 'payment_id' => $pay->id, 'note' => 'demo']);
                 }
             }
             SportRating::firstOrCreate(['user_id' => $u->id, 'sport' => 'pingpong'], ['rating' => $k ? 1180 : 1420, 'venue_id' => $venue->id]);

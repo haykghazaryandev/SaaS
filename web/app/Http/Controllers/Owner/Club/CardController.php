@@ -6,6 +6,7 @@ use App\Domain\Booking\BookingException;
 use App\Domain\Club\Cards;
 use App\Http\Controllers\Owner\OwnerController;
 use App\Models\CardEntry;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\VenueCard;
 use App\Support\LocalTime;
@@ -32,14 +33,14 @@ class CardController extends OwnerController
                 ->when($digits !== '', fn ($x) => $x->orWhere('phone', 'like', "%{$digits}%"))))
             ->latest('updated_at')->limit(300)->get();
         // what each card has paid here: its cashback level
-        $spent = CardEntry::whereIn('card_id', $cards->pluck('id'))->where('kind', 'pay')->groupBy('card_id')
-            ->selectRaw('card_id, -sum(amount) as paid')->pluck('paid', 'card_id');
+        $spent = Payment::whereIn('card_id', $cards->pluck('id'))->where('kind', '!=', 'topup')->groupBy('card_id')
+            ->selectRaw('card_id, sum(amount) as paid')->pluck('paid', 'card_id');
 
         return Inertia::render('owner/Cards', [
             'q' => $q,
             'cards' => $cards->map(fn (VenueCard $c) => [
                 'code' => $c->code, 'name' => $c->user?->name, 'phone' => $c->user?->phone ? Phone::format($c->user->phone) : null,
-                'avatar' => $c->user?->avatarUrl(), 'userId' => $c->user_id, 'balance' => $c->balance, 'cashback' => Cards::level($venue, $spent[$c->id] ?? 0)['pct'],
+                'avatar' => $c->user?->avatarUrl(), 'userId' => $c->user_id, 'balance' => $c->balance, 'cashback' => Cards::level($venue, (int) ($spent[$c->id] ?? 0))['pct'],
             ])->values(),
             'totals' => ['cards' => VenueCard::where('venue_id', $venue->id)->count(), 'balance' => (int) VenueCard::where('venue_id', $venue->id)->sum('balance')],
         ]);

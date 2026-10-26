@@ -1350,9 +1350,9 @@
         "ru": "Баланс, скидки и ваш рейтинг — по одному QR"
     },
     "club.cashback.how": {
-        "en": "Pay with the card and part of it comes back onto the card. The more you pay with it, the more comes back:",
-        "hy": "Վճարեք քարտով, և գումարի մի մասը կվերադառնա քարտին։ Որքան շատ վճարեք քարտով, այնքան շատ կվերադառնա․",
-        "ru": "Платите картой, и часть суммы вернётся на неё. Чем больше оплачено картой, тем больше возврат:"
+        "en": "Show this card when you pay, from the card or in cash, and part of it comes back onto the card. The more you pay here, the more comes back:",
+        "hy": "Վճարելիս ցույց տվեք այս քարտը՝ քարտից կամ կանխիկ, և գումարի մի մասը կվերադառնա քարտին։ Որքան շատ վճարեք այստեղ, այնքան շատ կվերադառնա․",
+        "ru": "Показывайте эту карту при оплате, с карты или наличными, и часть суммы вернётся на неё. Чем больше оплачено здесь, тем больше возврат:"
     },
     "club.cashback.next": {
         "en": ":p% cashback from :from paid (:left to go)",
@@ -1365,9 +1365,9 @@
         "ru": "Кэшбэк :p%"
     },
     "club.cashback.paid": {
-        "en": "Paid with this card: :sum",
-        "hy": "Այս քարտով վճարված՝ :sum",
-        "ru": "Оплачено этой картой: :sum"
+        "en": "Paid here in all: :sum",
+        "hy": "Այստեղ վճարված ընդհանուր՝ :sum",
+        "ru": "Всего оплачено здесь: :sum"
     },
     "club.cashback.row": {
         "en": "from :from — :p%",
@@ -5210,9 +5210,9 @@
         "ru": "Оплачено от, ֏"
     },
     "owner.settings.cashback_levels": {
-        "en": "Cashback grows by itself with what a card has paid here in all. Below the first level there is none.",
-        "hy": "Քեշբեքն ինքնաբերաբար աճում է քարտով այստեղ վճարված ընդհանուր գումարի հետ։ Առաջին մակարդակից ցածր քեշբեք չկա։",
-        "ru": "Кэшбэк растёт сам по мере того, сколько всего оплачено картой здесь. Ниже первого уровня его нет."
+        "en": "Cashback grows by itself with what a card holder has paid here in all, from the card or in cash. Below the first level there is none.",
+        "hy": "Քեշբեքն ինքնաբերաբար աճում է քարտատիրոջ այստեղ վճարած ընդհանուր գումարի հետ՝ քարտից կամ կանխիկ։ Առաջին մակարդակից ցածր քեշբեք չկա։",
+        "ru": "Кэшбэк растёт сам с общей суммой, которую владелец карты оплатил здесь, с карты или наличными. Ниже первого уровня его нет."
     },
     "owner.settings.cashback_pct": {
         "en": "Cashback, %",

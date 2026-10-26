@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The place takes money: for a booking, a training, a shop sale, a tournament fee.
- * Paid from the player's card (the balance goes down) or in cash. What is paid from the card earns cashback onto it:
+ * Paid from the player's card (the balance goes down) or in cash. What a card holder pays (from the card or in cash) earns cashback onto the card:
  * the % grows with everything the card has paid at the place (rules.cashback_tiers, Cards::level), by itself.
  */
 class Money
@@ -38,12 +38,15 @@ class Money
             if ($method === 'card' && $card->balance < $final) {
                 throw new BookingException('low_balance');
             }
+            // the level reached before this payment gives its cashback; crossing a level starts the next one
+            $before = $card ? Cards::level($venue, Cards::spent($card)) : null;
             $payment = Payment::create(['venue_id' => $venue->id, 'user_id' => $player?->id, 'card_id' => $card?->id,
                 'kind' => $kind, 'method' => $method, 'amount' => $final, 'ref_id' => $refId, 'note' => $note, 'created_by' => $by->id]);
             if ($method === 'card') {
-                // the level reached before this payment gives its cashback; crossing a level starts the next one
-                $before = Cards::level($venue, Cards::spent($card));
                 $this->cards->entry($card, -$final, 'pay', $by, $note, $payment);
+            }
+            // a card holder earns cashback on what they pay, from the card or in cash
+            if ($card) {
                 $back = (int) floor($final * $before['pct'] / 100);
                 if ($back > 0) {
                     $this->cards->entry($card, $back, 'cashback', $by, null, $payment);

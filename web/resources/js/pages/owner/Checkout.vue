@@ -107,9 +107,9 @@ function pay() {
                         >
                         <label class="field"><span>{{ $t('owner.club.cash') }}</span><span class="money"><input :value="cash" class="input" disabled /><span>֏</span></span></label>
                     </div>
-                    <!-- the card's cashback level: this much comes back onto it -->
-                    <p v-if="canCard && fromCard > 0 && bill.card!.cashback" class="faint" style="font-size: 12.5px; margin: 0">
-                        {{ $t('owner.club.cashback_note', { p: bill.card!.cashback }) }} +{{ amd(Math.floor((fromCard * bill.card!.cashback) / 100)) }}
+                    <!-- the card's cashback level: this much of the check (card or cash) comes back onto it -->
+                    <p v-if="bill.card?.cashback" class="faint" style="font-size: 12.5px; margin: 0">
+                        {{ $t('owner.club.cashback_note', { p: bill.card.cashback }) }} +{{ amd(Math.floor((bill.total * bill.card.cashback) / 100)) }}
                     </p>
                     <p v-if="tooMuch" class="err">{{ $t('booking.error.low_balance') }}</p>
                     <button type="button" class="btn block big" :disabled="tooMuch" data-test="take-payment" @click="pay">
