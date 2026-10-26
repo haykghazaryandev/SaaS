@@ -19,6 +19,8 @@ export interface SharedData {
     devCode: string | null;
     /** header badges (logged-in users only) */
     counts?: SocialCounts | null;
+    /** the sport chosen on the home page (null on "What do you play?") */
+    sport?: string | null;
     [key: string]: unknown;
 }
 

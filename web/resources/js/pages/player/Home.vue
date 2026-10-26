@@ -104,11 +104,8 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
         <!-- 2. the sport's page: book, tournaments, games -->
         <template v-else>
             <div class="shead">
-                <nav v-if="sports.length > 1" class="sport-pick tabs" :aria-label="$t('player.home.pick_sport')">
-                    <Link v-for="sp in sports" :key="sp.key" :href="sportUrl(sp.key)" :aria-current="sp.key === sport ? 'true' : undefined" preserve-scroll>
-                        <span class="em">{{ sp.icon }}</span>{{ $t(`common.sports.${sp.key}`) }}
-                    </Link>
-                </nav>
+                <!-- another sport: back to "What do you play?" -->
+                <Link v-if="sports.length > 1" class="allsports" :href="route('home')"><Icon name="back" size="sm" />{{ $t('player.home.all_sports') }}</Link>
                 <h1>{{ $t(tx('title_a')) }} <em>{{ $t(tx('title_b')) }}</em></h1>
             </div>
 
@@ -238,9 +235,8 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .shead { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
 .shead h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); }
 .shead h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.sport-pick.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); max-width: 460px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 5px; gap: 5px; }
-.sport-pick.tabs a { justify-content: center; border: 0; background: transparent; padding: 10px 8px; border-radius: 13px; min-width: 0; }
-.sport-pick.tabs a[aria-current="true"] { background: var(--accent); color: var(--on-accent); }
+.allsports { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; align-self: flex-start; }
+.allsports:hover { color: var(--accent); }
 .acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
 .act { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); text-align: left; font: inherit; }
 .act > .ico { color: var(--accent); flex: none; }

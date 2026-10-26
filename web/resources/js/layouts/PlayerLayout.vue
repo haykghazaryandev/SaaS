@@ -47,7 +47,8 @@ type NavItem = { key: string; href: string; label: string; short: string; tab?: 
 const nav = computed<NavItem[]>(() => {
     const c = social.counts;
     const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'nav.home', short: 'nav.home', icon: 'home', match: ['/', '/places', '/t/'] }];
-    if (has('games.index')) items.push({ key: 'games', href: route('games.index'), label: 'common.games', short: 'common.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
+    // games of the chosen sport only (football for now): none on "What do you play?"
+    if (has('games.index') && page.props.sport === 'football') items.push({ key: 'games', href: route('games.index'), label: 'common.games', short: 'common.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
     if (user.value) {
         if (has('messages.index')) items.push({ key: 'chats', href: route('messages.index'), label: 'nav.chats', short: 'nav.chats', icon: 'chat', match: ['/messages'], badge: c.messages });
         items.push({ key: 'friends', href: route('friends.index'), label: 'common.friends', short: 'common.friends', icon: 'users', match: ['/friends', '/u/'], badge: c.friendRequests });

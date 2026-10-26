@@ -5534,6 +5534,11 @@
         "hy": "Տրիբունա",
         "ru": "Трибуна"
     },
+    "player.home.all_sports": {
+        "en": "All sports",
+        "hy": "Բոլոր մարզաձևերը",
+        "ru": "Все виды спорта"
+    },
     "player.home.any": {
         "en": "Any",
         "hy": "Ցանկացած",

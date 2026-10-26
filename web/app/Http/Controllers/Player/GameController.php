@@ -38,6 +38,7 @@ class GameController extends Controller
     /** GET /games: open games (everyone) and "My games" (logged in). */
     public function index(Request $request, PlayerVenues $venues)
     {
+        $request->session()->put('sport', 'football');   // games are football for now
         $me = $request->user();
         if (! $me) {
             // after logging in from this page, come back here
@@ -156,6 +157,7 @@ class GameController extends Controller
     /** GET /games/{game} */
     public function show(Request $request, Game $game, PlayerVenues $venues)
     {
+        $request->session()->put('sport', 'football');
         $me = $request->user();
         $game->load([...PlayerGames::WITH, 'conversation']);
         $row = $me ? $game->players->firstWhere('user_id', $me->id) : null;

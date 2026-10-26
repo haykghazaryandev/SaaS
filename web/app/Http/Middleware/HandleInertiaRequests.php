@@ -39,6 +39,8 @@ class HandleInertiaRequests extends Middleware
             ],
             // header badges: unread notifications, unread chat messages, friend requests waiting (lazy: only computed when sent)
             'counts' => fn () => $user ? app(SocialCounts::class)->for($user) : null,
+            // the sport the player chose on the home page (null on "What do you play?"): the menu shows its games
+            'sport' => fn () => $request->hasSession() ? $request->session()->get('sport') : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

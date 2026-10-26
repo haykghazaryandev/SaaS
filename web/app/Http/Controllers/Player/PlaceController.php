@@ -21,6 +21,10 @@ class PlaceController extends Controller
         abort_unless($venue->status === 'active', 404);
         $venue->load(['openingHours', 'fields' => fn ($q) => $q->where('active', true), 'fields.priceRules']);
         $venue->fields->each(fn ($f) => $f->setRelation('venue', $venue));
+        // a place of a sport: that sport is the chosen one
+        if ($sp = $venue->sports()[0] ?? null) {
+            $request->session()->put('sport', $sp->value);
+        }
         $day = $present->pickDay($request->query('date'));
         // one choice per kind of court: all ping-pong tables are "a table" (the first one stands for the group)
         $groups = $present->groups($venue->fields);

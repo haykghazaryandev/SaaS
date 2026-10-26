@@ -59,8 +59,13 @@ class HomeController extends Controller
             'places' => $all->filter(fn (Venue $v) => $v->hasFeature('booking') && $v->fields->contains(fn ($f) => $f->active && $f->size->sport() === $sp))->count(),
         ])->filter(fn ($x) => $x['places'] > 0)->values();
         if (! $chosen && $sportTabs->count() > 1) {
+            // back on "What do you play?": no sport chosen (the menu shows no sport's games)
+            $request->session()->forget('sport');
+
             return Inertia::render('player/Home', ['pick' => true, 'sports' => $sportTabs, 'filters' => ['sport' => null]]);
         }
+        // the chosen sport goes with the player through the app (its games in the menu)
+        $request->session()->put('sport', $sport->value);
 
         // the sport's page: book (places and free times), its tournaments, open games
         $tournaments = Tournament::where('sport', $sport->value)->where('status', 'open')->where('starts_at', '>', now())
