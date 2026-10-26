@@ -111,7 +111,9 @@ it('stops a game: at least its booked length, longer costs more', function () {
     $b->update(['status' => 'accepted']);
     // they leave after 40 min: still the booked hour
     $this->travelTo($start->addMinutes(40));
-    expect($checkout->bill($b->fresh())['minutes'])->toBe(60);
+    expect($checkout->bill($b->fresh())['minutes'])->toBe(60)
+        // the price holds until the booked hour ends, then each 15 min adds 750 − 10% = 675
+        ->and($checkout->bill($b->fresh())['next'])->toBe(['until' => '13:00', 'step' => 15, 'adds' => 675]);
     // they play 1 h 20: 1 h 30 (rounded up to 15 min) with the discount; the bill shows the full price and the discount
     $this->travelTo($start->addMinutes(80));
     $checkout->stop($b->fresh(), $this->owner);

@@ -21,6 +21,8 @@ interface Bill {
     discountPct: number;
     total: number;
     card: { code: string; balance: number } | null;
+    /** while playing: the price stays until this time, then each step adds this much */
+    next: { until: string; step: number; adds: number } | null;
 }
 interface Court {
     id: number;
@@ -111,6 +113,7 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
                         <div class="ln total">
                             <span>{{ c.state === 'playing' ? $t('owner.club.if_stop_now') : $t('player.place.total') }}</span><b>{{ amd(c.game.bill.total) }}</b>
                         </div>
+                        <p v-if="c.game.bill.next" class="nexthint">{{ $t('owner.club.price_until', { t: c.game.bill.next.until, a: amd(c.game.bill.next.adds), m: c.game.bill.next.step }) }}</p>
                         <div class="cardline">
                             <Icon name="wallet" size="sm" />
                             <span v-if="c.game.bill.card">{{ $t('owner.club.card_balance', { a: amd(c.game.bill.card.balance) }) }}</span>
@@ -165,6 +168,7 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
 .ln.disc { color: var(--accent); }
 .ln.total { border-top: 1px solid var(--line-2); margin-top: 4px; padding-top: 8px; font-weight: 800; }
 .ln.total b { font-size: 20px; color: var(--accent); }
+.nexthint { margin: 2px 0 4px; font-size: 12px; color: var(--muted); }
 .cardline { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .adds .chip { font-size: 13px; }
 .acts .btn { width: 100%; justify-content: center; }

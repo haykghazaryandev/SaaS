@@ -93,9 +93,18 @@ class Checkout
         $items = (int) $booking->items->sum(fn (BookingItem $i) => $i->qty * $i->price_each);
         $itemsOff = (int) round($items * $pct / 100);
 
+        // while playing: until when the price stays, and what each next step adds ("then +1 000 ֏ per 15 min")
+        $step = $this->step($booking);
+        $next = $running ? [
+            'until' => $booking->starts_at->toImmutable()->addMinutes($minutes)->setTimezone(LocalTime::tz())->format('H:i'),
+            'step' => $step,
+            'adds' => $this->timePrice($booking, $minutes + $step)['price'] - $time['price'],
+        ] : null;
+
         return [
             'minutes' => $minutes,
             'running' => $running,
+            'next' => $next,
             'stopped' => $booking->stopped_at !== null,
             'timeFull' => max($time['full'], $time['price']),
             'timeDiscount' => max(0, $time['full'] - $time['price']),

@@ -4069,6 +4069,11 @@
         "hy": "Գին, ֏",
         "ru": "Цена, ֏"
     },
+    "owner.club.price_until": {
+        "en": "This price until :t · then +:a per :m min",
+        "hy": "Այս գինը մինչև :t · հետո +:a ամեն :m րոպեի համար",
+        "ru": "Эта цена до :t · дальше +:a за каждые :m мин"
+    },
     "owner.club.qty": {
         "en": "How many",
         "hy": "Քանակ",
