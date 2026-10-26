@@ -106,6 +106,24 @@ class Venue extends HasFactoryModel
     }
 
     /** Price per hour of a training on a kind of court (rules.training_prices), or null: no trainings there. */
+    /**
+     * Prices by length for a kind of court (rules.length_prices), shortest first: [['min' => 15, 'day' => 1200,
+     * 'evening' => null, 'weekend' => null], …]; empty evening / weekend = the day price. Empty list: priced per hour.
+     */
+    public function lengthPrices(string $size): array
+    {
+        return self::cleanLengths((array) (($this->rules['length_prices'] ?? [])[$size] ?? []));
+    }
+
+    public static function cleanLengths(array $rows): array
+    {
+        $price = fn ($v) => $v === null || $v === '' ? null : max(0, min(1_000_000, (int) $v));
+
+        return collect($rows)->filter(fn ($r) => is_array($r) && (int) ($r['min'] ?? 0) >= 5 && ($r['day'] ?? null) !== null && $r['day'] !== '')
+            ->map(fn ($r) => ['min' => min(720, (int) $r['min']), 'day' => $price($r['day']), 'evening' => $price($r['evening'] ?? null), 'weekend' => $price($r['weekend'] ?? null)])
+            ->sortBy('min')->unique('min')->take(10)->values()->all();
+    }
+
     public function trainingPrice(string $size): ?int
     {
         if (! $this->hasFeature('trainings')) {

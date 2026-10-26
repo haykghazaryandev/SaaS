@@ -2,7 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
 import { amd, hhmm } from '@/composables/useShared';
-import { SIZE_COLOR, courtShort, dateLong, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
+import { SIZE_COLOR, courtShort, dateLong, dur, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
 import GameCard from '@/components/games/GameCard.vue';
@@ -217,7 +217,8 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                             <div class="meta">
                                 <span><Icon name="pin" size="sm" />{{ $t(`common.districts.${v.district}`) }}</span>
                                 <span v-if="v.hours"><Icon name="clock" size="sm" />{{ hhmm(v.hours[0]) }}–{{ hhmm(v.hours[1]) }}</span>
-                                <span class="price">{{ $t('common.from_lower') }} {{ amd(v.from) }} <small>{{ $t('common.per_hour') }}</small></span>
+                                <span v-if="v.fromLen" class="price">{{ $t('common.from_lower') }} {{ amd(v.fromLen.p) }} <small>/ {{ dur(v.fromLen.min) }}</small></span>
+                                <span v-else class="price">{{ $t('common.from_lower') }} {{ amd(v.from) }} <small>{{ $t('common.per_hour') }}</small></span>
                             </div>
                             <div class="slots">
                                 <div v-for="fl in v.fields" :key="fl.id" class="fslots">

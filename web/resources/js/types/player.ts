@@ -24,6 +24,8 @@ export interface FieldInfo {
     price: { min: number; max: number };
     /** a training on this kind: price per hour (null: the place has no trainings) */
     trainingPrice?: number | null;
+    /** prices by length instead of per hour (ping-pong: 15 min 1 200 ֏); empty: per hour */
+    lengths?: { min: number; day: number; evening: number | null; weekend: number | null }[];
 }
 
 export interface VenueCard {
@@ -37,6 +39,8 @@ export interface VenueCard {
     reviews: number;
     hours: [number, number] | null;
     from: number;
+    /** priced by length: the cheapest length ("from 1 200 ֏ / 15 min") */
+    fromLen?: { p: number; min: number } | null;
     fields: (FieldInfo & { starts: number[]; more: number; next: NextFree | null })[];
     allFields: { size: string; indoor: boolean; surface: string }[];
     free: boolean;
@@ -73,6 +77,8 @@ export interface SlotsPayload {
         /** durations with nothing free this day: the next free start */
         next: Record<string, NextFree>;
         rates: [number, number][];
+        /** priced by length: per duration, start time → its price (from PriceCalculator) */
+        costs?: Record<string, Record<string, number>>;
         /** courts of the group (ping-pong tables) */
         count?: number;
         /** per duration: start time → how many courts are still free (groups of several courts) */

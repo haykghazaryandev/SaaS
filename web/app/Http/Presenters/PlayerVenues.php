@@ -2,11 +2,14 @@
 
 namespace App\Http\Presenters;
 
+use App\Domain\Booking\AfterBooking\Attendance;
+use App\Domain\Booking\AfterBooking\BookingTeam;
 use App\Domain\Venues\Availability;
 use App\Domain\Venues\PriceCalculator;
 use App\Models\Booking;
 use App\Models\Field;
 use App\Models\OpeningHour;
+use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use Carbon\CarbonImmutable;
@@ -58,6 +61,8 @@ class PlayerVenues
             'price' => $range,
             // a training on this kind: price per hour, null when the place has none
             'trainingPrice' => $f->relationLoaded('venue') ? $f->venue->trainingPrice($f->size->value) : null,
+            // prices by length (15 min / 30 min / 1 h …) instead of per hour; empty: per hour
+            'lengths' => $f->relationLoaded('venue') ? $f->venue->lengthPrices($f->size->value) : [],
         ];
     }
 
@@ -104,8 +109,10 @@ class PlayerVenues
         $hours = $this->availability->hours($venue, $day);
         $key = fn ($h) => (string) round($h, 2);
 
-        $out = $groups->map(function (Collection $group) use ($day, $busy, $hours, $minutes, $key) {
-            $f = $group->first();
+        $out = $groups->map(function (Collection $group) use ($venue, $day, $busy, $hours, $minutes, $key) {
+            $f = $group->first()->setRelation('venue', $venue);
+            $byLength = $venue->lengthPrices($f->size->value) !== [];
+            $costs = [];
             $starts = [];
             $taken = [];
             $left = [];
@@ -124,6 +131,10 @@ class PlayerVenues
                     }
                 }
                 ksort($seen, SORT_NUMERIC);
+                // priced by length: what each start costs for this length (the band at the start), from PriceCalculator
+                if ($byLength) {
+                    $costs[(string) $m] = (object) array_map(fn ($h) => $this->prices->price($f, LocalTime::at($day, $h), $m), $seen);
+                }
                 $starts[(string) $m] = array_values(array_map(fn ($k) => $seen[$k], array_keys(array_intersect_key($seen, $free))));
                 $taken[(string) $m] = array_values(array_map(fn ($k) => $seen[$k], array_keys(array_diff_key($seen, $free))));
                 if ($group->count() > 1) {
@@ -138,7 +149,7 @@ class PlayerVenues
                 }
             }
 
-            return ['id' => $f->id, 'count' => $group->count(), 'starts' => $starts, 'taken' => (object) $taken, 'left' => (object) $left, 'next' => [], 'rates' => $rates];
+            return ['id' => $f->id, 'count' => $group->count(), 'starts' => $starts, 'taken' => (object) $taken, 'left' => (object) $left, 'next' => [], 'rates' => $rates, 'costs' => (object) $costs];
         });
 
         // nothing free this day for a duration: the first free start on a later day ("Fully booked. Next free: Fri 18:00"), any court of the group
@@ -175,7 +186,7 @@ class PlayerVenues
 
     /** A booking of the player (My bookings, confirmation). */
     /** $viewer: who looks at it (the booker sees the team controls and the invite link, a team member sees "Leave"). */
-    public function booking(Booking $b, ?\App\Models\User $viewer = null): array
+    public function booking(Booking $b, ?User $viewer = null): array
     {
         $start = $b->starts_at->toImmutable()->setTimezone(LocalTime::tz());
         $end = $b->ends_at->toImmutable()->setTimezone(LocalTime::tz());
@@ -200,12 +211,13 @@ class PlayerVenues
             // accepted and inside the free-cancellation window: the place may ask to pay
             'lateCancel' => $b->status->value === 'accepted' && $b->starts_at->lessThan(now()->addHours($freeHours)),
         ];
+
         // My bookings: team, "running late", arrival (overrides canCancel for team members)
         return $viewer ? array_replace($row, $this->afterBooking($b, $viewer)) : $row;
     }
 
     /** Team, "running late" and arrival for My bookings. */
-    private function afterBooking(Booking $b, \App\Models\User $viewer): array
+    private function afterBooking(Booking $b, User $viewer): array
     {
         $b->loadMissing('players.user', 'user');
         $booker = $b->user_id === $viewer->id;
@@ -222,9 +234,9 @@ class PlayerVenues
             'booker' => $booker ? null : ['name' => $b->user?->name, 'avatar' => $b->user?->avatarUrl(), 'id' => $b->user_id],
             'team' => $team,
             'teamMax' => max(1, (int) ($b->field->max_players ?: 22) - 1),
-            'inviteUrl' => $booker && $b->status->holdsTime() ? app(\App\Domain\Booking\AfterBooking\BookingTeam::class)->link($b) : null,
-            'canLate' => \App\Domain\Booking\AfterBooking\Attendance::canSayLate($b),
-            'lateOptions' => \App\Domain\Booking\AfterBooking\Attendance::LATE_OPTIONS,
+            'inviteUrl' => $booker && $b->status->holdsTime() ? app(BookingTeam::class)->link($b) : null,
+            'canLate' => Attendance::canSayLate($b),
+            'lateOptions' => Attendance::LATE_OPTIONS,
             'lateMinutes' => $b->late_minutes,
             'arrived' => $b->arrived_at !== null,
         ];
@@ -264,6 +276,9 @@ class PlayerVenues
                 ...$this->venueBasics($v),
                 'hours' => $hours,
                 'from' => (int) $fields->min('price.min'),
+                // priced by length (ping-pong): "from 1 200 ֏ / 15 min" instead of per hour
+                'fromLen' => ($len = $v->fields->where('active', true)->map(fn ($f) => $v->lengthPrices($f->size->value)[0] ?? null)->filter()->sortBy('day')->first())
+                    ? ['p' => $len['day'], 'min' => $len['min']] : null,
                 'fields' => $fields->all(),
                 'allFields' => $v->fields->where('active', true)->map(fn ($f) => ['size' => $f->size->value, 'indoor' => (bool) $f->indoor, 'surface' => $f->surface])->values()->all(),
                 'sports' => array_map(fn ($sp) => $sp->value, $v->sports()),

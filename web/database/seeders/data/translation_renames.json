@@ -391,6 +391,7 @@
     "owner.settings.p_evening": "owner.settings.price_evening",
     "owner.settings.p_weekend": "owner.settings.price_weekend",
     "owner.settings.phone_s": "owner.settings.phone_help",
+    "owner.settings.prices": null,
     "owner.settings.reason": "common.reason",
     "owner.settings.remove": "common.remove",
     "owner.settings.rules": "common.booking_rules",

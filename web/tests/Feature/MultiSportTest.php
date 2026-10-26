@@ -3,16 +3,15 @@
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Domain\Booking\AfterBooking\BookingTeam;
 use App\Domain\Booking\BookingException;
-use App\Domain\Venues\Courts;
-use App\Enums\FieldSize;
+use App\Domain\Venues\PriceCalculator;
 use App\Enums\Sport;
 use App\Models\Booking;
 use App\Models\Field;
-use App\Models\OpeningHour;
 use App\Models\PriceRule;
 use App\Models\SportSetting;
 use App\Models\User;
-use App\Models\Venue;
+use App\Support\LocalTime;
+use Carbon\CarbonInterface;
 use Inertia\Testing\AssertableInertia as Assert;
 
 // ---------- any free table ----------
@@ -167,4 +166,46 @@ it('books in quarter hours where the place starts every 15 minutes', function ()
     $b = app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18.25), 30);
     expect($b->price)->toBe(1500)
         ->and($b->starts_at->setTimezone('Asia/Yerevan')->format('H:i'))->toBe('18:15');
+});
+
+it('prices tables by length: 15 min 1 200, 30 min 2 000, 1 h 5 000; longer games are made of them', function () {
+    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15]]);
+    $owner = User::factory()->create();
+    $club->staff()->attach($owner->id, ['role' => 'owner']);
+    $first = $club->fields->first();
+    $this->actingAs($owner)->put('/owner/settings', ['prices' => [['field_id' => $first->id, 'day' => 3000, 'evening' => 4000, 'weekend' => 4000, 'training' => 6000,
+        'lengths' => [['min' => 60, 'day' => 5000, 'evening' => 6000], ['min' => 15, 'day' => 1200], ['min' => 30, 'day' => 2000]]]]])
+        ->assertSessionHasNoErrors();
+    $club->refresh();
+    expect($club->lengthPrices('table'))->toBe([
+        ['min' => 15, 'day' => 1200, 'evening' => null, 'weekend' => null], ['min' => 30, 'day' => 2000, 'evening' => null, 'weekend' => null],
+        ['min' => 60, 'day' => 5000, 'evening' => 6000, 'weekend' => null]])
+        // the priced lengths are the lengths players book, on every table
+        ->and(Field::where('venue_id', $club->id)->pluck('durations')->unique()->values()->all())->toBe([[15, 30, 60]]);
+    // the settings page shows them back (and the training price; tables have no surface)
+    $this->actingAs($owner)->get('/owner/settings')->assertInertia(fn (Assert $p) => $p->where('prices.0.lengths.2.evening', 6000)
+        ->where('prices.0.training', 6000)->where('prices.0.surface', null)->where('prices.0.sport', 'pingpong'));
+
+    $prices = app(PriceCalculator::class);
+    $t = Field::find($first->id);
+    $weekday = LocalTime::now()->next(CarbonInterface::WEDNESDAY);
+    $at = fn ($h) => LocalTime::at($weekday, $h);
+    expect($prices->price($t, $at(12), 15))->toBe(1200)
+        ->and($prices->price($t, $at(12), 60))->toBe(5000)
+        ->and($prices->price($t, $at(12), 75))->toBe(6200)         // 1 h + 15 min
+        ->and($prices->price($t, $at(12), 50))->toBe(2000 + 1200 + 1200)   // 30 + 15 + the rest as 15
+        ->and($prices->price($t, $at(19), 60))->toBe(6000)         // evening price
+        ->and($prices->price($t, $at(19), 15))->toBe(1200)         // no evening price: the day one
+        ->and($prices->price($t, LocalTime::at($weekday->next(CarbonInterface::SATURDAY), 12), 60))->toBe(5000);
+
+    // a player's booking and the place page use the same prices
+    $b = app(RequestBooking::class)->handle(User::factory()->create(), $t, $at(12), 30);
+    expect($b->price)->toBe(2000);
+    $this->getJson("/places/{$club->slug}/slots?date={$weekday->toDateString()}")->assertOk()
+        ->assertJsonPath('fields.0.costs.60.19', 6000)->assertJsonPath('fields.0.costs.15.12', 1200);
+    $this->get("/places/{$club->slug}")->assertInertia(fn (Assert $p) => $p->where('fields.0.lengths.0.min', 15));
+
+    // back to per hour
+    $this->actingAs($owner)->put('/owner/settings', ['prices' => [['field_id' => $first->id, 'day' => 3000, 'evening' => 4000, 'weekend' => 4000, 'lengths' => []]]]);
+    expect($club->fresh()->lengthPrices('table'))->toBe([])->and($prices->price(Field::find($first->id), $at(12), 60))->toBe(3000);
 });

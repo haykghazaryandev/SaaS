@@ -1345,9 +1345,9 @@
         "ru": ":name удалён(а) из игры"
     },
     "club.card_pitch": {
-        "en": "Balance, discounts and your rating, with one QR",
-        "hy": "Հաշիվ, զեղչեր և ձեր ռեյթինգը՝ մեկ QR-ով",
-        "ru": "Баланс, скидки и ваш рейтинг — по одному QR"
+        "en": "Balance, cashback and your rating, with one QR",
+        "hy": "Հաշիվ, քեշբեք և ձեր ռեյթինգը՝ մեկ QR-ով",
+        "ru": "Баланс, кэшбэк и ваш рейтинг — по одному QR"
     },
     "club.cashback.how": {
         "en": "Show this card when you pay, from the card or in cash, and part of it comes back onto the card. The more you pay here, the more comes back:",
@@ -1465,9 +1465,9 @@
         "ru": "Мои карты"
     },
     "club.my_cards_sub": {
-        "en": "One card per club. Show its QR at the desk: they top up your balance, take payments and give your discount. A card works only at its own club.",
-        "hy": "Մեկ քարտ յուրաքանչյուր ակումբի համար։ Ցույց տվեք QR-ը ընդունարանում․ այնտեղ կլիցքավորեն հաշիվը, կգանձեն վճարումները և կկիրառեն ձեր զեղչը։ Քարտը գործում է միայն իր ակումբում։",
-        "ru": "По одной карте на клуб. Покажите её QR на ресепшене: там пополнят баланс, примут оплату и учтут вашу скидку. Карта действует только в своём клубе."
+        "en": "One card per club. Show its QR at the desk: they top up your balance and take payments, and part of what you pay comes back as cashback. A card works only at its own club.",
+        "hy": "Մեկ քարտ յուրաքանչյուր ակումբի համար։ Ցույց տվեք QR-ը ընդունարանում․ այնտեղ կլիցքավորեն հաշիվը և կգանձեն վճարումները, իսկ վճարածի մի մասը կվերադառնա որպես քեշբեք։ Քարտը գործում է միայն իր ակումբում։",
+        "ru": "По одной карте на клуб. Покажите её QR на ресепшене: там пополнят баланс и примут оплату, а часть оплаченного вернётся кэшбэком. Карта действует только в своём клубе."
     },
     "club.no_cards": {
         "en": "No cards yet. Open a club page and tap \"Get a card\".",
@@ -3550,9 +3550,9 @@
         "ru": "👥 :who присоединился(-ась) к вашей игре: :venue, :date :time."
     },
     "notice.card_created": {
-        "en": "💳 Your card at :venue is ready. Show its QR at the desk: Profile → My cards (balance, discount, history).",
-        "hy": "💳 Ձեր քարտը :venue-ում պատրաստ է։ Ցույց տվեք QR-ը ընդունարանում․ Պրոֆիլ → Իմ քարտերը (հաշիվ, զեղչ, պատմություն)։",
-        "ru": "💳 Ваша карта в :venue готова. Покажите QR на ресепшене: Профиль → Мои карты (баланс, скидка, история)."
+        "en": "💳 Your card at :venue is ready. Show its QR at the desk: Profile → My cards (balance, cashback, history).",
+        "hy": "💳 Ձեր քարտը :venue-ում պատրաստ է։ Ցույց տվեք QR-ը ընդունարանում․ Պրոֆիլ → Իմ քարտերը (հաշիվ, քեշբեք, պատմություն)։",
+        "ru": "💳 Ваша карта в :venue готова. Покажите QR на ресепшене: Профиль → Мои карты (баланс, кэшбэк, история)."
     },
     "notice.card_level": {
         "en": "⭐ Your :venue card now gets :p% cashback on every payment.",
@@ -5309,6 +5309,21 @@
         "hy": "Ակումբ, գներ և կանոններ",
         "ru": "Клуб, цены и правила"
     },
+    "owner.settings.length": {
+        "en": "Length",
+        "hy": "Տևողություն",
+        "ru": "Длительность"
+    },
+    "owner.settings.length_add": {
+        "en": "Add a length",
+        "hy": "Ավելացնել տևողություն",
+        "ru": "Добавить длительность"
+    },
+    "owner.settings.length_note": {
+        "en": "Players book these lengths. Longer games are made of them (75 min = 1 h + 15 min). Empty evening or weekend: the day price.",
+        "hy": "Խաղացողներն ամրագրում են այս տևողությունները։ Ավելի երկար խաղը կազմվում է դրանցից (75 րոպե = 1 ժ + 15 րոպե)։ Դատարկ երեկո կամ հանգստյան օր՝ ցերեկային գինը։",
+        "ru": "Игроки бронируют эти длительности. Более долгая игра складывается из них (75 мин = 1 ч + 15 мин). Пустые вечер или выходные: дневная цена."
+    },
     "owner.settings.minutes_count": {
         "en": ":n min",
         "hy": ":n րոպե",
@@ -5354,6 +5369,11 @@
         "hy": "Խաղացողները այն տեսնում են ակումբի էջում և կարող են զանգել",
         "ru": "Игроки видят его на странице клуба и могут позвонить"
     },
+    "owner.settings.price_by_length": {
+        "en": "By length",
+        "hy": "Ըստ տևողության",
+        "ru": "По длительности"
+    },
     "owner.settings.price_day": {
         "en": "Day",
         "hy": "Ցերեկ",
@@ -5363,6 +5383,11 @@
         "en": "Evening",
         "hy": "Երեկո",
         "ru": "Вечер"
+    },
+    "owner.settings.price_per_hour": {
+        "en": "Per hour",
+        "hy": "Ժամավճար",
+        "ru": "За час"
     },
     "owner.settings.price_training": {
         "en": "Training, per hour",
@@ -5374,15 +5399,15 @@
         "hy": "Հանգստյան",
         "ru": "Выходные"
     },
-    "owner.settings.prices": {
-        "en": "Prices per hour",
-        "hy": "Գներ մեկ ժամի համար",
-        "ru": "Цены за час"
-    },
     "owner.settings.prices_note": {
         "en": "Weekdays before 18:00, weekday evenings from 18:00, and weekends all day. New prices are used for new bookings.",
         "hy": "Աշխատանքային օրեր մինչև 18:00, աշխատանքային օրերի երեկոներ 18:00-ից և հանգստյան օրեր ամբողջ օրը։ Նոր գները կկիրառվեն նոր ամրագրումների համար։",
         "ru": "Будни до 18:00, будние вечера с 18:00 и выходные весь день. Новые цены действуют для новых броней."
+    },
+    "owner.settings.prices_title": {
+        "en": "Prices",
+        "hy": "Գներ",
+        "ru": "Цены"
     },
     "owner.settings.profile": {
         "en": "Place profile",

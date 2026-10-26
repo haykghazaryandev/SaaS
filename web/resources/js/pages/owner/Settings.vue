@@ -15,12 +15,22 @@ interface PriceRow {
     field_id: number;
     training?: number | null;
     label: string;
-    surface: string;
+    sport?: string;
+    surface: string | null;
     indoor: boolean;
     day: number;
     evening: number;
     weekend: number;
+    lengths?: LengthPrice[];
 }
+// a price by length: 15 min 1 200 ֏ (evening / weekend empty = the day price)
+interface LengthPrice {
+    min: number;
+    day: number;
+    evening: number | null;
+    weekend: number | null;
+}
+type LengthRow = { min: number; day: string; evening: string; weekend: string };
 interface CourtKind {
     size: string;
     sport: string;
@@ -81,7 +91,7 @@ const num = (v: string | number) => Number(digits(v)) || 0;
 const fmtPhone = (d: string) => [d.slice(0, 2), d.slice(2, 5), d.slice(5, 8)].filter(Boolean).join(' ');
 
 // ---------- editable state ----------
-type Prices = { field_id: number; day: string; evening: string; weekend: string; training: string }[];
+type Prices = { field_id: number; day: string; evening: string; weekend: string; training: string; byLength: boolean; lengths: LengthRow[] }[];
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monday first
 const priceOf = (id: number) => props.prices.find((p) => p.field_id === id)!;
 const state = reactive({
@@ -101,7 +111,7 @@ const allSame = (hs: HourRow[]) => hs.every((h) => h.open !== null && h.open ===
 /** What "Save changes" sends, per part. */
 function payload() {
     return {
-        prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend), training: digits(p.training) === '' ? null : num(p.training) })),
+        prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend), training: digits(p.training) === '' ? null : num(p.training), lengths: p.byLength ? p.lengths.map((l) => ({ min: l.min, day: num(l.day), evening: opt(l.evening), weekend: opt(l.weekend) })) : [] })),
         hours: state.same ? state.hours.map((h) => ({ weekday: h.weekday, ...state.every })) : state.hours.map((h) => ({ ...h })),
         rules: copyRules(state.rules),
         phone: state.phoneOpen && digits(state.phone) ? `+374${digits(state.phone).slice(-8)}` : null,
@@ -109,7 +119,15 @@ function payload() {
 }
 type Payload = ReturnType<typeof payload>;
 function load(p: Payload) {
-    state.prices = p.prices.map((x) => ({ field_id: x.field_id, day: sep(x.day), evening: sep(x.evening), weekend: sep(x.weekend), training: x.training == null ? '' : sep(x.training) }));
+    state.prices = p.prices.map((x) => ({
+        field_id: x.field_id,
+        day: sep(x.day),
+        evening: sep(x.evening),
+        weekend: sep(x.weekend),
+        training: x.training == null ? '' : sep(x.training),
+        byLength: x.lengths.length > 0,
+        lengths: x.lengths.map((l) => ({ min: l.min, day: sep(l.day), evening: l.evening == null ? '' : sep(l.evening), weekend: l.weekend == null ? '' : sep(l.weekend) })),
+    }));
     state.hours = p.hours.map((h) => ({ ...h }));
     state.same = allSame(state.hours);
     state.every = state.same ? { open: state.hours[0].open!, close: state.hours[0].close! } : { open: '09:00', close: '23:00' };
@@ -118,7 +136,7 @@ function load(p: Payload) {
     state.phone = p.phone ? fmtPhone(p.phone.slice(4)) : '';
 }
 const initial: Payload = {
-    prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend, training: p.training ?? null })),
+    prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend, training: p.training ?? null, lengths: p.lengths ?? [] })),
     hours: ORDER.map((wd) => ({ ...props.hours.find((h) => h.weekday === wd)! })),
     rules: copyRules(props.rules),
     phone: props.place.tel,
@@ -163,6 +181,31 @@ function discard() {
 }
 const errOf = (prefix: string) => Object.entries(errors.value).find(([k]) => k === prefix || k.startsWith(prefix + '.'))?.[1] || '';
 const firstError = computed(() => Object.values(errors.value)[0] || '');
+
+// prices by length: empty evening / weekend = the day price
+function opt(v: string) {
+    return digits(v) === '' ? null : num(v);
+}
+const LENGTHS = [15, 20, 30, 45, 60, 90, 120];
+const lenName = (m: number) => (m < 60 || m % 60 ? trans('owner.settings.minutes_count', { n: m }) : trans('owner.settings.hours_count', { n: m / 60 }));
+function setByLength(p: Prices[number], on: boolean) {
+    p.byLength = on;
+    // a start: 15 / 30 min and 1 h from the hourly day price
+    if (on && !p.lengths.length) {
+        const h = num(p.day);
+        p.lengths = [15, 30, 60].map((m) => ({ min: m, day: sep(Math.round((h * m) / 60 / 100) * 100), evening: '', weekend: '' }));
+    }
+}
+function addLength(p: Prices[number]) {
+    const next = LENGTHS.find((m) => !p.lengths.some((l) => l.min === m)) ?? 60;
+    p.lengths.push({ min: next, day: '', evening: '', weekend: '' });
+    p.lengths.sort((a, b) => a.min - b.min);
+}
+function onLength(l: LengthRow, key: 'day' | 'evening' | 'weekend', e: Event) {
+    const d = digits((e.target as HTMLInputElement).value).slice(0, 7);
+    l[key] = d ? sep(Number(d)) : '';
+    (e.target as HTMLInputElement).value = l[key];
+}
 
 // prices: thousand separators while typing
 function onPrice(p: Prices[number], key: 'day' | 'evening' | 'weekend' | 'training', e: Event) {
@@ -310,18 +353,54 @@ const fmtRange = (c: ClosureRow) =>
 
                     <section class="card panel">
                         <div class="sec-h">
-                            <h2>{{ $t('owner.settings.prices') }}</h2>
+                            <h2>{{ $t('owner.settings.prices_title') }}</h2>
                         </div>
                         <p class="muted" style="font-size: 13px; margin: 0">{{ $t('owner.settings.prices_note') }}</p>
                         <div v-for="(p, i) in state.prices" :key="p.field_id" class="pfield">
                             <div class="lbl">
                                 <b>{{ priceOf(p.field_id).label }}<template v-if="(priceOf(p.field_id).count ?? 1) > 1"> · {{ priceOf(p.field_id).count }}</template></b
                                 ><small
-                                    >{{ $t(`common.surfaces.${priceOf(p.field_id).surface}`)
-                                    }}{{ priceOf(p.field_id).indoor ? ' · ' + $t('owner.settings.indoor') : '' }}</small
+                                    >{{ priceOf(p.field_id).surface ? $t(`common.surfaces.${priceOf(p.field_id).surface}`) : ''
+                                    }}{{ priceOf(p.field_id).indoor ? (priceOf(p.field_id).surface ? ' · ' : '') + $t('owner.settings.indoor') : '' }}</small
                                 >
                             </div>
-                            <div v-for="k in ['day', 'evening', 'weekend'] as const" :key="k" class="field">
+                            <!-- ping-pong and other sports: per hour, or by length (15 min / 30 min / 1 h) -->
+                            <div v-if="priceOf(p.field_id).sport && priceOf(p.field_id).sport !== 'football'" class="seg pmode" role="group">
+                                <button type="button" :aria-pressed="!p.byLength" :disabled="!canEdit" data-test="price-hourly" @click="setByLength(p, false)">
+                                    {{ $t('owner.settings.price_per_hour') }}
+                                </button>
+                                <button type="button" :aria-pressed="p.byLength" :disabled="!canEdit" data-test="price-by-length" @click="setByLength(p, true)">
+                                    {{ $t('owner.settings.price_by_length') }}
+                                </button>
+                            </div>
+                            <div v-if="p.byLength" class="plen">
+                                <div class="plen-h">
+                                    <span>{{ $t('owner.settings.length') }}</span><span>{{ $t('owner.settings.price_day') }}</span
+                                    ><span>{{ $t('owner.settings.price_evening') }}</span><span>{{ $t('owner.settings.price_weekend') }}</span><span />
+                                </div>
+                                <div v-for="(l, j) in p.lengths" :key="j" class="plen-row">
+                                    <select v-model.number="l.min" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.length')">
+                                        <option v-for="m in [...new Set([...LENGTHS, l.min])].sort((a, b) => a - b)" :key="m" :value="m">{{ lenName(m) }}</option>
+                                    </select>
+                                    <label v-for="k in ['day', 'evening', 'weekend'] as const" :key="k" class="pcell"
+                                        ><small>{{ $t(`owner.settings.price_${k}`) }}</small
+                                        ><span class="money"
+                                            ><input
+                                                class="input"
+                                                inputmode="numeric"
+                                                :value="l[k]"
+                                                :disabled="!canEdit"
+                                                :placeholder="k === 'day' ? '' : l.day"
+                                                :data-test="`len-${k}`"
+                                                @input="onLength(l, k, $event)" /><span aria-hidden="true">֏</span></span
+                                    ></label>
+                                    <button v-if="canEdit && p.lengths.length > 1" type="button" class="btn ghost sm rm" :aria-label="$t('common.remove')" @click="p.lengths.splice(j, 1)">✕</button>
+                                    <span v-else class="rm" />
+                                </div>
+                                <button v-if="canEdit && p.lengths.length < 10" type="button" class="btn ghost sm" @click="addLength(p)">+ {{ $t('owner.settings.length_add') }}</button>
+                                <small class="faint">{{ $t('owner.settings.length_note') }}</small>
+                            </div>
+                            <div v-for="k in p.byLength ? [] : (['day', 'evening', 'weekend'] as const)" :key="k" class="field">
                                 <label :for="`p${k}${i}`">{{ $t(`owner.settings.price_${k}`) }}</label>
                                 <span class="money"
                                     ><input
@@ -343,7 +422,7 @@ const fmtRange = (c: ClosureRow) =>
                                 >
                             </div>
                         </div>
-                        <p class="faint" style="font-size: 12px; margin: 10px 0 0">{{ $t('owner.settings.per_hour') }}</p>
+                        <p v-if="state.prices.some((p) => !p.byLength)" class="faint" style="font-size: 12px; margin: 10px 0 0">{{ $t('owner.settings.per_hour') }}</p>
                         <span v-if="errOf('prices')" class="err">{{ errOf('prices') }}</span>
                     </section>
 

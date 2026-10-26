@@ -112,8 +112,16 @@ function rateAt(f: FieldInfo, h: number): number {
     const r = slots.value.fields.find((x) => x.id === f.id)?.rates.find(([t]) => same(t, half));
     return r ? r[1] : f.price.max;
 }
-const isPrime = (f: FieldInfo, h: number) => rateAt(f, h) > f.price.min;
+const byLength = (f: FieldInfo) => !!f.lengths?.length;
+// priced by length: no day / evening marks on the times, the price of each start comes from the server
+const isPrime = (f: FieldInfo, h: number) => !byLength(f) && rateAt(f, h) > f.price.min;
+/** "15 min 1 200 ֏ · 30 min 2 000 ֏ · 1 h 5 000 ֏" (day prices) */
+const lengthList = (f: FieldInfo) => (f.lengths ?? []).map((l) => `${dur(l.min)} ${amd(l.day)}`).join(' · ');
 function priceOf(f: FieldInfo, s: number, m: number) {
+    if (byLength(f)) {
+        const cost = slots.value.fields.find((x) => x.id === f.id)?.costs?.[String(m)]?.[String(Math.round(s * 100) / 100)];
+        return { total: cost ?? lengthCost(f, m), dayMin: m, primeMin: 0 };
+    }
     let total = 0;
     let dayMin = 0;
     let primeMin = 0;
@@ -124,6 +132,17 @@ function priceOf(f: FieldInfo, s: number, m: number) {
         else dayMin += 15;
     }
     return { total: Math.round(total), dayMin, primeMin };
+}
+/** the same as PriceCalculator: the longest lengths that fit first (day prices; the server's price per start wins) */
+function lengthCost(f: FieldInfo, m: number) {
+    const ls = f.lengths ?? [];
+    let sum = 0;
+    for (let left = m; left > 0; ) {
+        const l = [...ls].reverse().find((x) => x.min <= left) ?? ls[0];
+        sum += l.day;
+        left -= l.min;
+    }
+    return sum;
 }
 const range = (s: number, m: number) => `${hhmm(s)}–${hhmm(s + m / 60)}`;
 const cname = (f: FieldInfo) => courtName(f);
@@ -599,7 +618,9 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                         <template v-if="(t.f.count ?? 1) > 1">{{ $t('player.place.courts_n', { n: String(t.f.count) }) }}</template
                                         ><template v-else>{{ $t('common.players_count', { n: String(t.f.players) }) }}</template></span
                                     >
-                                    <span class="fp">{{ $t('player.place.field_price', { p: amd(t.f.price.min) }) }}</span>
+                                    <span class="fp">{{
+                                        byLength(t.f) ? `${amd(t.f.lengths![0].day)} / ${dur(t.f.lengths![0].min)}` : $t('player.place.field_price', { p: amd(t.f.price.min) })
+                                    }}</span>
                                 </span>
                                 <span v-if="t.st === 'busy'" class="fbusy">{{ t.line }}</span>
                             </button>
@@ -690,6 +711,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 <span><i class="lg free" />{{ $t('player.place.slot_free') }} · {{ amd(field.price.min) }} {{ $t('common.per_hour') }}</span>
                                 <span><i class="lg free pk" />{{ $t('player.place.prime_tag') }} · {{ amd(field.price.max) }} {{ $t('common.per_hour') }}</span>
                             </template>
+                            <span v-else-if="free.length && byLength(field)"><i class="lg free" />{{ $t('player.place.slot_free') }} · {{ lengthList(field) }}</span>
                             <span v-else-if="free.length"><i class="lg free" />{{ $t('player.place.slot_free') }} · {{ amd(dayRate) }} {{ $t('common.per_hour') }}</span>
                             <span v-if="(slots.mine ?? []).some((m) => m.field === field!.id)"><i class="lg you" />{{ $t('player.place.mine_title') }}</span>
                         </div>
@@ -725,7 +747,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             <span>{{ $t('player.place.total') }}</span>
                             <b>{{ amd(summary.total) }}</b>
                         </div>
-                        <div class="rate" :class="{ prime: summary.primeMin }">
+                        <div v-if="!byLength(summary.f) || purpose === 'training'" class="rate" :class="{ prime: summary.primeMin }">
                             <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.price_mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
                             <template v-else-if="summary.primeMin">{{ $t('player.place.prime_rate', { p: amd(summary.f.price.max) }) }}</template>
                             <template v-else>{{ $t('player.place.day_rate', { p: amd(summary.f.price.min) }) }}</template>
@@ -824,7 +846,11 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         <dd>
                             <span v-for="f in fields" :key="f.id" class="hrow">
                                 <span class="fname"><i :class="['field-dot', f.size]" />{{ f.format }}</span>
-                                {{ f.price.min === f.price.max ? amd(f.price.min) : `${amd(f.price.min)} – ${amd(f.price.max)}` }} <span class="muted">{{ $t('common.per_hour') }}</span>
+                                <template v-if="byLength(f)">{{ lengthList(f) }}</template>
+                                <template v-else
+                                    >{{ f.price.min === f.price.max ? amd(f.price.min) : `${amd(f.price.min)} – ${amd(f.price.max)}` }}
+                                    <span class="muted">{{ $t('common.per_hour') }}</span></template
+                                >
                             </span>
                             <span class="muted small">{{ $t('player.place.prime_tag') }}: {{ $t('player.place.prime_when') }}</span>
                         </dd>

@@ -6,6 +6,7 @@ use App\Domain\Club\Cards;
 use App\Domain\Venues\Courts;
 use App\Domain\Venues\PriceCalculator;
 use App\Enums\FieldSize;
+use App\Enums\Sport;
 use App\Models\Booking;
 use App\Models\Closure;
 use App\Models\Field;
@@ -63,20 +64,24 @@ class SettingsController extends OwnerController
                 'status' => $venue->status,
             ],
             // one price row per kind of court: a price for "Table" applies to every table
-            'prices' => $venue->fields->groupBy(fn (Field $f) => $f->size->value)->map(function ($group) use ($prices, $wed, $sat) {
+            'prices' => $venue->fields->groupBy(fn (Field $f) => $f->size->value)->map(function ($group) use ($venue, $prices, $wed, $sat) {
                 $f = $group->sortBy(fn (Field $x) => [$x->sort, $x->id])->first();
 
                 return [
                     'field_id' => $f->id,
                     'label' => $group->count() > 1 ? __('owner.courts.kind_'.$f->size->value) : BookingPresenter::fieldLabel($f),
                     'count' => $group->count(),
-                    'surface' => $f->surface,
+                    'sport' => $f->sport()->value,
+                    // football fields have a surface; tables don't
+                    'surface' => $f->sport() === Sport::Football ? $f->surface : null,
                     'indoor' => $f->indoor,
                     'day' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 12)),
                     'evening' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 20)),
                     'weekend' => $prices->hourlyAt($f->priceRules, LocalTime::at($sat, 12)),
                     // a training on this kind: one price per hour (empty: no trainings)
                     'training' => ($venue->rules['training_prices'] ?? [])[$f->size->value] ?? null,
+                    // prices by length (15 min / 30 min / 1 h …): when set, they replace the hourly prices of this kind
+                    'lengths' => $venue->lengthPrices($f->size->value),
                 ];
             })->values(),
             // the courts of each kind: add, rename, switch off, remove (Courts)
@@ -199,6 +204,11 @@ class SettingsController extends OwnerController
             'prices.*.evening' => 'required|integer|min:0|max:1000000',
             'prices.*.weekend' => 'required|integer|min:0|max:1000000',
             'prices.*.training' => 'nullable|integer|min:0|max:1000000',
+            'prices.*.lengths' => 'sometimes|array|max:10',
+            'prices.*.lengths.*.min' => 'required|integer|min:5|max:720',
+            'prices.*.lengths.*.day' => 'required|integer|min:0|max:1000000',
+            'prices.*.lengths.*.evening' => 'nullable|integer|min:0|max:1000000',
+            'prices.*.lengths.*.weekend' => 'nullable|integer|min:0|max:1000000',
         ];
     }
 
@@ -211,8 +221,21 @@ class SettingsController extends OwnerController
     private function savePrices(Venue $venue, array $prices): void
     {
         $training = $venue->rules['training_prices'] ?? [];
+        $lengths = $venue->rules['length_prices'] ?? [];
         foreach ($prices as $p) {
             $size = $venue->fields->firstWhere('id', (int) $p['field_id'])->size;
+            if (array_key_exists('lengths', $p)) {
+                $rows = Venue::cleanLengths($p['lengths'] ?? []);
+                $lengths[$size->value] = $rows;
+                // the lengths with a price are the lengths players book
+                if ($rows) {
+                    $mins = array_column($rows, 'min');
+                    foreach ($venue->fields->where('size', $size) as $court) {
+                        $court->update(['durations' => $mins, 'default_duration' => in_array($court->default_duration, $mins, true) ? $court->default_duration
+                            : (in_array(60, $mins, true) ? 60 : $mins[0])]);
+                    }
+                }
+            }
             if (array_key_exists('training', $p)) {
                 $training[$size->value] = $p['training'] === null || $p['training'] === '' ? null : (int) $p['training'];
             }
@@ -224,7 +247,8 @@ class SettingsController extends OwnerController
                 PriceRule::create(['field_id' => $court->id, 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $p['weekend'], 'priority' => 2]);
             }
         }
-        $venue->forceFill(['rules' => [...($venue->rules ?? []), 'training_prices' => array_filter($training, fn ($v) => $v !== null)]])->save();
+        $venue->forceFill(['rules' => [...($venue->rules ?? []), 'training_prices' => array_filter($training, fn ($v) => $v !== null),
+            'length_prices' => array_filter($lengths)]])->save();
     }
 
     // ---------- courts: add / rename / switch off / remove (owner only) ----------
