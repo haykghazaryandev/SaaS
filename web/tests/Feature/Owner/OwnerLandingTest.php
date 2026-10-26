@@ -23,4 +23,10 @@ it('sends an owner to the dashboard instead of the player app, unless they open 
     $field->staff()->attach($other->id, ['role' => 'owner']);
     $this->actingAs($other)->get('/owner/start')->assertRedirect(route('owner.today'));
     $this->actingAs(User::factory()->create())->get('/')->assertOk();
+
+    // an admin who also owns a place uses the app as a player (panels from Profile)
+    $admin = User::factory()->create();
+    $admin->forceFill(['is_admin' => true])->save();
+    $club->staff()->attach($admin->id, ['role' => 'owner']);
+    $this->actingAs($admin)->get('/')->assertOk();
 });
