@@ -76,6 +76,16 @@ useLive(
     },
     true,
 );
+// the club: an item on a check, a card top-up, a payment, a tournament registration (another phone of the staff, a player)
+useLive(
+    () => (owner.value?.venue ? `venue.${owner.value.venue.id}` : null),
+    'club.changed',
+    () => {
+        clearTimeout(reloadT);
+        reloadT = window.setTimeout(() => router.reload(), 300);
+    },
+    true,
+);
 onBeforeUnmount(() => clearTimeout(reloadT));
 </script>
 

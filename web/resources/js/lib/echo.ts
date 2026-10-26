@@ -88,11 +88,13 @@ export const echoConnected = () => echoState.value === 'connected';
  * Joins again when the connection comes back or the user changes (a new Echo). Call inside setup().
  */
 export function useLive(channel: () => string | null, event: string, cb: (data: Record<string, unknown>) => void, isPrivate = false): void {
+    // stop only this listener when leaving (the channel may be shared: the user's channel also carries the chat)
     let joined: { echo: Echo<'reverb'>; name: string } | null = null;
+    const ch = (e: Echo<'reverb'>, name: string) => (isPrivate ? e.private(name) : e.channel(name));
     const leave = () => {
         if (joined) {
             try {
-                joined.echo.leave(joined.name);
+                ch(joined.echo, joined.name).stopListening(`.${event}`, cb);
             } catch {
                 /* gone */
             }
@@ -105,7 +107,7 @@ export function useLive(channel: () => string | null, event: string, cb: (data: 
         if (!e || !name || echoState.value !== 'connected') return;
         if (joined && joined.echo === e && joined.name === name) return;
         leave();
-        (isPrivate ? e.private(name) : e.channel(name)).listen(`.${event}`, cb);
+        ch(e, name).listen(`.${event}`, cb);
         joined = { echo: e, name };
     };
     onMounted(join);

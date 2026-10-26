@@ -11,6 +11,16 @@ class VenueCard extends Model
 {
     protected $fillable = ['venue_id', 'user_id', 'code', 'balance', 'discount_pct', 'note'];
 
+    protected static function booted(): void
+    {
+        // a new card or a new discount: the player sees it at once
+        static::saved(function (VenueCard $c) {
+            if ($c->wasRecentlyCreated || $c->wasChanged('discount_pct')) {
+                \App\Domain\Club\Events\CardUpdated::dispatch($c->user_id);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return ['balance' => 'integer', 'discount_pct' => 'integer'];

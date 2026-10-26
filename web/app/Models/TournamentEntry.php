@@ -10,6 +10,12 @@ class TournamentEntry extends Model
 {
     protected $fillable = ['tournament_id', 'user_id', 'first_name', 'last_name', 'phone', 'level', 'option', 'status', 'place', 'payment_id'];
 
+    protected static function booted(): void
+    {
+        // a registration (from the Instagram link) or its answer: the owner's Tournaments page at once
+        static::saved(fn (TournamentEntry $e) => \App\Domain\Club\Events\ClubChanged::dispatch((int) Tournament::whereKey($e->tournament_id)->value('venue_id')));
+    }
+
     protected function casts(): array
     {
         return ['level' => 'integer', 'option' => 'integer', 'place' => 'integer'];

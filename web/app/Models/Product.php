@@ -9,6 +9,11 @@ class Product extends Model
 {
     protected $fillable = ['venue_id', 'name', 'description', 'price', 'discount_pct', 'in_stock', 'active', 'photo_token', 'photo', 'sort'];
 
+    protected static function booted(): void
+    {
+        static::saved(fn (Product $m) => \App\Domain\Club\Events\ClubChanged::dispatch($m->venue_id));
+    }
+
     protected function casts(): array
     {
         return ['price' => 'integer', 'discount_pct' => 'integer', 'in_stock' => 'boolean', 'active' => 'boolean'];

@@ -10,6 +10,14 @@ class BookingItem extends Model
 {
     protected $fillable = ['booking_id', 'product_id', 'name', 'qty', 'price_each', 'created_by'];
 
+    protected static function booted(): void
+    {
+        // the check changed: the desk on other phones shows it at once
+        $live = fn (BookingItem $i) => \App\Domain\Club\Events\ClubChanged::dispatch((int) Booking::whereKey($i->booking_id)->value('venue_id'));
+        static::created($live);
+        static::deleted($live);
+    }
+
     protected function casts(): array
     {
         return ['qty' => 'integer', 'price_each' => 'integer'];

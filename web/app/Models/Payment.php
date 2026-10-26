@@ -10,6 +10,11 @@ class Payment extends Model
 {
     protected $fillable = ['venue_id', 'user_id', 'card_id', 'kind', 'method', 'amount', 'discount', 'ref_id', 'note', 'created_by'];
 
+    protected static function booted(): void
+    {
+        static::saved(fn (Payment $m) => \App\Domain\Club\Events\ClubChanged::dispatch($m->venue_id));
+    }
+
     protected function casts(): array
     {
         return ['amount' => 'integer', 'discount' => 'integer'];

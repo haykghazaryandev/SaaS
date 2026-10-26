@@ -175,3 +175,23 @@ it('sums the money: sales by kind, cash and top-ups apart', function () {
     expect($r['sales'])->toBe(5000)->and($r['byKind']['shop'])->toBe(2000)->and($r['byKind']['training'])->toBe(3000)
         ->and($r['cash'])->toBe(13000)->and($r['fromCards'])->toBe(2000)->and($r['topups'])->toBe(10000)->and($r['rows'])->toHaveCount(3);
 });
+
+it('tells the owner pages and the player at once: items, top-ups, payments, registrations', function () {
+    Illuminate\Support\Facades\Event::fake([App\Domain\Club\Events\ClubChanged::class, App\Domain\Club\Events\CardUpdated::class]);
+    $card = $this->cards->forPlayer($this->club, $this->player);
+    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Club\Events\CardUpdated::class, fn ($e) => $e->userId === $this->player->id);
+    $this->cards->topUp($card, 1000, $this->owner);
+    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Club\Events\ClubChanged::class, fn ($e) => $e->venueId === $this->club->id
+        && collect($e->broadcastOn())->map->name->all() === ["private-venue.{$this->club->id}"]);
+    Illuminate\Support\Facades\Event::assertDispatchedTimes(App\Domain\Club\Events\CardUpdated::class, 2);
+
+    Illuminate\Support\Facades\Event::fake([App\Domain\Club\Events\ClubChanged::class]);
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $b = app(RequestBooking::class)->handle($this->player, $small, at(10), 60);
+    $cola = app(Shop::class)->save(new Product(['venue_id' => $this->club->id]), ['name' => 'Cola', 'price' => 500]);
+    app(Checkout::class)->addItem($b, $cola, 1, $this->owner);
+    $t = app(Tournaments::class)->save(new Tournament(['venue_id' => $this->club->id]), ['title' => 'Cup', 'sport' => 'football', 'starts_at' => now()->addWeek(), 'options' => [['label' => 'Free', 'price' => 0]]]);
+    app(Tournaments::class)->register($t, ['first_name' => 'Arman', 'last_name' => 'S', 'phone' => '+37491234567', 'option' => 0]);
+    // product saved, item added, registration: each tells the place
+    Illuminate\Support\Facades\Event::assertDispatchedTimes(App\Domain\Club\Events\ClubChanged::class, 3);
+});

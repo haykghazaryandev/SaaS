@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import { SPORT_ICON } from '@/composables/usePlayer';
-import { amd } from '@/composables/useShared';
+import { amd, useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { useLive } from '@/lib/echo';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
 // My cards: one per club. Show the club's QR at the desk: they top up, take payments from it, mark trainings,
@@ -23,6 +24,18 @@ const big = ref<Card | null>(null);
 onMounted(() => {
     if (props.open) document.getElementById('card-' + props.open)?.scrollIntoView({ block: 'start' });
 });
+// live: a top-up, a payment, a new discount on one of my cards
+const { user } = useShared();
+let reloadT: number | undefined;
+useLive(
+    () => (user.value ? `user.${user.value.id}` : null),
+    'card.updated',
+    () => {
+        clearTimeout(reloadT);
+        reloadT = window.setTimeout(() => router.reload({ only: ['cards'] }), 300);
+    },
+    true,
+);
 const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 </script>
 
