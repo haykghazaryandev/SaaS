@@ -100,7 +100,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
             </nav>
             <div class="oside-foot">
                 <LangSwitch />
-                <a class="olink" :href="route('home')"><Icon name="share" size="sm" />{{ $t('owner.player_site') }}</a>
+                <a class="olink" :href="route('home', { as: 'player' })"><Icon name="share" size="sm" />{{ $t('owner.player_site') }}</a>
                 <div class="ome">
                     <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
                     <span
@@ -125,7 +125,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
             </select>
             <div v-else class="vname">{{ owner.venue.name }}</div>
             <LangSwitch />
-            <a class="x" :href="route('home')" :title="$t('owner.player_site')" :aria-label="$t('owner.player_site')"
+            <a class="x" :href="route('home', { as: 'player' })" :title="$t('owner.player_site')" :aria-label="$t('owner.player_site')"
                 ><Icon name="share" size="sm"
             /></a>
         </header>

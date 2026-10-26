@@ -25,6 +25,8 @@ class EnsureVenueStaff
         $id = (int) $request->session()->get('venue_id');
         $venue = $venues->firstWhere('id', $id) ?? $venues->first();
         $request->session()->put('venue_id', $venue->id);
+        // back in the dashboard: the home page brings them here again (not the player app)
+        $request->session()->forget('player_mode');
         $request->attributes->set('venue', $venue);
         $request->attributes->set('venueRole', $venue->pivot->role);
 

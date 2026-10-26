@@ -312,7 +312,7 @@ class AuthController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
         if ($request->input('to') === 'owner' && $user->venues()->exists()) {
-            return route('owner.today');
+            return route('owner.start');
         }
         $intended = (string) $request->session()->pull('url.intended');
         if (! $user->isRegistered() || ! $user->phone) {

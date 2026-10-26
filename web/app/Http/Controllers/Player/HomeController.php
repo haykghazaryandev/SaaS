@@ -18,6 +18,14 @@ class HomeController extends Controller
 {
     public function __invoke(Request $request, PlayerVenues $present, Availability $availability)
     {
+        // owners and staff work in their place's dashboard; "Open the player site" there (?as=player) lets them play too
+        if ($request->query('as') === 'player') {
+            $request->session()->put('player_mode', true);
+        }
+        if (($u = $request->user()) && ! $request->session()->get('player_mode') && $u->venues()->exists()) {
+            return redirect()->route('owner.start');
+        }
+
         // the sport first (only those the admin shows): with several, the home page is just "What do you play?"
         $sports = Sport::visible();
         $chosen = collect($sports)->first(fn (Sport $sp) => $sp->value === $request->query('sport'));
