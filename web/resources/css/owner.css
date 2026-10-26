@@ -311,7 +311,10 @@
 .oapp .ofab { display: none; }
 @media (max-width: 900px) {
   .oapp .phead .btn.new { display: none; }
-  .oapp .ofab { display: inline-flex; align-items: center; gap: 8px; position: fixed; right: 16px; bottom: calc(84px + var(--sab)); z-index: 45; border: 0; border-radius: 999px; padding: 13px 18px 13px 15px; background: var(--grad); color: var(--on-accent); font-weight: 800; font-size: 14.5px; box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .8), 0 6px 20px -8px rgba(200, 255, 61, .5); }
+  /* phones: a round "+" (the words are for screen readers), out of the way of the content */
+  .oapp .ofab { display: grid; place-items: center; position: fixed; right: 16px; bottom: calc(84px + var(--tab-gap) + 10px); z-index: 45; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; background: var(--grad); color: var(--on-accent); box-shadow: 0 12px 26px -10px rgba(0, 0, 0, .8), 0 6px 18px -8px rgba(200, 255, 61, .5); }
+  .oapp .ofab .ico { width: 24px; height: 24px; stroke-width: 2.6; }
+  .oapp .ofab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .oapp .omain { padding-bottom: 96px; }
 }
 
@@ -457,7 +460,7 @@
 .oapp .drow .tm { font-family: var(--mono); font-size: 13px; width: 100px; flex: none; line-height: 1.3; white-space: nowrap; }
 .oapp .drow .tm small { display: block; font-family: var(--body); font-size: 11.5px; color: var(--faint); }
 .oapp .drow .what { flex: 1; min-width: 0; }
-.oapp .drow .what b { display: block; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oapp .drow .what b { display: block; font-size: 14.5px; overflow-wrap: anywhere; }
 .oapp .drow .what small { display: block; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
 .oapp .drow.free { background: transparent; border: 1px dashed rgba(94, 240, 168, .35); color: var(--free); cursor: pointer; }
 .oapp .drow.free:hover { background: var(--free-soft); }

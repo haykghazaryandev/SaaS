@@ -140,7 +140,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
             /></a>
         </header>
         <main class="omain"><slot /></main>
-        <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" @click="openForm(props.newBooking)">
+        <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" :aria-label="$t('common.new_booking')" :title="$t('common.new_booking')" @click="openForm(props.newBooking)">
             <Icon name="plus" /><span>{{ $t('common.new_booking') }}</span>
         </button>
         <nav class="tabbar">
