@@ -38,11 +38,12 @@ class Games
 
     public function __construct(private Chat $chat) {}
 
-    /** $data: players_per_side (3–11), district?, venue_id?, when_from?, when_to?, note? */
+    /** $data: sport? (football), players_per_side (football 3–11, ping-pong 1–2), district?, venue_id?, when_from?, when_to?, note? */
     public function create(User $creator, array $data, array $inviteIds, ?Game $previous = null): Game
     {
+        $sport = \App\Enums\Sport::tryFrom($data['sport'] ?? ($previous?->sport ?? 'football')) ?? \App\Enums\Sport::Football;
         $perSide = (int) ($data['players_per_side'] ?? 0);
-        if ($perSide < 3 || $perSide > 11) {
+        if (! in_array($perSide, $sport->sides(), true)) {
             throw new SocialException('bad_size');
         }
         $active = Game::where('creator_id', $creator->id)->whereIn('status', ['forming', 'open', 'full'])->count();
@@ -50,7 +51,7 @@ class Games
             throw new SocialException('too_many_games', ['n' => self::MAX_ACTIVE_PER_CREATOR]);
         }
         $total = $perSide * 2;
-        $min = Game::minToOpen($total);
+        $min = Game::minToOpen($total, $sport->value);
         // only friends can be invited (people from the previous game for "play again")
         $allowed = $previous ? $previous->inPlayers()->pluck('user_id')->all() : $creator->friendIds();
         $invite = collect($inviteIds)->map(fn ($id) => (int) $id)->unique()->reject(fn ($id) => $id === $creator->id)
@@ -59,9 +60,9 @@ class Games
             throw new SocialException('invite_more', ['n' => $min - 1]);
         }
 
-        return DB::transaction(function () use ($creator, $data, $perSide, $total, $min, $invite, $previous) {
+        return DB::transaction(function () use ($creator, $data, $perSide, $total, $min, $invite, $previous, $sport) {
             $game = Game::create([
-                'creator_id' => $creator->id, 'players_per_side' => $perSide, 'total_players' => $total, 'min_to_open' => $min,
+                'creator_id' => $creator->id, 'sport' => $sport->value, 'players_per_side' => $perSide, 'total_players' => $total, 'min_to_open' => $min,
                 'district' => $data['district'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
                 'when_from' => $data['when_from'] ?? null, 'when_to' => $data['when_to'] ?? null, 'note' => $data['note'] ?? null,
                 'status' => S::Forming, 'previous_game_id' => $previous?->id,
@@ -72,6 +73,10 @@ class Games
             }
             $users = User::whereIn('id', $invite)->get();
             DB::afterCommit(fn () => $users->each->notify(new Notice('game_invite', ['name' => $creator->name, 'format' => $game->format()], '/games/'.$game->id)));
+            // ping-pong: open at once (the creator is enough), the opponent can be anybody
+            if ($min <= 1) {
+                $this->settle($game);
+            }
 
             return $game;
         });

@@ -200,9 +200,9 @@
         "ru": "Игры"
     },
     "admin.feature.games_help": {
-        "en": "Players create and join games here (football for now)",
-        "hy": "Խաղացողները այստեղ խաղեր են ստեղծում և միանում (առայժմ ֆուտբոլ)",
-        "ru": "Игроки создают игры и присоединяются к ним здесь (пока футбол)"
+        "en": "Players create and join games here (football N×N, ping-pong 1×1 / 2×2)",
+        "hy": "Խաղացողները այստեղ խաղեր են ստեղծում և միանում (ֆուտբոլ N×N, պինգ-պոնգ 1×1 / 2×2)",
+        "ru": "Игроки создают игры и присоединяются к ним здесь (футбол N×N, пинг-понг 1×1 / 2×2)"
     },
     "admin.feature.money": {
         "en": "Money report",
@@ -2489,6 +2489,11 @@
         "hy": "Օրինակ՝ ընկերական խաղ, վերցրեք սպիտակ և մուգ մայկաներ",
         "ru": "Например: товарищеская игра, возьмите белую и тёмную футболки"
     },
+    "games.create.open_now": {
+        "en": "Shown to everyone at once: anybody can join as your opponent. Invite friends if you like.",
+        "hy": "Միանգամից ցուցադրվում է բոլորին․ ցանկացածը կարող է միանալ որպես մրցակից։ Կարող եք հրավիրել ընկերների։",
+        "ru": "Сразу видна всем: любой может присоединиться соперником. Можно пригласить друзей."
+    },
     "games.create.per_side": {
         "en": "Players per side",
         "hy": "Խաղացող յուրաքանչյուր թիմում",
@@ -2538,6 +2543,11 @@
         "en": "Game created. Your friends got the invites.",
         "hy": "Խաղը ստեղծվեց։ Ընկերներդ ստացան հրավերները։",
         "ru": "Игра создана. Друзья получили приглашения."
+    },
+    "games.created_open": {
+        "en": "Game created. It is open: others can join.",
+        "hy": "Խաղը ստեղծվեց։ Այն բաց է․ մյուսները կարող են միանալ։",
+        "ru": "Игра создана. Она открыта: другие могут присоединиться."
     },
     "games.error.date_needed": {
         "en": "Choose a day for this time.",
@@ -2823,6 +2833,11 @@
         "en": "Send the request for :t",
         "hy": "Ուղարկել հայտ :t-ի համար",
         "ru": "Отправить заявку на :t"
+    },
+    "games.show.book_table": {
+        "en": "Book a table for this game",
+        "hy": "Ամրագրել սեղան այս խաղի համար",
+        "ru": "Забронировать стол для этой игры"
     },
     "games.show.booking_accepted": {
         "en": "Confirmed by the place. See you on the field!",
@@ -5544,6 +5559,11 @@
         "hy": "Տրիբունա",
         "ru": "Трибуна"
     },
+    "player.home.all_games": {
+        "en": "All games",
+        "hy": "Բոլոր խաղերը",
+        "ru": "Все игры"
+    },
     "player.home.all_sports": {
         "en": "All sports",
         "hy": "Բոլոր մարզաձևերը",
@@ -5633,6 +5653,16 @@
         "en": "No free hours left today",
         "hy": "Այսօր ազատ ժամ այլևս չկա",
         "ru": "Сегодня свободных часов больше нет"
+    },
+    "player.home.no_games": {
+        "en": "No open games yet. Create one: others will see it and join.",
+        "hy": "Բաց խաղեր դեռ չկան։ Ստեղծեք մեկը․ մյուսները կտեսնեն և կմիանան։",
+        "ru": "Открытых игр пока нет. Создайте свою: другие увидят и присоединятся."
+    },
+    "player.home.no_tournaments": {
+        "en": "No open tournaments right now.",
+        "hy": "Այս պահին բաց մրցաշարեր չկան։",
+        "ru": "Сейчас открытых турниров нет."
     },
     "player.home.none": {
         "en": "No free fields for this choice. Try another day or time.",
@@ -5768,6 +5798,11 @@
         "en": "Get it confirmed",
         "hy": "Ստացեք հաստատում",
         "ru": "Получите подтверждение"
+    },
+    "player.home.tab_book": {
+        "en": "Book",
+        "hy": "Ամրագրել",
+        "ru": "Бронь"
     },
     "player.home.title": {
         "en": "Book a football field in Yerevan",

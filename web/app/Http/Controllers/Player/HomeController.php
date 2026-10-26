@@ -81,13 +81,17 @@ class HomeController extends Controller
             ->with('venue:id,name,slug')->orderBy('starts_at')->limit(6)->get()
             ->map(fn (Tournament $t) => ['code' => $t->code, 'title' => $t->title, 'venue' => $t->venue->name,
                 'when' => $t->starts_at->setTimezone(LocalTime::tz())->toIso8601String(), 'from' => (int) collect($t->options)->min('price')])->values();
-        $games = $sport === Sport::Football ? Game::query()->visible()->where('status', 'open')
-            ->where(fn ($q) => $q->whereNull('when_to')->orWhere('when_to', '>', now()))->count() : null;
+        // open games of this sport anybody can join (the Games tab)
+        $openGames = Game::query()->with(\App\Http\Presenters\PlayerGames::WITH)->where('status', 'open')->where('sport', $sport->value)
+            ->where(fn ($q) => $q->whereNull('when_to')->orWhere('when_to', '>', now()))->latest('opened_at')->limit(12)->get();
+        $games = $openGames->count();
 
         return Inertia::render('player/Home', [
             'pick' => false,
             'tournaments' => $tournaments,
             'openGames' => $games,
+            'games' => $openGames->map(fn (Game $g) => app(\App\Http\Presenters\PlayerGames::class)->card($g, $request->user()))->values(),
+            'tab' => in_array($request->query('tab'), ['book', 'tournaments', 'games'], true) ? $request->query('tab') : 'book',
             'filters' => ['sport' => $sport->value, 'date' => $day->toDateString(), 'time' => $time, 'size' => $size, 'district' => $district],
             // the sport picker: visible sports that have at least one place
             'sports' => $sportTabs,

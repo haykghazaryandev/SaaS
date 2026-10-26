@@ -4,6 +4,7 @@ import Icon from '@/components/Icon.vue';
 import { wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { GamePerson } from '@/types/games';
+import { useSportTheme } from '@/lib/sport';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { trans, transChoice } from '@/lib/i18n';
 import { computed, nextTick, ref } from 'vue';
@@ -18,10 +19,16 @@ const props = defineProps<{
     active: number;
     maxActive: number;
     friendsUrl: string | null;
+    /** the sport of the game (the one chosen on the home page) and its formats: football 3…11, ping-pong 1, 2 */
+    sport?: string;
+    sides?: number[];
 }>();
+const sides = computed(() => props.sides ?? [3, 4, 5, 6, 7, 8, 9, 10, 11]);
+const isPingpong = computed(() => props.sport === 'pingpong');
+useSportTheme(() => props.sport);
 
 const form = useForm({
-    players_per_side: 5,
+    players_per_side: (props.sides ?? [5]).includes(5) ? 5 : (props.sides ?? [1])[0],
     district: '',
     venue_id: '' as number | '',
     date: '',
@@ -32,7 +39,8 @@ const form = useForm({
 });
 
 const total = computed(() => form.players_per_side * 2);
-const minToOpen = computed(() => Math.max(2, Math.ceil(total.value * 0.3)));
+// ping-pong: open at once (anybody can join as the opponent); football: 30% first, friends
+const minToOpen = computed(() => (isPingpong.value ? 1 : Math.max(2, Math.ceil(total.value * 0.3))));
 const need = computed(() => minToOpen.value - 1);
 const enough = computed(() => form.invite.length >= need.value);
 const tooMany = computed(() => form.invite.length > total.value - 1);
@@ -52,8 +60,8 @@ function toggleAll() {
     if (allShown.value) form.invite = form.invite.filter((id) => !shown.value.some((f) => f.id === id));
     else form.invite = [...new Set([...form.invite, ...shown.value.map((f) => f.id)])];
 }
-const step = (d: number) => (form.players_per_side = Math.min(11, Math.max(3, form.players_per_side + d)));
-const QUICK = [5, 6, 7, 8, 11];
+const step = (d: number) => (form.players_per_side = Math.min(Math.max(...sides.value), Math.max(Math.min(...sides.value), form.players_per_side + d)));
+const QUICK = computed(() => (isPingpong.value ? sides.value : [5, 6, 7, 8, 11]));
 const venuesShown = computed(() => (form.district ? props.venues.filter((v) => v.district === form.district) : props.venues));
 const limitReached = computed(() => props.active >= props.maxActive);
 // server errors that are not form fields ("game")
@@ -102,6 +110,7 @@ function submit() {
         from: d.date && d.from ? d.from : null,
         to: d.date && d.to ? d.to : null,
         note: d.note.trim() || null,
+        sport: props.sport ?? 'football',
     })).post(route('games.store'), { preserveScroll: true });
 }
 </script>
@@ -126,19 +135,20 @@ function submit() {
                 <section class="card blk">
                     <h3>{{ $t('games.create.per_side') }}</h3>
                     <div class="sizer">
-                        <button type="button" class="stp" :aria-label="$t('games.create.less')" :disabled="form.players_per_side <= 3" @click="step(-1)">−</button>
+                        <button type="button" class="stp" :aria-label="$t('games.create.less')" :disabled="form.players_per_side <= Math.min(...sides)" @click="step(-1)">−</button>
                         <div class="big">
                             <b>{{ form.players_per_side }}×{{ form.players_per_side }}</b>
                             <small>{{ $t('games.create.total', { n: String(total) }) }}</small>
                         </div>
-                        <button type="button" class="stp" :aria-label="$t('games.create.more')" :disabled="form.players_per_side >= 11" @click="step(1)">+</button>
+                        <button type="button" class="stp" :aria-label="$t('games.create.more')" :disabled="form.players_per_side >= Math.max(...sides)" @click="step(1)">+</button>
                     </div>
                     <div class="chips quick" role="group" :aria-label="$t('games.create.per_side')">
                         <button v-for="n in QUICK" :key="n" type="button" class="chip" :aria-pressed="form.players_per_side === n" @click="form.players_per_side = n">
-                            <i :class="['field-dot', n >= 7 ? 'big' : 'small']" />{{ n }}×{{ n }}
+                            <i v-if="!isPingpong" :class="['field-dot', n >= 7 ? 'big' : 'small']" /><template v-else>🏓 </template>{{ n }}×{{ n }}
                         </button>
                     </div>
-                    <div class="opens"><Icon name="users" size="sm" />{{ $t('games.create.needs', { n: String(minToOpen), f: String(need) }) }}</div>
+                    <div v-if="isPingpong" class="opens"><Icon name="users" size="sm" />{{ $t('games.create.open_now') }}</div>
+                    <div v-else class="opens"><Icon name="users" size="sm" />{{ $t('games.create.needs', { n: String(minToOpen), f: String(need) }) }}</div>
                     <div v-if="form.errors.players_per_side" class="err">{{ form.errors.players_per_side }}</div>
                 </section>
 

@@ -63,7 +63,7 @@ it('asks "what do you play?" first, then shows the places of that sport; only sp
         ->where('filters.sport', 'pingpong')
         ->where('venues', fn ($v) => collect($v)->pluck('id')->all() === [$club->id])
         ->where('venues.0.fields.0.count', 3)
-        ->where('openGames', null));
+        ->where('openGames', 0));
     $this->get('/?sport=football')->assertInertia(fn (Assert $p) => $p->where('filters.sport', 'football')
         ->where('venues', fn ($v) => collect($v)->pluck('id')->all() === [$venue->id])->where('openGames', 0));
 

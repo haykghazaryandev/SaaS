@@ -73,7 +73,7 @@ class PlayerGames
         $mine = $me ? $g->players->firstWhere('user_id', $me->id) : null;
 
         return [
-            'id' => $g->id, 'format' => $g->format(), 'perSide' => $g->players_per_side, 'total' => $g->total_players, 'minToOpen' => $g->min_to_open,
+            'id' => $g->id, 'sport' => $g->sport ?? 'football', 'format' => $g->format(), 'perSide' => $g->players_per_side, 'total' => $g->total_players, 'minToOpen' => $g->min_to_open,
             'in' => $in->count(), 'status' => $g->status->value,
             'district' => $g->district,
             'venue' => $g->venue ? ['slug' => $g->venue->slug, 'name' => $g->venue->name, 'district' => $g->venue->district] : null,

@@ -38,20 +38,21 @@ class GameController extends Controller
     /** GET /games: open games (everyone) and "My games" (logged in). */
     public function index(Request $request, PlayerVenues $venues)
     {
-        $request->session()->put('sport', 'football');   // games are football for now
+        // the games of the chosen sport (?sport=, else the one chosen on the home page)
+        $sport = $this->sport($request);
         $me = $request->user();
         if (! $me) {
             // after logging in from this page, come back here
             $request->session()->put('url.intended', $request->fullUrl());
         }
         $f = [
-            'size' => $this->pick($request->query('size'), ['small', 'big', ...array_map('strval', range(3, 11))]),
+            'size' => $this->pick($request->query('size'), $sport === Sport::Football ? ['small', 'big', ...array_map('strval', range(3, 11))] : array_map('strval', $sport->sides())),
             'district' => $this->pick($request->query('district'), $this->districts()),
             'day' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query('day')) ? $venues->pickDay($request->query('day'))->toDateString() : null,
             'time' => $this->pick($request->query('time'), ['morning', 'day', 'evening']),
         ];
 
-        $open = Game::query()->with(PlayerGames::WITH)->visible()
+        $open = Game::query()->with(PlayerGames::WITH)->visible()->where('sport', $sport->value)
             ->where(fn ($q) => $q->whereNull('when_to')->orWhere('when_to', '>', now()))
             ->where(fn ($q) => $q->where('status', '!=', 'booked')->orWhereHas('booking', fn ($b) => $b->where('ends_at', '>', now())))
             ->when($me, fn ($q) => $q->whereNotExists(fn ($s) => $s->from('user_blocks')
@@ -87,6 +88,8 @@ class GameController extends Controller
         }
 
         return Inertia::render('games/Index', [
+            'sport' => $sport->value,
+            'sides' => $sport->sides(),
             'tab' => $me && $request->query('tab') === 'mine' ? 'mine' : 'open',
             'filters' => $f,
             'days' => $venues->days(),
@@ -105,12 +108,15 @@ class GameController extends Controller
         }
         $me = $request->user();
         $friends = User::whereIn('id', $me->friendIds())->orderBy('name')->get();
+        $sport = $this->sport($request);
 
         return Inertia::render('games/Create', [
+            'sport' => $sport->value,
+            'sides' => $sport->sides(),
             'friends' => $friends->map(fn (User $u) => $this->present->person($u))->values()->all(),
-            // games are football for now: places with games on and a football field
+            // places of this sport with games switched on
             'venues' => Venue::active()->with('fields')->orderBy('name')->get()
-                ->filter(fn (Venue $v) => $v->hasFeature('games') && in_array(Sport::Football, $v->sports(), true))
+                ->filter(fn (Venue $v) => $v->hasFeature('games') && in_array($sport, $v->sports(), true))
                 ->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'district' => $v->district])->values()->all(),
             'districts' => $this->districts(),
             'today' => LocalTime::now()->toDateString(),
@@ -127,8 +133,9 @@ class GameController extends Controller
         if ($redirect = $this->needsRegistration($request, route('games.create'))) {
             return $redirect;
         }
+        $sport = Sport::tryFrom((string) $request->input('sport')) ?? Sport::Football;
         $data = $request->validate([
-            'players_per_side' => 'required|integer|min:3|max:11',
+            'players_per_side' => ['required', 'integer', Rule::in($sport->sides())],
             'district' => ['nullable', Rule::in($this->districts())],
             'venue_id' => ['nullable', 'integer', Rule::exists('venues', 'id')->where('status', 'active')],
             'date' => 'nullable|required_with:from,to|date_format:Y-m-d',
@@ -143,6 +150,7 @@ class GameController extends Controller
         $window = $this->windowFrom($data);
         try {
             $game = $this->games->create($request->user(), [
+                'sport' => $sport->value,
                 'players_per_side' => (int) $data['players_per_side'],
                 'district' => $data['district'] ?? null, 'venue_id' => $data['venue_id'] ?? null,
                 'note' => isset($data['note']) ? trim($data['note']) ?: null : null, ...$window,
@@ -151,13 +159,13 @@ class GameController extends Controller
             throw ValidationException::withMessages([$e->reason === 'invite_more' ? 'invite' : 'game' => $e->getMessage()]);
         }
 
-        return redirect()->route('games.show', $game)->with('success', __('games.created'));
+        return redirect()->route('games.show', $game)->with('success', __(empty($data['invite']) ? 'games.created_open' : 'games.created'));
     }
 
     /** GET /games/{game} */
     public function show(Request $request, Game $game, PlayerVenues $venues)
     {
-        $request->session()->put('sport', 'football');
+        $request->session()->put('sport', $game->sportEnum()->value);
         $me = $request->user();
         $game->load([...PlayerGames::WITH, 'conversation']);
         $row = $me ? $game->players->firstWhere('user_id', $me->id) : null;
@@ -200,10 +208,11 @@ class GameController extends Controller
         }
         $places = [];
         if ($can['book']) {
-            $places = Venue::active()->with(['fields' => fn ($q) => $q->where('active', true)->whereIn('size', Sport::Football->sizeValues())->orderBy('sort')])->orderBy('name')->get()
+            // places of the game's sport; ping-pong tables as one ("a table": any free one gets the request)
+            $places = Venue::active()->with(['fields' => fn ($q) => $q->where('active', true)->whereIn('size', $game->sportEnum()->sizeValues())->orderBy('sort')])->orderBy('name')->get()
                 ->filter(fn (Venue $v) => $v->hasFeature('games'))
                 ->map(fn (Venue $v) => ['id' => $v->id, 'slug' => $v->slug, 'name' => $v->name, 'district' => $v->district,
-                    'fields' => $v->fields->map(fn (Field $f) => ['id' => $f->id, 'size' => $f->size->value, 'format' => $f->format ?: $f->size->format(),
+                    'fields' => $venues->groups($v->fields)->map->first()->values()->map(fn (Field $f) => ['id' => $f->id, 'size' => $f->size->value, 'format' => $f->format ?: $f->size->format(),
                         'durations' => array_values($f->durations ?? [60]), 'defaultDuration' => $f->default_duration])->values()->all()])
                 ->filter(fn ($v) => $v['fields'])->values()->all();
         }
@@ -218,7 +227,7 @@ class GameController extends Controller
             'players' => $this->present->players($game, $me),
             'can' => [...$can, 'position' => $in && in_array($status, S::ACTIVE, true)],
             // the position choice (join, accept, change) starts from my profile position
-            'positions' => GamePlayer::POSITIONS,
+            'positions' => $game->sportEnum() === Sport::Football ? GamePlayer::POSITIONS : [],
             'profilePosition' => $me?->position,
             'conversationId' => $in && $game->conversation ? $game->conversation->id : null,
             'friends' => $friends,
@@ -396,5 +405,17 @@ class GameController extends Controller
     private function districts(): array
     {
         return array_keys((array) trans('common.districts'));
+    }
+
+    /** The sport of the games pages: ?sport= (a visible one), else the one chosen on the home page, else football. */
+    private function sport(Request $request): Sport
+    {
+        $visible = Sport::visible();
+        $sport = collect($visible)->first(fn (Sport $sp) => $sp->value === $request->query('sport'))
+            ?? collect($visible)->first(fn (Sport $sp) => $sp->value === $request->session()->get('sport'))
+            ?? Sport::Football;
+        $request->session()->put('sport', $sport->value);
+
+        return $sport;
     }
 }

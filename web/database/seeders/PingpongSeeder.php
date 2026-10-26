@@ -43,8 +43,8 @@ class PingpongSeeder extends Seeder
                 'Клуб настольного тенниса: столы на час, тренировки и ежемесячные турниры.'),
             'lat' => 40.1838, 'lng' => 44.5096, 'phone' => '+37410555123', 'rating_avg' => 4.9, 'rating_count' => 37,
             'amenities' => ['lockers', 'cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15], 'status' => 'active', 'listed' => true,
-            // no games yet (step 2); the whole club package on
-            'features' => ['booking', 'team', 'alerts', 'reviews', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
+            // games (1×1, 2×2) and the whole club package on
+            'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
         ]);
         foreach (range(0, 6) as $wd) {
             OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '10:00', 'closes_at' => '22:00']);
@@ -87,7 +87,7 @@ class PingpongSeeder extends Seeder
             return;
         }
         // trainings are booked like a table, at their own price per hour
-        $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
+        $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
             'rules' => [...($venue->rules ?? []), 'cashback_pct' => 3, 'training_prices' => ['table' => 6000]]]);
         // the shop: drinks with their pictures (data/products/*.png)
         foreach ([['Cola 0.5 l', 500, 'cola'], ['Water 0.5 l', 300, 'water']] as $i => [$name, $price, $img]) {

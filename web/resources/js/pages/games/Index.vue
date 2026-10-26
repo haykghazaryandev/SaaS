@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSportTheme } from '@/lib/sport';
 import Icon from '@/components/Icon.vue';
 import GameCard from '@/components/games/GameCard.vue';
 import { wdName } from '@/composables/usePlayer';
@@ -20,14 +21,23 @@ const props = defineProps<{
     games: Card[];
     mine: { invites: Card[]; forming: Card[]; active: Card[]; past: Card[] } | null;
     canCreate: boolean;
+    /** the sport of the list (chosen on the home page) and its formats */
+    sport?: string;
+    sides?: number[];
 }>();
+const isPingpong = computed(() => props.sport === 'pingpong');
+useSportTheme(() => props.sport);
 
 const { user } = useShared();
 const tab = ref<'open' | 'mine'>(props.tab);
 const loading = ref(false);
 const sizeLabel = (s: string) => (s === 'small' ? '3×3–6×6' : s === 'big' ? '7×7–11×11' : `${s}×${s}`);
 // an exact size from an old link (?size=5) still shows as a chip
-const sizes = computed(() => ['small', 'big', ...(props.filters.size && !['small', 'big'].includes(props.filters.size) ? [props.filters.size] : [])]);
+const sizes = computed(() =>
+    isPingpong.value
+        ? (props.sides ?? [1, 2]).map(String)
+        : ['small', 'big', ...(props.filters.size && !['small', 'big'].includes(props.filters.size) ? [props.filters.size] : [])],
+);
 const myCount = computed(() => (props.mine ? props.mine.invites.length + props.mine.forming.length + props.mine.active.length : 0));
 const moreCount = computed(() => [props.filters.day, props.filters.district, props.filters.time].filter(Boolean).length);
 const anyFilter = computed(() => Object.values(props.filters).some((v) => v));
@@ -44,6 +54,7 @@ function go(patch: Partial<Filters>) {
     const next = { ...props.filters, ...patch };
     const q: Record<string, string> = {};
     for (const [k, v] of Object.entries(next)) if (v) q[k] = v;
+    if (props.sport) q.sport = props.sport;
     router.get(route('games.index'), q, {
         preserveState: true,
         preserveScroll: true,
@@ -89,7 +100,7 @@ const showRule = ref(false);
                 <h1 class="page-title">{{ $t('games.index.heading') }}</h1>
                 <p class="muted lead">{{ $t('games.index.lead') }}</p>
             </div>
-            <Link v-if="user" class="btn" :href="route('games.create')"><Icon name="plus" />{{ $t('common.create_game') }}</Link>
+            <Link v-if="user" class="btn" :href="route('games.create', { sport: sport ?? undefined })"><Icon name="plus" />{{ $t('common.create_game') }}</Link>
             <Link v-else class="btn" :href="route('login')"><Icon name="user" />{{ $t('games.index.login_to_create') }}</Link>
         </section>
 
@@ -107,7 +118,7 @@ const showRule = ref(false);
                 <div class="chips" role="group" :aria-label="$t('games.index.size')">
                     <button type="button" class="chip" :aria-pressed="!filters.size" @click="go({ size: null })">{{ $t('common.all') }}</button>
                     <button v-for="s in sizes" :key="s" type="button" class="chip" :aria-pressed="filters.size === s" @click="go({ size: filters.size === s ? null : s })">
-                        <i :class="['field-dot', s === 'big' || Number(s) >= 7 ? 'big' : 'small']" />{{ sizeLabel(s) }}
+                        <i v-if="!isPingpong" :class="['field-dot', s === 'big' || Number(s) >= 7 ? 'big' : 'small']" /><template v-else>🏓 </template>{{ sizeLabel(s) }}
                     </button>
                 </div>
                 <button type="button" :class="['chip', 'fbtn', { on: moreCount }]" :aria-haspopup="'dialog'" @click="openSheet">
@@ -138,7 +149,7 @@ const showRule = ref(false);
                 <h3>{{ anyFilter ? $t('games.index.empty_filtered_title') : $t('games.index.empty_title') }}</h3>
                 <p>{{ anyFilter ? $t('games.index.empty_filtered') : $t('games.index.empty') }}</p>
                 <button v-if="anyFilter" type="button" class="btn outline sm" @click="go({ size: null, district: null, day: null, time: null })">{{ $t('games.index.reset') }}</button>
-                <Link v-else-if="user" class="btn sm" :href="route('games.create')"><Icon name="plus" size="sm" />{{ $t('games.index.create_own') }}</Link>
+                <Link v-else-if="user" class="btn sm" :href="route('games.create', { sport: sport ?? undefined })"><Icon name="plus" size="sm" />{{ $t('games.index.create_own') }}</Link>
             </div>
         </section>
 
@@ -182,7 +193,7 @@ const showRule = ref(false);
                 <div v-if="!myCount && !mine.past.length" class="empty-state">
                     <span class="es-ico"><Icon name="users" /></span>
                     <p>{{ $t('games.mine.empty') }}</p>
-                    <Link class="btn sm" :href="route('games.create')"><Icon name="plus" size="sm" />{{ $t('common.create_game') }}</Link>
+                    <Link class="btn sm" :href="route('games.create', { sport: sport ?? undefined })"><Icon name="plus" size="sm" />{{ $t('common.create_game') }}</Link>
                 </div>
             </template>
         </section>

@@ -5,6 +5,8 @@ import { amd, hhmm } from '@/composables/useShared';
 import { SIZE_COLOR, courtShort, dateLong, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
+import GameCard from '@/components/games/GameCard.vue';
+import type { GameCard as GameCardT } from '@/types/games';
 import type { DayInfo, VenueCard } from '@/types/player';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
@@ -33,7 +35,18 @@ const props = defineProps<{
     venues?: VenueCard[];
     tournaments?: { code: string; title: string; venue: string; when: string; from: number }[];
     openGames?: number | null;
+    games?: GameCardT[];
+    tab?: 'book' | 'tournaments' | 'games';
 }>();
+// the sport page's sections: fixed tabs under the title; one shows below (the tab is kept in the address)
+const tab = ref<'book' | 'tournaments' | 'games'>(props.tab ?? 'book');
+function pickTab(t: 'book' | 'tournaments' | 'games') {
+    tab.value = t;
+    const u = new URL(window.location.href);
+    if (t === 'book') u.searchParams.delete('tab');
+    else u.searchParams.set('tab', t);
+    window.history.replaceState(window.history.state, '', u.toString());
+}
 
 const sport = computed(() => props.filters.sport || props.sports[0]?.key || 'football');
 const isFootball = computed(() => sport.value === 'football');
@@ -77,7 +90,6 @@ const big = (v: VenueCard) => v.allFields.find((x) => x.size === 'big');
 const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
 const startTimes = Array.from({ length: 16 }, (_, i) => `${String(8 + i).padStart(2, '0')}:00`);
 const tx = (k: string) => (isFootball.value ? `player.home.${k}` : `player.home.${sport.value}.${k}`);
-const toVenues = () => document.getElementById('venues')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11, 16)}`;
 </script>
 
@@ -109,30 +121,45 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                 <h1>{{ $t(tx('title_a')) }} <em>{{ $t(tx('title_b')) }}</em></h1>
             </div>
 
-            <div class="acts">
-                <button type="button" class="act book" @click="toVenues">
-                    <Icon name="calendar" /><span><b>{{ isFootball ? $t('common.book_a_field') : $t('player.place.book_a_table') }}</b><small>{{ $t('player.home.book_sub') }}</small></span>
+            <!-- fixed tabs: book · tournaments · games -->
+            <nav class="stabs" role="tablist">
+                <button type="button" role="tab" :aria-selected="tab === 'book'" data-test="tab-book" @click="pickTab('book')">
+                    <Icon name="calendar" size="sm" />{{ $t('player.home.tab_book') }}
                 </button>
-                <a v-if="tournaments?.length" class="act" href="#tournaments">
-                    <Icon name="trophy" /><span><b>{{ $t('club.tournaments') }}</b><small>{{ $t('player.home.tournaments_n', { n: String(tournaments.length) }) }}</small></span>
-                </a>
-                <Link v-if="openGames != null" class="act" :href="route('games.index')">
-                    <Icon name="ball" /><span><b>{{ $t('common.games') }}</b><small>{{ $t('player.home.games_n', { n: String(openGames) }) }}</small></span>
-                </Link>
-            </div>
+                <button type="button" role="tab" :aria-selected="tab === 'tournaments'" data-test="tab-tournaments" @click="pickTab('tournaments')">
+                    <Icon name="trophy" size="sm" />{{ $t('club.tournaments') }}<span v-if="tournaments?.length" class="n">{{ tournaments.length }}</span>
+                </button>
+                <button type="button" role="tab" :aria-selected="tab === 'games'" data-test="tab-games" @click="pickTab('games')">
+                    <Icon name="ball" size="sm" />{{ $t('common.games') }}<span v-if="openGames" class="n">{{ openGames }}</span>
+                </button>
+            </nav>
 
-            <section v-if="tournaments?.length" id="tournaments" class="section">
-                <div class="section-head"><h2>{{ $t('club.tournaments') }}</h2></div>
-                <div class="tlist">
+            <section v-if="tab === 'tournaments'" class="section tabsec">
+                <div v-if="tournaments?.length" class="tlist">
                     <Link v-for="t in tournaments" :key="t.code" class="card trow" :href="route('tournament.show', t.code)">
                         <Icon name="trophy" />
                         <span class="w"><b>{{ t.title }}</b><small>{{ t.venue }} · {{ whenOf(t.when) }}</small></span>
                         <span class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
                     </Link>
                 </div>
+                <div v-else class="empty">{{ $t('player.home.no_tournaments') }}</div>
             </section>
 
-            <section id="venues" class="section">
+            <section v-else-if="tab === 'games'" class="section tabsec">
+                <div class="row between" style="margin-bottom: 12px; gap: 10px; flex-wrap: wrap">
+                    <span class="muted">{{ $t('player.home.games_n', { n: String(openGames ?? 0) }) }}</span>
+                    <span class="row" style="gap: 8px">
+                        <Link class="btn ghost sm" :href="route('games.index', { sport })">{{ $t('player.home.all_games') }}</Link>
+                        <Link class="btn sm" :href="route('games.create', { sport })"><Icon name="plus" size="sm" />{{ $t('common.create_game') }}</Link>
+                    </span>
+                </div>
+                <div v-if="games?.length" class="glist">
+                    <GameCard v-for="g in games" :key="g.id" :game="g" :invite="g.me === 'invited'" />
+                </div>
+                <div v-else class="empty">{{ $t('player.home.no_games') }}</div>
+            </section>
+
+            <section v-else id="venues" class="section tabsec">
                 <div class="section-head">
                     <div>
                         <span class="kicker">{{ $t(tx('venues_kicker')) }}</span>
@@ -237,6 +264,13 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .shead h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .allsports { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; align-self: flex-start; }
 .allsports:hover { color: var(--accent); }
+.stabs { position: sticky; top: 64px; z-index: 20; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin-top: 16px; padding: 4px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }
+.stabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: inherit; font-weight: 800; font-size: 14px; min-width: 0; white-space: nowrap; }
+.stabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+@media (max-width: 440px) { .stabs button { font-size: 12.5px; gap: 4px; padding: 10px 2px; } .stabs button .ico { display: none; } }
+.stabs .n { font-size: 11px; padding: 0 6px; border-radius: 9px; background: color-mix(in srgb, currentColor 18%, transparent); }
+.tabsec { margin-top: 18px; }
+.glist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
 .act { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); text-align: left; font: inherit; }
 .act > .ico { color: var(--accent); flex: none; }

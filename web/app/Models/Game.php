@@ -24,9 +24,18 @@ class Game extends HasFactoryModel
         ];
     }
 
-    public static function minToOpen(int $total): int
+    /**
+     * Players (creator included) needed before the game is shown to everyone. Football: 30% of them (friends first);
+     * ping-pong (1×1, 2×2): the creator alone, so anybody can join as the opponent.
+     */
+    public static function minToOpen(int $total, string $sport = 'football'): int
     {
-        return max(2, (int) ceil($total * self::OPEN_SHARE));
+        return $sport === 'pingpong' ? 1 : max(2, (int) ceil($total * self::OPEN_SHARE));
+    }
+
+    public function sportEnum(): \App\Enums\Sport
+    {
+        return \App\Enums\Sport::tryFrom($this->sport ?? 'football') ?? \App\Enums\Sport::Football;
     }
 
     public function creator(): BelongsTo
