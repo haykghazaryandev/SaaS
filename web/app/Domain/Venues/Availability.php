@@ -313,8 +313,8 @@ class Availability
     }
 
     /**
-     * How busy a group of courts is through a local day (owner schedule): [[from, to, busy], …] over the opening hours,
-     * busy = how many of the courts are taken then (bookings or closures). On today it starts at the time step that has begun.
+     * How busy a group of courts is through a local day (owner schedule): [[from, to, busy, [taken court ids]], …]
+     * over the opening hours, busy = how many of the courts are taken then (bookings or closures). On today it starts at the time step that has begun.
      * One court: busy is 0 or 1 (the free gaps); three tables: 0…3 ("2/3").
      */
     public function groupLoad(Collection $courts, CarbonImmutable $day, array $busy): array
@@ -343,24 +343,25 @@ class Availability
         $out = [];
         for ($i = 0; $i < count($cuts) - 1; $i++) {
             [$a, $b] = [$cuts[$i], $cuts[$i + 1]];
-            $n = 0;
+            $taken = [];
             foreach ($courts as $c) {
                 foreach ($busy[$c->id] ?? [] as [$x, $y]) {
                     if ($x < $b - 1e-9 && $y > $a + 1e-9) {
-                        $n++;
+                        $taken[] = $c->id;
                         break;
                     }
                 }
             }
+            $n = count($taken);
             $last = count($out) - 1;
-            if ($last >= 0 && $out[$last][2] === $n && abs($out[$last][1] - $a) < 1e-9) {
+            if ($last >= 0 && $out[$last][3] === $taken && abs($out[$last][1] - $a) < 1e-9) {
                 $out[$last][1] = $b;
             } else {
-                $out[] = [$a, $b, $n];
+                $out[] = [$a, $b, $n, $taken];
             }
         }
 
-        return array_map(fn ($s) => [round($s[0], 2), round($s[1], 2), $s[2]], $out);
+        return array_map(fn ($s) => [round($s[0], 2), round($s[1], 2), $s[2], $s[3]], $out);
     }
 
     /** All bookings of a place for a local day (owner schedule), grouped by field id. */

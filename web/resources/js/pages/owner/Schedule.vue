@@ -58,7 +58,7 @@ const props = defineProps<{
         closures: Closure[];
         lanes: Lane[];
         /** per lane: [from, to, how many courts are taken] through the day */
-        load: Record<number, [number, number, number][]>;
+        load: Record<number, [number, number, number, number[]][]>;
     };
     week?: {
         days: {
@@ -165,7 +165,7 @@ watch(
 // free gaps come from the server with the same rules as the booking page; past hours of today fold into "Earlier today"
 type Item =
     | { type: 'b'; key: string; start: number; end: number; b: BookingRow }
-    | { type: 'free'; key: string; start: number; end: number; busy: number }
+    | { type: 'free'; key: string; start: number; end: number; busy: number; taken: number[] }
     | { type: 'full'; key: string; start: number; end: number }
     | { type: 'closed'; key: string; start: number; end: number; c: Closure }
     | { type: 'now'; key: string; start: number; end: number };
@@ -187,7 +187,7 @@ function itemsOf(l: Lane): { earlier: Item[]; later: Item[] } {
         // free while at least one court is free; with several tables also "all taken" stretches (3/3)
         ...segs
             .filter(([s0, e0, n]) => n < l.count && e0 - s0 >= MIN_FREE)
-            .map(([s0, e0, n]) => ({ type: 'free' as const, key: 'f' + s0, start: s0, end: e0, busy: n })),
+            .map(([s0, e0, n, taken]) => ({ type: 'free' as const, key: 'f' + s0, start: s0, end: e0, busy: n, taken: taken ?? [] })),
         ...(l.count > 1
             ? segs.filter(([, , n]) => n >= l.count).map(([s0, e0]) => ({ type: 'full' as const, key: 'u' + s0, start: s0, end: e0 }))
             : []),
@@ -435,9 +435,18 @@ const WEEK_CHIPS = 4;
                                     <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}<small>{{ $t('owner.schedule.free_len', { d: lenOf(i.start, i.end) }) }}</small></span>
                                     <span class="what"
                                         ><b>{{ f.count > 1 ? $t('owner.schedule.tables_free', { n: String(f.count - i.busy) }) : $t('owner.schedule.free_row') }}</b
-                                        ><small v-if="f.count > 1">{{ $t('owner.schedule.taken_of', { n: String(i.busy), m: String(f.count) }) }}</small></span
+                                        ><small v-if="f.count > 1"
+                                            >{{
+                                                i.taken.length
+                                                    ? $t('owner.schedule.free_tables', { list: f.courts.filter((c) => !i.taken.includes(c)).map(courtOf).join(', ') })
+                                                    : $t('owner.schedule.all_free')
+                                            }}</small
+                                        ><!-- each table by its number: green free, orange taken -->
+                                        <span v-if="f.count > 1" class="tbls">
+                                            <i v-for="(c, k) in f.courts" :key="c" :class="{ on: i.taken.includes(c) }" :title="courtOf(c)">{{ k + 1 }}</i>
+                                        </span></span
                                     >
-                                    <span v-if="f.count > 1" class="occ" :aria-hidden="true"><i v-for="k in f.count" :key="k" :class="{ on: k <= i.busy }" /></span>
+
                                     <span class="add"><Icon name="plus" size="sm" />{{ $t('owner.schedule.book') }}</span>
                                 </button>
                                 <div v-else-if="i.type === 'closed'" class="drow closed">

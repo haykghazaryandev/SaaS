@@ -151,7 +151,8 @@ it('shows the tables as one column with how many are taken, and books any free t
     $date = at(0)->toDateString();
     $this->actingAs($owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
         ->has('day.lanes', 1)->where('day.lanes.0.count', 3)
-        ->where("day.load.{$first->id}", fn ($segs) => collect($segs)->contains(fn ($s) => $s[0] == 18 && $s[1] == 19 && $s[2] === 2)));
+        // which tables are taken, not only how many
+        ->where("day.load.{$first->id}", fn ($segs) => collect($segs)->contains(fn ($s) => $s[0] == 18 && $s[1] == 19 && $s[2] === 2 && count($s[3]) === 2)));
     $q = ['field_id' => $first->id, 'date' => $date, 'start' => '18:00', 'minutes' => 60, 'any' => 1];
     $this->actingAs($owner)->getJson('/owner/bookings/quote?'.http_build_query($q))->assertJson(['problem' => null])->assertJsonPath('starts', fn ($s) => in_array(18, $s));
     $this->actingAs($owner)->post('/owner/bookings', $q + ['name' => 'Walk-in'])->assertRedirect()->assertSessionHasNoErrors();

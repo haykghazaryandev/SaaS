@@ -378,8 +378,8 @@ it('lists the free time of each field the way players see it, also where a reque
     $date = at(0)->toDateString();
     $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
         // [from, to, how many courts taken]: the expired request (14:00) does not take the time
-        ->where("day.load.{$this->small->id}", [[8, 10, 0], [10, 11.5, 1], [11.5, 20, 0], [20, 21, 1], [21, 22, 0], [22, 23, 1], [23, 24, 0]])
-        ->where("day.load.{$this->big->id}", [[8, 22, 0], [22, 23, 1], [23, 24, 0]]));
+        ->where("day.load.{$this->small->id}", [[8, 10, 0, []], [10, 11.5, 1, [$s = $this->small->id]], [11.5, 20, 0, []], [20, 21, 1, [$s]], [21, 22, 0, []], [22, 23, 1, [$s]], [23, 24, 0, []]])
+        ->where("day.load.{$this->big->id}", [[8, 22, 0, []], [22, 23, 1, [$this->big->id]], [23, 24, 0, []]]));
 });
 
 it('gives the booking form the free and taken start times of the day', function () {

@@ -4954,6 +4954,11 @@
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
     },
+    "owner.schedule.all_free": {
+        "en": "All tables free",
+        "hy": "Բոլոր սեղաններն ազատ են",
+        "ru": "Все столы свободны"
+    },
     "owner.schedule.all_taken": {
         "en": "All tables taken",
         "hy": "Բոլոր սեղանները զբաղված են",
@@ -5038,6 +5043,11 @@
         "en": "Free",
         "hy": "Ազատ",
         "ru": "Свободно"
+    },
+    "owner.schedule.free_tables": {
+        "en": "Free: :list",
+        "hy": "Ազատ՝ :list",
+        "ru": "Свободны: :list"
     },
     "owner.schedule.hint": {
         "en": "Tap an empty time to add a booking",
