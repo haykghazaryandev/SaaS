@@ -30,10 +30,17 @@ class Booking extends HasFactoryModel
             'reminded_day_at' => 'datetime',
             'reminded_hour_at' => 'datetime',
             'not_here_asked_at' => 'datetime',
+            'paid_at' => 'datetime',
             'rating_asked_at' => 'datetime',
             'status' => BookingStatus::class,
             'source' => BookingSource::class,
         ];
+    }
+
+    /** The bill: things sold during the game, paid with the time at the end. */
+    public function items(): HasMany
+    {
+        return $this->hasMany(BookingItem::class);
     }
 
     public function venue(): BelongsTo

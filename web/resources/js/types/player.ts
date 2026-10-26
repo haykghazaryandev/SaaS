@@ -22,6 +22,8 @@ export interface FieldInfo {
     durations: number[];
     defaultDuration: number;
     price: { min: number; max: number };
+    /** a training on this kind: price per hour (null: the place has no trainings) */
+    trainingPrice?: number | null;
 }
 
 export interface VenueCard {

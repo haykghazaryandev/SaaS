@@ -7,13 +7,16 @@ import { router } from '@inertiajs/vue3';
 import jsQR from 'jsqr';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-// Scan a player's card QR and open their card. In the Telegram Mini App: Telegram's own scanner.
+// Scan a player's card QR. Default: open the card (through /c/{code}, which unlocks its money for a while);
+// with "pick": just hand the code to the page (a booking's bill). In the Telegram Mini App: Telegram's own scanner.
 // In a browser: the back camera in this sheet (BarcodeDetector where the browser has it, else jsQR on video frames).
 // The QR holds a link …/c/{code}; typing the code works too (a broken camera, a printed card).
-const emit = defineEmits<{ close: [] }>();
+const props = defineProps<{ pick?: boolean }>();
+const emit = defineEmits<{ close: []; code: [code: string] }>();
 const video = ref<HTMLVideoElement>();
 const error = ref<string | null>(null);
 const typed = ref('');
+const viaTelegram = ref(false);
 let stream: MediaStream | null = null;
 let raf = 0;
 let done = false;
@@ -26,7 +29,8 @@ function open(text: string): boolean {
     if (!code || done) return false;
     done = true;
     stop();
-    router.visit(route('owner.cards.show', code));
+    if (props.pick) emit('code', code);
+    else router.visit(route('card.open', code));
     emit('close');
     return true;
 }
@@ -40,8 +44,10 @@ function stop() {
 onMounted(async () => {
     const tg = tgApp();
     if (tg?.showScanQrPopup) {
+        // Telegram shows its own scanner: our sheet stays hidden until a code comes or the popup is closed
+        viaTelegram.value = true;
+        tg.onEvent?.('scanQrPopupClosed', () => !done && emit('close'));
         tg.showScanQrPopup({ text: trans('owner.club.scan_hint') }, (text) => open(text));
-        emit('close');
         return;
     }
     try {
@@ -84,7 +90,7 @@ function submitTyped() {
 </script>
 
 <template>
-    <OwnerSheet :title="$t('owner.club.scan')" :sub="$t('owner.club.scan_hint')" @close="emit('close')">
+    <OwnerSheet v-if="!viaTelegram" :title="$t('owner.club.scan')" :sub="$t('owner.club.scan_hint')" @close="emit('close')">
         <div class="scanbox">
             <video ref="video" playsinline muted />
             <i class="frame" aria-hidden="true" />

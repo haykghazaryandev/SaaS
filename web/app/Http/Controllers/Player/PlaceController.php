@@ -20,6 +20,7 @@ class PlaceController extends Controller
     {
         abort_unless($venue->status === 'active', 404);
         $venue->load(['openingHours', 'fields' => fn ($q) => $q->where('active', true), 'fields.priceRules']);
+        $venue->fields->each(fn ($f) => $f->setRelation('venue', $venue));
         $day = $present->pickDay($request->query('date'));
         // one choice per kind of court: all ping-pong tables are "a table" (the first one stands for the group)
         $groups = $present->groups($venue->fields);
@@ -139,7 +140,7 @@ class PlaceController extends Controller
             })->values()->all();
     }
 
-    /** Trainings, shop, open tournaments and "my card" (with its discount) for the place page. */
+    /** Shop, open tournaments and "my card" (with its discount) for the place page. */
     private function club(Request $request, Venue $venue): array
     {
         $user = $request->user();
@@ -148,8 +149,6 @@ class PlaceController extends Controller
 
         return [
             'card' => ($venue->hasFeature('wallet') || $venue->hasFeature('rating')) ? ($card ? ['balance' => $card->balance, 'discount' => $venue->hasFeature('wallet') ? $card->discount_pct : 0] : false) : null,
-            'trainings' => $venue->hasFeature('trainings') ? \App\Models\Training::where('venue_id', $venue->id)->where('active', true)->orderBy('starts_at')->get()
-                ->map(fn ($t) => \App\Domain\Club\Trainings::present($t))->values()->all() : [],
             'products' => $venue->hasFeature('shop') ? \App\Models\Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
                     'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'photo' => $p->photoUrl()])->values()->all() : [],

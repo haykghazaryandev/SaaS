@@ -13,8 +13,15 @@ use Carbon\CarbonImmutable;
  */
 class PriceCalculator
 {
-    public function price(Field $field, CarbonImmutable $start, int $minutes): int
+    /** $purpose training: the place's training price per hour for the whole time (no day / evening bands). */
+    public function price(Field $field, CarbonImmutable $start, int $minutes, string $purpose = 'play'): int
     {
+        if ($purpose === 'training') {
+            $hourly = $field->loadMissing('venue')->venue->trainingPrice($field->size->value);
+            if ($hourly !== null) {
+                return (int) round($hourly * $minutes / 60);
+            }
+        }
         $rules = $field->relationLoaded('priceRules') ? $field->priceRules : $field->priceRules()->get();
         $start = $start->setTimezone(LocalTime::tz());
         $sum = 0.0;

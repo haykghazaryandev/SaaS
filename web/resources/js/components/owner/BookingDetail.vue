@@ -4,7 +4,7 @@ import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
-import { Link, router } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
 // Booking details: contact, notes, price, history and the actions for the place.
@@ -47,13 +47,10 @@ function accept() {
 function edit() {
     if (b.value) openForm({ booking: b.value });
 }
-// paid at the desk: from the player's card here or in cash (once)
+// the bill: time + things taken during the game, paid at the end (card after a scan, cash, or both)
 const hasFeature = (f: string) => (owner.value.features ?? []).includes(f);
-const canPay = computed(() => b.value && !b.value.paid && ['accepted', 'completed'].includes(b.value.status) && (hasFeature('wallet') || hasFeature('money')));
-function pay(method: 'card' | 'cash') {
-    if (!b.value) return;
-    router.post(route('owner.bookings.pay', b.value.id), { method }, { preserveScroll: true, onSuccess: () => emit('close') });
-}
+const billable = computed(() => b.value && ['accepted', 'completed', 'no_show'].includes(b.value.status) && (hasFeature('wallet') || hasFeature('shop') || hasFeature('money')));
+const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.sum, 0));
 </script>
 
 <template>
@@ -167,15 +164,12 @@ function pay(method: 'card' | 'cash') {
                 </button>
                 <a v-if="b.tel" class="btn ghost" :href="`tel:${b.tel}`"><Icon name="phone" size="sm" />{{ $t('common.call') }}</a>
             </div>
-            <div v-if="b.paid || canPay" class="sheet-actions">
-                <span v-if="b.paid" class="pill green">{{ $t('owner.club.paid_' + b.paid) }}</span>
-                <template v-else>
-                    <button v-if="hasFeature('wallet') && b.card" type="button" class="btn" data-test="pay-card" @click="pay('card')">
-                        <Icon name="wallet" size="sm" />{{ $t('owner.club.paid_by_card', { a: amd(b.card.balance) }) }}
-                    </button>
-                    <button type="button" class="btn ghost" data-test="pay-cash" @click="pay('cash')">{{ $t('owner.club.paid_cash_btn') }}</button>
-                </template>
-                <Link v-if="b.card" class="btn ghost" :href="route('owner.cards.show', b.card.code)"><Icon name="qr" size="sm" />{{ $t('owner.club.open_card') }}</Link>
+            <div v-if="billable" class="sheet-actions">
+                <span v-if="b.paid" class="pill green"><Icon name="check" size="sm" />{{ $t('owner.club.paid') }}</span>
+                <span v-else-if="b.items?.length" class="faint">{{ $t('owner.club.items_n', { n: b.items.length, a: amd(itemsSum) }) }}</span>
+                <Link class="btn" :href="route('owner.bookings.checkout', b.id)" data-test="checkout" @click="emit('close')"
+                    ><Icon name="wallet" size="sm" />{{ b.paid ? $t('owner.club.bill') : $t('owner.club.bill_and_pay') }}</Link
+                >
             </div>
         </template>
     </OwnerSheet>

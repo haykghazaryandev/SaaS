@@ -31,6 +31,7 @@ class BookingController extends Controller
             'team_name' => 'nullable|string|max:40',
             'note' => 'nullable|string|max:200',
             'name' => 'nullable|string|min:2|max:60',
+            'purpose' => 'nullable|in:play,training',
         ]);
         $field = Field::with(['venue.openingHours', 'priceRules'])->where('active', true)->find($data['field_id']);
         if (! $field || $field->venue->status !== 'active') {
@@ -50,7 +51,7 @@ class BookingController extends Controller
         $start = LocalTime::at(LocalTime::day($data['date']), $h + $m / 60);
         try {
             $booking = $action->handle($user, $field, $start, (int) $data['minutes'], [
-                'team_name' => $data['team_name'] ?? null, 'note' => $data['note'] ?? null, 'name' => $user->name,
+                'team_name' => $data['team_name'] ?? null, 'note' => $data['note'] ?? null, 'name' => $user->name, 'purpose' => $data['purpose'] ?? 'play',
             ]);
         } catch (BookingException $e) {
             throw ValidationException::withMessages(['booking' => $e->getMessage()]);

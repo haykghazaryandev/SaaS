@@ -52,7 +52,8 @@ class OwnerBooking
                 'contact_name' => $data['name'] ?: ($player?->name ?? '—'),
                 'contact_phone' => $phone,
                 'series_id' => $series?->id,
-                'price' => $data['price'] ?? (int) round($this->prices->price($field, $start, $minutes)
+                'purpose' => ($data['purpose'] ?? 'play') === 'training' ? 'training' : 'play',
+                'price' => $data['price'] ?? (int) round($this->prices->price($field, $start, $minutes, ($data['purpose'] ?? 'play') === 'training' ? 'training' : 'play')
                     * (100 - ($player && $field->venue?->hasFeature('wallet') ? \App\Domain\Club\Cards::discountFor($field->venue_id, $player->id) : 0)) / 100),
                 'team_name' => $data['team_name'] ?? null,
                 'note_owner' => $data['note_owner'] ?? null,

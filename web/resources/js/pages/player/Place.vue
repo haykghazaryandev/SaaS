@@ -60,7 +60,6 @@ const props = defineProps<{
     /** the club parts: my card here (null: no cards; false: not made yet), trainings, shop, open tournaments */
     club?: {
         card: { balance: number; discount: number } | false | null;
-        trainings: { id: number; title: string; coach: string | null; weekdays: number[]; start: string; end: string; price: number; note: string | null }[];
         products: { id: number; name: string; description: string | null; price: number; final: number; discount_pct: number; in_stock: boolean; photo: string | null }[];
         tournaments: { code: string; title: string; when: string; from: number }[];
     };
@@ -68,8 +67,6 @@ const props = defineProps<{
 // my discount at this place (my card): already in the price the place gets
 const myDiscount = computed(() => (props.club?.card ? props.club.card.discount : 0));
 const getCard = () => router.post(route('places.card', props.venue.slug));
-const ORDER = [1, 2, 3, 4, 5, 6, 0];
-const tDays = (w: number[]) => ORDER.filter((d) => w.includes(d)).map((d) => wdName(d)).join(', ');
 const has = (f: string) => !props.features || props.features.includes(f);
 const isTables = computed(() => props.sport === 'pingpong');
 useSportTheme(() => props.sport);
@@ -90,6 +87,10 @@ const showNote = ref(false);
 const notice = ref<string | null>(null);
 
 const field = computed(() => props.fields.find((f) => f.id === fieldId.value) ?? null);
+// play or training (a training is booked like a table, at the place's training price per hour)
+const purpose = ref<'play' | 'training'>('play');
+const trainingPrice = computed(() => field.value?.trainingPrice ?? null);
+watch(trainingPrice, (p) => p == null && (purpose.value = 'play'));
 const durFor = (f: FieldInfo) => (f.durations.includes(minutes.value) ? minutes.value : f.defaultDuration);
 const startsFor = (f: FieldInfo | null, m: number) => (f ? (slots.value.fields.find((x) => x.id === f.id)?.starts[String(m)] ?? []) : []);
 const free = computed(() => startsFor(field.value, minutes.value));
@@ -282,7 +283,9 @@ const tiles = computed(() =>
 const summary = computed(() => {
     const f = field.value;
     if (!f || start.value == null) return null;
-    const p = priceOf(f, start.value, minutes.value);
+    const base = priceOf(f, start.value, minutes.value);
+    // a training: its own price per hour for the whole time
+    const p = purpose.value === 'training' && f.trainingPrice != null ? { ...base, total: Math.round((f.trainingPrice * minutes.value) / 60), dayMin: 0, primeMin: 0 } : base;
     const wd = props.days.find((d) => d.date === date.value);
     const d = myDiscount.value;
     return { f, ...p, total: d ? Math.round((p.total * (100 - d)) / 100) : p.total, full: p.total, discount: d, weekday: wd ? !wd.weekend : true };
@@ -312,7 +315,7 @@ onMounted(() => {
 const AMEN_ICON: Record<string, string> = { parking: 'car', showers: 'shower', lockers: 'locker', cafe: 'coffee', lights: 'bolt', bibs: 'ball', stands: 'users' };
 
 // ---------- request ----------
-const form = useForm({ field_id: 0, date: '', start: '', minutes: 60, team_name: '', note: '', name: '' });
+const form = useForm({ field_id: 0, date: '', start: '', minutes: 60, team_name: '', note: '', name: '', purpose: 'play' });
 // guests confirm who they are with Telegram (free) right in the sheet, then the request is sent
 const sheet = ref<null | 'login' | 'name' | 'taken' | 'mine'>(null);
 const okBooking = ref<PlayerBooking | null>(null);
@@ -352,6 +355,7 @@ function submit() {
     form.date = date.value;
     form.start = hhmm(start.value);
     form.minutes = minutes.value;
+    form.purpose = purpose.value;
     form.post(route('bookings.store'), {
         preserveScroll: true,
         preserveState: true,
@@ -555,6 +559,13 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <div id="panel" class="card flow">
                     <h2>{{ isTables ? $t('player.place.book_a_table') : $t('common.book_a_field') }}</h2>
                     <p v-if="!has('booking')" class="muted">{{ $t('player.place.no_online_booking') }}</p>
+                    <!-- play or a training (its own price per hour), only where the place has trainings -->
+                    <div v-if="has('booking') && trainingPrice != null" class="seg block purpose" role="group">
+                        <button type="button" :aria-pressed="purpose === 'play'" @click="purpose = 'play'"><Icon name="ball" size="sm" />{{ $t('club.play') }}</button>
+                        <button type="button" :aria-pressed="purpose === 'training'" data-test="purpose-training" @click="purpose = 'training'">
+                            <Icon name="whistle" size="sm" /><span>{{ $t('club.training') }}<small>{{ amd(trainingPrice) }} {{ $t('common.per_hour') }}</small></span>
+                        </button>
+                    </div>
 
                     <template v-if="has('booking')">
                     <div class="step">
@@ -747,7 +758,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
             </div>
 
             <!-- the club: my card (QR), trainings, shop, tournaments: only what the place switched on -->
-            <section v-if="club && (club.card !== null || club.trainings.length || club.products.length || club.tournaments.length)" class="section clubs">
+            <section v-if="club && (club.card !== null || club.products.length || club.tournaments.length)" class="section clubs">
                 <div v-if="club.card !== null" class="card pad mycard">
                     <Icon name="qr" size="lg" />
                     <span class="mc">
@@ -766,16 +777,6 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         <Icon name="trophy" size="sm" /><span class="w"><b>{{ t.title }}</b><small>{{ t.when }}</small></span
                         ><span class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span><Icon name="arrow" size="sm" />
                     </Link>
-                </div>
-
-                <div v-if="club.trainings.length" class="card pad">
-                    <h2 class="infoh">{{ $t('club.trainings') }}</h2>
-                    <div v-for="t in club.trainings" :key="t.id" class="crow">
-                        <Icon name="whistle" size="sm" />
-                        <span class="w"><b>{{ t.title }}</b><small>{{ tDays(t.weekdays) }} · {{ t.start }}–{{ t.end }}{{ t.coach ? ' · ' + t.coach : '' }}</small></span>
-                        <b class="mono">{{ amd(t.price) }}</b>
-                    </div>
-                    <p class="faint" style="font-size: 12.5px; margin: 8px 0 0">{{ $t('club.trainings_hint') }}</p>
                 </div>
 
                 <div v-if="club.products.length" class="card pad">
@@ -965,6 +966,9 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .okteam > .ico { color: var(--accent); margin-top: 2px; flex: none; }
 .okteam b { font-size: 14.5px; }
 .okteam p { margin: 2px 0 0; font-size: 13px; }
+.purpose { margin: 4px 0 14px; }
+.purpose button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: normal; line-height: 1.25; text-align: center; }
+.purpose button small { display: block; font-weight: 700; opacity: .8; }
 .clubs { display: grid; gap: 12px; }
 .mycard { display: flex; align-items: center; gap: 14px; }
 .mycard > .ico { color: var(--accent); flex: none; }

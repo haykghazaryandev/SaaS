@@ -24,7 +24,9 @@ class ShopController extends OwnerController
                 'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'active' => $p->active, 'photo' => $p->photoUrl(),
             ])->values(),
             'sales' => Sale::where('venue_id', $venue->id)->with('user:id,name', 'payment:id,amount,method')->latest('id')->limit(60)->get()->map(fn (Sale $s) => [
-                'id' => $s->id, 'what' => $s->qty.' × '.$s->product_name, 'who' => $s->user?->name, 'amount' => $s->payment?->amount, 'method' => $s->payment?->method,
+                // sold on a booking's bill: paid with the bill (no payment of its own)
+                'id' => $s->id, 'what' => $s->qty.' × '.$s->product_name, 'who' => $s->user?->name,
+                'amount' => $s->payment?->amount ?? $s->qty * $s->price_each, 'method' => $s->payment?->method ?? 'bill',
                 'at' => $s->created_at->setTimezone(LocalTime::tz())->format('d.m H:i'),
             ])->values(),
         ]);

@@ -37,6 +37,7 @@ const form = useForm({
     weeks: 4,
     // new booking on the tables: any free table unless the owner picks one
     any: !b && !!props.opts.any,
+    purpose: (b?.purpose ?? 'play') as 'play' | 'training',
 });
 // the kinds to choose from: each football field, all the tables as one ("Tables"), then a table or "any free one"
 const kinds = computed(() => {
@@ -73,6 +74,7 @@ const quote = ref<{
     phoneValid: boolean;
     starts?: number[];
     taken?: number[];
+    trainingPrice?: number | null;
 } | null>(null);
 
 // start times of the day for this field and length (from the quote): free ones to pick, taken ones struck through
@@ -105,6 +107,7 @@ async function refresh() {
         phone: form.phone || '',
     });
     if (form.any) q.set('any', '1');
+    q.set('purpose', form.purpose);
     if (b) q.set('ignore', String(b.id));
     try {
         const r = await fetch(`${route('owner.bookings.quote')}?${q}`, {
@@ -129,7 +132,7 @@ const later = () => {
     clearTimeout(timer);
     timer = window.setTimeout(refresh, 250);
 };
-watch(() => [form.field_id, form.date, form.start, form.minutes, form.any], refresh);
+watch(() => [form.field_id, form.date, form.start, form.minutes, form.any, form.purpose], refresh);
 watch(() => form.phone, later);
 onMounted(refresh);
 // someone else booked or freed a time meanwhile (OwnerLayout passes on the live signal)
@@ -164,6 +167,7 @@ function submit() {
         price: touched.value ? Number(String(d.price ?? '').replace(/\D/g, '')) || 0 : null,
         weeks: !b && d.repeat ? d.weeks : null,
         any: !b && d.any ? 1 : null,
+        purpose: d.purpose,
     }));
     if (b) form.patch(route('owner.bookings.update', b.id), opts);
     else form.post(route('owner.bookings.store'), opts);
@@ -182,6 +186,11 @@ function submit() {
                 <button v-for="k in kinds" :key="k.key" type="button" :aria-pressed="kind === k" @click="pickKind(k)">
                     {{ k.label }}<template v-if="k.courts.length > 1"> · {{ k.courts.length }}</template>
                 </button>
+            </div>
+            <!-- play or training (the training price per hour), where the place has trainings -->
+            <div v-if="quote?.trainingPrice != null || form.purpose === 'training'" class="seg" role="group" style="margin-top: 10px">
+                <button type="button" :aria-pressed="form.purpose === 'play'" @click="form.purpose = 'play'">{{ $t('club.play') }}</button>
+                <button type="button" :aria-pressed="form.purpose === 'training'" data-test="purpose-training" @click="form.purpose = 'training'">{{ $t('club.training') }}</button>
             </div>
             <!-- several tables: any free one (the server picks), or a given table -->
             <div v-if="kind && kind.courts.length > 1" class="field" style="margin-top: 10px">

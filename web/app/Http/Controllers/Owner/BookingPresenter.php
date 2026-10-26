@@ -59,6 +59,8 @@ final class BookingPresenter
             'note_player' => $b->note_player,
             'note_owner' => $b->note_owner,
             'weekly' => $b->series_id !== null,
+            'purpose' => $b->purpose ?? 'play',
+            'paid' => $b->paid_at !== null,
             'started' => $b->starts_at->isPast(),
             'past' => $b->ends_at->isPast(),
             // at the field: "Arrived ✓" (optional), "about 10 min late", "Didn't come" until 12:00 the next day
@@ -80,9 +82,8 @@ final class BookingPresenter
             ...self::row($b),
             'field' => self::fieldLabel($b->field),
             'decline_reason' => $b->decline_reason,
-            // paid at the desk (card / cash), and the player's card here, to pay from it
-            'paid' => \App\Domain\Club\Money::bookingPaid($b)?->method,
-            'card' => $b->user_id ? \App\Models\VenueCard::where('venue_id', $b->venue_id)->where('user_id', $b->user_id)->first(['code', 'balance'])?->only(['code', 'balance']) : null,
+            // the bill: things added during the game
+            'items' => $b->items()->get(['id', 'name', 'qty', 'price_each'])->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'qty' => $i->qty, 'sum' => $i->qty * $i->price_each])->all(),
             'cancel_reason' => $b->cancel_reason,
             'cancelled_by' => $b->cancelled_by,
             'events' => $b->events->sortBy('id')->values()->map(fn (BookingEvent $e) => [

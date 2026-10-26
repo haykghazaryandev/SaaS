@@ -13,6 +13,7 @@ import { computed, reactive, ref } from 'vue';
 // Prices, hours, rules and the phone are saved together by one sticky "Save changes" bar that shows up when something changed.
 interface PriceRow {
     field_id: number;
+    training?: number | null;
     label: string;
     surface: string;
     indoor: boolean;
@@ -78,7 +79,7 @@ const num = (v: string | number) => Number(digits(v)) || 0;
 const fmtPhone = (d: string) => [d.slice(0, 2), d.slice(2, 5), d.slice(5, 8)].filter(Boolean).join(' ');
 
 // ---------- editable state ----------
-type Prices = { field_id: number; day: string; evening: string; weekend: string }[];
+type Prices = { field_id: number; day: string; evening: string; weekend: string; training: string }[];
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monday first
 const priceOf = (id: number) => props.prices.find((p) => p.field_id === id)!;
 const state = reactive({
@@ -95,7 +96,7 @@ const allSame = (hs: HourRow[]) => hs.every((h) => h.open !== null && h.open ===
 /** What "Save changes" sends, per part. */
 function payload() {
     return {
-        prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend) })),
+        prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend), training: digits(p.training) === '' ? null : num(p.training) })),
         hours: state.same ? state.hours.map((h) => ({ weekday: h.weekday, ...state.every })) : state.hours.map((h) => ({ ...h })),
         rules: { ...state.rules },
         phone: state.phoneOpen && digits(state.phone) ? `+374${digits(state.phone).slice(-8)}` : null,
@@ -103,7 +104,7 @@ function payload() {
 }
 type Payload = ReturnType<typeof payload>;
 function load(p: Payload) {
-    state.prices = p.prices.map((x) => ({ field_id: x.field_id, day: sep(x.day), evening: sep(x.evening), weekend: sep(x.weekend) }));
+    state.prices = p.prices.map((x) => ({ field_id: x.field_id, day: sep(x.day), evening: sep(x.evening), weekend: sep(x.weekend), training: x.training == null ? '' : sep(x.training) }));
     state.hours = p.hours.map((h) => ({ ...h }));
     state.same = allSame(state.hours);
     state.every = state.same ? { open: state.hours[0].open!, close: state.hours[0].close! } : { open: '09:00', close: '23:00' };
@@ -112,7 +113,7 @@ function load(p: Payload) {
     state.phone = p.phone ? fmtPhone(p.phone.slice(4)) : '';
 }
 const initial: Payload = {
-    prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend })),
+    prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend, training: p.training ?? null })),
     hours: ORDER.map((wd) => ({ ...props.hours.find((h) => h.weekday === wd)! })),
     rules: { ...props.rules },
     phone: props.place.tel,
@@ -159,7 +160,7 @@ const errOf = (prefix: string) => Object.entries(errors.value).find(([k]) => k =
 const firstError = computed(() => Object.values(errors.value)[0] || '');
 
 // prices: thousand separators while typing
-function onPrice(p: Prices[number], key: 'day' | 'evening' | 'weekend', e: Event) {
+function onPrice(p: Prices[number], key: 'day' | 'evening' | 'weekend' | 'training', e: Event) {
     const d = digits((e.target as HTMLInputElement).value).slice(0, 7);
     p[key] = d ? sep(Number(d)) : '';
     (e.target as HTMLInputElement).value = p[key];
@@ -322,6 +323,13 @@ const fmtRange = (c: ClosureRow) =>
                                         :data-test="`price-${k}`"
                                         @input="onPrice(p, k, $event)"
                                     /><span aria-hidden="true">֏</span></span
+                                >
+                            </div>
+                            <!-- a training on this kind: one price per hour; empty = no trainings to book -->
+                            <div v-if="(owner.features ?? []).includes('trainings')" class="field">
+                                <label :for="`ptr${i}`">{{ $t('owner.settings.price_training') }}</label>
+                                <span class="money"
+                                    ><input :id="`ptr${i}`" class="input" inputmode="numeric" :value="p.training" :disabled="!canEdit" :placeholder="$t('owner.settings.no_training')" data-test="price-training" @input="onPrice(p, 'training', $event)" /><span aria-hidden="true">֏</span></span
                                 >
                             </div>
                         </div>

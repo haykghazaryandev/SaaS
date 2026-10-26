@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The club features a place can switch on (venues.features): a player card per place (QR, balance, discount),
- * the money the place takes, ratings per sport, trainings, a shop and tournaments.
+ * the money the place takes (a booking's bill: time + items), ratings per sport, a shop and tournaments.
  */
 return new class extends Migration
 {
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('method', 8);                       // card | cash
             $table->integer('amount');                         // ֏ (after the discount)
             $table->integer('discount')->default(0);           // ֏ taken off
-            $table->unsignedBigInteger('ref_id')->nullable();  // the booking / training visit / sale / tournament entry
+            $table->unsignedBigInteger('ref_id')->nullable();  // the booking / sale / tournament entry
             $table->string('note', 200)->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
@@ -78,31 +78,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('trainings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('venue_id')->constrained()->cascadeOnDelete();
-            $table->string('title', 80);
-            $table->string('coach', 80)->nullable();
-            $table->jsonb('weekdays');                         // [1, 3, 5]
-            $table->time('starts_at');
-            $table->unsignedSmallInteger('minutes');
-            $table->unsignedInteger('price');                  // one visit
-            $table->unsignedSmallInteger('capacity')->nullable();
-            $table->string('note', 300)->nullable();
-            $table->boolean('active')->default(true);
-            $table->timestamps();
-        });
-        Schema::create('training_visits', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('training_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->date('date');
-            $table->foreignId('payment_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
-            $table->unique(['training_id', 'user_id', 'date']);
-        });
-
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->foreignId('venue_id')->constrained()->cascadeOnDelete();
@@ -117,6 +92,23 @@ return new class extends Migration
             $table->unsignedSmallInteger('sort')->default(0);
             $table->timestamps();
         });
+        // a booking's bill: things sold during the game (a cola), paid at the end with the playing time
+        Schema::create('booking_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('name', 80);
+            $table->unsignedSmallInteger('qty');
+            $table->unsignedInteger('price_each');
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+        });
+        // play or training (a training is booked like a game, at the place's training price); paid at the desk when
+        Schema::table('bookings', function (Blueprint $table) {
+            $table->string('purpose', 10)->default('play');
+            $table->timestampTz('paid_at')->nullable();
+        });
+
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
             $table->foreignId('venue_id')->constrained()->cascadeOnDelete();
@@ -161,7 +153,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (['tournament_entries', 'tournaments', 'sales', 'products', 'training_visits', 'trainings', 'rating_changes', 'sport_ratings', 'card_entries', 'payments', 'venue_cards'] as $t) {
+        Schema::table('bookings', fn (Blueprint $table) => $table->dropColumn(['purpose', 'paid_at']));
+        foreach (['tournament_entries', 'tournaments', 'sales', 'booking_items', 'products', 'rating_changes', 'sport_ratings', 'card_entries', 'payments', 'venue_cards'] as $t) {
             Schema::dropIfExists($t);
         }
     }

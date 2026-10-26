@@ -56,6 +56,8 @@ class PlayerVenues
             'indoor' => (bool) $f->indoor, 'players' => $f->max_players ?: $f->size->maxPlayers(),
             'durations' => array_values($f->durations ?? [60]), 'defaultDuration' => $f->default_duration,
             'price' => $range,
+            // a training on this kind: price per hour, null when the place has none
+            'trainingPrice' => $f->relationLoaded('venue') ? $f->venue->trainingPrice($f->size->value) : null,
         ];
     }
 

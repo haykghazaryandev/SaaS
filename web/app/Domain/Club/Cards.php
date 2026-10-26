@@ -98,6 +98,22 @@ class Cards
         }
     }
 
+    /** How long a scan lets the staff change a card's money (the player stood at the desk with their phone). */
+    public const SCAN_MINUTES = 15;
+
+    /** The staff scanned this card (or typed the code from the player's screen): money changes are open for a while. */
+    public static function markScanned(VenueCard $card): void
+    {
+        session()->put('scanned.'.$card->code, time());
+    }
+
+    public static function scanned(VenueCard $card): bool
+    {
+        $at = session()->get('scanned.'.$card->code);
+
+        return $at !== null && time() - (int) $at < self::SCAN_MINUTES * 60;
+    }
+
     public static function newCode(): string
     {
         return Str::lower(Str::random(20));

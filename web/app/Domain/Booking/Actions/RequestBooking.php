@@ -38,6 +38,10 @@ class RequestBooking
         if ($pending >= $venue->rule('max_pending_per_phone')) {
             throw new BookingException('too_many_pending');
         }
+        $purpose = ($extra['purpose'] ?? 'play') === 'training' ? 'training' : 'play';
+        if ($purpose === 'training' && $venue->trainingPrice($field->size->value) === null) {
+            throw new BookingException('feature_off');
+        }
         // "a table at 10:00": the asked court, or any free one of the same kind (ping-pong tables)
         [$free, $problem] = $this->availability->freeInGroup($field, $start, $minutes);
         if ($problem) {
@@ -45,7 +49,7 @@ class RequestBooking
         }
         $field = $free;
 
-        return $this->guarded(function () use ($player, $field, $venue, $start, $minutes, $extra) {
+        return $this->guarded(function () use ($player, $field, $venue, $start, $minutes, $extra, $purpose) {
             $booking = Booking::create([
                 'code' => Booking::newCode(),
                 'venue_id' => $venue->id,
@@ -59,7 +63,8 @@ class RequestBooking
                 'contact_phone' => $player->phone,
                 'game_id' => $extra['game_id'] ?? null,
                 // the player's discount at this place (their card) is in the price from the start
-                'price' => $this->discounted($venue, $player->id, $this->prices->price($field, $start, $minutes)),
+                'price' => $this->discounted($venue, $player->id, $this->prices->price($field, $start, $minutes, $purpose)),
+                'purpose' => $purpose,
                 'team_name' => $extra['team_name'] ?? null,
                 'note_player' => $extra['note'] ?? null,
             ]);

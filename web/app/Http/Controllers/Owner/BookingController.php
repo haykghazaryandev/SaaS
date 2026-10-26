@@ -38,6 +38,7 @@ class BookingController extends OwnerController
             'phone' => 'nullable|string|max:20',
             'ignore' => 'nullable|integer',
             'any' => 'nullable|boolean',
+            'purpose' => 'nullable|in:play,training',
         ]);
         $field = Field::with('priceRules', 'venue.openingHours')->findOrFail($data['field_id']);
         $start = $this->start($data);
@@ -50,7 +51,8 @@ class BookingController extends OwnerController
         $player = $phone ? User::where('phone', $phone)->first(['id', 'name', 'no_show_count']) : null;
 
         return response()->json([
-            'price' => $prices->price($field, $start, (int) $data['minutes']),
+            'price' => $prices->price($field, $start, (int) $data['minutes'], $data['purpose'] ?? 'play'),
+            'trainingPrice' => $field->venue->trainingPrice($field->size->value),
             'problem' => $problem,
             'message' => $problem ? __('booking.error.'.$problem) : null,
             'player' => $player ? ['name' => $player->name, 'no_shows' => (int) $player->no_show_count] : null,
@@ -90,6 +92,7 @@ class BookingController extends OwnerController
             ...$this->contactRules(),
             'weeks' => 'nullable|integer|min:1|max:26',
             'any' => 'nullable|boolean',
+            'purpose' => 'nullable|in:play,training',
         ], $this->messages());
         $this->checkPhone($data);
         $field = Field::findOrFail($data['field_id']);
@@ -102,6 +105,7 @@ class BookingController extends OwnerController
             'note_owner' => $data['note_owner'] ?? null,
             'price' => isset($data['price']) ? (int) $data['price'] : null,
             'any' => ! empty($data['any']),
+            'purpose' => $data['purpose'] ?? 'play',
         ];
         $weeks = (int) ($data['weeks'] ?? 1);
 

@@ -409,7 +409,15 @@ const WEEK_CHIPS = 4;
                                 <div v-if="i.type === 'b'" :class="['drow bk', kindOf(i.b), { off: isOff(i.b) }]" role="button" tabindex="0" data-test="block" @click="openBooking(i.b.id)" @keydown.enter.self="openBooking(i.b.id)">
                                     <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}<small>{{ lenOf(i.start, i.end) }}</small></span>
                                     <span class="what"
-                                        ><b><span v-if="f.count > 1" class="ctag">{{ courtOf(i.b.field_id) }}</span>{{ i.b.team || i.b.name || '—' }}</b
+                                        ><b
+                                            ><span v-if="f.count > 1" class="ctag">{{ courtOf(i.b.field_id) }}</span
+                                            ><span v-if="i.b.purpose === 'training'" class="ctag tr">{{ $t('club.training') }}</span>{{ i.b.team || i.b.name || '—' }}<Icon
+                                                v-if="i.b.paid"
+                                                name="check"
+                                                size="sm"
+                                                class="paidmark"
+                                                :title="$t('owner.club.paid')"
+                                        /></b
                                         ><small>{{ subOf(i.b) }}{{ subOf(i.b) ? ' · ' : '' }}{{ amd(i.b.price) }}</small></span
                                     >
                                     <span :class="['pill', pillFor(i.b).cls]">{{ pillFor(i.b).label }}</span>
@@ -452,7 +460,15 @@ const WEEK_CHIPS = 4;
                                 >
                                     <span class="tm">{{ hhmm(i.start) }}–{{ hhmm(i.end) }}<small>{{ lenOf(i.start, i.end) }}</small></span>
                                     <span class="what"
-                                        ><b><span v-if="f.count > 1" class="ctag">{{ courtOf(i.b.field_id) }}</span>{{ i.b.team || i.b.name || '—' }}</b
+                                        ><b
+                                            ><span v-if="f.count > 1" class="ctag">{{ courtOf(i.b.field_id) }}</span
+                                            ><span v-if="i.b.purpose === 'training'" class="ctag tr">{{ $t('club.training') }}</span>{{ i.b.team || i.b.name || '—' }}<Icon
+                                                v-if="i.b.paid"
+                                                name="check"
+                                                size="sm"
+                                                class="paidmark"
+                                                :title="$t('owner.club.paid')"
+                                        /></b
                                         ><small>{{ subOf(i.b) }}{{ subOf(i.b) ? ' · ' : '' }}{{ amd(i.b.price) }}</small></span
                                     >
                                     <span :class="['pill', pillFor(i.b).cls]">{{ pillFor(i.b).label }}</span>

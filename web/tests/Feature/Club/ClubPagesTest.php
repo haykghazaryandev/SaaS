@@ -4,7 +4,6 @@ use App\Domain\Club\Cards;
 use App\Models\Booking;
 use App\Models\Product;
 use App\Models\Tournament;
-use App\Models\Training;
 use App\Models\User;
 use App\Models\Venue;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -19,11 +18,11 @@ beforeEach(function () {
 });
 
 it('opens every club page for the owner, and none where the feature is off', function () {
-    foreach (['/owner/players', '/owner/cards/'.$this->card->code, '/owner/trainings', '/owner/shop', '/owner/tournaments', '/owner/money'] as $url) {
+    foreach (['/owner/players', '/owner/players/'.$this->player->id, '/owner/cards', '/owner/cards/'.$this->card->code, '/owner/shop', '/owner/tournaments', '/owner/money'] as $url) {
         $this->actingAs($this->owner)->get($url)->assertOk();
     }
     $this->club->update(['features' => ['booking']]);
-    foreach (['/owner/players', '/owner/trainings', '/owner/shop', '/owner/tournaments', '/owner/money'] as $url) {
+    foreach (['/owner/players', '/owner/cards', '/owner/shop', '/owner/tournaments', '/owner/money'] as $url) {
         $this->actingAs($this->owner)->get($url)->assertNotFound();
     }
 });
@@ -45,39 +44,58 @@ it('sends a scanned QR to the card for staff, to my cards for the player, to the
     $this->get('/c/'.str_repeat('a', 20))->assertNotFound();
 });
 
-it('lets the owner top up, take payments and set discount and rating on the card page', function () {
+it('changes card money only after a scan; the rating is set on the player page', function () {
     $base = '/owner/cards/'.$this->card->code;
-    $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertRedirect();
+    // looking is fine, money is locked
+    $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->component('owner/Card')->where('card.scanned', false));
+    $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertSessionHasErrors('booking');
+    expect($this->card->fresh()->balance)->toBe(0);
+    // the scan (the QR link) opens it
+    $this->actingAs($this->owner)->get('/c/'.$this->card->code)->assertRedirect(route('owner.cards.show', $this->card->code));
+    $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertRedirect()->assertSessionHasNoErrors();
     $this->actingAs($this->owner)->post("$base/discount", ['discount' => 10])->assertRedirect();
-    $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000, 'method' => 'card', 'note' => 'balls'])->assertRedirect();
-    $this->actingAs($this->owner)->post("$base/rating", ['rating' => 1450, 'intl_id' => 'ARM-7'])->assertRedirect();
-    expect($this->card->fresh()->balance)->toBe(10000 - 1800);
-    $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->component('owner/Card')
-        ->where('card.balance', 8200)->where('card.discount', 10)->where('rating.rating', 1450)->has('history', 2));
-    $this->actingAs($this->owner)->post("$base/charge", ['amount' => 900000, 'method' => 'card'])->assertSessionHasErrors('booking');
+    $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000, 'note' => 'balls'])->assertRedirect();
+    expect($this->card->fresh()->balance)->toBe(10000 - 2000)->and($this->card->fresh()->discount_pct)->toBe(10);
+    $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450, 'intl_id' => 'ARM-7'])->assertRedirect();
+    $this->actingAs($this->owner)->get("/owner/players/{$this->player->id}")->assertInertia(fn (Assert $p) => $p->component('owner/Player')
+        ->where('rating.rating', 1450)->where('card.balance', 8000));
 });
 
-it('marks a training visit and sells from the card page; the player sees the card with its QR', function () {
-    $t = Training::create(['venue_id' => $this->club->id, 'title' => 'Kids', 'weekdays' => [0, 1, 2, 3, 4, 5, 6], 'starts_at' => '18:00', 'minutes' => 60, 'price' => 2000]);
-    $p = Product::create(['venue_id' => $this->club->id, 'name' => 'Balls', 'price' => 1500]);
-    $base = '/owner/cards/'.$this->card->code;
-    $this->actingAs($this->owner)->post("$base/visit/{$t->id}", ['method' => 'cash'])->assertRedirect();
-    $this->actingAs($this->owner)->post("$base/sell/{$p->id}", ['qty' => 2, 'method' => 'cash'])->assertRedirect();
-    $this->actingAs($this->owner)->get('/owner/money')->assertInertia(fn (Assert $pg) => $pg->where('report.sales', 5000)
-        ->where('report.byKind.training', 2000)->where('report.byKind.shop', 3000));
-    $this->actingAs($this->player)->get('/me/cards')->assertInertia(fn (Assert $pg) => $pg->component('player/Cards')
-        ->has('cards', 1)->where('cards.0.venue.slug', $this->club->slug)->where('cards.0.qr', fn ($svg) => str_starts_with($svg, '<svg')));
-    $this->actingAs($this->player)->get("/places/{$this->club->slug}")->assertInertia(fn (Assert $pg) => $pg
-        ->where('club.card.balance', 0)->has('club.trainings', 1)->has('club.products', 1));
+it('lists everybody who played here, with filters', function () {
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $other = User::factory()->create(['name' => 'Vardan']);
+    Booking::create(['code' => 'BB-801', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $other->id,
+        'starts_at' => now()->subDays(2), 'ends_at' => now()->subDays(2)->addHour(), 'status' => 'completed', 'source' => 'player', 'contact_name' => 'Vardan', 'price' => 1]);
+    App\Models\SportRating::create(['user_id' => $other->id, 'sport' => 'football', 'rating' => 1600]);
+    $this->actingAs($this->owner)->get('/owner/players')->assertInertia(fn (Assert $p) => $p->where('total', 2)->has('players', 2));
+    $this->actingAs($this->owner)->get('/owner/players?min=1500')->assertInertia(fn (Assert $p) => $p->has('players', 1)->where('players.0.name', 'Vardan')->where('players.0.visits', 1));
+    $this->actingAs($this->owner)->get('/owner/players?card=yes')->assertInertia(fn (Assert $p) => $p->has('players', 1)->where('players.0.id', $this->player->id));
+    // somebody who never played here is not a player of the place
+    $this->actingAs($this->owner)->get('/owner/players/'.User::factory()->create()->id)->assertNotFound();
 });
 
-it('takes a booking payment once, from the booking sheet', function () {
+it('takes the bill at the desk: items, scan, card + cash', function () {
     $small = $this->club->fields->firstWhere('size.value', 'small');
     $b = Booking::create(['code' => 'BB-777', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $this->player->id,
         'starts_at' => at(10)->utc(), 'ends_at' => at(11)->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000]);
-    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['method' => 'cash'])->assertRedirect();
-    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['method' => 'cash'])->assertSessionHasErrors('booking');
-    $this->actingAs($this->owner)->getJson("/owner/bookings/{$b->id}")->assertJsonPath('paid', 'cash')->assertJsonPath('card.code', $this->card->code);
+    $p = Product::create(['venue_id' => $this->club->id, 'name' => 'Cola', 'price' => 500]);
+    app(Cards::class)->topUp($this->card, 14000, $this->owner);
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/items", ['product_id' => $p->id])->assertRedirect();
+    $this->actingAs($this->owner)->get("/owner/bookings/{$b->id}/checkout")->assertInertia(fn (Assert $pg) => $pg->component('owner/Checkout')
+        ->where('bill.total', 15500)->where('bill.card.scanned', false)->has('products', 1));
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['card' => 14000, 'cash' => 1500])->assertSessionHasErrors('booking');
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/scan", ['code' => url('/c/'.$this->card->code)])->assertRedirect()->assertSessionHasNoErrors();
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['card' => 14000, 'cash' => 1500])->assertRedirect()->assertSessionHasNoErrors();
+    expect($b->fresh()->paid_at)->not->toBeNull()->and($this->card->fresh()->balance)->toBe(0);
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$b->id}")->assertJsonPath('paid', true)->assertJsonPath('items.0.name', 'Cola');
+});
+
+it('shows the player their card with its QR, and the club page their balance', function () {
+    Product::create(['venue_id' => $this->club->id, 'name' => 'Balls', 'price' => 1500]);
+    $this->actingAs($this->player)->get('/me/cards')->assertInertia(fn (Assert $pg) => $pg->component('player/Cards')
+        ->has('cards', 1)->where('cards.0.venue.slug', $this->club->slug)->where('cards.0.qr', fn ($svg) => str_starts_with($svg, '<svg')));
+    $this->actingAs($this->player)->get("/places/{$this->club->slug}")->assertInertia(fn (Assert $pg) => $pg
+        ->where('club.card.balance', 0)->has('club.products', 1));
 });
 
 it('registers for a tournament by its link, without an account', function () {

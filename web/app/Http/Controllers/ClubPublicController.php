@@ -26,6 +26,8 @@ class ClubPublicController extends Controller
         $user = $request->user();
         if ($user && $user->venues()->whereKey($card->venue_id)->exists()) {
             $request->session()->put('venue_id', $card->venue_id);
+            // scanned at the desk: the staff may change this card's money for a while
+            \App\Domain\Club\Cards::markScanned($card);
 
             return redirect()->route('owner.cards.show', $card->code);
         }

@@ -15,7 +15,11 @@ class EditVenue extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return VenueResource::cleanData($data);
+        $data = VenueResource::cleanData($data);
+        // rules the form doesn't show (the owner's cashback, training prices, late grace) stay as they are
+        $data['rules'] = [...array_diff_key($this->record->rules ?? [], array_flip(VenueResource::FORM_RULES)), ...$data['rules']];
+
+        return $data;
     }
 
     protected function getHeaderActions(): array

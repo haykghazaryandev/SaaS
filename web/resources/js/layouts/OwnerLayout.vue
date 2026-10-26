@@ -25,10 +25,10 @@ const has = (f: string) => (owner.value.features ?? []).includes(f);
 const club = computed(() =>
     [
         { name: 'owner.players', label: 'owner.nav.players', icon: 'users', on: has('wallet') || has('rating') },
-        { name: 'owner.trainings', label: 'owner.nav.trainings', icon: 'whistle', on: has('trainings') },
+        { name: 'owner.cards', label: 'owner.nav.cards', icon: 'wallet', on: has('wallet') },
         { name: 'owner.shop', label: 'owner.nav.shop', icon: 'cube', on: has('shop') },
         { name: 'owner.tournaments', label: 'owner.nav.tournaments', icon: 'trophy', on: has('tournaments') },
-        { name: 'owner.money', label: 'owner.nav.money', icon: 'wallet', on: has('money') && owner.value.role === 'owner' },
+        { name: 'owner.money', label: 'owner.nav.money', icon: 'chart', on: has('money') && owner.value.role === 'owner' },
     ]
         .filter((n) => n.on)
         .map((n) => ({ ...n, badge: 0 })),
@@ -40,7 +40,7 @@ const nav = computed(() => [
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
 // phones: Today · Schedule · Scan (cards) · More (the rest); without club pages the three tabs as before
-const canScan = computed(() => has('wallet') || has('rating'));
+const canScan = computed(() => has('wallet'));
 const tabs = computed(() => (club.value.length ? nav.value.slice(0, 2) : nav.value));
 const more = computed(() => (club.value.length ? nav.value.slice(2) : []));
 const moreOpen = ref(false);

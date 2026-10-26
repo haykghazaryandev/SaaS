@@ -541,3 +541,5 @@
 .oapp .backlink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; margin: 4px 0 12px; }
 .oapp .backlink:hover { color: var(--accent); }
 .oapp .pill.hot { background: var(--hot-soft); color: var(--hot); }
+.oapp .drow .ctag.tr { background: color-mix(in srgb, var(--st-manual) 22%, transparent); color: var(--st-manual); }
+.oapp .drow .paidmark { color: var(--free); margin-left: 6px; vertical-align: -2px; }

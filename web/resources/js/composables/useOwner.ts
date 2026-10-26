@@ -63,6 +63,10 @@ export interface BookingRow {
     can_no_show?: boolean;
     user: { id: number; name: string | null; avatar?: string | null; no_shows: number } | null;
     sent_ago: string | null;
+    /** play | training */
+    purpose?: string;
+    /** the bill was paid at the desk */
+    paid?: boolean;
 }
 
 /** A request on Today, with the other open requests it clashes with. */
@@ -71,8 +75,7 @@ export interface RequestRow extends BookingRow {
 }
 
 export interface BookingDetail extends BookingRow {
-    paid?: string | null;
-    card?: { code: string; balance: number } | null;
+    items?: { id: number; name: string; qty: number; sum: number }[];
     field: string;
     decline_reason: string | null;
     cancel_reason: string | null;

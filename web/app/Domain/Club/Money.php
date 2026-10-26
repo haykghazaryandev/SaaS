@@ -52,20 +52,4 @@ class Money
             return $payment;
         });
     }
-
-    /** The booking was paid at the desk (once). */
-    public function payBooking(Booking $booking, string $method, User $by): Payment
-    {
-        $booking->loadMissing('venue', 'user');
-        if (Payment::where('kind', 'booking')->where('ref_id', $booking->id)->exists()) {
-            throw new BookingException('already_paid');
-        }
-
-        return $this->charge($booking->venue, $by, 'booking', (int) $booking->price, $method, $booking->user, $booking->id, $booking->code, discount: false);
-    }
-
-    public static function bookingPaid(Booking $booking): ?Payment
-    {
-        return Payment::where('kind', 'booking')->where('ref_id', $booking->id)->first();
-    }
 }

@@ -12,7 +12,6 @@ use App\Models\PriceRule;
 use App\Models\Product;
 use App\Models\SportRating;
 use App\Models\Tournament;
-use App\Models\Training;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
@@ -28,6 +27,7 @@ class PingpongSeeder extends Seeder
     {
         if ($club = Venue::withTrashed()->where('slug', 'pingpong-land')->first()) {
             $this->clubExtras($club);
+            $this->adminOwns($club);
             $this->command?->info('Ping-pong club: already there.');
 
             return;
@@ -63,20 +63,31 @@ class PingpongSeeder extends Seeder
         ]);
         $venue->staff()->syncWithoutDetaching([$owner->id => ['role' => 'owner']]);
         $this->clubExtras($venue);
+        $this->adminOwns($venue);
         $this->command?->info('Ping-pong club: added (owner +374 91 000 009).');
     }
 
-    /** Trainings, shop, a tournament and two players' cards, once (only what is missing). */
-    private function clubExtras(Venue $venue): void
+    /** Local / staging: the admin (ADMIN_PHONE) owns the club too, to try it as its owner (switch places in the owner panel). */
+    private function adminOwns(Venue $venue): void
     {
-        if (Training::where('venue_id', $venue->id)->exists()) {
+        if (app()->isProduction()) {
             return;
         }
+        foreach (User::where('is_admin', true)->get() as $admin) {
+            $venue->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+        }
+    }
+
+    /** Training price, shop, a tournament and two players' cards, once (only what is missing). */
+    private function clubExtras(Venue $venue): void
+    {
+        if (Product::where('venue_id', $venue->id)->exists()) {
+            return;
+        }
+        // trainings are booked like a table, at their own price per hour
         $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
-            'rules' => [...($venue->rules ?? []), 'cashback_pct' => 3]]);
-        Training::create(['venue_id' => $venue->id, 'title' => 'Kids group', 'coach' => 'Ani', 'weekdays' => [1, 3, 5], 'starts_at' => '16:00', 'minutes' => 60, 'price' => 2500, 'capacity' => 8]);
-        Training::create(['venue_id' => $venue->id, 'title' => 'Adults · technique', 'coach' => 'Sahak', 'weekdays' => [2, 4, 6], 'starts_at' => '19:00', 'minutes' => 90, 'price' => 4000, 'capacity' => 10]);
-        foreach ([['Balls ×6 (3★)', 3000, 0], ['Racket Butterfly', 28000, 10], ['Rubber Tenergy', 32000, 0], ['Water 0.5 l', 300, 0]] as $i => [$name, $price, $off]) {
+            'rules' => [...($venue->rules ?? []), 'cashback_pct' => 3, 'training_prices' => ['table' => 6000]]]);
+        foreach ([['Balls ×6 (3★)', 3000, 0], ['Racket Butterfly', 28000, 10], ['Rubber Tenergy', 32000, 0], ['Water 0.5 l', 300, 0], ['Cola 0.5 l', 500, 0]] as $i => [$name, $price, $off]) {
             Product::create(['venue_id' => $venue->id, 'name' => $name, 'price' => $price, 'discount_pct' => $off, 'sort' => $i]);
         }
         Tournament::create(['venue_id' => $venue->id, 'sport' => 'pingpong', 'title' => 'November Open', 'code' => 'novopen1',

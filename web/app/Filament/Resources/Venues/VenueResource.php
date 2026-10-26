@@ -37,6 +37,9 @@ class VenueResource extends Resource
 {
     protected static ?string $model = Venue::class;
 
+    /** The booking rules this form edits; other keys of venues.rules belong to the owner's settings. */
+    public const FORM_RULES = ['horizon_days', 'min_notice_min', 'free_cancel_hours', 'request_expire_min', 'max_pending_per_phone', 'step_min', 'auto_accept_regulars'];
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -91,7 +94,7 @@ class VenueResource extends Resource
                 CheckboxList::make('amenities')->hiddenLabel()->options(Options::amenities())->columns(3),
             ]),
             Section::make(__('common.booking_rules'))->description(__('admin.venue.rules_help'))->columns(3)->collapsible()->schema([
-                ...collect(['horizon_days', 'min_notice_min', 'free_cancel_hours', 'request_expire_min', 'max_pending_per_phone', 'step_min'])
+                ...collect(array_diff(self::FORM_RULES, ['auto_accept_regulars']))
                     ->map(fn ($k) => TextInput::make("rules.$k")->label(__('admin.rule.'.$k))->integer()->minValue(0)
                         ->placeholder((string) Venue::DEFAULT_RULES[$k]))->all(),
                 Toggle::make('rules.auto_accept_regulars')->label(__('admin.rule.auto_accept_regulars')),

@@ -1189,6 +1189,11 @@
         "hy": "Դա կարող է անել միայն ամրագրողը։",
         "ru": "Это может сделать только тот, кто бронировал."
     },
+    "booking.error.other_card": {
+        "en": "This card belongs to another player than the booking's.",
+        "hy": "Այս քարտը պատկանում է ոչ ամրագրման խաղացողին։",
+        "ru": "Эта карта другого игрока, не того, кто бронировал."
+    },
     "booking.error.other_venue": {
         "en": "The field belongs to another place.",
         "hy": "Դաշտը պատկանում է այլ ակումբի։",
@@ -1213,6 +1218,11 @@
         "en": "This game can't be rated anymore.",
         "hy": "Այս խաղն այլևս հնարավոր չէ գնահատել։",
         "ru": "Эту игру уже нельзя оценить."
+    },
+    "booking.error.scan_first": {
+        "en": "Scan the player's card first.",
+        "hy": "Նախ սկանավորեք խաղացողի քարտը։",
+        "ru": "Сначала отсканируйте карту игрока."
     },
     "booking.error.taken": {
         "en": "This time was just taken. Choose another one.",
@@ -1439,6 +1449,11 @@
         "hy": "Առկա չէ",
         "ru": "Нет в наличии"
     },
+    "club.play": {
+        "en": "Play",
+        "hy": "Խաղ",
+        "ru": "Игра"
+    },
     "club.qr_hint": {
         "en": "Show this code at :venue. It works only there.",
         "hy": "Ցույց տվեք այս կոդը :venue-ում։ Այն գործում է միայն այնտեղ։",
@@ -1504,15 +1519,10 @@
         "hy": "Մրցաշարեր",
         "ru": "Турниры"
     },
-    "club.trainings": {
-        "en": "Trainings",
-        "hy": "Մարզումներ",
-        "ru": "Тренировки"
-    },
-    "club.trainings_hint": {
-        "en": "Come to a training and show your card QR: the visit and the payment are marked there.",
-        "hy": "Եկեք մարզման և ցույց տվեք քարտի QR-ը․ այցն ու վճարումը կնշվեն տեղում։",
-        "ru": "Приходите на тренировку и покажите QR карты: посещение и оплату отметят на месте."
+    "club.training": {
+        "en": "Training",
+        "hy": "Մարզում",
+        "ru": "Тренировка"
     },
     "club.your_discount": {
         "en": "Your discount :p%",
@@ -3624,10 +3634,10 @@
         "hy": "Ակումբ",
         "ru": "Поля"
     },
-    "owner.club.active": {
-        "en": "Shown to players",
-        "hy": "Ցուցադրվում է խաղացողներին",
-        "ru": "Показывать игрокам"
+    "owner.club.add_items": {
+        "en": "Add what they took",
+        "hy": "Ավելացրեք, ինչ վերցրել են",
+        "ru": "Добавьте, что взяли"
     },
     "owner.club.add_sub": {
         "en": "The player has no QR with them: find them by their Bookball phone.",
@@ -3639,11 +3649,6 @@
         "hy": "Քարտ ըստ հեռախոսի",
         "ru": "Карта по телефону"
     },
-    "owner.club.adjust_hint": {
-        "en": "A mistake? Pay it back as a top-up, or ask the admin to correct it.",
-        "hy": "Սխա՞լ։ Վերադարձրեք լիցքավորմամբ կամ խնդրեք ադմինին ուղղել։",
-        "ru": "Ошибка? Верните пополнением или попросите администратора исправить."
-    },
     "owner.club.bad_code": {
         "en": "This is not a card code.",
         "hy": "Սա քարտի կոդ չէ։",
@@ -3653,6 +3658,21 @@
         "en": "Balance",
         "hy": "Հաշիվ",
         "ru": "Баланс"
+    },
+    "owner.club.bill": {
+        "en": "Bill",
+        "hy": "Հաշիվ",
+        "ru": "Счёт"
+    },
+    "owner.club.bill_and_pay": {
+        "en": "Bill and payment",
+        "hy": "Հաշիվ և վճարում",
+        "ru": "Счёт и оплата"
+    },
+    "owner.club.bill_hint": {
+        "en": "Bookings are paid on their bill: open the booking → Bill and payment.",
+        "hy": "Ամրագրումները վճարվում են իրենց հաշվով․ բացեք ամրագրումը → Հաշիվ և վճարում։",
+        "ru": "Брони оплачиваются по счёту: откройте бронь → Счёт и оплата."
     },
     "owner.club.bookings": {
         "en": "Bookings",
@@ -3674,25 +3694,40 @@
         "hy": "Ըստ տեսակի",
         "ru": "По видам"
     },
-    "owner.club.came": {
-        "en": "Came today",
-        "hy": "Եկել է այսօր",
-        "ru": "Пришёл сегодня"
+    "owner.club.card_any": {
+        "en": "Card: any",
+        "hy": "Քարտ՝ ցանկացած",
+        "ru": "Карта: любая"
     },
-    "owner.club.came_card": {
-        "en": "Came · card",
-        "hy": "Եկավ · քարտ",
-        "ru": "Пришёл · карта"
+    "owner.club.card_balance": {
+        "en": "Card: :a",
+        "hy": "Քարտ՝ :a",
+        "ru": "Карта: :a"
     },
-    "owner.club.came_cash": {
-        "en": "Came · cash",
-        "hy": "Եկավ · կանխիկ",
-        "ru": "Пришёл · наличные"
+    "owner.club.card_discount": {
+        "en": "Card discount :p% on items",
+        "hy": "Քարտի :p% զեղչ ապրանքների վրա",
+        "ru": "Скидка по карте :p% на товары"
     },
-    "owner.club.capacity": {
-        "en": "Places (optional)",
-        "hy": "Տեղեր (ըստ ցանկության)",
-        "ru": "Мест (необязательно)"
+    "owner.club.card_no": {
+        "en": "Without a card",
+        "hy": "Առանց քարտի",
+        "ru": "Без карты"
+    },
+    "owner.club.card_ok": {
+        "en": "Card scanned",
+        "hy": "Քարտը սկանավորված է",
+        "ru": "Карта отсканирована"
+    },
+    "owner.club.card_yes": {
+        "en": "With a card",
+        "hy": "Քարտով",
+        "ru": "С картой"
+    },
+    "owner.club.cards_kicker": {
+        "en": ":n cards · :a on them",
+        "hy": ":n քարտ · դրանց վրա՝ :a",
+        "ru": "карт: :n · на них :a"
     },
     "owner.club.cash": {
         "en": "Cash",
@@ -3708,11 +3743,6 @@
         "en": ":p% goes back onto the card.",
         "hy": ":p%-ը վերադառնում է քարտին։",
         "ru": ":p% возвращается на карту."
-    },
-    "owner.club.coach": {
-        "en": "Coach",
-        "hy": "Մարզիչ",
-        "ru": "Тренер"
     },
     "owner.club.code_ph": {
         "en": "Card code",
@@ -3734,11 +3764,6 @@
         "hy": "Ամսաթիվ",
         "ru": "Дата"
     },
-    "owner.club.days": {
-        "en": "Days",
-        "hy": "Օրեր",
-        "ru": "Дни"
-    },
     "owner.club.declined": {
         "en": "Declined",
         "hy": "Մերժված",
@@ -3748,11 +3773,6 @@
         "en": "Discount, %",
         "hy": "Զեղչ, %",
         "ru": "Скидка, %"
-    },
-    "owner.club.discount_note": {
-        "en": "Their :p% discount comes off automatically.",
-        "hy": "Նրա :p% զեղչը կիրառվում է ավտոմատ։",
-        "ru": "Его скидка :p% применяется автоматически."
     },
     "owner.club.discounts_given": {
         "en": "Discounts given: :a",
@@ -3784,6 +3804,11 @@
         "hy": "Միջազգային ռեյթինգի ID",
         "ru": "ID в международном рейтинге"
     },
+    "owner.club.items_n": {
+        "en": "items: :n · :a",
+        "hy": "ապրանքներ՝ :n · :a",
+        "ru": "товаров: :n · :a"
+    },
     "owner.club.level_n": {
         "en": "level :n",
         "hy": "մակարդակ՝ :n",
@@ -3793,6 +3818,11 @@
         "en": "Put this link in the Instagram bio or stories: people register there.",
         "hy": "Տեղադրեք այս հղումը Instagram-ի բիոյում կամ սթորիներում․ մարդիկ կգրանցվեն այնտեղ։",
         "ru": "Поставьте эту ссылку в био или сторис Instagram: там регистрируются."
+    },
+    "owner.club.m_bill": {
+        "en": "on a bill",
+        "hy": "հաշվով",
+        "ru": "по счёту"
     },
     "owner.club.m_card": {
         "en": "card",
@@ -3804,10 +3834,10 @@
         "hy": "կանխիկ",
         "ru": "наличные"
     },
-    "owner.club.minutes": {
-        "en": "Minutes",
-        "hy": "Րոպե",
-        "ru": "Минуты"
+    "owner.club.make_card": {
+        "en": "Make a card",
+        "hy": "Բացել քարտ",
+        "ru": "Завести карту"
     },
     "owner.club.money": {
         "en": "Money",
@@ -3824,15 +3854,20 @@
         "hy": "Նոր մրցաշար",
         "ru": "Новый турнир"
     },
-    "owner.club.new_training": {
-        "en": "New training",
-        "hy": "Նոր մարզում",
-        "ru": "Новая тренировка"
+    "owner.club.no_account": {
+        "en": "booked without an account",
+        "hy": "ամրագրված առանց հաշվի",
+        "ru": "бронь без аккаунта"
     },
     "owner.club.no_camera": {
         "en": "No camera here. Type the code under the QR instead.",
         "hy": "Տեսախցիկ չկա։ Մուտքագրեք QR-ի տակի կոդը։",
         "ru": "Нет камеры. Введите код под QR."
+    },
+    "owner.club.no_card_on_booking": {
+        "en": "Pay from a card?",
+        "hy": "Վճարե՞լ քարտից",
+        "ru": "Оплатить с карты?"
     },
     "owner.club.no_cards": {
         "en": "No cards yet. Scan a player's QR or open one by phone below.",
@@ -3868,11 +3903,6 @@
         "en": "No tournaments yet.",
         "hy": "Մրցաշարեր դեռ չկան։",
         "ru": "Турниров пока нет."
-    },
-    "owner.club.no_trainings": {
-        "en": "No trainings yet.",
-        "hy": "Մարզումներ դեռ չկան։",
-        "ru": "Тренировок пока нет."
     },
     "owner.club.not_here": {
         "en": "This card is from another club.",
@@ -3944,6 +3974,11 @@
         "hy": "Վճարվեց կանխիկ",
         "ru": "Оплачено наличными"
     },
+    "owner.club.payment": {
+        "en": "Payment",
+        "hy": "Վճարում",
+        "ru": "Оплата"
+    },
     "owner.club.payments": {
         "en": "Payments",
         "hy": "Վճարումներ",
@@ -3974,30 +4009,25 @@
         "hy": "Տեղ",
         "ru": "Место"
     },
-    "owner.club.places_n": {
-        "en": ":n places",
-        "hy": ":n տեղ",
-        "ru": "мест: :n"
-    },
     "owner.club.players_kicker": {
-        "en": "Cards, balance, ratings",
-        "hy": "Քարտեր, հաշիվ, ռեյթինգ",
-        "ru": "Карты, баланс, рейтинг"
+        "en": ":n played here",
+        "hy": ":n խաղացել են այստեղ",
+        "ru": "играли здесь: :n"
     },
     "owner.club.price": {
         "en": "Price, ֏",
         "hy": "Գին, ֏",
         "ru": "Цена, ֏"
     },
-    "owner.club.price_visit": {
-        "en": "Price per visit, ֏",
-        "hy": "Մեկ այցի գինը, ֏",
-        "ru": "Цена за посещение, ֏"
-    },
     "owner.club.qty": {
         "en": "How many",
         "hy": "Քանակ",
         "ru": "Количество"
+    },
+    "owner.club.rating_from": {
+        "en": "Rating from",
+        "hy": "Ռեյթինգ՝ սկսած",
+        "ru": "Рейтинг от"
     },
     "owner.club.rating_note": {
         "en": "Why (optional)",
@@ -4008,6 +4038,11 @@
         "en": "e.g. won the November league",
         "hy": "օր․՝ հաղթեց նոյեմբերյան լիգան",
         "ru": "например, выиграл ноябрьскую лигу"
+    },
+    "owner.club.rating_to": {
+        "en": "to",
+        "hy": "մինչև",
+        "ru": "до"
     },
     "owner.club.sales": {
         "en": "Sales",
@@ -4029,6 +4064,31 @@
         "hy": "Ուղղեք տեսախցիկը խաղացողի քարտի QR-ին",
         "ru": "Наведите камеру на QR карты игрока"
     },
+    "owner.club.scan_rule": {
+        "en": "Money on a card changes only after scanning its QR, with the player at the desk.",
+        "hy": "Քարտի գումարը փոխվում է միայն նրա QR-ը սկանավորելուց հետո, երբ խաղացողը ընդունարանում է։",
+        "ru": "Деньги на карте меняются только после сканирования её QR, когда игрок на ресепшене."
+    },
+    "owner.club.scan_to_change": {
+        "en": "Scan the card to change its money",
+        "hy": "Սկանավորեք քարտը՝ գումարը փոխելու համար",
+        "ru": "Отсканируйте карту, чтобы менять деньги"
+    },
+    "owner.club.scan_to_pay": {
+        "en": "Scan the player's QR to pay from the card",
+        "hy": "Սկանավորեք խաղացողի QR-ը՝ քարտից վճարելու համար",
+        "ru": "Отсканируйте QR игрока, чтобы оплатить с карты"
+    },
+    "owner.club.scan_why": {
+        "en": "Top-ups, payments and the discount open for 15 minutes after scanning the player's QR at the desk.",
+        "hy": "Լիցքավորումը, վճարումները և զեղչը բացվում են 15 րոպեով՝ խաղացողի QR-ը ընդունարանում սկանավորելուց հետո։",
+        "ru": "Пополнение, оплата и скидка открываются на 15 минут после сканирования QR игрока на ресепшене."
+    },
+    "owner.club.scanned": {
+        "en": "Scanned: money can be changed",
+        "hy": "Սկանավորված է․ գումարը կարելի է փոխել",
+        "ru": "Отсканирована: деньги можно менять"
+    },
     "owner.club.search_ph": {
         "en": "Name or phone",
         "hy": "Անուն կամ հեռախոս",
@@ -4039,6 +4099,11 @@
         "hy": "Վաճառել · կանխիկ",
         "ru": "Продать · наличные"
     },
+    "owner.club.sell_from_card": {
+        "en": "Sell from the card",
+        "hy": "Վաճառել քարտից",
+        "ru": "Продать с карты"
+    },
     "owner.club.shown": {
         "en": "Shown to players",
         "hy": "Ցուցադրվում է",
@@ -4048,6 +4113,31 @@
         "en": "Sold",
         "hy": "Վաճառված է",
         "ru": "Продано"
+    },
+    "owner.club.sort": {
+        "en": "Sort",
+        "hy": "Դասավորել",
+        "ru": "Сортировка"
+    },
+    "owner.club.sort_last": {
+        "en": "Last visit",
+        "hy": "Վերջին այց",
+        "ru": "Последний визит"
+    },
+    "owner.club.sort_name": {
+        "en": "Name",
+        "hy": "Անուն",
+        "ru": "Имя"
+    },
+    "owner.club.sort_rating": {
+        "en": "Rating",
+        "hy": "Ռեյթինգ",
+        "ru": "Рейтинг"
+    },
+    "owner.club.sort_visits": {
+        "en": "Most visits",
+        "hy": "Ամենաշատ այցեր",
+        "ru": "Больше визитов"
     },
     "owner.club.start": {
         "en": "Start",
@@ -4079,10 +4169,35 @@
         "hy": "Անվանում",
         "ru": "Название"
     },
-    "owner.club.take": {
-        "en": "Take a payment",
-        "hy": "Գանձել վճարում",
-        "ru": "Принять оплату"
+    "owner.club.take_btn": {
+        "en": "Take",
+        "hy": "Գանձել",
+        "ru": "Списать"
+    },
+    "owner.club.take_card": {
+        "en": "Take :a from the card",
+        "hy": "Գանձել :a քարտից",
+        "ru": "Списать :a с карты"
+    },
+    "owner.club.take_cash": {
+        "en": "Take :a in cash",
+        "hy": "Ստանալ :a կանխիկ",
+        "ru": "Принять :a наличными"
+    },
+    "owner.club.take_from_card": {
+        "en": "Take from the card (not for bookings)",
+        "hy": "Գանձել քարտից (ոչ ամրագրումների համար)",
+        "ru": "Списать с карты (не за брони)"
+    },
+    "owner.club.take_split": {
+        "en": "Take :a from the card + :b cash",
+        "hy": "Գանձել :a քարտից + :b կանխիկ",
+        "ru": "Списать :a с карты + :b наличными"
+    },
+    "owner.club.time": {
+        "en": "Time",
+        "hy": "Ժամանակ",
+        "ru": "Время"
     },
     "owner.club.topped_up": {
         "en": "Topped up",
@@ -4104,25 +4219,10 @@
         "hy": "Քարտերի լիցքավորում",
         "ru": "Пополнения карт"
     },
-    "owner.club.unpaid": {
-        "en": "Not paid",
-        "hy": "Չվճարված",
-        "ru": "Не оплачено"
-    },
-    "owner.club.visit_marked": {
-        "en": "Visit marked",
-        "hy": "Այցը նշված է",
-        "ru": "Посещение отмечено"
-    },
-    "owner.club.visits": {
-        "en": "Visits",
-        "hy": "Այցեր",
-        "ru": "Посещения"
-    },
-    "owner.club.visits_hint": {
-        "en": "Mark who came on their card: scan the QR → Trainings → \"Came\".",
-        "hy": "Նշեք, թե ով եկավ, նրա քարտում․ սկանավորեք QR → Մարզումներ → «Եկավ»։",
-        "ru": "Отмечайте пришедших на их карте: QR → Тренировки → «Пришёл»."
+    "owner.club.visits_n": {
+        "en": "visits: :n",
+        "hy": "այցեր՝ :n",
+        "ru": "визитов: :n"
     },
     "owner.club.what_ph": {
         "en": "What for",
@@ -4644,6 +4744,11 @@
         "hy": "Bookball",
         "ru": "Bookball"
     },
+    "owner.nav.cards": {
+        "en": "Cards",
+        "hy": "Քարտեր",
+        "ru": "Карты"
+    },
     "owner.nav.money": {
         "en": "Money",
         "hy": "Եկամուտ",
@@ -4678,11 +4783,6 @@
         "en": "Tournaments",
         "hy": "Մրցաշարեր",
         "ru": "Турниры"
-    },
-    "owner.nav.trainings": {
-        "en": "Trainings",
-        "hy": "Մարզումներ",
-        "ru": "Тренировки"
     },
     "owner.no_access": {
         "en": "You don't have access to any place. Ask Bookball to add you.",
@@ -5069,6 +5169,11 @@
         "hy": "Առանց սահմանափակման",
         "ru": "Без ограничений"
     },
+    "owner.settings.no_training": {
+        "en": "none",
+        "hy": "չկա",
+        "ru": "нет"
+    },
     "owner.settings.notice": {
         "en": "Minimum notice",
         "hy": "Նվազագույն ժամկետ",
@@ -5103,6 +5208,11 @@
         "en": "Evening",
         "hy": "Երեկո",
         "ru": "Вечер"
+    },
+    "owner.settings.price_training": {
+        "en": "Training, per hour",
+        "hy": "Մարզում, ժամը",
+        "ru": "Тренировка, в час"
     },
     "owner.settings.price_weekend": {
         "en": "Weekend",

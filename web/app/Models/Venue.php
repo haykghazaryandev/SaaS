@@ -38,7 +38,7 @@ class Venue extends HasFactoryModel
         // the club package (ping-pong first): off until the admin switches it on for a place
         'wallet',      // player cards with a QR: balance, discount, cashback
         'rating',      // the staff set players' ratings in the place's sport
-        'trainings',   // trainings: schedule for players, visits and payments
+        'trainings',   // players book a table for a training, at the place's training price
         'shop',        // products with photos, sales at the desk
         'tournaments', // registration link, entries, fees, results
         'money',       // the money report: sales by kind, cash, top-ups
@@ -101,6 +101,17 @@ class Venue extends HasFactoryModel
     public function scopeListed($query)
     {
         return $query->active()->where('listed', true);
+    }
+
+    /** Price per hour of a training on a kind of court (rules.training_prices), or null: no trainings there. */
+    public function trainingPrice(string $size): ?int
+    {
+        if (! $this->hasFeature('trainings')) {
+            return null;
+        }
+        $p = ($this->rules['training_prices'] ?? [])[$size] ?? null;
+
+        return $p === null || $p === '' ? null : (int) $p;
     }
 
     /** What a place has while the admin never set its features (new features start off). */

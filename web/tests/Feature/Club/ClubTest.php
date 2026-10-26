@@ -8,12 +8,11 @@ use App\Domain\Club\Ratings;
 use App\Domain\Club\Report;
 use App\Domain\Club\Shop;
 use App\Domain\Club\Tournaments;
-use App\Domain\Club\Trainings;
+use App\Domain\Club\Checkout;
 use App\Enums\Sport;
 use App\Models\Product;
 use App\Models\RatingChange;
 use App\Models\Tournament;
-use App\Models\Training;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
@@ -58,16 +57,58 @@ it('tops up, pays from the card with the discount and adds the cashback', functi
     expect(fn () => $this->money->charge($this->club, $this->owner, 'shop', 100, 'card', User::factory()->create()))->toThrow(BookingException::class, __('booking.error.no_card'));
 });
 
-it('puts the card discount into the booking price, and takes the booking money once', function () {
+it('puts the card discount into the booking price', function () {
     $card = $this->cards->forPlayer($this->club, $this->player);
     $this->cards->setDiscount($card, 20);
     $small = $this->club->fields->firstWhere('size.value', 'small');
     $b = app(RequestBooking::class)->handle($this->player, $small, at(10), 60);   // 15 000 by day
     expect($b->price)->toBe(12000);
-    $this->cards->topUp($card, 20000, $this->owner);
-    $pay = $this->money->payBooking($b, 'card', $this->owner);
-    expect($pay->amount)->toBe(12000)->and($pay->discount)->toBe(0)
-        ->and(fn () => $this->money->payBooking($b, 'cash', $this->owner))->toThrow(BookingException::class, __('booking.error.already_paid'));
+});
+
+it('pays a bill of time and items: card first (only after a scan), the rest cash, once', function () {
+    $card = $this->cards->forPlayer($this->club, $this->player);
+    $this->cards->topUp($card, 13000, $this->owner);
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $b = app(RequestBooking::class)->handle($this->player, $small, at(10), 60);   // 15 000
+    $cola = app(Shop::class)->save(new Product(['venue_id' => $this->club->id]), ['name' => 'Cola', 'price' => 500]);
+    $checkout = app(Checkout::class);
+    $checkout->addItem($b, $cola, 2, $this->owner);
+    $bill = $checkout->bill($b);
+    expect($bill['total'])->toBe(16000)->and($bill['card']['scanned'])->toBeFalse();
+    // not scanned: the card can't pay
+    expect(fn () => $checkout->pay($b, 13000, 3000, $this->owner))->toThrow(BookingException::class, __('booking.error.scan_first'));
+    Cards::markScanned($card);
+    expect(fn () => $checkout->pay($b, 13000, 1000, $this->owner))->toThrow(BookingException::class);   // not the total
+    $checkout->pay($b, 13000, 3000, $this->owner);
+    // the card paid the time (13 000 of 15 000), cash the rest of the time and the items; 5% cashback on the card part
+    $payments = App\Models\Payment::where('ref_id', $b->id)->get();
+    expect($payments->where('kind', 'booking')->where('method', 'card')->sum('amount'))->toBe(13000)
+        ->and($payments->where('kind', 'booking')->where('method', 'cash')->sum('amount'))->toBe(2000)
+        ->and($payments->where('kind', 'shop')->sum('amount'))->toBe(1000)
+        ->and($card->fresh()->balance)->toBe(0 + 650 + 100 + 50)
+        ->and($b->fresh()->paid_at)->not->toBeNull()
+        ->and(fn () => $checkout->pay($b->fresh(), 0, 16000, $this->owner))->toThrow(BookingException::class, __('booking.error.already_paid'))
+        ->and(fn () => $checkout->addItem($b->fresh(), $cola, 1, $this->owner))->toThrow(BookingException::class);
+});
+
+it('gives a phone-only booking its player when their card is scanned at the bill', function () {
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $b = app(App\Domain\Booking\Actions\OwnerBooking::class)->create($this->owner, $small, at(12), 60, ['name' => 'Walk-in']);
+    $card = $this->cards->forPlayer($this->club, $this->player);
+    app(Checkout::class)->attachCard($b, $card);
+    expect($b->fresh()->user_id)->toBe($this->player->id)->and(Cards::scanned($card))->toBeTrue();
+    $other = $this->cards->forPlayer($this->club, User::factory()->create());
+    expect(fn () => app(Checkout::class)->attachCard($b->fresh(), $other))->toThrow(BookingException::class, __('booking.error.other_card'));
+});
+
+it('books a training at the training price', function () {
+    $this->club->update(['rules' => [...$this->club->rules, 'training_prices' => ['small' => 9000]]]);
+    $small = $this->club->fresh()->fields->firstWhere('size.value', 'small');
+    $b = app(RequestBooking::class)->handle($this->player, $small, at(10), 90, ['purpose' => 'training']);
+    expect($b->purpose)->toBe('training')->and($b->price)->toBe(13500);
+    // no training price for the big field: no trainings there
+    $big = $this->club->fresh()->fields->firstWhere('size.value', 'big');
+    expect(fn () => app(RequestBooking::class)->handle(User::factory()->create(), $big, at(10), 90, ['purpose' => 'training']))->toThrow(BookingException::class);
 });
 
 it('keeps a rating per sport with its history', function () {
@@ -77,15 +118,6 @@ it('keeps a rating per sport with its history', function () {
     expect(Ratings::of($this->player))->toBe(['pingpong' => ['rating' => 1500, 'intl_id' => 'ARM-123']])
         ->and(RatingChange::where('user_id', $this->player->id)->pluck('new')->all())->toBe([1450, 1500]);
     expect(fn () => $r->set($this->player, Sport::Pingpong, 1, null, $this->other, $this->owner))->toThrow(BookingException::class);
-});
-
-it('marks a training visit once a day and takes its price', function () {
-    $t = app(Trainings::class)->save(new Training(['venue_id' => $this->club->id]), ['title' => 'Kids', 'coach' => 'Ani', 'weekdays' => [1, 3], 'starts_at' => '18:00', 'minutes' => 90, 'price' => 3000, 'capacity' => 1]);
-    $v = app(Trainings::class)->visit($t, $this->player, $this->owner, 'cash');
-    expect($v->payment->amount)->toBe(3000)->and($v->payment->kind)->toBe('training')->and($v->payment->ref_id)->toBe($v->id)
-        ->and(fn () => app(Trainings::class)->visit($t, $this->player, $this->owner, 'cash'))->toThrow(BookingException::class)
-        ->and(fn () => app(Trainings::class)->visit($t, User::factory()->create(), $this->owner, null))->toThrow(BookingException::class, __('booking.error.training_full'));
-    expect(Trainings::present($t))->toMatchArray(['start' => '18:00', 'end' => '19:30']);
 });
 
 it('sells shop products with their discount', function () {
