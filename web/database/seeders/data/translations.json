@@ -3774,6 +3774,16 @@
         "hy": "Մերժված",
         "ru": "Отклонён"
     },
+    "owner.club.demo": {
+        "en": "Add test games",
+        "hy": "Ավելացնել փորձնական խաղեր",
+        "ru": "Добавить тестовые игры"
+    },
+    "owner.club.demo_added": {
+        "en": "Test games are on the tables",
+        "hy": "Փորձնական խաղերը սեղաններին են",
+        "ru": "Тестовые игры на столах"
+    },
     "owner.club.discount": {
         "en": "Discount, %",
         "hy": "Զեղչ, %",
@@ -4034,11 +4044,6 @@
         "hy": "Այս շաբաթ",
         "ru": "Эта неделя"
     },
-    "owner.club.phone_optional": {
-        "en": "Phone, optional",
-        "hy": "Հեռախոս, ըստ ցանկության",
-        "ru": "Телефон, необязательно"
-    },
     "owner.club.photo": {
         "en": "Photo",
         "hy": "Լուսանկար",
@@ -4174,16 +4179,6 @@
         "hy": "Սկիզբ",
         "ru": "Начало"
     },
-    "owner.club.start_now": {
-        "en": "Start now",
-        "hy": "Սկսել հիմա",
-        "ru": "Начать сейчас"
-    },
-    "owner.club.started": {
-        "en": "Started",
-        "hy": "Սկսված է",
-        "ru": "Начато"
-    },
     "owner.club.stop_check": {
         "en": "Stop · check",
         "hy": "Ավարտել · հաշիվ",
@@ -4273,16 +4268,6 @@
         "en": "visits: :n",
         "hy": "այցեր՝ :n",
         "ru": "визитов: :n"
-    },
-    "owner.club.walk_in": {
-        "en": "Walk-in",
-        "hy": "Առանց ամրագրման",
-        "ru": "Без брони"
-    },
-    "owner.club.walk_in_name": {
-        "en": "Name (optional)",
-        "hy": "Անուն (ըստ ցանկության)",
-        "ru": "Имя (необязательно)"
     },
     "owner.courts.active_hint": {
         "en": "Switched off: players can not book it",

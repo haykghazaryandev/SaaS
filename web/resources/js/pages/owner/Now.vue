@@ -3,12 +3,12 @@ import Icon from '@/components/Icon.vue';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
-import { Link, router, useForm, usePoll } from '@inertiajs/vue3';
+import { Link, router, usePoll } from '@inertiajs/vue3';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 // The desk: every table now. A game shows its check live (time so far + what they took, the player's discount,
 // the total, their card); "+ Cola" adds to it; "Stop" fixes the time and opens the check to take the money.
-// A free table: "Start now" for a walk-in (charged for the time played), and the next booking.
+// A free table shows its next booking. Games come from bookings (Schedule).
 interface Bill {
     minutes: number;
     running: boolean;
@@ -39,7 +39,8 @@ interface Court {
     } | null;
     next: { start: string; name: string; pending: boolean } | null;
 }
-defineProps<{ courts: Court[]; products: { id: number; name: string; price: number }[]; trainings: boolean }>();
+defineProps<{ courts: Court[]; products: { id: number; name: string; price: number }[]; canDemo?: boolean }>();
+const demo = () => router.post(route('owner.now.demo'), {}, { preserveScroll: true });
 const owner = useOwner();
 const opts = { preserveScroll: true, preserveState: true };
 usePoll(30000, { only: ['courts'] });
@@ -60,21 +61,6 @@ const add = (bookingId: number, productId: number) => router.post(route('owner.b
 const remove = (itemId: number) => router.delete(route('owner.bookings.items.destroy', itemId), opts);
 const stop = (bookingId: number) => router.post(route('owner.bookings.stop', bookingId));
 
-// "Start now" on a free table
-const starting = ref<number | null>(null);
-const start = useForm({ field_id: 0, name: '', phone: '', purpose: 'play' as 'play' | 'training' });
-function openStart(id: number) {
-    start.reset();
-    start.clearErrors();
-    start.field_id = id;
-    starting.value = id;
-}
-function submitStart() {
-    start.transform((d) => ({ ...d, phone: d.phone ? '+374' + d.phone.replace(/\D/g, '').slice(-8) : null })).post(route('owner.now.start'), {
-        ...opts,
-        onSuccess: () => (starting.value = null),
-    });
-}
 </script>
 
 <template>
@@ -83,6 +69,10 @@ function submitStart() {
             <div>
                 <div class="kicker">{{ owner.venue.name }}</div>
                 <h1>{{ $t('owner.nav.now') }}</h1>
+            </div>
+            <!-- not in production: try the desk at any hour -->
+            <div v-if="canDemo && owner.role === 'owner'" class="phead-r">
+                <button type="button" class="btn ghost sm" data-test="demo" @click="demo"><Icon name="plus" size="sm" />{{ $t('owner.club.demo') }}</button>
             </div>
         </div>
 
@@ -143,28 +133,12 @@ function submitStart() {
                     </div>
                 </template>
 
-                <!-- free: start a walk-in -->
+                <!-- free: its next booking -->
                 <template v-else>
                     <p v-if="c.next" class="muted small">
                         {{ $t('owner.club.next_at', { t: c.next.start, name: c.next.name }) }}<span v-if="c.next.pending" class="faint"> · {{ $t('owner.status.pending') }}</span>
                     </p>
                     <p v-else class="faint small">{{ $t('owner.club.nothing_next') }}</p>
-                    <form v-if="starting === c.id" class="startf" @submit.prevent="submitStart">
-                        <input v-model="start.name" class="input" :placeholder="$t('owner.club.walk_in_name')" maxlength="80" />
-                        <div class="row" style="gap: 6px">
-                            <span class="input pre">+374</span><input v-model="start.phone" class="input mono" inputmode="tel" :placeholder="$t('owner.club.phone_optional')" />
-                        </div>
-                        <div v-if="trainings" class="seg" role="group">
-                            <button type="button" :aria-pressed="start.purpose === 'play'" @click="start.purpose = 'play'">{{ $t('club.play') }}</button>
-                            <button type="button" :aria-pressed="start.purpose === 'training'" @click="start.purpose = 'training'">{{ $t('club.training') }}</button>
-                        </div>
-                        <div v-for="(e, k) in start.errors" :key="k" class="err">{{ e }}</div>
-                        <div class="row" style="gap: 6px">
-                            <button class="btn" :disabled="start.processing">{{ $t('owner.club.start_now') }}</button>
-                            <button type="button" class="btn ghost" @click="starting = null">{{ $t('common.cancel') }}</button>
-                        </div>
-                    </form>
-                    <button v-else type="button" class="btn ghost" data-test="start" @click="openStart(c.id)"><Icon name="plus" size="sm" />{{ $t('owner.club.start_now') }}</button>
                 </template>
             </article>
         </div>
@@ -195,6 +169,4 @@ function submitStart() {
 .adds .chip { font-size: 13px; }
 .acts .btn { width: 100%; justify-content: center; }
 .small { font-size: 13px; margin: 0; }
-.startf { display: flex; flex-direction: column; gap: 8px; }
-.pre { flex: none; width: auto; }
 </style>

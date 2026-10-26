@@ -11,13 +11,12 @@ use App\Models\Product;
 use App\Support\LocalTime;
 use App\Support\Phone;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 /**
- * Owner → Now: the desk of a club. Every table: a game on it (who, since when, its check live: time + items,
- * the discount, the total, the player's card), a finished game waiting to be paid, or free ("Start now" for a
- * walk-in, and the next booking). Add a cola to the check, "Stop" → the check → card / cash / both.
+ * Owner → Now: the desk of a club. Every table: the booked game playing on it (who, since when, its check live:
+ * time + items, the discount, the total, the player's card), a finished game waiting to be paid, or free (and
+ * its next booking). Add a cola to the check, "Stop" → the check → card / cash / both. Games come from bookings.
  */
 class NowController extends OwnerController
 {
@@ -26,14 +25,15 @@ class NowController extends OwnerController
         $venue = $this->venue($request);
         $this->ensureAny($venue, ['wallet', 'shop']);
         $venue->load('fields');
-        $today = LocalTime::now()->startOfDay();
+        // games still going or not paid yet (also one that began before midnight), and the rest of today's bookings
+        $now = LocalTime::now();
         $bookings = Booking::where('venue_id', $venue->id)->whereIn('status', ['pending', 'accepted', 'completed'])
-            ->where('starts_at', '>=', $today->utc())->where('starts_at', '<', $today->addDay()->utc())
+            ->where('starts_at', '>=', $now->subHours(12)->utc())->where('starts_at', '<', $now->startOfDay()->addDay()->utc())
             ->with('user', 'field', 'items', 'venue')->orderBy('starts_at')->get();
 
         $courts = $venue->fields->where('active', true)->sortBy(fn (Field $f) => [$f->sort, $f->id])->values()->map(function (Field $f) use ($bookings, $checkout) {
             $mine = $bookings->where('field_id', $f->id);
-            // a game: started today, not paid (still playing, or stopped and waiting for the money)
+            // a game: started, not paid (still playing, or stopped and waiting for the money)
             $game = $mine->first(fn (Booking $b) => $b->status->value !== 'pending' && $b->starts_at->isPast() && ! $b->paid_at
                 && ($b->stopped_at || $b->ends_at->isFuture() || $b->open_end || $b->ends_at->greaterThan(now()->subHours(3))));
             $next = $mine->first(fn (Booking $b) => $b->starts_at->isFuture() && $b->id !== $game?->id);
@@ -54,27 +54,20 @@ class NowController extends OwnerController
         });
 
         return Inertia::render('owner/Now', [
+            'canDemo' => ! app()->isProduction(),
             'courts' => $courts,
             'products' => $venue->hasFeature('shop') ? Product::where('venue_id', $venue->id)->where('active', true)->where('in_stock', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'price' => $p->finalPrice()])->values() : [],
-            'trainings' => collect($venue->rules['training_prices'] ?? [])->filter()->isNotEmpty() && $venue->hasFeature('trainings'),
         ]);
     }
 
-    /** A walk-in on a free table, from now until they stop. */
-    public function start(Request $request, Checkout $checkout)
+    /** Local / staging: test games on this place's tables right now, whatever the hour (never in production). */
+    public function demo(Request $request)
     {
-        $venue = $this->venue($request);
-        $data = $request->validate([
-            'field_id' => ['required', 'integer', Rule::exists('fields', 'id')->where('venue_id', $venue->id)],
-            'name' => 'nullable|string|max:80', 'phone' => 'nullable|string|max:20', 'purpose' => 'nullable|in:play,training',
-        ]);
-        if (filled($data['phone'] ?? null) && ! Phone::normalize($data['phone'])) {
-            return back()->withErrors(['phone' => __('owner.form.bad_phone')]);
-        }
-        $field = Field::findOrFail($data['field_id']);
-        $this->attempt(fn () => $checkout->startWalkIn($field, $request->user(), $data));
+        abort_if(app()->isProduction(), 404);
+        $this->ensureOwner($request);
+        \Illuminate\Support\Facades\Artisan::call('club:demo-now', ['venue' => $this->venue($request)->slug]);
 
-        return back()->with('success', __('owner.club.started'));
+        return back()->with('success', __('owner.club.demo_added'));
     }
 }

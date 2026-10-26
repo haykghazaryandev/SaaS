@@ -42,9 +42,10 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::post('bookings/{booking}/scan', [CheckoutController::class, 'scan'])->whereNumber('booking')->name('bookings.scan');
     Route::post('bookings/{booking}/pay', [CheckoutController::class, 'pay'])->whereNumber('booking')->name('bookings.pay');
     Route::post('bookings/{booking}/stop', [CheckoutController::class, 'stop'])->whereNumber('booking')->name('bookings.stop');
-    // the desk: every table now (running games with their check, free tables with "Start now")
+    // the desk: every table now (the booked games playing, their check: time + items = what to pay)
     Route::get('now', [NowController::class, 'index'])->name('now');
-    Route::post('now/start', [NowController::class, 'start'])->name('now.start');
+    // local / staging: test games on the tables right now (the club:demo-now command)
+    Route::post('now/demo', [NowController::class, 'demo'])->name('now.demo');
     Route::get('players', [PlayerController::class, 'index'])->name('players');
     Route::get('players/{user}', [PlayerController::class, 'show'])->whereNumber('user')->name('players.show');
     Route::post('players/{user}/rating', [PlayerController::class, 'rating'])->whereNumber('user')->name('players.rating');

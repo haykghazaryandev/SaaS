@@ -2,13 +2,10 @@
 
 namespace App\Domain\Club;
 
-use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\BookingException;
-use App\Domain\Venues\Availability;
 use App\Domain\Venues\PriceCalculator;
 use App\Models\Booking;
 use App\Models\BookingItem;
-use App\Models\Field;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
@@ -23,12 +20,11 @@ use Illuminate\Support\Facades\DB;
  * (the time charged is fixed), then the payment: from the player's card (we know it from the booking: no scan
  * needed to pay), in cash, or part each (1 450 + 50). Topping a card up is what needs the QR, not paying a bill.
  *
- * Time charged: rounded up to the place's step (15 min); a booked game at least its booked length (playing longer
- * costs more), a walk-in started at the desk (open_end) only the time played.
+ * Time charged: rounded up to the place's step (15 min), at least the booked length (playing longer costs more).
  */
 class Checkout
 {
-    public function __construct(private Money $money, private PriceCalculator $prices, private Availability $availability) {}
+    public function __construct(private Money $money, private PriceCalculator $prices) {}
 
     // ---------- items on the check ----------
 
@@ -53,31 +49,6 @@ class Checkout
     }
 
     // ---------- start / stop at the desk ----------
-
-    /** A walk-in: the table from the time step that has begun, until they stop (charged for the time played). */
-    public function startWalkIn(Field $field, User $by, array $data): Booking
-    {
-        $venue = $field->loadMissing('venue')->venue;
-        $start = $this->availability->ownerEarliest($venue, LocalTime::now());
-        $step = $this->step($booking ?? null, $venue);
-        // as long as the default length, but never into the next booking
-        $minutes = $field->default_duration;
-        foreach ($this->availability->busy($field, $start->startOfDay()) as [$a]) {
-            $from = LocalTime::hourOf($start, $start->startOfDay());
-            if ($a > $from + 1e-9) {
-                $minutes = min($minutes, (int) (floor(($a - $from) * 60 / $step) * $step));
-            }
-        }
-        if ($minutes < $step) {
-            throw new BookingException('taken');
-        }
-        $booking = app(OwnerBooking::class)->create($by, $field, $start, $minutes, [
-            'name' => trim((string) ($data['name'] ?? '')) ?: __('owner.club.walk_in'), 'phone' => $data['phone'] ?? null, 'purpose' => $data['purpose'] ?? 'play',
-        ]);
-        $booking->update(['open_end' => true]);
-
-        return $booking;
-    }
 
     /** They finished: the time charged is fixed and the table's time follows it (shorter frees it, longer takes more if free). */
     public function stop(Booking $booking, User $by): Booking
@@ -230,9 +201,9 @@ class Checkout
         return $booking->venue?->hasFeature('wallet') ? Cards::discountFor($booking->venue_id, $booking->user_id) : 0;
     }
 
-    private function step(?Booking $booking, $venue = null): int
+    private function step(Booking $booking): int
     {
-        return max(5, (int) ($venue ?? $booking->venue)->rule('step_min'));
+        return max(5, (int) $booking->venue->rule('step_min'));
     }
 
     private function ensureOpen(Booking $booking): void

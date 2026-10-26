@@ -91,7 +91,7 @@ it('takes the check at the desk: items, card + cash', function () {
     $this->actingAs($this->owner)->getJson("/owner/bookings/{$b->id}")->assertJsonPath('paid', true)->assertJsonPath('items.0.name', 'Cola');
 });
 
-it('shows every table now: a game with its live check, a free one starts a walk-in', function () {
+it('shows every table now: a game with its live check, a free one its next booking', function () {
     $this->club->update(['rules' => ['min_notice_min' => 0]]);
     $small = $this->club->fields->firstWhere('size.value', 'small');
     $start = App\Support\LocalTime::now()->startOfDay()->addHours(12);
@@ -101,10 +101,18 @@ it('shows every table now: a game with its live check, a free one starts a walk-
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->component('owner/Now')
         ->where('courts.0.state', 'playing')->where('courts.0.game.id', $b->id)->where('courts.0.game.bill.card.balance', 0)
         ->where('courts.1.state', 'free'));
-    $big = $this->club->fields->firstWhere('size.value', 'big');
-    $this->actingAs($this->owner)->post('/owner/now/start', ['field_id' => $big->id, 'name' => 'Walk-in'])->assertRedirect()->assertSessionHasNoErrors();
     $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/stop")->assertRedirect(route('owner.bookings.checkout', $b->id));
-    $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->where('courts.0.state', 'to_pay')->where('courts.1.state', 'playing'));
+    $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->where('courts.0.state', 'to_pay')->where('courts.1.state', 'free'));
+});
+
+it('puts demo games on the club tables at any hour (not in production)', function () {
+    $club = makeClub(3, ['slug' => 'demo-club', 'features' => ['booking', 'wallet', 'shop']]);
+    $club->staff()->attach($this->owner->id, ['role' => 'owner']);
+    $this->travelTo(App\Support\LocalTime::now()->startOfDay()->addMinutes(20));   // 00:20, the club is closed
+    $this->artisan('club:demo-now', ['venue' => 'demo-club'])->assertSuccessful();
+    $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $club->id]);
+    $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p
+        ->where('courts.0.state', 'playing')->where('courts.1.state', 'playing')->where('courts.2.state', 'to_pay'));
 });
 
 it('shows the player their card with its QR, and the club page their balance', function () {
@@ -122,4 +130,11 @@ it('registers for a tournament by its link, without an account', function () {
     $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'level' => 1200, 'option' => 1])->assertRedirect();
     $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'option' => 1])->assertSessionHasErrors('register');
     $this->actingAs($this->owner)->get('/owner/tournaments')->assertInertia(fn (Assert $p) => $p->has('current.list', 1)->where('current.list.0.price', 5000));
+});
+
+it('lets the owner add test games from the Now page outside production', function () {
+    $this->actingAs($this->owner)->post('/owner/now/demo')->assertRedirect();
+    $this->app['env'] = 'production';
+    $this->withoutMiddleware(Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+        ->actingAs($this->owner)->post('/owner/now/demo')->assertNotFound();
 });

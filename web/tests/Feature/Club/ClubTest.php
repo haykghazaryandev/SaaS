@@ -98,7 +98,7 @@ it('gives a phone-only booking its player when their card is scanned at the bill
     expect(fn () => app(Checkout::class)->attachCard($b->fresh(), $other))->toThrow(BookingException::class, __('booking.error.other_card'));
 });
 
-it('stops a game: a booked one at least its length, longer costs more; a walk-in only the time played', function () {
+it('stops a game: at least its booked length, longer costs more', function () {
     $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15, 'cashback_pct' => 0], 'features' => ['booking', 'wallet', 'shop']]);
     $t1 = $club->fields->first();
     $checkout = app(Checkout::class);
@@ -118,12 +118,6 @@ it('stops a game: a booked one at least its length, longer costs more; a walk-in
     $bill = $checkout->bill($b->fresh());
     expect($bill['minutes'])->toBe(90)->and($bill['timeFull'])->toBe(4500)->and($bill['time'])->toBe(4050)->and($bill['timeDiscount'])->toBe(450)
         ->and(fn () => $checkout->stop($b->fresh(), $this->owner))->toThrow(BookingException::class);
-    // a walk-in on the other table, 25 min played → 30 min charged
-    $walk = $checkout->startWalkIn($club->fields->last(), $this->owner, ['name' => 'Two guys']);
-    expect($walk->open_end)->toBeTrue()->and($walk->field_id)->toBe($club->fields->last()->id);
-    $this->travelTo($start->addMinutes(80 + 25));
-    $checkout->stop($walk->fresh(), $this->owner);
-    expect($checkout->bill($walk->fresh())['time'])->toBe(1500);
 });
 
 it('books a training at the training price', function () {
