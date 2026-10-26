@@ -7,17 +7,22 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
-// The bill of a booking at the desk: the playing time (its price) + what they took during the game (a cola),
-// then the money: from the player's card (scan it first: it also finds the player of a phone-only booking),
-// in cash, or part each (1 450 from the card + 50 cash).
+// The check of a game: the time (full price, the player's discount) + what they took (a cola) = the total,
+// then the money: from the player's card (we know it from the booking), in cash, or part each (1 450 + 50).
+// A booking made by phone without an account: scan the player's card to find it.
 interface Bill {
+    minutes: number;
+    running: boolean;
+    stopped: boolean;
+    timeFull: number;
+    timeDiscount: number;
     time: number;
     items: { id: number; name: string; qty: number; price_each: number; sum: number }[];
     itemsTotal: number;
     itemsDiscount: number;
     discountPct: number;
     total: number;
-    card: { code: string; balance: number; scanned: boolean } | null;
+    card: { code: string; balance: number } | null;
     paid: boolean;
 }
 const props = defineProps<{
@@ -29,17 +34,18 @@ const props = defineProps<{
 const owner = useOwner();
 const opts = { preserveScroll: true, preserveState: true };
 const scan = ref(false);
-const canCard = computed(() => props.wallet && !!props.bill.card?.scanned);
+const canCard = computed(() => props.wallet && !!props.bill.card && props.bill.card.balance > 0);
 // from the card: as much as the balance allows, the rest cash (both editable)
 const fromCard = ref(0);
 const reset = () => (fromCard.value = canCard.value ? Math.min(props.bill.card!.balance, props.bill.total) : 0);
-watch(() => [props.bill.total, props.bill.card?.scanned, props.bill.card?.balance], reset, { immediate: true });
+watch(() => [props.bill.total, props.bill.card?.balance], reset, { immediate: true });
 const cash = computed(() => Math.max(0, props.bill.total - (fromCard.value || 0)));
 const tooMuch = computed(() => canCard.value && (fromCard.value > props.bill.card!.balance || fromCard.value > props.bill.total));
 
 const add = (id: number) => router.post(route('owner.bookings.items.store', props.booking.id), { product_id: id, qty: 1 }, opts);
 const remove = (id: number) => router.delete(route('owner.bookings.items.destroy', id), opts);
 const onCode = (code: string) => router.post(route('owner.bookings.scan', props.booking.id), { code }, opts);
+const stop = () => router.post(route('owner.bookings.stop', props.booking.id));
 function pay() {
     router.post(route('owner.bookings.pay', props.booking.id), { card: canCard.value ? fromCard.value || 0 : 0, cash: cash.value });
 }
@@ -47,7 +53,10 @@ function pay() {
 
 <template>
     <OwnerLayout :title="$t('owner.club.bill')">
-        <Link class="backlink" :href="route('owner.schedule', { date: booking.date })"><Icon name="back" size="sm" />{{ $t('owner.nav.schedule') }}</Link>
+        <Link v-if="(owner.features ?? []).includes('wallet') || (owner.features ?? []).includes('shop')" class="backlink" :href="route('owner.now')"
+            ><Icon name="back" size="sm" />{{ $t('owner.nav.now') }}</Link
+        >
+        <Link v-else class="backlink" :href="route('owner.schedule', { date: booking.date })"><Icon name="back" size="sm" />{{ $t('owner.nav.schedule') }}</Link>
         <section class="card panel">
             <div class="kicker">{{ owner.venue.name }} · {{ booking.field }}</div>
             <h1 style="margin: 4px 0; font-size: 24px">
@@ -64,19 +73,20 @@ function pay() {
             <section class="card panel">
                 <div class="sec-h"><h2>{{ $t('owner.club.bill') }}</h2></div>
                 <div class="bline">
-                    <span>{{ booking.purpose === 'training' ? $t('club.training') : $t('owner.club.time') }} · {{ hhmm(booking.start) }}–{{ hhmm(booking.end) }}</span><b>{{ amd(bill.time) }}</b>
+                    <span>{{ booking.purpose === 'training' ? $t('club.training') : $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: bill.minutes }) }}</span><b>{{ amd(bill.timeFull) }}</b>
                 </div>
                 <div v-for="i in bill.items" :key="i.id" class="bline">
                     <span>{{ i.qty }} × {{ i.name }}</span>
                     <b>{{ amd(i.sum) }}</b>
                     <button v-if="!bill.paid" type="button" class="x" :aria-label="$t('common.remove')" @click="remove(i.id)"><Icon name="x" size="sm" /></button>
                 </div>
-                <div v-if="bill.itemsDiscount" class="bline faint">
-                    <span>{{ $t('owner.club.card_discount', { p: bill.discountPct }) }}</span><b>−{{ amd(bill.itemsDiscount) }}</b>
+                <div v-if="bill.timeDiscount || bill.itemsDiscount" class="bline disc">
+                    <span>{{ $t('owner.club.card_discount_all', { p: bill.discountPct }) }}</span><b>−{{ amd(bill.timeDiscount + bill.itemsDiscount) }}</b>
                 </div>
                 <div class="bline total">
-                    <span>{{ $t('player.place.total') }}</span><b data-test="total">{{ amd(bill.total) }}</b>
+                    <span>{{ bill.running ? $t('owner.club.if_stop_now') : $t('player.place.total') }}</span><b data-test="total">{{ amd(bill.total) }}</b>
                 </div>
+                <button v-if="bill.running && !bill.paid" type="button" class="btn ghost block" data-test="stop" @click="stop"><Icon name="check" size="sm" />{{ $t('owner.club.stop_game') }}</button>
 
                 <div v-if="products.length && !bill.paid" class="addbox">
                     <small class="faint">{{ $t('owner.club.add_items') }}</small>
@@ -93,13 +103,14 @@ function pay() {
                 <div v-if="bill.paid" class="paid"><Icon name="check" />{{ $t('owner.club.paid') }}</div>
                 <template v-else>
                     <!-- the card: only after a scan -->
+                    <!-- the player's card: known from the booking; a phone-only booking finds it by a scan -->
                     <div v-if="wallet" class="cardrow">
                         <Icon name="wallet" />
                         <span class="w">
-                            <b>{{ bill.card ? $t('owner.club.card_balance', { a: amd(bill.card.balance) }) : $t('owner.club.no_card_on_booking') }}</b>
-                            <small>{{ bill.card?.scanned ? $t('owner.club.scanned') : $t('owner.club.scan_to_pay') }}</small>
+                            <b>{{ bill.card ? $t('owner.club.card_balance', { a: amd(bill.card.balance) }) : $t('owner.club.no_card_short') }}</b>
+                            <small v-if="!bill.card && !booking.player">{{ $t('owner.club.find_card') }}</small>
                         </span>
-                        <button v-if="!bill.card?.scanned" type="button" class="btn sm" data-test="scan-bill" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
+                        <button v-if="!bill.card && !booking.player" type="button" class="btn sm" data-test="scan-bill" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
                     </div>
                     <div v-if="canCard" class="split">
                         <label class="field"
@@ -129,6 +140,7 @@ function pay() {
 .bline span { flex: 1; }
 .bline b { font-family: var(--mono); }
 .bline .x { width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--muted); display: grid; place-items: center; }
+.bline.disc { color: var(--accent); }
 .bline.total { border-bottom: 0; font-size: 18px; }
 .bline.total b { font-size: 22px; color: var(--accent); }
 .addbox { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }

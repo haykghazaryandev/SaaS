@@ -65,7 +65,7 @@ it('puts the card discount into the booking price', function () {
     expect($b->price)->toBe(12000);
 });
 
-it('pays a bill of time and items: card first (only after a scan), the rest cash, once', function () {
+it('pays a check of time and items: card first (known from the booking, no scan), the rest cash, once', function () {
     $card = $this->cards->forPlayer($this->club, $this->player);
     $this->cards->topUp($card, 13000, $this->owner);
     $small = $this->club->fields->firstWhere('size.value', 'small');
@@ -74,10 +74,7 @@ it('pays a bill of time and items: card first (only after a scan), the rest cash
     $checkout = app(Checkout::class);
     $checkout->addItem($b, $cola, 2, $this->owner);
     $bill = $checkout->bill($b);
-    expect($bill['total'])->toBe(16000)->and($bill['card']['scanned'])->toBeFalse();
-    // not scanned: the card can't pay
-    expect(fn () => $checkout->pay($b, 13000, 3000, $this->owner))->toThrow(BookingException::class, __('booking.error.scan_first'));
-    Cards::markScanned($card);
+    expect($bill['total'])->toBe(16000)->and($bill['card']['balance'])->toBe(13000);
     expect(fn () => $checkout->pay($b, 13000, 1000, $this->owner))->toThrow(BookingException::class);   // not the total
     $checkout->pay($b, 13000, 3000, $this->owner);
     // the card paid the time (13 000 of 15 000), cash the rest of the time and the items; 5% cashback on the card part
@@ -96,9 +93,37 @@ it('gives a phone-only booking its player when their card is scanned at the bill
     $b = app(App\Domain\Booking\Actions\OwnerBooking::class)->create($this->owner, $small, at(12), 60, ['name' => 'Walk-in']);
     $card = $this->cards->forPlayer($this->club, $this->player);
     app(Checkout::class)->attachCard($b, $card);
-    expect($b->fresh()->user_id)->toBe($this->player->id)->and(Cards::scanned($card))->toBeTrue();
+    expect($b->fresh()->user_id)->toBe($this->player->id);
     $other = $this->cards->forPlayer($this->club, User::factory()->create());
     expect(fn () => app(Checkout::class)->attachCard($b->fresh(), $other))->toThrow(BookingException::class, __('booking.error.other_card'));
+});
+
+it('stops a game: a booked one at least its length, longer costs more; a walk-in only the time played', function () {
+    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15, 'cashback_pct' => 0], 'features' => ['booking', 'wallet', 'shop']]);
+    $t1 = $club->fields->first();
+    $checkout = app(Checkout::class);
+    $card = $this->cards->forPlayer($club, $this->player);
+    $this->cards->setDiscount($card, 10);
+    $now = App\Support\LocalTime::now();
+    $start = App\Support\LocalTime::at($now->startOfDay(), 12);
+    $this->travelTo($start->subMinutes(5));
+    $b = app(RequestBooking::class)->handle($this->player, $t1, $start, 60);   // 3 000 − 10% = 2 700
+    $b->update(['status' => 'accepted']);
+    // they leave after 40 min: still the booked hour
+    $this->travelTo($start->addMinutes(40));
+    expect($checkout->bill($b->fresh())['minutes'])->toBe(60);
+    // they play 1 h 20: 1 h 30 (rounded up to 15 min) with the discount; the bill shows the full price and the discount
+    $this->travelTo($start->addMinutes(80));
+    $checkout->stop($b->fresh(), $this->owner);
+    $bill = $checkout->bill($b->fresh());
+    expect($bill['minutes'])->toBe(90)->and($bill['timeFull'])->toBe(4500)->and($bill['time'])->toBe(4050)->and($bill['timeDiscount'])->toBe(450)
+        ->and(fn () => $checkout->stop($b->fresh(), $this->owner))->toThrow(BookingException::class);
+    // a walk-in on the other table, 25 min played → 30 min charged
+    $walk = $checkout->startWalkIn($club->fields->last(), $this->owner, ['name' => 'Two guys']);
+    expect($walk->open_end)->toBeTrue()->and($walk->field_id)->toBe($club->fields->last()->id);
+    $this->travelTo($start->addMinutes(80 + 25));
+    $checkout->stop($walk->fresh(), $this->owner);
+    expect($checkout->bill($walk->fresh())['time'])->toBe(1500);
 });
 
 it('books a training at the training price', function () {

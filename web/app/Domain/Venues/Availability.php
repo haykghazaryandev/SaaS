@@ -89,7 +89,7 @@ class Availability
     }
 
     /** The place may still book the time step that has already begun (a team walks in at 20:40 and plays from 20:30). */
-    private function ownerEarliest(Venue $venue, CarbonImmutable $now): CarbonImmutable
+    public function ownerEarliest(Venue $venue, CarbonImmutable $now): CarbonImmutable
     {
         $step = max(1, (int) $venue->rule('step_min'));
         $midnight = $now->startOfDay();

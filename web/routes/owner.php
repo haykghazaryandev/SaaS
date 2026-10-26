@@ -4,6 +4,7 @@ use App\Http\Controllers\Owner\BookingController;
 use App\Http\Controllers\Owner\Club\CardController;
 use App\Http\Controllers\Owner\Club\CheckoutController;
 use App\Http\Controllers\Owner\Club\MoneyController;
+use App\Http\Controllers\Owner\Club\NowController;
 use App\Http\Controllers\Owner\Club\PlayerController;
 use App\Http\Controllers\Owner\Club\ShopController;
 use App\Http\Controllers\Owner\Club\TournamentController;
@@ -36,6 +37,10 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::delete('booking-items/{item}', [CheckoutController::class, 'removeItem'])->whereNumber('item')->name('bookings.items.destroy');
     Route::post('bookings/{booking}/scan', [CheckoutController::class, 'scan'])->whereNumber('booking')->name('bookings.scan');
     Route::post('bookings/{booking}/pay', [CheckoutController::class, 'pay'])->whereNumber('booking')->name('bookings.pay');
+    Route::post('bookings/{booking}/stop', [CheckoutController::class, 'stop'])->whereNumber('booking')->name('bookings.stop');
+    // the desk: every table now (running games with their check, free tables with "Start now")
+    Route::get('now', [NowController::class, 'index'])->name('now');
+    Route::post('now/start', [NowController::class, 'start'])->name('now.start');
     Route::get('players', [PlayerController::class, 'index'])->name('players');
     Route::get('players/{user}', [PlayerController::class, 'show'])->whereNumber('user')->name('players.show');
     Route::post('players/{user}/rating', [PlayerController::class, 'rating'])->whereNumber('user')->name('players.rating');
@@ -44,9 +49,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::get('cards/{code}', [CardController::class, 'show'])->where('code', '[a-z0-9]{20}')->name('cards.show');
     Route::prefix('cards/{code}')->where(['code' => '[a-z0-9]{20}'])->name('cards.')->group(function () {
         Route::post('topup', [CardController::class, 'topUp'])->name('topup');
-        Route::post('charge', [CardController::class, 'charge'])->name('charge');
         Route::post('discount', [CardController::class, 'discount'])->name('discount');
-        Route::post('sell/{product}', [CardController::class, 'sell'])->name('sell');
     });
     Route::get('shop', [ShopController::class, 'index'])->name('shop');
     Route::post('shop', [ShopController::class, 'store'])->name('shop.store');

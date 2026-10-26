@@ -3384,6 +3384,11 @@
         "hy": "Չաթեր",
         "ru": "Чаты"
     },
+    "nav.home": {
+        "en": "Home",
+        "hy": "Գլխավոր",
+        "ru": "Главная"
+    },
     "nav.login": {
         "en": "Log in",
         "hy": "Մուտք",
@@ -3670,9 +3675,9 @@
         "ru": "Счёт и оплата"
     },
     "owner.club.bill_hint": {
-        "en": "Bookings are paid on their bill: open the booking → Bill and payment.",
-        "hy": "Ամրագրումները վճարվում են իրենց հաշվով․ բացեք ամրագրումը → Հաշիվ և վճարում։",
-        "ru": "Брони оплачиваются по счёту: откройте бронь → Счёт и оплата."
+        "en": "Money comes off the card on a game's check: Now → Stop · check.",
+        "hy": "Գումարը քարտից գանձվում է խաղի հաշվով․ Հիմա → Ավարտել · հաշիվ։",
+        "ru": "Деньги списываются с карты по счёту игры: Сейчас → Завершить · счёт."
     },
     "owner.club.bookings": {
         "en": "Bookings",
@@ -3704,10 +3709,10 @@
         "hy": "Քարտ՝ :a",
         "ru": "Карта: :a"
     },
-    "owner.club.card_discount": {
-        "en": "Card discount :p% on items",
-        "hy": "Քարտի :p% զեղչ ապրանքների վրա",
-        "ru": "Скидка по карте :p% на товары"
+    "owner.club.card_discount_all": {
+        "en": "Card discount :p%",
+        "hy": "Քարտի զեղչ :p%",
+        "ru": "Скидка по карте :p%"
     },
     "owner.club.card_no": {
         "en": "Without a card",
@@ -3774,10 +3779,25 @@
         "hy": "Զեղչ, %",
         "ru": "Скидка, %"
     },
+    "owner.club.discount_hint": {
+        "en": "Comes off their games and what they take, automatically.",
+        "hy": "Ավտոմատ կիրառվում է նրա խաղերի և գնումների վրա։",
+        "ru": "Применяется к его играм и покупкам автоматически."
+    },
     "owner.club.discounts_given": {
         "en": "Discounts given: :a",
         "hy": "Տրված զեղչեր՝ :a",
         "ru": "Скидок дано: :a"
+    },
+    "owner.club.find_card": {
+        "en": "Booked without an account: scan the player's card to pay from it",
+        "hy": "Ամրագրված է առանց հաշվի․ սկանավորեք խաղացողի քարտը՝ դրանից վճարելու համար",
+        "ru": "Бронь без аккаунта: отсканируйте карту игрока, чтобы оплатить с неё"
+    },
+    "owner.club.free_now": {
+        "en": "Free",
+        "hy": "Ազատ",
+        "ru": "Свободен"
     },
     "owner.club.from_card": {
         "en": "From card",
@@ -3793,6 +3813,11 @@
         "en": "Card history",
         "hy": "Քարտի պատմություն",
         "ru": "История карты"
+    },
+    "owner.club.if_stop_now": {
+        "en": "If they stop now",
+        "hy": "Եթե հիմա ավարտեն",
+        "ru": "Если закончить сейчас"
     },
     "owner.club.in_stock": {
         "en": "In stock",
@@ -3839,10 +3864,10 @@
         "hy": "Բացել քարտ",
         "ru": "Завести карту"
     },
-    "owner.club.money": {
-        "en": "Money",
-        "hy": "Գումար",
-        "ru": "Деньги"
+    "owner.club.min_n": {
+        "en": ":n min",
+        "hy": ":n րոպե",
+        "ru": ":n мин"
     },
     "owner.club.new_product": {
         "en": "New product",
@@ -3854,6 +3879,11 @@
         "hy": "Նոր մրցաշար",
         "ru": "Новый турнир"
     },
+    "owner.club.next_at": {
+        "en": "Next: :t · :name",
+        "hy": "Հաջորդը՝ :t · :name",
+        "ru": "Следующая: :t · :name"
+    },
     "owner.club.no_account": {
         "en": "booked without an account",
         "hy": "ամրագրված առանց հաշվի",
@@ -3864,10 +3894,10 @@
         "hy": "Տեսախցիկ չկա։ Մուտքագրեք QR-ի տակի կոդը։",
         "ru": "Нет камеры. Введите код под QR."
     },
-    "owner.club.no_card_on_booking": {
-        "en": "Pay from a card?",
-        "hy": "Վճարե՞լ քարտից",
-        "ru": "Оплатить с карты?"
+    "owner.club.no_card_short": {
+        "en": "No card here",
+        "hy": "Քարտ չունի այստեղ",
+        "ru": "Здесь нет карты"
     },
     "owner.club.no_cards": {
         "en": "No cards yet. Scan a player's QR or open one by phone below.",
@@ -3908,6 +3938,11 @@
         "en": "This card is from another club.",
         "hy": "Այս քարտը այլ ակումբի է։",
         "ru": "Это карта другого клуба."
+    },
+    "owner.club.nothing_next": {
+        "en": "Nothing booked later today.",
+        "hy": "Այսօր ավելի ուշ ամրագրում չկա։",
+        "ru": "Позже сегодня броней нет."
     },
     "owner.club.open_card": {
         "en": "Open the card",
@@ -3999,6 +4034,11 @@
         "hy": "Այս շաբաթ",
         "ru": "Эта неделя"
     },
+    "owner.club.phone_optional": {
+        "en": "Phone, optional",
+        "hy": "Հեռախոս, ըստ ցանկության",
+        "ru": "Телефон, необязательно"
+    },
     "owner.club.photo": {
         "en": "Photo",
         "hy": "Լուսանկար",
@@ -4013,6 +4053,11 @@
         "en": ":n played here",
         "hy": ":n խաղացել են այստեղ",
         "ru": "играли здесь: :n"
+    },
+    "owner.club.playing": {
+        "en": "Playing",
+        "hy": "Խաղում են",
+        "ru": "Играют"
     },
     "owner.club.price": {
         "en": "Price, ֏",
@@ -4069,25 +4114,15 @@
         "hy": "Քարտի գումարը փոխվում է միայն նրա QR-ը սկանավորելուց հետո, երբ խաղացողը ընդունարանում է։",
         "ru": "Деньги на карте меняются только после сканирования её QR, когда игрок на ресепшене."
     },
-    "owner.club.scan_to_change": {
-        "en": "Scan the card to change its money",
-        "hy": "Սկանավորեք քարտը՝ գումարը փոխելու համար",
-        "ru": "Отсканируйте карту, чтобы менять деньги"
-    },
-    "owner.club.scan_to_pay": {
-        "en": "Scan the player's QR to pay from the card",
-        "hy": "Սկանավորեք խաղացողի QR-ը՝ քարտից վճարելու համար",
-        "ru": "Отсканируйте QR игрока, чтобы оплатить с карты"
-    },
-    "owner.club.scan_why": {
-        "en": "Top-ups, payments and the discount open for 15 minutes after scanning the player's QR at the desk.",
-        "hy": "Լիցքավորումը, վճարումները և զեղչը բացվում են 15 րոպեով՝ խաղացողի QR-ը ընդունարանում սկանավորելուց հետո։",
-        "ru": "Пополнение, оплата и скидка открываются на 15 минут после сканирования QR игрока на ресепшене."
+    "owner.club.scan_to_topup": {
+        "en": "Top-ups only after scanning this card's QR: the player is here with their phone.",
+        "hy": "Լիցքավորում՝ միայն այս քարտի QR-ը սկանավորելուց հետո․ խաղացողը այստեղ է իր հեռախոսով։",
+        "ru": "Пополнение — только после сканирования QR этой карты: игрок здесь со своим телефоном."
     },
     "owner.club.scanned": {
-        "en": "Scanned: money can be changed",
-        "hy": "Սկանավորված է․ գումարը կարելի է փոխել",
-        "ru": "Отсканирована: деньги можно менять"
+        "en": "Scanned: you can top up",
+        "hy": "Սկանավորված է․ կարելի է լիցքավորել",
+        "ru": "Отсканирована: можно пополнить"
     },
     "owner.club.search_ph": {
         "en": "Name or phone",
@@ -4098,11 +4133,6 @@
         "en": "Sell · cash",
         "hy": "Վաճառել · կանխիկ",
         "ru": "Продать · наличные"
-    },
-    "owner.club.sell_from_card": {
-        "en": "Sell from the card",
-        "hy": "Վաճառել քարտից",
-        "ru": "Продать с карты"
     },
     "owner.club.shown": {
         "en": "Shown to players",
@@ -4144,6 +4174,26 @@
         "hy": "Սկիզբ",
         "ru": "Начало"
     },
+    "owner.club.start_now": {
+        "en": "Start now",
+        "hy": "Սկսել հիմա",
+        "ru": "Начать сейчас"
+    },
+    "owner.club.started": {
+        "en": "Started",
+        "hy": "Սկսված է",
+        "ru": "Начато"
+    },
+    "owner.club.stop_check": {
+        "en": "Stop · check",
+        "hy": "Ավարտել · հաշիվ",
+        "ru": "Завершить · счёт"
+    },
+    "owner.club.stop_game": {
+        "en": "Stop the game now",
+        "hy": "Ավարտել խաղը հիմա",
+        "ru": "Завершить игру сейчас"
+    },
     "owner.club.t_note": {
         "en": "Description",
         "hy": "Նկարագրություն",
@@ -4169,11 +4219,6 @@
         "hy": "Անվանում",
         "ru": "Название"
     },
-    "owner.club.take_btn": {
-        "en": "Take",
-        "hy": "Գանձել",
-        "ru": "Списать"
-    },
     "owner.club.take_card": {
         "en": "Take :a from the card",
         "hy": "Գանձել :a քարտից",
@@ -4184,10 +4229,10 @@
         "hy": "Ստանալ :a կանխիկ",
         "ru": "Принять :a наличными"
     },
-    "owner.club.take_from_card": {
-        "en": "Take from the card (not for bookings)",
-        "hy": "Գանձել քարտից (ոչ ամրագրումների համար)",
-        "ru": "Списать с карты (не за брони)"
+    "owner.club.take_money": {
+        "en": "Take :a",
+        "hy": "Ստանալ :a",
+        "ru": "Принять :a"
     },
     "owner.club.take_split": {
         "en": "Take :a from the card + :b cash",
@@ -4199,20 +4244,25 @@
         "hy": "Ժամանակ",
         "ru": "Время"
     },
+    "owner.club.to_pay": {
+        "en": "To pay",
+        "hy": "Վճարման",
+        "ru": "К оплате"
+    },
     "owner.club.topped_up": {
         "en": "Topped up",
         "hy": "Լիցքավորված է",
         "ru": "Пополнено"
     },
-    "owner.club.topup": {
-        "en": "Top up (cash at the desk)",
-        "hy": "Լիցքավորել (կանխիկ ընդունարանում)",
-        "ru": "Пополнить (наличные на ресепшене)"
-    },
     "owner.club.topup_btn": {
         "en": "Top up",
         "hy": "Լիցքավորել",
         "ru": "Пополнить"
+    },
+    "owner.club.topup_title": {
+        "en": "Top up the card",
+        "hy": "Լիցքավորել քարտը",
+        "ru": "Пополнить карту"
     },
     "owner.club.topups": {
         "en": "Card top-ups",
@@ -4224,10 +4274,15 @@
         "hy": "այցեր՝ :n",
         "ru": "визитов: :n"
     },
-    "owner.club.what_ph": {
-        "en": "What for",
-        "hy": "Ինչի համար",
-        "ru": "За что"
+    "owner.club.walk_in": {
+        "en": "Walk-in",
+        "hy": "Առանց ամրագրման",
+        "ru": "Без брони"
+    },
+    "owner.club.walk_in_name": {
+        "en": "Name (optional)",
+        "hy": "Անուն (ըստ ցանկության)",
+        "ru": "Имя (необязательно)"
     },
     "owner.courts.active_hint": {
         "en": "Switched off: players can not book it",
@@ -4758,6 +4813,11 @@
         "en": "More",
         "hy": "Ավելին",
         "ru": "Ещё"
+    },
+    "owner.nav.now": {
+        "en": "Now",
+        "hy": "Հիմա",
+        "ru": "Сейчас"
     },
     "owner.nav.players": {
         "en": "Players",
@@ -5489,10 +5549,20 @@
         "hy": "Ցանկացած դաշտ",
         "ru": "Любое поле"
     },
+    "player.home.any_time": {
+        "en": "Any time",
+        "hy": "Ցանկացած ժամ",
+        "ru": "Любое время"
+    },
     "player.home.big_sub": {
         "en": "22 players · full-size pitch · 1.5 or 2 hours",
         "hy": "22 խաղացող · լիաչափ դաշտ · 1,5 կամ 2 ժամ",
         "ru": "22 игрока · полноразмерное поле · 1,5 или 2 часа"
+    },
+    "player.home.book_sub": {
+        "en": "Free times today and the next days",
+        "hy": "Ազատ ժամեր այսօր և առաջիկա օրերին",
+        "ru": "Свободное время сегодня и в ближайшие дни"
     },
     "player.home.day": {
         "en": "Afternoon (12:00–18:00)",
@@ -5503,6 +5573,11 @@
         "en": "Evening (from 18:00)",
         "hy": "Երեկո (18:00-ից)",
         "ru": "Вечер (с 18:00)"
+    },
+    "player.home.games_n": {
+        "en": "open games: :n",
+        "hy": "բաց խաղեր՝ :n",
+        "ru": "открытых игр: :n"
     },
     "player.home.how_title": {
         "en": "How it works",
@@ -5554,6 +5629,16 @@
         "hy": "Ընտրեք մարզաձևը",
         "ru": "Выберите вид спорта"
     },
+    "player.home.pick_sub": {
+        "en": "Choose a sport: places with free times, tournaments and games.",
+        "hy": "Ընտրեք մարզաձևը․ վայրեր՝ ազատ ժամերով, մրցաշարեր և խաղեր։",
+        "ru": "Выберите вид спорта: места со свободным временем, турниры и игры."
+    },
+    "player.home.pick_title": {
+        "en": "What do you play?",
+        "hy": "Ի՞նչ եք խաղում",
+        "ru": "Во что играете?"
+    },
     "player.home.pingpong.find": {
         "en": "Find a table",
         "hy": "Գտնել սեղան",
@@ -5588,6 +5673,11 @@
         "en": "Play today.",
         "hy": "Խաղա այսօր։",
         "ru": "Играй сегодня."
+    },
+    "player.home.pingpong.venues_kicker": {
+        "en": "Book a table",
+        "hy": "Ամրագրիր սեղան",
+        "ru": "Забронируй стол"
     },
     "player.home.places_count": {
         "en": "At :n places",
@@ -5683,6 +5773,11 @@
         "en": "Free tonight: :n",
         "hy": "Այսօր երեկոյան ազատ է՝ :n",
         "ru": "Свободно вечером: :n"
+    },
+    "player.home.tournaments_n": {
+        "en": "open: :n",
+        "hy": "բաց՝ :n",
+        "ru": "открыто: :n"
     },
     "player.home.venues_kicker": {
         "en": "Book a field",

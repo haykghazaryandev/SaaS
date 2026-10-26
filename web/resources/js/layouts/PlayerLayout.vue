@@ -46,7 +46,7 @@ const has = (name: string) => {
 type NavItem = { key: string; href: string; label: string; short: string; tab?: string; icon: string; match: string[]; badge?: number; warn?: boolean };
 const nav = computed<NavItem[]>(() => {
     const c = social.counts;
-    const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'common.fields', short: 'common.fields', icon: 'grid', match: ['/', '/places'] }];
+    const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'nav.home', short: 'nav.home', icon: 'home', match: ['/', '/places', '/t/'] }];
     if (has('games.index')) items.push({ key: 'games', href: route('games.index'), label: 'common.games', short: 'common.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
     if (user.value) {
         if (has('messages.index')) items.push({ key: 'chats', href: route('messages.index'), label: 'nav.chats', short: 'nav.chats', icon: 'chat', match: ['/messages'], badge: c.messages });

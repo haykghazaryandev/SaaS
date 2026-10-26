@@ -31,6 +31,8 @@ class Booking extends HasFactoryModel
             'reminded_hour_at' => 'datetime',
             'not_here_asked_at' => 'datetime',
             'paid_at' => 'datetime',
+            'stopped_at' => 'datetime',
+            'open_end' => 'boolean',
             'rating_asked_at' => 'datetime',
             'status' => BookingStatus::class,
             'source' => BookingSource::class,

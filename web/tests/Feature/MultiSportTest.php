@@ -15,26 +15,6 @@ use App\Models\User;
 use App\Models\Venue;
 use Inertia\Testing\AssertableInertia as Assert;
 
-/** A ping-pong club with $tables tables (3 000 ֏ on weekdays), open 10:00–23:00. */
-function makeClub(int $tables = 3, array $attrs = []): Venue
-{
-    $venue = Venue::create([
-        'slug' => 'club-'.uniqid(), 'name' => 'Spin Club', 'district' => 'kentron',
-        'address' => ['en' => '1 Spin St', 'hy' => 'Սպին 1', 'ru' => 'Спин 1'], 'amenities' => [], 'rules' => ['min_notice_min' => 0], 'status' => 'active',
-        ...$attrs,
-    ]);
-    foreach (range(0, 6) as $wd) {
-        OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '10:00', 'closes_at' => '23:00']);
-    }
-    $first = Field::create(['venue_id' => $venue->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [30, 60], 'default_duration' => 60, 'sort' => 0]);
-    PriceRule::create(['field_id' => $first->id, 'weekdays' => [0, 1, 2, 3, 4, 5, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => 3000, 'priority' => 1]);
-    for ($i = 1; $i < $tables; $i++) {
-        app(Courts::class)->add($venue, FieldSize::Table);
-    }
-
-    return $venue->load('fields', 'openingHours');
-}
-
 // ---------- any free table ----------
 
 it('books any free table: three players at 18:00 get three tables, the fourth is told it is taken', function () {
@@ -74,20 +54,22 @@ it('keeps football as it was: one field per kind, booked by its own id', functio
 
 // ---------- home: the sport first, shown places only ----------
 
-it('shows the places of the chosen sport, and only sports the admin shows', function () {
+it('asks "what do you play?" first, then shows the places of that sport; only sports the admin shows', function () {
     $club = makeClub();
     $venue = makeVenue();
-    $this->get('/?sport=pingpong')->assertInertia(fn (Assert $p) => $p
+    $this->get('/')->assertInertia(fn (Assert $p) => $p->where('pick', true)
+        ->where('sports', fn ($s) => collect($s)->pluck('key')->all() === ['football', 'pingpong']));
+    $this->get('/?sport=pingpong')->assertInertia(fn (Assert $p) => $p->where('pick', false)
         ->where('filters.sport', 'pingpong')
         ->where('venues', fn ($v) => collect($v)->pluck('id')->all() === [$club->id])
         ->where('venues.0.fields.0.count', 3)
-        ->where('sports', fn ($s) => collect($s)->pluck('key')->all() === ['football', 'pingpong']));
-    $this->get('/')->assertInertia(fn (Assert $p) => $p->where('filters.sport', 'football')
-        ->where('venues', fn ($v) => collect($v)->pluck('id')->all() === [$venue->id]));
+        ->where('openGames', null));
+    $this->get('/?sport=football')->assertInertia(fn (Assert $p) => $p->where('filters.sport', 'football')
+        ->where('venues', fn ($v) => collect($v)->pluck('id')->all() === [$venue->id])->where('openGames', 0));
 
+    // one sport shown: no question, straight to it
     SportSetting::find('football')->update(['visible' => false]);
-    $this->get('/')->assertInertia(fn (Assert $p) => $p->where('filters.sport', 'pingpong')
-        ->where('sports', fn ($s) => collect($s)->pluck('key')->all() === ['pingpong']));
+    $this->get('/')->assertInertia(fn (Assert $p) => $p->where('pick', false)->where('filters.sport', 'pingpong'));
     expect(Sport::visible())->toBe([Sport::Pingpong]);
 });
 

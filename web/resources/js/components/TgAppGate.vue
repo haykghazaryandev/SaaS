@@ -106,7 +106,9 @@ function setUp(w: TgWebApp) {
     w.onEvent?.('activated', reexpand);
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reexpand());
         // Telegram's own back button instead of the browser's
-    const syncBack = () => (location.pathname === '/' ? w.BackButton.hide() : w.BackButton.show());
+    // the home page "What do you play?" is the root; a sport's page (/?sport=…) goes back to it
+    const atRoot = () => location.pathname === '/' && !new URLSearchParams(location.search).has('sport');
+    const syncBack = () => (atRoot() ? w.BackButton.hide() : w.BackButton.show());
     w.BackButton.onClick(() => (history.length > 1 ? history.back() : router.visit('/')));
     router.on('navigate', syncBack);
     syncBack();

@@ -44,21 +44,22 @@ it('sends a scanned QR to the card for staff, to my cards for the player, to the
     $this->get('/c/'.str_repeat('a', 20))->assertNotFound();
 });
 
-it('changes card money only after a scan; the rating is set on the player page', function () {
+it('tops a card up only after a scan; the discount and the rating need none', function () {
     $base = '/owner/cards/'.$this->card->code;
-    // looking is fine, money is locked
     $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->component('owner/Card')->where('card.scanned', false));
     $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertSessionHasErrors('booking');
     expect($this->card->fresh()->balance)->toBe(0);
-    // the scan (the QR link) opens it
+    // the scan (the QR link) opens it for a top-up
     $this->actingAs($this->owner)->get('/c/'.$this->card->code)->assertRedirect(route('owner.cards.show', $this->card->code));
     $this->actingAs($this->owner)->post("$base/topup", ['amount' => 10000])->assertRedirect()->assertSessionHasNoErrors();
-    $this->actingAs($this->owner)->post("$base/discount", ['discount' => 10])->assertRedirect();
-    $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000, 'note' => 'balls'])->assertRedirect();
-    expect($this->card->fresh()->balance)->toBe(10000 - 2000)->and($this->card->fresh()->discount_pct)->toBe(10);
+    expect($this->card->fresh()->balance)->toBe(10000);
+    $this->actingAs($this->owner)->post("$base/discount", ['discount' => 10])->assertRedirect()->assertSessionHasNoErrors();
+    expect($this->card->fresh()->discount_pct)->toBe(10);
+    // no free "take from card": money comes off a card only on a game's check
+    $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000])->assertNotFound();
     $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450, 'intl_id' => 'ARM-7'])->assertRedirect();
     $this->actingAs($this->owner)->get("/owner/players/{$this->player->id}")->assertInertia(fn (Assert $p) => $p->component('owner/Player')
-        ->where('rating.rating', 1450)->where('card.balance', 8000));
+        ->where('rating.rating', 1450)->where('card.balance', 10000));
 });
 
 it('lists everybody who played here, with filters', function () {
@@ -74,7 +75,7 @@ it('lists everybody who played here, with filters', function () {
     $this->actingAs($this->owner)->get('/owner/players/'.User::factory()->create()->id)->assertNotFound();
 });
 
-it('takes the bill at the desk: items, scan, card + cash', function () {
+it('takes the check at the desk: items, card + cash', function () {
     $small = $this->club->fields->firstWhere('size.value', 'small');
     $b = Booking::create(['code' => 'BB-777', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $this->player->id,
         'starts_at' => at(10)->utc(), 'ends_at' => at(11)->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000]);
@@ -82,12 +83,28 @@ it('takes the bill at the desk: items, scan, card + cash', function () {
     app(Cards::class)->topUp($this->card, 14000, $this->owner);
     $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/items", ['product_id' => $p->id])->assertRedirect();
     $this->actingAs($this->owner)->get("/owner/bookings/{$b->id}/checkout")->assertInertia(fn (Assert $pg) => $pg->component('owner/Checkout')
-        ->where('bill.total', 15500)->where('bill.card.scanned', false)->has('products', 1));
-    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['card' => 14000, 'cash' => 1500])->assertSessionHasErrors('booking');
-    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/scan", ['code' => url('/c/'.$this->card->code)])->assertRedirect()->assertSessionHasNoErrors();
+        ->where('bill.total', 15500)->where('bill.card.balance', 14000)->has('products', 1));
+    // the player's card is known from the booking: 14 000 from it + 1 500 cash, no scan
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['card' => 14000, 'cash' => 1000])->assertSessionHasErrors('booking');
     $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/pay", ['card' => 14000, 'cash' => 1500])->assertRedirect()->assertSessionHasNoErrors();
     expect($b->fresh()->paid_at)->not->toBeNull()->and($this->card->fresh()->balance)->toBe(0);
     $this->actingAs($this->owner)->getJson("/owner/bookings/{$b->id}")->assertJsonPath('paid', true)->assertJsonPath('items.0.name', 'Cola');
+});
+
+it('shows every table now: a game with its live check, a free one starts a walk-in', function () {
+    $this->club->update(['rules' => ['min_notice_min' => 0]]);
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $start = App\Support\LocalTime::now()->startOfDay()->addHours(12);
+    $this->travelTo($start->addMinutes(20));
+    $b = Booking::create(['code' => 'BB-555', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $this->player->id,
+        'starts_at' => $start->utc(), 'ends_at' => $start->addHour()->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000]);
+    $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->component('owner/Now')
+        ->where('courts.0.state', 'playing')->where('courts.0.game.id', $b->id)->where('courts.0.game.bill.card.balance', 0)
+        ->where('courts.1.state', 'free'));
+    $big = $this->club->fields->firstWhere('size.value', 'big');
+    $this->actingAs($this->owner)->post('/owner/now/start', ['field_id' => $big->id, 'name' => 'Walk-in'])->assertRedirect()->assertSessionHasNoErrors();
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/stop")->assertRedirect(route('owner.bookings.checkout', $b->id));
+    $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->where('courts.0.state', 'to_pay')->where('courts.1.state', 'playing'));
 });
 
 it('shows the player their card with its QR, and the club page their balance', function () {

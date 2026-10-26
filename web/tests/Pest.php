@@ -78,3 +78,23 @@ function at(float $hour, int $plusDays = 0): Carbon\CarbonImmutable
 
     return App\Support\LocalTime::at($wed, $hour);
 }
+
+/** A ping-pong club with $tables tables (3 000 ֏ on weekdays), open 10:00–23:00. */
+function makeClub(int $tables = 3, array $attrs = []): App\Models\Venue
+{
+    $venue = App\Models\Venue::create([
+        'slug' => 'club-'.uniqid(), 'name' => 'Spin Club', 'district' => 'kentron',
+        'address' => ['en' => '1 Spin St', 'hy' => 'Սպին 1', 'ru' => 'Спин 1'], 'amenities' => [], 'rules' => ['min_notice_min' => 0], 'status' => 'active',
+        ...$attrs,
+    ]);
+    foreach (range(0, 6) as $wd) {
+        App\Models\OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '10:00', 'closes_at' => '23:00']);
+    }
+    $first = App\Models\Field::create(['venue_id' => $venue->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [30, 60], 'default_duration' => 60, 'sort' => 0]);
+    App\Models\PriceRule::create(['field_id' => $first->id, 'weekdays' => [0, 1, 2, 3, 4, 5, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => 3000, 'priority' => 1]);
+    for ($i = 1; $i < $tables; $i++) {
+        app(App\Domain\Venues\Courts::class)->add($venue, App\Enums\FieldSize::Table);
+    }
+
+    return $venue->load('fields', 'openingHours');
+}

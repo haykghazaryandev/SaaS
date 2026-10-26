@@ -24,6 +24,7 @@ const has = (f: string) => (owner.value.features ?? []).includes(f);
 // the club pages show only where the admin switched them on (admin → place → features)
 const club = computed(() =>
     [
+        { name: 'owner.now', label: 'owner.nav.now', icon: 'clock', on: has('wallet') || has('shop') },
         { name: 'owner.players', label: 'owner.nav.players', icon: 'users', on: has('wallet') || has('rating') },
         { name: 'owner.cards', label: 'owner.nav.cards', icon: 'wallet', on: has('wallet') },
         { name: 'owner.shop', label: 'owner.nav.shop', icon: 'cube', on: has('shop') },
@@ -34,15 +35,18 @@ const club = computed(() =>
         .map((n) => ({ ...n, badge: 0 })),
 );
 const nav = computed(() => [
+    // a club starts at the desk ("Now")
+    ...club.value.filter((n) => n.name === 'owner.now'),
     { name: 'owner.today', label: 'common.today', icon: 'home', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
     { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
-    ...club.value,
+    ...club.value.filter((n) => n.name !== 'owner.now'),
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
-// phones: Today · Schedule · Scan (cards) · More (the rest); without club pages the three tabs as before
+// phones: a club: Now · Schedule · Scan · More (Today and the rest); others: the three tabs as before
 const canScan = computed(() => has('wallet'));
-const tabs = computed(() => (club.value.length ? nav.value.slice(0, 2) : nav.value));
-const more = computed(() => (club.value.length ? nav.value.slice(2) : []));
+const isClub = computed(() => club.value.some((n) => n.name === 'owner.now'));
+const tabs = computed(() => (isClub.value ? nav.value.filter((n) => ['owner.now', 'owner.schedule'].includes(n.name)) : club.value.length ? nav.value.slice(0, 2) : nav.value));
+const more = computed(() => (club.value.length ? nav.value.filter((n) => !tabs.value.includes(n)) : []));
 const moreOpen = ref(false);
 const scanOpen = ref(false);
 const moreActive = computed(() => more.value.some((n) => current(n.name)));

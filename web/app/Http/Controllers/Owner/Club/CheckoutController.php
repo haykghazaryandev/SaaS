@@ -16,8 +16,8 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
- * A booking's bill at the desk: add what they took during the game, then take the money for time + items:
- * from the player's card (scan it first), in cash, or part each.
+ * A booking's check at the desk: what they took during the game, "Stop" when they finish, then the money for
+ * time + items: from the player's card (known from the booking), in cash, or part each.
  */
 class CheckoutController extends OwnerController
 {
@@ -70,13 +70,22 @@ class CheckoutController extends OwnerController
         return back()->with('success', __('owner.club.card_ok'));
     }
 
+    /** They finished: fix the time and show the check. */
+    public function stop(Request $request, Booking $booking, Checkout $checkout)
+    {
+        $this->ensureSameVenue($request, $booking);
+        $this->attempt(fn () => $checkout->stop($booking, $request->user()));
+
+        return redirect()->route('owner.bookings.checkout', $booking->id);
+    }
+
     public function pay(Request $request, Booking $booking, Checkout $checkout)
     {
         $this->ensureSameVenue($request, $booking);
         $data = $request->validate(['card' => 'required|integer|min:0', 'cash' => 'required|integer|min:0']);
         $this->attempt(fn () => $checkout->pay($booking, (int) $data['card'], (int) $data['cash'], $request->user()));
 
-        return redirect()->route('owner.schedule', ['date' => $booking->starts_at->setTimezone(\App\Support\LocalTime::tz())->toDateString()])
+        return redirect()->route($this->venue($request)->hasFeature('wallet') || $this->venue($request)->hasFeature('shop') ? 'owner.now' : 'owner.schedule')
             ->with('success', __('owner.club.paid'));
     }
 }
