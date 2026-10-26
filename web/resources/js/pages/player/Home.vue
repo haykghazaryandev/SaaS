@@ -2,27 +2,35 @@
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
 import { amd, hhmm } from '@/composables/useShared';
-import { SIZE_COLOR, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
+import { SIZE_COLOR, courtShort, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
+import { useSportTheme } from '@/lib/sport';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { DayInfo, VenueCard } from '@/types/player';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 // Home: finder + size tiles + places with the next free start times of their two fields.
 // A free-time chip opens the place page with the field, day, duration and time chosen; a field with nothing free
 // that day shows "Next free: Thu 19:00" instead.
 interface Filters {
+    sport: string;
     date: string;
     time: string | null;
     size: 'small' | 'big' | null;
     district: string | null;
+}
+interface SportTab {
+    key: string;
+    icon: string;
+    places: number;
 }
 const props = defineProps<{
     filters: Filters;
     days: DayInfo[];
     districts: string[];
     venues: VenueCard[];
-    tiles: Record<'small' | 'big', { places: number; tonight: number; from: number }>;
+    tiles: Partial<Record<'small' | 'big', { places: number; tonight: number; from: number }>>;
+    sports: SportTab[];
     stats: { venues: number; fields: number; tonight: number };
 }>();
 
@@ -33,6 +41,7 @@ const startTimes = Array.from({ length: 16 }, (_, i) => `${String(8 + i).padStar
 function go(change: Partial<Filters>, scroll = false) {
     const next = { ...props.filters, ...change };
     const q: Record<string, string> = {};
+    if (next.sport && next.sport !== props.sports[0]?.key) q.sport = next.sport;
     if (next.date && next.date !== props.days[0]?.date) q.date = next.date;
     if (next.time) q.time = next.time;
     if (next.size) q.size = next.size;
@@ -44,7 +53,7 @@ function go(change: Partial<Filters>, scroll = false) {
         preserveScroll: true,
         preserveState: true,
         replace: true,
-        only: ['filters', 'venues'],
+        only: change.sport ? undefined : ['filters', 'venues'],
         onStart: () => (loading.value = true),
         onFinish: () => {
             loading.value = false;
@@ -54,6 +63,14 @@ function go(change: Partial<Filters>, scroll = false) {
 }
 function find() {
     go({ size: (f.size || null) as Filters['size'], district: f.district || null, time: f.time || null }, true);
+}
+// the sport first: football keeps its sizes and pitch art, ping-pong shows tables (and its own colours)
+const sport = computed(() => props.filters.sport || 'football');
+const isFootball = computed(() => sport.value === 'football');
+const tx = (k: string) => (isFootball.value ? `player.home.${k}` : `player.home.${sport.value}.${k}`);
+useSportTheme(() => props.filters.sport);
+function pickSport(key: string) {
+    if (key !== props.filters.sport) go({ sport: key, size: null });
 }
 function toggleSize(z: 'small' | 'big') {
     go({ size: props.filters.size === z ? null : z });
@@ -80,14 +97,26 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
     <PlayerLayout>
         <Head :title="$t('player.home.title')" />
 
+            <!-- choose the game first: ⚽ Football · 🏓 Ping-pong (only the sports the admin shows) -->
+            <nav v-if="sports.length > 1" class="sport-pick tabs" :aria-label="$t('player.home.pick_sport')">
+                <a
+                    v-for="sp in sports"
+                    :key="sp.key"
+                    :href="route('home', sp.key === sports[0]?.key ? {} : { sport: sp.key })"
+                    :aria-current="sp.key === sport ? 'true' : undefined"
+                    @click.prevent="pickSport(sp.key)"
+                >
+                    <span class="em">{{ sp.icon }}</span>{{ $t(`common.sports.${sp.key}`) }}<small>{{ sp.places }}</small>
+                </a>
+            </nav>
         <section class="hero">
             <div class="hero-copy">
-                <span class="kicker">{{ $t('player.home.kicker') }}</span>
-                <h1>{{ $t('player.home.title_a') }}<br /><em>{{ $t('player.home.title_b') }}</em></h1>
-                <p>{{ $t('player.home.lead') }}</p>
-                <form class="finder" @submit.prevent="find">
+                <span class="kicker">{{ $t(tx('kicker')) }}</span>
+                <h1>{{ $t(tx('title_a')) }}<br /><em>{{ $t(tx('title_b')) }}</em></h1>
+                <p>{{ $t(tx('lead')) }}</p>
+                <form :class="['finder', { two: !isFootball }]" @submit.prevent="find">
                     <!-- a small label above each filter keeps the values short, so they fit in Armenian and Russian too -->
-                    <label class="fsel">
+                    <label v-if="isFootball" class="fsel">
                         <span>{{ $t('common.field') }}</span>
                         <select v-model="f.size" class="input [color-scheme:dark]">
                             <option class="bg-surface text-ink checked:text-accent" value="">{{ $t('player.home.any') }}</option>
@@ -112,22 +141,25 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                             <option class="bg-surface text-ink checked:text-accent" v-for="t in startTimes" :key="t" :value="t">{{ $t('player.home.start_at', { t }) }}</option>
                         </select>
                     </label>
-                    <button class="btn wide" :disabled="loading"><Icon name="search" />{{ $t('common.find_a_field') }}</button>
+                    <button class="btn wide" :disabled="loading"><Icon name="search" />{{ isFootball ? $t('common.find_a_field') : $t(tx('find')) }}</button>
                 </form>
                 <div class="stats">
                     <div v-if="stats.venues"><b>{{ stats.venues }}</b><span>{{ $t('player.home.stat_venues') }}</span></div>
-                    <div v-if="stats.fields"><b>{{ stats.fields }}</b><span>{{ $t('player.home.stat_fields') }}</span></div>
+                    <div v-if="stats.fields"><b>{{ stats.fields }}</b><span>{{ $t(tx('stat_fields')) }}</span></div>
                     <div v-if="stats.tonight"><b>{{ stats.tonight }}</b><span>{{ $t('player.home.stat_tonight') }}</span></div>
                 </div>
             </div>
             <div class="hero-art" aria-hidden="true">
-                <div class="stage">
+                <div v-if="isFootball" class="stage">
                     <CourtSvg size="big" /><CourtSvg size="small" /><CourtSvg size="small" color="#2a7f45" /><CourtSvg size="big" color="#2b7d3f" />
+                </div>
+                <div v-else class="stage">
+                    <CourtSvg size="table" /><CourtSvg size="table" color="#1d4f99" /><CourtSvg size="table" color="#22629f" /><CourtSvg size="table" />
                 </div>
             </div>
         </section>
 
-        <section class="section">
+        <section v-if="isFootball && Object.keys(tiles).length" class="section">
             <div class="sizes">
                 <button
                     v-for="z in ['small', 'big'] as const"
@@ -144,7 +176,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         <b>{{ $t(`player.size.${z}`) }} · {{ z === 'small' ? '5×5' : '11×11' }}</b>
                         <small>{{ $t(z === 'small' ? 'player.home.small_sub' : 'player.home.big_sub') }}</small>
                     </span>
-                    <span class="tags">
+                    <span v-if="tiles[z]" class="tags">
                         <span v-if="tiles[z].places" class="pill">{{ $t('player.home.places_count', { n: String(tiles[z].places) }) }}</span>
                         <span v-if="tiles[z].tonight" class="pill green">{{ $t('player.home.tonight', { n: String(tiles[z].tonight) }) }}</span>
                         <span class="pill">{{ $t('common.from_lower') }} {{ amd(tiles[z].from) }} {{ $t('common.per_hour') }}</span>
@@ -173,7 +205,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         <small>{{ d.k === 0 ? $t('common.today') : wdName(d.wd) }}</small><b>{{ d.day }}</b>
                     </button>
                 </div>
-                <div class="chips">
+                <div v-if="isFootball" class="chips">
                     <button type="button" class="chip" :aria-pressed="!filters.size" @click="go({ size: null })">{{ $t('common.all_fields') }}</button>
                     <button v-for="z in ['small', 'big'] as const" :key="z" type="button" class="chip" :aria-pressed="filters.size === z" @click="go({ size: z })">
                         <span class="sport-dot" :style="{ background: SIZE_COLOR[z] }" />{{ z === 'small' ? '5×5' : '11×11' }}
@@ -184,9 +216,15 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
             <div :class="['grid c3', { dim: loading }]">
                 <article v-for="v in venues" :key="v.id" class="card vcard">
                     <Link class="art" :href="placeUrl(v)" :prefetch="['hover', 'click']" :aria-label="v.name">
-                        <div class="court-art"><CourtSvg :size="filters.size || 'big'" :color="filters.size !== 'small' ? pitchColor(big(v)?.surface) : undefined" /></div>
+                        <div class="court-art">
+                            <CourtSvg v-if="isFootball" :size="filters.size || 'big'" :color="filters.size !== 'small' ? pitchColor(big(v)?.surface) : undefined" />
+                            <CourtSvg v-else size="table" />
+                        </div>
                         <div class="lights" />
-                        <div class="badges">
+                        <div v-if="!isFootball" class="badges">
+                            <span v-for="fl in v.fields" :key="fl.id" class="pill">🏓 {{ $t(tx('tables_n'), { n: String(fl.count ?? 1) }) }}</span>
+                        </div>
+                        <div v-else class="badges">
                             <span v-if="small(v)" class="pill"><Icon :name="small(v)!.indoor ? 'roof' : 'sun'" size="sm" />5×5</span>
                             <span v-if="big(v)" class="pill"><Icon name="ball" size="sm" />11×11<template v-if="big(v)!.surface === 'grass'"> · {{ $t('common.surfaces.grass') }}</template></span>
                         </div>
@@ -203,7 +241,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
                         </div>
                         <div class="slots">
                             <div v-for="fl in v.fields" :key="fl.id" class="fslots">
-                                <span class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ fl.format }}</span>
+                                <span class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ courtShort(fl) }}</span>
                                 <template v-if="fl.starts.length">
                                     <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl, h)" :prefetch="['hover', 'click']" :aria-label="`${fl.format} ${hhmm(h)}`">{{ hhmm(h) }}</Link>
                                     <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)" :prefetch="['hover', 'click']">{{ $t('player.home.more', { n: String(fl.more) }) }}</Link>
@@ -251,6 +289,11 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
 .finder .fsel span { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .finder .input { border: 0; background-color: transparent; min-width: 0; padding: 2px 30px 7px 0; font-weight: 700; }
 .finder .btn { grid-column: 1 / -1; }
+.finder.two { grid-template-columns: 1fr 1fr; }
+.sport-pick.tabs { margin-top: 18px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); max-width: 520px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 5px; gap: 5px; }
+.sport-pick.tabs a { justify-content: center; border: 0; background: transparent; padding: 10px 8px; border-radius: 13px; min-width: 0; }
+.sport-pick.tabs a[aria-current="true"] { background: var(--accent); color: var(--on-accent); }
+.sport-pick.tabs + .hero { margin-top: 12px; }
 .stats { display: flex; gap: 28px; margin-top: 6px; }
 .stats b { font-family: var(--display); font-size: 22px; display: block; }
 .stats span { color: var(--muted); font-size: 12.5px; font-weight: 700; }
@@ -261,6 +304,7 @@ const small = (v: VenueCard) => v.allFields.find((x) => x.size === 'small');
   .hero-copy { padding: 8px 22px 26px; }
   .finder { grid-template-columns: 1fr 1fr; }
   .finder .wide, .finder .fsel:first-child { grid-column: 1 / -1; }
+  .finder.two .fsel:first-child { grid-column: auto; }
 }
 @media (max-width: 440px) { .finder { grid-template-columns: 1fr; } .stats { gap: 18px; } }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

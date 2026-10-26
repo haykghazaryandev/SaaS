@@ -27,10 +27,13 @@ class SlotAlerts
     public function watch(User $user, Field $field, CarbonImmutable $start, int $minutes): SlotAlert
     {
         $field->loadMissing('venue');
+        if (! $field->venue->hasFeature('alerts')) {
+            throw new BookingException('feature_off');
+        }
         if ($start->isPast()) {
             throw new BookingException('past');
         }
-        if ($this->availability->isFree($field, $start, $minutes)) {
+        if ($this->availability->freeInGroup($field, $start, $minutes)[0]) {
             throw new BookingException('already_free');
         }
         if (SlotAlert::where('user_id', $user->id)->waiting()->count() >= self::MAX_WAITING) {
@@ -57,11 +60,14 @@ class SlotAlerts
         $at ??= $booking->starts_at->toImmutable();
         $day = $at->setTimezone(LocalTime::tz())->startOfDay();
         $n = 0;
-        $alerts = SlotAlert::with('user', 'field.venue')->where('field_id', $fieldId ?? $booking->field_id)->waiting()
+        // alerts on any court of the same kind: a freed table helps whoever waits for "a table"
+        $freed = Field::with('venue.fields')->find($fieldId ?? $booking->field_id);
+        $ids = $freed ? $this->availability->group($freed)->pluck('id')->push($freed->id)->unique()->all() : [$fieldId ?? $booking->field_id];
+        $alerts = SlotAlert::with('user', 'field.venue')->whereIn('field_id', $ids)->waiting()
             ->whereBetween('starts_at', [$day->utc(), $day->addDay()->utc()])->get();
         foreach ($alerts as $a) {
             $start = $a->starts_at->toImmutable()->setTimezone(LocalTime::tz());
-            if ($a->user_id === $booking->user_id || ! $this->availability->isFree($a->field, $start, $a->minutes)) {
+            if ($a->user_id === $booking->user_id || ! $this->availability->freeInGroup($a->field, $start, $a->minutes)[0]) {
                 continue;
             }
             $a->update(['notified_at' => now()]);

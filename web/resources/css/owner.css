@@ -91,7 +91,7 @@
 .oapp .games .t { font-family: var(--mono); font-size: 14px; }
 .oapp .games .t small { display: block; color: var(--faint); font-size: 11px; }
 .oapp .fdot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; flex: none; }
-.oapp .fdot.s { background: var(--field-small); } .oapp .fdot.b { background: var(--field-big); }
+.oapp .fdot.s { background: var(--field-small); } .oapp .fdot.b { background: var(--field-big); } .oapp .fdot.t { background: var(--field-table); }
 
 /* chart */
 .oapp .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
@@ -510,3 +510,14 @@
 .oapp .tc.taken { background: transparent; color: var(--faint); border: 1px dashed var(--line-2); text-decoration: line-through; cursor: default; }
 .oapp .tc.taken.on { color: var(--hot); border-color: var(--hot); text-decoration: none; background: var(--hot-soft); }
 .oapp .nofree { font-size: 13px; margin: 0; }
+
+/* settings: tables / fields of each kind */
+.oapp .ckind { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.oapp .ckind:last-of-type { border-bottom: 0; }
+.oapp .ckh { display: flex; align-items: center; gap: 8px; }
+.oapp .ckh small { font-size: 12.5px; }
+.oapp .ckh .btn { margin-left: auto; }
+.oapp .crt { display: flex; align-items: center; gap: 10px; }
+.oapp .crt .input { flex: 1; min-width: 0; }
+.oapp .crt .switch { white-space: nowrap; font-size: 13px; }
+.oapp .crt.off .input { opacity: .55; text-decoration: line-through; }

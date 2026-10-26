@@ -25,6 +25,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -74,6 +75,12 @@ class VenueResource extends Resource
                 TextInput::make('lat')->label(__('admin.venue.lat'))->numeric()->minValue(39)->maxValue(42),
                 TextInput::make('lng')->label(__('admin.venue.lng'))->numeric()->minValue(43)->maxValue(47),
             ]),
+            Section::make(__('admin.venue.show_features'))->description(__('admin.venue.show_features_help'))->schema([
+                Toggle::make('listed')->label(__('admin.venue.listed'))->helperText(__('admin.venue.listed_help'))->default(true),
+                CheckboxList::make('features')->label(__('admin.venue.features'))->options(Options::features())->descriptions(Options::featureHelp())
+                    ->columns(2)->bulkToggleable()->default(Venue::DEFAULT_FEATURES)
+                    ->formatStateUsing(fn ($state) => $state ?? Venue::DEFAULT_FEATURES),
+            ]),
             Section::make(__('admin.venue.texts'))->schema([
                 Tabs::make('langs')->tabs(collect($langs)->map(fn ($label, $l) => Tab::make($label)->schema([
                     TextInput::make("address.$l")->label(__('common.address'))->required($l === 'hy')->maxLength(200),
@@ -107,6 +114,9 @@ class VenueResource extends Resource
         }
         $data['rules'] = $rules;
         $data['amenities'] = array_values($data['amenities'] ?? []);
+        if (array_key_exists('features', $data)) {
+            $data['features'] = array_values(array_intersect(Venue::FEATURES, $data['features'] ?? []));
+        }
         foreach (['address', 'description'] as $f) {
             $data[$f] = array_filter($data[$f] ?? [], fn ($v) => $v !== null && $v !== '') ?: ($f === 'address' ? [] : null);
         }
@@ -118,7 +128,7 @@ class VenueResource extends Resource
     {
         return $table
             ->recordTitleAttribute('name')
-            ->modifyQueryUsing(fn (Builder $query) => $query->withCount(['fields', 'staff', 'bookings as pending_count' => fn ($b) => $b->where('status', 'pending')]))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('fields')->withCount(['fields', 'staff', 'bookings as pending_count' => fn ($b) => $b->where('status', 'pending')]))
             ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')->label(__('admin.venue.name'))->searchable()->sortable()->weight('bold')
@@ -129,6 +139,9 @@ class VenueResource extends Resource
                     ->color(fn ($state) => match ($state) {
                         'active' => 'success', 'paused' => 'warning', default => 'gray'
                     }),
+                ToggleColumn::make('listed')->label(__('admin.venue.listed_short')),
+                TextColumn::make('sports_list')->label(__('admin.sport.many'))
+                    ->getStateUsing(fn (Venue $v) => collect($v->sports())->map(fn ($s) => $s->icon())->implode(' ')),
                 TextColumn::make('fields_count')->label(__('common.fields'))->alignCenter(),
                 TextColumn::make('staff_count')->label(__('admin.venue.staff_count'))->alignCenter(),
                 TextColumn::make('pending_count')->label(__('admin.venue.pending_count'))->alignCenter()->badge()

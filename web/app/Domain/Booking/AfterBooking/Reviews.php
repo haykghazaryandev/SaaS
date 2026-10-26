@@ -20,7 +20,7 @@ class Reviews
 
     public function canRate(Booking $b, User $user): bool
     {
-        return $b->status === BookingStatus::Completed && $b->ends_at->isPast() && $b->ends_at->greaterThan(now()->subDays(self::DAYS))
+        return $b->loadMissing('venue')->venue->hasFeature('reviews') && $b->status === BookingStatus::Completed && $b->ends_at->isPast() && $b->ends_at->greaterThan(now()->subDays(self::DAYS))
             && $b->attendees()->contains('id', $user->id);
     }
 

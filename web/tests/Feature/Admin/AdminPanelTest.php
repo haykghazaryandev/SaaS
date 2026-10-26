@@ -35,7 +35,7 @@ it('does not let players or owners in', function () {
 it('opens every admin page for the admin', function () {
     $this->actingAs($this->admin);
     foreach (['/admin', '/admin/venues', '/admin/venues/create', '/admin/venues/'.$this->venue->slug.'/edit', '/admin/users',
-        '/admin/users/'.$this->admin->id, '/admin/bookings', '/admin/notification-logs', '/admin/owner-account'] as $url) {
+        '/admin/users/'.$this->admin->id, '/admin/bookings', '/admin/notification-logs', '/admin/owner-account', '/admin/sports'] as $url) {
         $this->get($url)->assertOk();
     }
 });
@@ -153,4 +153,22 @@ it('saves a place with cleaned rules and adds a price rule', function () {
         ->assertHasNoTableActionErrors();
     $rule = PriceRule::where('field_id', $big->id)->where('priority', 5)->firstOrFail();
     expect($rule->weekdays)->toBe([5, 6])->and($rule->price_per_hour)->toBe(60000);
+});
+
+it('adds several tables at once, and switches sports and place features', function () {
+    $this->actingAs($this->admin);
+    $club = makeVenue();
+    $club->fields()->where('size', 'big')->delete();
+    $club->fields()->update(['size' => 'table', 'format' => '🏓']);
+    Livewire::test(App\Filament\Resources\Venues\RelationManagers\FieldsRelationManager::class, ['ownerRecord' => $club->fresh(), 'pageClass' => EditVenue::class])
+        ->assertOk()
+        ->callTableAction('addMany', data: ['size' => 'table', 'count' => 2])
+        ->assertHasNoTableActionErrors();
+    expect($club->fields()->where('size', 'table')->count())->toBe(3)
+        ->and($club->fields()->latest('id')->first()->priceRules()->count())->toBe(3);   // copies the first table's prices
+
+    Livewire::test(App\Filament\Resources\Sports\Pages\ListSports::class)->assertOk()->assertCanSeeTableRecords(App\Models\SportSetting::all());
+    Livewire::test(EditVenue::class, ['record' => $club->slug])
+        ->fillForm(['features' => ['booking'], 'listed' => false])->call('save')->assertHasNoFormErrors();
+    expect($club->fresh()->features)->toBe(['booking'])->and($club->fresh()->listed)->toBeFalse();
 });

@@ -8,11 +8,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Field extends HasFactoryModel
 {
-    protected $fillable = ['venue_id', 'size', 'format', 'surface', 'indoor', 'max_players', 'durations', 'default_duration', 'sort', 'active'];
+    protected $fillable = ['venue_id', 'name', 'size', 'format', 'surface', 'indoor', 'max_players', 'durations', 'default_duration', 'sort', 'active'];
 
     protected function casts(): array
     {
         return ['size' => FieldSize::class, 'indoor' => 'boolean', 'durations' => 'array', 'active' => 'boolean'];
+    }
+
+    public function sport(): \App\Enums\Sport
+    {
+        return $this->size->sport();
+    }
+
+    /** Courts of one kind at a place are one group: players book "a table", the place gets any free one. */
+    public function groupKey(): string
+    {
+        return $this->venue_id.':'.$this->size->value;
     }
 
     public function venue(): BelongsTo

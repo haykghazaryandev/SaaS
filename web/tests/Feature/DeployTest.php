@@ -15,7 +15,7 @@ it('migrates, seeds and registers the bot on an https deploy', function () {
 
     $this->artisan('app:deploy')->assertSuccessful();
 
-    expect(Venue::count())->toBe(8)->and(User::where('is_admin', true)->count())->toBe(1);
+    expect(Venue::count())->toBe(9)->and(User::where('is_admin', true)->count())->toBe(1);
     Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/setWebhook') && $r['url'] === 'https://staging.bookball.am/telegram/webhook/hook-secret');
     Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/setMyCommands'));
 });
@@ -27,7 +27,7 @@ it('can run again without doubling data', function () {
 
     $this->artisan('app:deploy')->assertSuccessful();
 
-    expect(User::count())->toBe($users)->and(Venue::count())->toBe(8);
+    expect(User::count())->toBe($users)->and(Venue::count())->toBe(9);
 });
 
 it('leaves the bot alone on http (local polling keeps working)', function () {

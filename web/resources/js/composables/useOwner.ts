@@ -7,9 +7,12 @@ import { computed, reactive } from 'vue';
 // ---------- types (owner web) ----------
 export interface OwnerField {
     id: number;
-    size: 'small' | 'big';
+    size: 'small' | 'big' | 'table';
+    sport?: string;
     format: string;
     label: string;
+    /** "Table 3" or "5×5": tabs and chips */
+    short?: string;
     durations: number[];
     default_duration: number;
     active: boolean;
@@ -298,4 +301,4 @@ export function pillOf(b: { kind: Kind; status: string }): { cls: string; label:
 }
 
 /** "5×5" field dot class. */
-export const dotOf = (size: string) => (size === 'small' ? 's' : 'b');
+export const dotOf = (size: string) => (size === 'small' ? 's' : size === 'table' ? 't' : 'b');

@@ -44,7 +44,7 @@
   --hot: #ff6b6b; --hot-soft: rgba(255, 107, 107, 0.14);
   --football: #5ef0a8; --small: #5ef0a8; --big: #c8ff3d;
   /* field sizes and booking states: use these everywhere (see docs/ux-review-2026-10-22.md, G1) */
-  --field-small: #5ef0a8; --field-big: #c8ff3d;
+  --field-small: #5ef0a8; --field-big: #c8ff3d; --field-table: #ff9f43;
   --st-pending: #ffb547; --st-pending-soft: rgba(255, 181, 71, 0.14);
   --st-confirmed: #5ef0a8; --st-confirmed-soft: rgba(94, 240, 168, 0.13);
   --st-manual: #b69cff; --st-manual-soft: rgba(182, 156, 255, 0.14);
@@ -415,3 +415,15 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 }
 /* fullscreen pages (the chat on phones) never scroll sideways, even if something inside is too wide */
 @media (max-width: 900px) { html:has(.papp.fs), html:has(.papp.fs) body { overflow-x: clip; } }
+
+/* ---------- sport themes: the page sets <html data-sport="…"> (lib/sport.ts); football keeps the lime look ---------- */
+:root[data-sport="pingpong"] {
+  --accent: #ff9f43; --accent-2: #ffd166; --on-accent: #1d0f00;
+  --grad: linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%);
+}
+.sport-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+.sport-pick a { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font-weight: 800; font-size: 14.5px; }
+.sport-pick a .em { font-size: 18px; line-height: 1; }
+.sport-pick a small { color: var(--muted); font-weight: 700; font-size: 12px; }
+.sport-pick a[aria-current="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.sport-pick a[aria-current="true"] small { color: var(--on-accent); opacity: .75; }

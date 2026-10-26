@@ -22,6 +22,7 @@ class BookingTeam
     /** @param int[] $userIds friends of the booker; returns how many were invited */
     public function inviteFriends(Booking $b, User $by, array $userIds): int
     {
+        $this->ensureFeature($b);
         $this->ensureBooker($b, $by);
         $n = 0;
         foreach (User::whereIn('id', array_intersect($userIds, $by->friendIds()))->get() as $friend) {
@@ -75,6 +76,7 @@ class BookingTeam
     /** Someone opened the invite link while logged in: they are in, no answer needed. */
     public function join(Booking $b, User $user): void
     {
+        $this->ensureFeature($b);
         if ($b->user_id === $user->id) {
             return;   // the booker
         }
@@ -122,6 +124,14 @@ class BookingTeam
         $max = max(2, (int) ($b->field->max_players ?: 22)) - 1;   // the booker is one of them
         if (BookingPlayer::where('booking_id', $b->id)->whereIn('status', ['invited', 'joined'])->count() >= $max) {
             throw new BookingException('team_full');
+        }
+    }
+
+    /** The place has the booking team switched off (admin → place → features). */
+    private function ensureFeature(Booking $b): void
+    {
+        if (! $b->loadMissing('venue')->venue->hasFeature('team')) {
+            throw new BookingException('feature_off');
         }
     }
 }

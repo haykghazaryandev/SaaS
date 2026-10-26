@@ -13,7 +13,7 @@ it('seeds again without losing or doubling anything', function () {
     $this->seed(DatabaseSeeder::class);
     $counts = fn () => [Venue::count(), User::count(), Booking::count(), Game::count(), Friendship::count(), Conversation::count()];
     $before = $counts();
-    expect($before[0])->toBe(8)->and($before[2])->toBeGreaterThan(0)->and($before[3])->toBeGreaterThan(0);
+    expect($before[0])->toBe(9)->and($before[2])->toBeGreaterThan(0)->and($before[3])->toBeGreaterThan(0);
 
     // an owner changed hours, a player renamed themselves
     $hour = Venue::where('slug', 'zangak')->first()->openingHours()->first();

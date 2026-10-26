@@ -97,6 +97,39 @@ class Availability
         return $midnight->addMinutes(intdiv((int) $midnight->diffInMinutes($now), $step) * $step);
     }
 
+    /**
+     * The courts players book as one (same place, same kind, active): a ping-pong place's tables, a football field alone.
+     * Ordered by the place's sort, so the first free table is given first.
+     */
+    public function group(Field $field): Collection
+    {
+        $venue = $field->loadMissing('venue')->venue;
+        $all = $venue->relationLoaded('fields') ? $venue->fields : $venue->fields()->get();
+        $group = $all->filter(fn (Field $f) => $f->active && $f->size === $field->size)->sortBy(fn (Field $f) => [$f->sort, $f->id])->values();
+        $group->each(fn (Field $f) => $f->setRelation('venue', $venue));
+
+        return $group->isEmpty() ? collect([$field]) : $group;
+    }
+
+    /**
+     * A court of the group that is free for this time: the asked one when free, else the next free one of its kind.
+     * Returns [field, null] or [null, the asked court's problem].
+     */
+    public function freeInGroup(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true): array
+    {
+        $problem = $this->problem($field, $start, $minutes, $forPlayer);
+        if ($problem !== 'taken') {
+            return $problem === null ? [$field, null] : [null, $problem];
+        }
+        foreach ($this->group($field) as $other) {
+            if ($other->id !== $field->id && $this->problem($other, $start, $minutes, $forPlayer) === null) {
+                return [$other, null];
+            }
+        }
+
+        return [null, 'taken'];
+    }
+
     public function isFree(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true, ?int $ignoreBookingId = null): bool
     {
         return $this->problem($field, $start, $minutes, $forPlayer, $ignoreBookingId) === null;

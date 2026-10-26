@@ -24,11 +24,23 @@ class Venue extends HasFactoryModel
         'late_grace_min' => 15,        // after the start: how long the place waits before "team not here?"
     ];
 
-    protected $fillable = ['slug', 'name', 'district', 'address', 'description', 'lat', 'lng', 'phone', 'rating_avg', 'rating_count', 'amenities', 'rules', 'status'];
+    /**
+     * What a place can offer players; the admin switches each one per place (venues.features, null = all of them).
+     * A feature made for one client is added here and stays off for the other places until switched on.
+     */
+    public const FEATURES = [
+        'booking',   // players book times
+        'team',      // booking team: invite friends, invite link
+        'alerts',    // "notify me if it frees up"
+        'reviews',   // "How was the place?" after playing
+        'games',     // players create and join games here
+    ];
+
+    protected $fillable = ['slug', 'name', 'district', 'address', 'description', 'lat', 'lng', 'phone', 'rating_avg', 'rating_count', 'amenities', 'rules', 'features', 'status', 'listed'];
 
     protected function casts(): array
     {
-        return ['address' => 'array', 'description' => 'array', 'amenities' => 'array', 'rules' => 'array', 'rating_avg' => 'float'];
+        return ['address' => 'array', 'description' => 'array', 'amenities' => 'array', 'rules' => 'array', 'features' => 'array', 'listed' => 'boolean', 'rating_avg' => 'float'];
     }
 
     public function getRouteKeyName(): string
@@ -75,5 +87,38 @@ class Venue extends HasFactoryModel
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /** Active and shown on the home page (an unlisted place still opens by its link). */
+    public function scopeListed($query)
+    {
+        return $query->active()->where('listed', true);
+    }
+
+    /** What a place has while the admin never set its features (new features start off). */
+    public const DEFAULT_FEATURES = ['booking', 'team', 'alerts', 'reviews', 'games'];
+
+    public function hasFeature(string $feature): bool
+    {
+        return in_array($feature, $this->features ?? self::DEFAULT_FEATURES, true);
+    }
+
+    /** @return string[] the features the place has on */
+    public function featureList(): array
+    {
+        return array_values(array_filter(self::FEATURES, fn ($f) => $this->hasFeature($f)));
+    }
+
+    /** @return \App\Enums\Sport[] the sports of the place's active courts */
+    public function sports(): array
+    {
+        $sports = [];
+        foreach ($this->fields as $f) {
+            if ($f->active) {
+                $sports[$f->size->sport()->value] = $f->size->sport();
+            }
+        }
+
+        return array_values($sports);
     }
 }

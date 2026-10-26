@@ -21,10 +21,13 @@ class PlaceController extends Controller
         abort_unless($venue->status === 'active', 404);
         $venue->load(['openingHours', 'fields' => fn ($q) => $q->where('active', true), 'fields.priceRules']);
         $day = $present->pickDay($request->query('date'));
-        $fields = $venue->fields;
+        // one choice per kind of court: all ping-pong tables are "a table" (the first one stands for the group)
+        $groups = $present->groups($venue->fields);
+        $fields = $groups->map->first()->values();
 
-        // the field asked for (?field= or ?size=), else the small one
-        $field = $fields->firstWhere('id', (int) $request->query('field'))
+        // the court asked for (?field= any court of the group, or ?size=), else the first kind
+        $asked = (int) $request->query('field');
+        $field = ($asked ? $groups->first(fn ($g) => $g->contains('id', $asked))?->first() : null)
             ?? $fields->firstWhere('size.value', $request->query('size'))
             ?? $fields->first();
         $minutes = (int) $request->query('minutes');
@@ -51,7 +54,9 @@ class PlaceController extends Controller
                 'phoneLabel' => $venue->phone ? Phone::format($venue->phone) : null,
                 'rules' => ['freeCancelHours' => (int) $venue->rule('free_cancel_hours'), 'minNoticeMin' => (int) $venue->rule('min_notice_min'), 'horizonDays' => (int) $venue->rule('horizon_days')],
             ],
-            'fields' => $fields->map(fn ($f) => $present->field($f))->values()->all(),
+            'fields' => $fields->map(fn ($f) => [...$present->field($f), 'count' => $groups[$f->id]->count()])->values()->all(),
+            'sport' => $field?->sport()->value ?? 'football',
+            'features' => $venue->featureList(),
             'days' => $present->days(),
             'initial' => [
                 'date' => $day->toDateString(),
@@ -59,7 +64,7 @@ class PlaceController extends Controller
                 'minutes' => $field && in_array($minutes, $field->durations ?? [], true) ? $minutes : $field?->default_duration,
                 'start' => is_string($start) && preg_match('/^\d{2}:\d{2}$/', $start) ? $start : null,
             ],
-            'slots' => $present->slots($venue, $day) + ['mine' => $this->mine($request, $venue, $day)],
+            'slots' => $present->slots($venue, $day) + ['mine' => $this->mine($request, $venue, $day, $groups)],
             'booked' => $booked,
             // why a new request can't be sent right now (told before tapping "Book", not after): too many waiting, or a pause
             'limit' => $this->limit($request, $venue),
@@ -90,7 +95,7 @@ class PlaceController extends Controller
 
         // "mine" and "limit" come with every refresh: a request withdrawn on another page shows up here at once
         return response()->json($present->slots($venue, $day, $fieldId, $request->integer('minutes') ?: null)
-            + ['mine' => $this->mine($request, $venue, $day), 'limit' => $this->limit($request, $venue)]);
+            + ['mine' => $this->mine($request, $venue, $day, $present->groups($venue->fields)), 'limit' => $this->limit($request, $venue)]);
     }
 
     /** Waiting requests and a booking pause: why "Book" can't send a new request (null for guests). */
@@ -109,18 +114,25 @@ class PlaceController extends Controller
      * The player's own requests and bookings on this day at this place: their times are "yours" (blue), and a tap
      * shows the booking (waiting / confirmed, code, cancel) instead of "notify me if it frees up".
      */
-    private function mine(Request $request, Venue $venue, \Carbon\CarbonImmutable $day): array
+    private function mine(Request $request, Venue $venue, \Carbon\CarbonImmutable $day, ?\Illuminate\Support\Collection $groups = null): array
     {
+        // a booking on "Table 3" shows on the tables group the page offers
+        $repOf = [];
+        foreach ($groups ?? [] as $repId => $group) {
+            foreach ($group as $court) {
+                $repOf[$court->id] = $repId;
+            }
+        }
         if (! $request->user()) {
             return [];
         }
 
         return Booking::where('user_id', $request->user()->id)->where('venue_id', $venue->id)->holding()
             ->where('starts_at', '<', $day->addDay()->utc())->where('ends_at', '>', $day->utc())->orderBy('starts_at')->get()
-            ->map(function (Booking $b) use ($day) {
+            ->map(function (Booking $b) use ($day, $repOf) {
                 $from = LocalTime::hourOf($b->starts_at->toImmutable()->setTimezone(LocalTime::tz()), $day);
 
-                return ['id' => $b->id, 'code' => $b->code, 'status' => $b->status->value, 'field' => $b->field_id,
+                return ['id' => $b->id, 'code' => $b->code, 'status' => $b->status->value, 'field' => $repOf[$b->field_id] ?? $b->field_id,
                     'start' => round($from, 2), 'end' => round($from + $b->durationMinutes() / 60, 2)];
             })->values()->all();
     }

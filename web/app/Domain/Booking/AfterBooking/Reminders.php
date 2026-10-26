@@ -87,6 +87,9 @@ class Reminders
                 continue;
             }
             $b->update(['rating_asked_at' => now()]);
+            if (! $b->venue->hasFeature('reviews')) {
+                continue;   // the place has reviews switched off
+            }
             $stars = array_map(fn ($s) => [str_repeat('⭐', $s), "rate:{$b->id}:{$s}"], [1, 2, 3, 4, 5]);
             foreach ($b->attendees() as $person) {
                 $person->notify(new Notice('booking_rate', BookingPeople::params($b), '/rate/'.$b->id, [array_slice($stars, 0, 3), array_slice($stars, 3)]));

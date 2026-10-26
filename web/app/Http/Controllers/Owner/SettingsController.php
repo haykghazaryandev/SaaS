@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Owner;
 
+use App\Domain\Venues\Courts;
 use App\Domain\Venues\PriceCalculator;
+use App\Enums\FieldSize;
 use App\Models\Booking;
 use App\Models\Closure;
 use App\Models\Field;
@@ -52,14 +54,29 @@ class SettingsController extends OwnerController
                 'tel' => $venue->phone,
                 'status' => $venue->status,
             ],
-            'prices' => $venue->fields->map(fn (Field $f) => [
-                'field_id' => $f->id,
-                'label' => BookingPresenter::fieldLabel($f),
-                'surface' => $f->surface,
-                'indoor' => $f->indoor,
-                'day' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 12)),
-                'evening' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 20)),
-                'weekend' => $prices->hourlyAt($f->priceRules, LocalTime::at($sat, 12)),
+            // one price row per kind of court: a price for "Table" applies to every table
+            'prices' => $venue->fields->groupBy(fn (Field $f) => $f->size->value)->map(function ($group) use ($prices, $wed, $sat) {
+                $f = $group->sortBy(fn (Field $x) => [$x->sort, $x->id])->first();
+
+                return [
+                    'field_id' => $f->id,
+                    'label' => $group->count() > 1 ? __('owner.courts.kind_'.$f->size->value) : BookingPresenter::fieldLabel($f),
+                    'count' => $group->count(),
+                    'surface' => $f->surface,
+                    'indoor' => $f->indoor,
+                    'day' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 12)),
+                    'evening' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 20)),
+                    'weekend' => $prices->hourlyAt($f->priceRules, LocalTime::at($sat, 12)),
+                ];
+            })->values(),
+            // the courts of each kind: add, rename, switch off, remove (Courts)
+            'courts' => $venue->fields->groupBy(fn (Field $f) => $f->size->value)->map(fn ($group, $size) => [
+                'size' => $size,
+                'sport' => $group->first()->sport()->value,
+                'label' => __('owner.courts.kind_'.$size),
+                'items' => $group->sortBy(fn (Field $x) => [$x->sort, $x->id])->values()->map(fn (Field $f) => [
+                    'id' => $f->id, 'name' => $f->name, 'label' => BookingPresenter::fieldLabel($f), 'active' => $f->active,
+                ]),
             ])->values(),
             'hours' => collect(range(0, 6))->map(function ($wd) use ($venue) {
                 $oh = $venue->openingHours->firstWhere('weekday', $wd);
@@ -84,7 +101,7 @@ class SettingsController extends OwnerController
         $this->ensureOwner($request);
         $venue = $this->venue($request)->load('fields');
         $data = $request->validate($this->priceRules($venue), $this->priceMessages());
-        DB::transaction(fn () => $this->savePrices($data['prices']));
+        DB::transaction(fn () => $this->savePrices($venue, $data['prices']));
 
         return back()->with('success', __('owner.flash.prices_saved'));
     }
@@ -145,7 +162,7 @@ class SettingsController extends OwnerController
         }
         DB::transaction(function () use ($venue, $data, $phone) {
             if (isset($data['prices'])) {
-                $this->savePrices($data['prices']);
+                $this->savePrices($venue, $data['prices']);
             }
             if (isset($data['hours'])) {
                 $this->saveHours($venue, $data['hours']);
@@ -179,15 +196,50 @@ class SettingsController extends OwnerController
         return ['prices.*.*' => __('owner.form.bad_price')];
     }
 
-    private function savePrices(array $prices): void
+    /** A row's prices go to every court of its kind (all tables cost the same). */
+    private function savePrices(Venue $venue, array $prices): void
     {
         foreach ($prices as $p) {
-            PriceRule::where('field_id', $p['field_id'])->delete();
-            $base = ['field_id' => $p['field_id'], 'weekdays' => [1, 2, 3, 4, 5]];
-            PriceRule::create([...$base, 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => $p['day'], 'priority' => 1]);
-            PriceRule::create([...$base, 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => $p['evening'], 'priority' => 1]);
-            PriceRule::create(['field_id' => $p['field_id'], 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $p['weekend'], 'priority' => 2]);
+            $size = $venue->fields->firstWhere('id', (int) $p['field_id'])->size;
+            foreach ($venue->fields->where('size', $size) as $court) {
+                PriceRule::where('field_id', $court->id)->delete();
+                $base = ['field_id' => $court->id, 'weekdays' => [1, 2, 3, 4, 5]];
+                PriceRule::create([...$base, 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => $p['day'], 'priority' => 1]);
+                PriceRule::create([...$base, 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => $p['evening'], 'priority' => 1]);
+                PriceRule::create(['field_id' => $court->id, 'weekdays' => [0, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => $p['weekend'], 'priority' => 2]);
+            }
         }
+    }
+
+    // ---------- courts: add / rename / switch off / remove (owner only) ----------
+
+    public function storeCourt(Request $request, Courts $courts)
+    {
+        $this->ensureOwner($request);
+        $venue = $this->venue($request);
+        $data = $request->validate(['size' => ['required', Rule::in($venue->fields()->pluck('size')->unique()->all())], 'name' => 'nullable|string|max:40']);
+        $this->attempt(fn () => $courts->add($venue, FieldSize::from($data['size']), $data['name'] ?? null));
+
+        return back()->with('success', __('owner.courts.added'));
+    }
+
+    public function updateCourt(Request $request, Field $field, Courts $courts)
+    {
+        $this->ensureOwner($request);
+        abort_unless($field->venue_id === $this->venue($request)->id, 403);
+        $data = $request->validate(['name' => 'sometimes|nullable|string|max:40', 'active' => 'sometimes|boolean']);
+        $this->attempt(fn () => $courts->update($field, $data));
+
+        return back()->with('success', __('owner.flash.saved'));
+    }
+
+    public function destroyCourt(Request $request, Field $field, Courts $courts)
+    {
+        $this->ensureOwner($request);
+        abort_unless($field->venue_id === $this->venue($request)->id, 403);
+        $how = $this->attempt(fn () => $courts->remove($field));
+
+        return back()->with('success', __($how === 'off' ? 'owner.courts.switched_off' : 'owner.courts.removed'));
     }
 
     private function hourRules(): array

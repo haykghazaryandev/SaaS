@@ -10,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -34,13 +35,15 @@ class PriceRulesRelationManager extends RelationManager
 
     private function fieldOptions(): array
     {
-        return $this->getOwnerRecord()->fields()->get()->mapWithKeys(fn ($f) => [$f->id => __('telegram.field.'.$f->size->value)])->all();
+        return $this->getOwnerRecord()->fields()->get()->mapWithKeys(fn ($f) => [$f->id => \App\Http\Controllers\Owner\BookingPresenter::fieldLabel($f)])->all();
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
             Select::make('field_id')->label(__('admin.field.one'))->options(fn () => $this->fieldOptions())->required(),
+            Toggle::make('whole_kind')->label(__('admin.price.whole_kind'))->helperText(__('admin.price.whole_kind_help'))->default(true)
+                ->visibleOn('create')->columnSpanFull(),
             TextInput::make('price_per_hour')->label(__('admin.price.per_hour'))->integer()->minValue(0)->step(500)->suffix('֏')->required(),
             CheckboxList::make('weekdays')->label(__('admin.price.weekdays'))->options(Options::weekdays())->columns(7)->required()->columnSpanFull()
                 ->bulkToggleable(),
@@ -67,7 +70,7 @@ class PriceRulesRelationManager extends RelationManager
             ->modifyQueryUsing(fn ($query) => $query->with('field'))
             ->defaultSort('field_id')
             ->columns([
-                TextColumn::make('field.size')->label(__('admin.field.one'))->formatStateUsing(fn (PriceRule $record) => __('telegram.field.'.$record->field->size->value)),
+                TextColumn::make('field.size')->label(__('admin.field.one'))->formatStateUsing(fn (PriceRule $record) => \App\Http\Controllers\Owner\BookingPresenter::fieldLabel($record->field)),
                 TextColumn::make('days')->label(__('admin.price.weekdays'))
                     ->getStateUsing(fn (PriceRule $record) => collect($record->weekdays)->map(fn ($d) => __('common.weekdays_short.'.$d))->implode(' ')),
                 TextColumn::make('from_time')->label(__('admin.price.time'))->formatStateUsing(fn (PriceRule $record) => Options::hhmm($record->from_time).'–'.Options::hhmm($record->to_time)),
@@ -79,7 +82,20 @@ class PriceRulesRelationManager extends RelationManager
             ])
             ->headerActions([
                 // price_rules belong to fields, so create them directly (a has-many-through can't create)
-                CreateAction::make()->using(fn (array $data) => PriceRule::create(self::clean($data))),
+                // "same for all courts of this kind": one rule per table
+                CreateAction::make()->using(function (array $data) {
+                    $whole = (bool) ($data['whole_kind'] ?? false);
+                    unset($data['whole_kind']);
+                    $field = $this->getOwnerRecord()->fields()->findOrFail($data['field_id']);
+                    $ids = $whole ? $this->getOwnerRecord()->fields()->where('size', $field->size->value)->pluck('id')->all() : [$field->id];
+                    $first = null;
+                    foreach ($ids as $id) {
+                        $rule = PriceRule::create(self::clean([...$data, 'field_id' => $id]));
+                        $first ??= $rule;
+                    }
+
+                    return $first;
+                }),
             ])
             ->recordActions([
                 EditAction::make()->mutateDataUsing(fn (array $data) => self::clean($data)),

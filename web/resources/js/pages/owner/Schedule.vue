@@ -65,7 +65,8 @@ const props = defineProps<{
     list?: { from: string; to: string; rows: BookingRow[] };
 }>();
 const owner = useOwner();
-const fields = computed(() => owner.value.fields);
+// courts in use (a table switched off in Settings disappears from the schedule)
+const fields = computed(() => owner.value.fields.filter((f) => f.active));
 
 usePoll(30000, { only: ['day', 'week', 'list', 'pendingDays', 'owner', 'nowHour'] });
 
@@ -345,7 +346,7 @@ const WEEK_CHIPS = 4;
                 data-test="lane-toggle"
                 @click="lane = f.id"
             >
-                <i :class="['fdot', dotOf(f.size)]" />{{ f.format
+                <i :class="['fdot', dotOf(f.size)]" />{{ f.short ?? f.format
                 }}<span v-if="view === 'day' && laneWaiting(f.id)" class="lw">{{ laneWaiting(f.id) }}</span>
             </button>
         </div>
@@ -443,7 +444,7 @@ const WEEK_CHIPS = 4;
                     <template v-else>
                         <div v-for="f in fields" :key="d.date + f.id" class="wf">
                             <div class="wfh">
-                                <i :class="['fdot', dotOf(f.size)]" /><b>{{ f.format }}</b>
+                                <i :class="['fdot', dotOf(f.size)]" /><b>{{ f.short ?? f.format }}</b>
                                 <span class="muted">{{ $t('owner.schedule.bookings_n', { n: String(d.fields[f.id]?.count ?? 0) }) }}</span>
                                 <span v-if="d.fields[f.id]?.pending" class="pill warn">{{ $t('owner.schedule.pending_count', { n: String(d.fields[f.id].pending) }) }}</span>
                             </div>

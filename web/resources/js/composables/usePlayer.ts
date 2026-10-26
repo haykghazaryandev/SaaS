@@ -3,7 +3,12 @@ import { trans } from '@/lib/i18n';
 // Helpers for the player pages: dates (local calendar days as "2026-10-21"), durations, field colours.
 
 /** field size colours (tokens in bookball.css): small 5×5 = green, big 11×11 = lime */
-export const SIZE_COLOR: Record<string, string> = { small: 'var(--field-small)', big: 'var(--field-big)' };
+export const SIZE_COLOR: Record<string, string> = { small: 'var(--field-small)', big: 'var(--field-big)', table: 'var(--field-table)' };
+/** "Small 5×5", "Big 11×11", "Table" (ping-pong tables have no format to show) */
+export const courtName = (f: { size: string; format: string }) => (f.size === 'table' ? trans('player.size.table') : `${trans(`player.size.${f.size}`)} ${f.format}`);
+/** the short label of a court kind on cards and chips: "5×5", "11×11", "🏓" */
+export const courtShort = (f: { size: string; format: string }) => (f.size === 'table' ? '🏓' : f.format);
+export const SPORT_ICON: Record<string, string> = { football: '⚽', pingpong: '🏓' };
 
 /** grass pitches are drawn darker */
 export const pitchColor = (surface?: string | null) => (surface === 'grass' ? '#2b7d3f' : undefined);

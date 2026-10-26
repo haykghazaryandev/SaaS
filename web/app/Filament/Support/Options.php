@@ -41,7 +41,17 @@ final class Options
 
     public static function fieldSizes(): array
     {
-        return ['small' => __('telegram.field.small'), 'big' => __('telegram.field.big')];
+        return ['small' => __('telegram.field.small'), 'big' => __('telegram.field.big'), 'table' => __('telegram.field.table')];
+    }
+
+    public static function features(): array
+    {
+        return collect(\App\Models\Venue::FEATURES)->mapWithKeys(fn ($f) => [$f => __('admin.feature.'.$f)])->all();
+    }
+
+    public static function featureHelp(): array
+    {
+        return collect(\App\Models\Venue::FEATURES)->mapWithKeys(fn ($f) => [$f => __('admin.feature.'.$f.'_help')])->all();
     }
 
     /** "18:00:00" → "18:00" */

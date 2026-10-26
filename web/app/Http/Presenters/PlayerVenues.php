@@ -52,7 +52,7 @@ class PlayerVenues
         $range = $this->prices->range($f);
 
         return [
-            'id' => $f->id, 'size' => $f->size->value, 'format' => $f->format ?: $f->size->format(), 'surface' => $f->surface ?: 'turf',
+            'id' => $f->id, 'size' => $f->size->value, 'sport' => $f->sport()->value, 'format' => $f->format ?: $f->size->format(), 'surface' => $f->surface ?: 'turf',
             'indoor' => (bool) $f->indoor, 'players' => $f->max_players ?: $f->size->maxPlayers(),
             'durations' => array_values($f->durations ?? [60]), 'defaultDuration' => $f->default_duration,
             'price' => $range,
@@ -74,24 +74,59 @@ class PlayerVenues
     }
 
     /**
-     * Free start times and half-hour prices of a place's fields on a day (place page + JSON endpoint).
-     * $fieldId / $minutes narrow the answer to one field / one duration.
+     * The courts players choose between: one entry per kind (a football field alone, all ping-pong tables together),
+     * keyed by the first court of the kind, which stands for the whole group in the page and the requests.
+     *
+     * @return Collection<int, Collection<int, Field>>
+     */
+    public function groups(Collection $fields): Collection
+    {
+        return $fields->where('active', true)->sortBy(fn (Field $f) => [$f->sort, $f->id])
+            ->groupBy(fn (Field $f) => $f->size->value)->map->values()->values()->keyBy(fn ($g) => $g->first()->id);
+    }
+
+    /**
+     * Free start times and half-hour prices of a place's courts on a day (place page + JSON endpoint), per group:
+     * a time is free when at least one court of the group is free ("left": how many tables are still free).
+     * $fieldId / $minutes narrow the answer to one group / one duration.
      */
     public function slots(Venue $venue, CarbonImmutable $day, ?int $fieldId = null, ?int $minutes = null): array
     {
         $venue->loadMissing(['openingHours', 'fields.priceRules']);
-        $fields = $venue->fields->where('active', true)->when($fieldId, fn ($c) => $c->where('id', $fieldId))->values();
-        $busy = $this->availability->busyMany($fields, $day);
+        $groups = $this->groups($venue->fields);
+        if ($fieldId) {
+            $groups = $groups->filter(fn ($g) => $g->contains('id', $fieldId));
+        }
+        $all = $groups->flatten(1);
+        $busy = $this->availability->busyMany($all, $day);
         $hours = $this->availability->hours($venue, $day);
+        $key = fn ($h) => (string) round($h, 2);
 
-        $out = $fields->map(function (Field $f) use ($day, $busy, $hours, $minutes) {
+        $out = $groups->map(function (Collection $group) use ($day, $busy, $hours, $minutes, $key) {
+            $f = $group->first();
             $starts = [];
             $taken = [];
+            $left = [];
             foreach ($minutes ? [$minutes] : ($f->durations ?? []) as $m) {
                 $ok = in_array($m, $f->durations ?? [], true);
-                $starts[(string) $m] = $ok ? $this->availability->freeStarts($f, $day, $m, true, $busy[$f->id] ?? []) : [];
-                // taken start times are shown greyed out, so the player sees the whole day
-                $taken[(string) $m] = $ok ? $this->availability->takenStarts($f, $day, $m, true, $busy[$f->id] ?? []) : [];
+                $free = [];
+                $seen = [];
+                foreach ($ok ? $group : [] as $court) {
+                    foreach ($this->availability->freeStarts($court, $day, $m, true, $busy[$court->id] ?? []) as $h) {
+                        $free[$key($h)] = ($free[$key($h)] ?? 0) + 1;
+                        $seen[$key($h)] = $h;
+                    }
+                    // taken start times are shown greyed out, so the player sees the whole day
+                    foreach ($this->availability->takenStarts($court, $day, $m, true, $busy[$court->id] ?? []) as $h) {
+                        $seen[$key($h)] = $h;
+                    }
+                }
+                ksort($seen, SORT_NUMERIC);
+                $starts[(string) $m] = array_values(array_map(fn ($k) => $seen[$k], array_keys(array_intersect_key($seen, $free))));
+                $taken[(string) $m] = array_values(array_map(fn ($k) => $seen[$k], array_keys(array_diff_key($seen, $free))));
+                if ($group->count() > 1) {
+                    $left[(string) $m] = (object) $free;
+                }
             }
             // price per hour of every half hour (PriceCalculator charges each half hour by its own rule)
             $rates = [];
@@ -101,24 +136,38 @@ class PlayerVenues
                 }
             }
 
-            return ['id' => $f->id, 'starts' => $starts, 'taken' => (object) $taken, 'next' => [], 'rates' => $rates];
+            return ['id' => $f->id, 'count' => $group->count(), 'starts' => $starts, 'taken' => (object) $taken, 'left' => (object) $left, 'next' => [], 'rates' => $rates];
         });
 
-        // nothing free this day for a duration: the first free start on a later day ("Fully booked. Next free: Fri 18:00")
+        // nothing free this day for a duration: the first free start on a later day ("Fully booked. Next free: Fri 18:00"), any court of the group
         $need = [];
         foreach ($out as $row) {
             foreach ($row['starts'] as $m => $list) {
                 if (! $list) {
-                    $need[$row['id']][] = (int) $m;
+                    foreach ($groups[$row['id']] as $court) {
+                        $need[$court->id][] = (int) $m;
+                    }
                 }
             }
         }
-        $next = $need ? $this->availability->nextFreeMany($fields->whereIn('id', array_keys($need))->values(), $day->addDay(), $need, 13) : [];
+        $next = $need ? $this->availability->nextFreeMany($all->whereIn('id', array_keys($need))->values(), $day->addDay(), $need, 13) : [];
+        $nextOf = function (int $repId) use ($groups, $next) {
+            $best = [];
+            foreach ($groups[$repId] as $court) {
+                foreach ($next[$court->id] ?? [] as $m => $at) {
+                    if ($at && (! isset($best[$m]) || [$at['date'], $at['start']] < [$best[$m]['date'], $best[$m]['start']])) {
+                        $best[$m] = $at;
+                    }
+                }
+            }
+
+            return $best;
+        };
 
         return [
             'date' => $day->toDateString(),
             'hours' => $hours,
-            'fields' => $out->map(fn ($row) => [...$row, 'starts' => (object) $row['starts'], 'next' => (object) array_filter($next[$row['id']] ?? [])])->all(),
+            'fields' => $out->values()->map(fn ($row) => [...$row, 'starts' => (object) $row['starts'], 'next' => (object) $nextOf($row['id'])])->all(),
         ];
     }
 
@@ -190,12 +239,22 @@ class PlayerVenues
 
         return $venues->map(function (Venue $v) use ($free, $next, $sizes, $time, $perField, $day) {
             $hours = $this->availability->hours($v, $day);
-            $fields = $v->fields->where('active', true)->whereIn('size.value', $sizes)->values()->map(function (Field $f) use ($free, $next, $time, $perField) {
-                $starts = array_values(array_filter($free[$f->id] ?? [], fn ($h) => self::inTime($h, $time)));
+            // one row per kind of court: a ping-pong place's tables together ("any free table")
+            $fields = $this->groups($v->fields->whereIn('size.value', $sizes))->values()->map(function (Collection $group) use ($free, $next, $time, $perField) {
+                $f = $group->first();
+                $all = [];
+                foreach ($group as $court) {
+                    foreach ($free[$court->id] ?? [] as $h) {
+                        $all[(string) round($h, 2)] = $h;
+                    }
+                }
+                ksort($all, SORT_NUMERIC);
+                $starts = array_values(array_filter($all, fn ($h) => self::inTime($h, $time)));
+                $nexts = $group->map(fn ($court) => $next[$court->id][$court->default_duration] ?? null)->filter()->sortBy(fn ($n) => [$n['date'], $n['start']]);
 
                 return [
-                    ...$this->field($f), 'starts' => array_slice($starts, 0, $perField), 'more' => max(0, count($starts) - $perField),
-                    'next' => $next[$f->id][$f->default_duration] ?? null,
+                    ...$this->field($f), 'count' => $group->count(), 'starts' => array_slice($starts, 0, $perField), 'more' => max(0, count($starts) - $perField),
+                    'next' => $nexts->first(),
                 ];
             });
 
@@ -205,6 +264,7 @@ class PlayerVenues
                 'from' => (int) $fields->min('price.min'),
                 'fields' => $fields->all(),
                 'allFields' => $v->fields->where('active', true)->map(fn ($f) => ['size' => $f->size->value, 'indoor' => (bool) $f->indoor, 'surface' => $f->surface])->values()->all(),
+                'sports' => array_map(fn ($sp) => $sp->value, $v->sports()),
                 'free' => $fields->sum(fn ($f) => count($f['starts'])) > 0,
             ];
         })->all();

@@ -11,8 +11,11 @@ export interface DayInfo {
 
 export interface FieldInfo {
     id: number;
-    size: 'small' | 'big';
+    size: 'small' | 'big' | 'table';
+    sport?: string;
     format: string;
+    /** courts of this kind booked as one ("3 tables": any free one) */
+    count?: number;
     surface: string;
     indoor: boolean;
     players: number;
@@ -68,6 +71,10 @@ export interface SlotsPayload {
         /** durations with nothing free this day: the next free start */
         next: Record<string, NextFree>;
         rates: [number, number][];
+        /** courts of the group (ping-pong tables) */
+        count?: number;
+        /** per duration: start time → how many courts are still free (groups of several courts) */
+        left?: Record<string, Record<string, number>>;
     }[];
 }
 

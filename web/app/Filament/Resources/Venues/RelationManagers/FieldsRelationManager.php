@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Venues\RelationManagers;
 use App\Enums\FieldSize;
 use App\Filament\Support\Options;
 use App\Models\Field;
+use App\Domain\Venues\Courts;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -18,7 +20,6 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Validation\Rules\Unique;
 
 class FieldsRelationManager extends RelationManager
 {
@@ -36,11 +37,12 @@ class FieldsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        $durations = [60 => '60 min', 90 => '90 min', 120 => '120 min', 150 => '150 min', 180 => '180 min'];
+        $durations = [30 => '30 min', 60 => '60 min', 90 => '90 min', 120 => '120 min', 150 => '150 min', 180 => '180 min'];
 
+        // a place may have many courts of one kind (ping-pong tables): players book "a table", the place gets any free one
         return $schema->columns(2)->components([
-            Select::make('size')->label(__('admin.field.size'))->options(Options::fieldSizes())->required()
-                ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule) => $rule->where('venue_id', $this->getOwnerRecord()->id)),
+            Select::make('size')->label(__('admin.field.size'))->options(Options::fieldSizes())->required(),
+            TextInput::make('name')->label(__('admin.field.name'))->maxLength(40)->placeholder(__('admin.field.name_ph')),
             Select::make('surface')->label(__('admin.field.surface'))->options(['turf' => __('common.surfaces.turf'), 'grass' => __('common.surfaces.grass')])->default('turf')->required(),
             CheckboxList::make('durations')->label(__('admin.field.durations'))->options($durations)->columns(5)->required()->columnSpanFull(),
             Select::make('default_duration')->label(__('admin.field.default_duration'))->options($durations)->required(),
@@ -68,10 +70,11 @@ class FieldsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitle(fn (Field $f) => __('telegram.field.'.$f->size->value))
+            ->recordTitle(fn (Field $f) => $f->name ?: __('telegram.field.'.$f->size->value))
             ->defaultSort('sort')
             ->columns([
-                TextColumn::make('size')->label(__('admin.field.size'))->formatStateUsing(fn ($state) => __('telegram.field.'.($state instanceof FieldSize ? $state->value : $state)))->weight('bold'),
+                TextColumn::make('name')->label(__('admin.field.name'))->placeholder('—')->weight('bold'),
+                TextColumn::make('size')->label(__('admin.field.size'))->formatStateUsing(fn ($state) => __('telegram.field.'.($state instanceof FieldSize ? $state->value : $state))),
                 TextColumn::make('surface')->label(__('admin.field.surface'))->formatStateUsing(fn ($state) => __('admin.field.'.$state)),
                 IconColumn::make('indoor')->label(__('admin.field.indoor'))->boolean()->falseColor('gray'),
                 TextColumn::make('durations_text')->label(__('admin.field.durations'))->getStateUsing(fn (Field $record) => implode(' / ', $record->durations ?? []).' min'),
@@ -79,6 +82,19 @@ class FieldsRelationManager extends RelationManager
                 IconColumn::make('active')->label(__('admin.field.active'))->boolean(),
             ])
             ->headerActions([
+                // several courts of a kind at once, copying the first one (lengths, prices): "Add 2 tables"
+                Action::make('addMany')->label(__('admin.field.add_many'))->icon('heroicon-o-plus-circle')->color('gray')
+                    ->visible(fn () => $this->getOwnerRecord()->fields()->exists())
+                    ->schema([
+                        Select::make('size')->label(__('admin.field.size'))->required()
+                            ->options(fn () => collect(Options::fieldSizes())->only($this->getOwnerRecord()->fields()->pluck('size')->map(fn ($s) => $s instanceof FieldSize ? $s->value : $s)->unique()->all())->all()),
+                        TextInput::make('count')->label(__('admin.field.how_many'))->integer()->minValue(1)->maxValue(20)->default(1)->required(),
+                    ])
+                    ->action(function (array $data) {
+                        for ($i = 0; $i < (int) $data['count']; $i++) {
+                            app(Courts::class)->add($this->getOwnerRecord(), FieldSize::from($data['size']));
+                        }
+                    }),
                 CreateAction::make()->mutateDataUsing(fn (array $data) => self::clean($data)),
             ])
             ->recordActions([

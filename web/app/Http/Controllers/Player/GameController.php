@@ -7,6 +7,7 @@ use App\Domain\Games\Games;
 use App\Domain\Social\SocialException;
 use App\Enums\GamePlayerStatus as P;
 use App\Enums\GameStatus as S;
+use App\Enums\Sport;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerGames;
 use App\Http\Presenters\PlayerVenues;
@@ -106,7 +107,10 @@ class GameController extends Controller
 
         return Inertia::render('games/Create', [
             'friends' => $friends->map(fn (User $u) => $this->present->person($u))->values()->all(),
-            'venues' => Venue::active()->orderBy('name')->get(['id', 'name', 'district'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'district' => $v->district])->all(),
+            // games are football for now: places with games on and a football field
+            'venues' => Venue::active()->with('fields')->orderBy('name')->get()
+                ->filter(fn (Venue $v) => $v->hasFeature('games') && in_array(Sport::Football, $v->sports(), true))
+                ->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'district' => $v->district])->values()->all(),
             'districts' => $this->districts(),
             'today' => LocalTime::now()->toDateString(),
             'days' => $venues->days(),
@@ -194,7 +198,8 @@ class GameController extends Controller
         }
         $places = [];
         if ($can['book']) {
-            $places = Venue::active()->with(['fields' => fn ($q) => $q->where('active', true)->orderBy('sort')])->orderBy('name')->get()
+            $places = Venue::active()->with(['fields' => fn ($q) => $q->where('active', true)->whereIn('size', Sport::Football->sizeValues())->orderBy('sort')])->orderBy('name')->get()
+                ->filter(fn (Venue $v) => $v->hasFeature('games'))
                 ->map(fn (Venue $v) => ['id' => $v->id, 'slug' => $v->slug, 'name' => $v->name, 'district' => $v->district,
                     'fields' => $v->fields->map(fn (Field $f) => ['id' => $f->id, 'size' => $f->size->value, 'format' => $f->format ?: $f->size->format(),
                         'durations' => array_values($f->durations ?? [60]), 'defaultDuration' => $f->default_duration])->values()->all()])

@@ -6,8 +6,9 @@ import CourtSvg from '@/components/player/CourtSvg.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { amd, hhmm, useShared } from '@/composables/useShared';
-import { dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
+import { courtName, courtShort, dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
+import { useSportTheme } from '@/lib/sport';
 import { useLive } from '@/lib/echo';
 import type { DayInfo, FieldInfo, MyTime, PlayerBooking, SlotsPayload } from '@/types/player';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -52,7 +53,24 @@ const props = defineProps<{
     limit: { pending: number; maxPending: number; bannedUntil: string | null } | null;
     /** the player's "notify me if it frees up" times at this place */
     alerts: SlotAlertInfo[];
+    /** the sport of the place's courts (ping-pong: tables, its own colours) */
+    sport?: string;
+    /** what the place offers (admin → place → features) */
+    features?: string[];
 }>();
+const has = (f: string) => !props.features || props.features.includes(f);
+const isTables = computed(() => props.sport === 'pingpong');
+useSportTheme(() => props.sport);
+// one kind of court only (all the club's tables): no court step, the numbers of the next steps move up
+const oneKind = computed(() => props.fields.length <= 1);
+const stepNo = (n: number) => (oneKind.value && n > 2 ? n - 1 : n);
+// how many tables are still free at a start time ("2 left"); nothing for a single court
+const leftAt = (t: number) => {
+    const row = slots.value.fields.find((x) => x.id === field.value?.id);
+    if (!row?.count || row.count < 2) return null;
+    const n = row.left?.[String(minutes.value)]?.[String(Math.round(t * 100) / 100)];
+    return n != null && n < row.count ? n : null;
+};
 const { user } = useShared();
 const today = computed(() => props.days[0]?.date);
 
@@ -103,7 +121,7 @@ function priceOf(f: FieldInfo, s: number, m: number) {
     return { total: Math.round(total), dayMin, primeMin };
 }
 const range = (s: number, m: number) => `${hhmm(s)}–${hhmm(s + m / 60)}`;
-const cname = (f: FieldInfo) => `${trans(`player.size.${f.size}`)} ${f.format}`;
+const cname = (f: FieldInfo) => courtName(f);
 
 // ---------- choosing ----------
 // The time is never picked for the player: only a time from the link (?start=) is preselected, and only when it is free.
@@ -382,7 +400,7 @@ function seeHint() {
         /* storage blocked */
     }
 }
-const showHint = computed(() => !!user.value && hasTaken.value && !hintSeen.value);
+const showHint = computed(() => !!user.value && hasTaken.value && !hintSeen.value && has('alerts'));
 const afterLogin = ref<'book' | 'alert'>('book');
 const alertBusy = ref(false);
 const alertError = ref<string | null>(null);
@@ -412,6 +430,7 @@ function cancelMine() {
     });
 }
 function openTaken(t: number) {
+    if (!has('alerts')) return;   // the place has "notify me" switched off
     seeHint();
     takenAt.value = t;
     alertError.value = null;
@@ -508,7 +527,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 
             <!-- header: the place only (no price, no button: booking starts below) -->
             <section class="vhead">
-                <span class="kicker">{{ $t(`common.districts.${venue.district}`) }} · {{ fields.map((f) => f.format).join(' · ') }}</span>
+                <span class="kicker">{{ $t(`common.districts.${venue.district}`) }} · <template v-if="isTables">🏓 {{ $t('player.place.tables_n', { n: String(fields[0]?.count ?? 1) }) }}</template><template v-else>{{ fields.map((f) => courtShort(f)).join(' · ') }}</template></span>
                 <h1>{{ venue.name }}</h1>
                 <!-- secondary actions at the top (outline, so the Book button stays the main one) -->
                 <div v-if="venue.phone || hasMap" class="vacts">
@@ -527,8 +546,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
             <section class="bookgrid">
                 <!-- booking: day → field → duration → start time -->
                 <div id="panel" class="card flow">
-                    <h2>{{ $t('common.book_a_field') }}</h2>
+                    <h2>{{ isTables ? $t('player.place.book_a_table') : $t('common.book_a_field') }}</h2>
+                    <p v-if="!has('booking')" class="muted">{{ $t('player.place.no_online_booking') }}</p>
 
+                    <template v-if="has('booking')">
                     <div class="step">
                         <div class="plabel"><span><i class="n">1</i>{{ $t('player.place.date') }}</span></div>
                         <div class="days">
@@ -546,14 +567,18 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         </div>
                     </div>
 
-                    <div class="step">
+                    <div v-if="!oneKind" class="step">
                         <div class="plabel"><span><i class="n">2</i>{{ $t('common.field') }}</span></div>
                         <div class="fcards">
                             <button v-for="t in tiles" :key="t.f.id" type="button" :class="['fcard', `s-${t.st}`]" :aria-pressed="fieldId === t.f.id" @click="pickField(t.f.id)">
                                 <span class="fthumb"><CourtSvg :size="t.f.size" :color="pitchColor(t.f.surface)" /></span>
                                 <span class="fbody">
                                     <b>{{ cname(t.f) }}</b>
-                                    <span class="m">{{ t.f.indoor ? $t('player.indoor') : $t('common.outdoor') }} · {{ $t('common.players_count', { n: String(t.f.players) }) }}</span>
+                                    <span class="m"
+                                        >{{ t.f.indoor ? $t('player.indoor') : $t('common.outdoor') }} ·
+                                        <template v-if="(t.f.count ?? 1) > 1">{{ $t('player.place.courts_n', { n: String(t.f.count) }) }}</template
+                                        ><template v-else>{{ $t('common.players_count', { n: String(t.f.players) }) }}</template></span
+                                    >
                                     <span class="fp">{{ $t('player.place.field_price', { p: amd(t.f.price.min) }) }}</span>
                                 </span>
                                 <span v-if="t.st === 'busy'" class="fbusy">{{ t.line }}</span>
@@ -562,7 +587,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     </div>
 
                     <div v-if="field" class="step">
-                        <div class="plabel"><span><i class="n">3</i>{{ $t('common.duration') }}</span></div>
+                        <div class="plabel"><span><i class="n">{{ stepNo(3) }}</i>{{ $t('common.duration') }}</span></div>
                         <div class="chips">
                             <button v-for="m in field.durations" :key="m" type="button" class="chip" :aria-pressed="minutes === m" @click="pickDur(m)"><Icon name="clock" size="sm" />{{ dur(m) }}</button>
                         </div>
@@ -570,7 +595,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 
                     <div v-if="field" class="step">
                         <div class="plabel">
-                            <span><i class="n">4</i>{{ $t('player.place.start_time') }}</span>
+                            <span><i class="n">{{ stepNo(4) }}</i>{{ $t('player.place.start_time') }}</span>
                             <span v-if="loading" class="faint" style="text-transform: none; letter-spacing: 0">{{ $t('player.place.loading_times') }}</span>
                         </div>
                         <div v-if="!free.length" class="full">
@@ -581,7 +606,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 <button v-if="nextFree" type="button" class="btn outline sm" @click="goNext">
                                     {{ $t('common.next_free_t', { t: nextText }) }} <Icon name="arrow" size="sm" />
                                 </button>
-                                <button v-if="hasTaken" type="button" class="btn link sm" @click="showTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.find_button') }}</button>
+                                <button v-if="hasTaken && has('alerts')" type="button" class="btn link sm" @click="showTaken"><Icon name="bell" size="sm" />{{ $t('player.alert.find_button') }}</button>
                             </span>
                         </div>
                         <div v-if="showHint" class="newhint" role="status">
@@ -620,9 +645,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                     type="button"
                                     :class="['tslot', { prime: twoRates && isPrime(field, s.t), on: start != null && same(s.t, start) }]"
                                     :aria-pressed="start != null && same(s.t, start)"
+                                    :title="leftAt(s.t) != null ? $t('player.place.left_n', { n: String(leftAt(s.t)) }) : undefined"
                                     @click="pickStart(s.t)"
                                 >
-                                    {{ hhmm(s.t) }}
+                                    {{ hhmm(s.t) }}<small v-if="leftAt(s.t) != null" class="left">{{ leftAt(s.t) }}</small>
                                 </button>
                             </template>
                         </div>
@@ -634,12 +660,13 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             <span v-else-if="free.length"><i class="lg free" />{{ $t('player.place.slot_free') }} · {{ amd(dayRate) }} {{ $t('common.per_hour') }}</span>
                             <span v-if="(slots.mine ?? []).some((m) => m.field === field!.id)"><i class="lg you" />{{ $t('player.place.mine_title') }}</span>
                         </div>
-                        <p v-if="hasTaken" class="bell-hint"><Icon name="bell" size="sm" />{{ $t('player.alert.legend') }}</p>
+                        <p v-if="hasTaken && has('alerts')" class="bell-hint"><Icon name="bell" size="sm" />{{ $t('player.alert.legend') }}</p>
                     </div>
+                    </template>
                 </div>
 
                 <!-- summary: what you book and the total, then one clear button -->
-                <aside id="summary" class="card sumcard">
+                <aside v-if="has('booking')" id="summary" class="card sumcard">
                     <div v-if="notice" class="err-box warn">
                         <Icon name="clock" size="sm" />
                         <span class="eb-main">
@@ -651,7 +678,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     </div>
                     <div v-if="(form.errors as Record<string, string>).booking && lostStart == null" class="err-box" role="alert"><Icon name="x" size="sm" /><span>{{ (form.errors as Record<string, string>).booking }}</span></div>
 
-                    <div v-if="!summary" class="empty-sum"><Icon name="calendar" size="lg" /><span>{{ $t('player.place.pick') }}</span></div>
+                    <div v-if="!summary" class="empty-sum"><Icon name="calendar" size="lg" /><span>{{ oneKind ? $t('player.place.pick_time') : $t('player.place.pick') }}</span></div>
                     <template v-else>
                         <div class="sumhead">
                             <div class="thumb"><CourtSvg :size="summary.f.size" :color="pitchColor(summary.f.surface)" /></div>
@@ -863,7 +890,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     <TelegramConnect compact />
                 </div>
                 <!-- the team gets the news and the reminders too -->
-                <div class="okteam">
+                <div v-if="has('team')" class="okteam">
                     <Icon name="users" />
                     <div>
                         <b>{{ $t('player.team.invite_title') }}</b>
@@ -928,6 +955,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .tslot.prime::after { content: ''; position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--warn); }
 .tslot.prime.on::after { background: var(--on-accent); }
 .tslot.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+/* "2" in the corner: tables still free at that time (a group of several tables) */
+.tslot .left { position: absolute; bottom: 2px; right: 5px; font-size: 9.5px; font-weight: 800; opacity: .75; font-family: var(--body); }
 .tslot.taken { background: transparent; color: var(--faint); border: 1px dashed var(--line-2); cursor: pointer; }
 .tslot.taken .tt { text-decoration: line-through; }
 .tslot.taken:hover { background: transparent; border-color: var(--muted); color: var(--muted); }

@@ -174,10 +174,65 @@
         "hy": "+:new այս շաբաթ · :tg-ը Telegram-ով",
         "ru": "+:new за неделю · :tg с Telegram"
     },
+    "admin.feature.alerts": {
+        "en": "\"Notify me if it frees up\"",
+        "hy": "«Տեղեկացնել, երբ ազատվի»",
+        "ru": "«Сообщить, когда освободится»"
+    },
+    "admin.feature.alerts_help": {
+        "en": "A bell on taken times",
+        "hy": "Զանգ զբաղված ժամերի վրա",
+        "ru": "Колокольчик на занятом времени"
+    },
+    "admin.feature.booking": {
+        "en": "Booking",
+        "hy": "Ամրագրում",
+        "ru": "Бронирование"
+    },
+    "admin.feature.booking_help": {
+        "en": "Players book times online",
+        "hy": "Խաղացողները ժամեր են ամրագրում առցանց",
+        "ru": "Игроки бронируют время онлайн"
+    },
+    "admin.feature.games": {
+        "en": "Games",
+        "hy": "Խաղեր",
+        "ru": "Игры"
+    },
+    "admin.feature.games_help": {
+        "en": "Players create and join games here (football for now)",
+        "hy": "Խաղացողները այստեղ խաղեր են ստեղծում և միանում (առայժմ ֆուտբոլ)",
+        "ru": "Игроки создают игры и присоединяются к ним здесь (пока футбол)"
+    },
+    "admin.feature.reviews": {
+        "en": "Reviews",
+        "hy": "Կարծիքներ",
+        "ru": "Отзывы"
+    },
+    "admin.feature.reviews_help": {
+        "en": "\"How was the place?\" after playing",
+        "hy": "«Ինչպե՞ս էր վայրը» խաղից հետո",
+        "ru": "«Как вам место?» после игры"
+    },
+    "admin.feature.team": {
+        "en": "Booking team",
+        "hy": "Ամրագրման թիմ",
+        "ru": "Команда брони"
+    },
+    "admin.feature.team_help": {
+        "en": "Invite friends and the invite link",
+        "hy": "Ընկերների հրավեր և հրավերի հղում",
+        "ru": "Приглашение друзей и ссылка-приглашение"
+    },
     "admin.field.active": {
         "en": "Active",
         "hy": "Ակտիվ",
         "ru": "Активно"
+    },
+    "admin.field.add_many": {
+        "en": "Add several",
+        "hy": "Ավելացնել մի քանիսը",
+        "ru": "Добавить несколько"
     },
     "admin.field.default_duration": {
         "en": "Default duration",
@@ -189,6 +244,11 @@
         "hy": "Տևողություններ",
         "ru": "Длительности"
     },
+    "admin.field.how_many": {
+        "en": "How many",
+        "hy": "Քանի՞սը",
+        "ru": "Сколько"
+    },
     "admin.field.indoor": {
         "en": "Indoor",
         "hy": "Փակ",
@@ -198,6 +258,16 @@
         "en": "Fields",
         "hy": "Դաշտեր",
         "ru": "Поля"
+    },
+    "admin.field.name": {
+        "en": "Name",
+        "hy": "Անուն",
+        "ru": "Название"
+    },
+    "admin.field.name_ph": {
+        "en": "Table 3",
+        "hy": "Սեղան 3",
+        "ru": "Стол 3"
     },
     "admin.field.one": {
         "en": "Field",
@@ -299,6 +369,16 @@
         "hy": "Օրեր",
         "ru": "Дни"
     },
+    "admin.price.whole_kind": {
+        "en": "Same for all courts of this kind",
+        "hy": "Նույնը այս տեսակի բոլոր դաշտերի համար",
+        "ru": "Одинаково для всех площадок этого вида"
+    },
+    "admin.price.whole_kind_help": {
+        "en": "E.g. one price for every ping-pong table",
+        "hy": "Օր․՝ մեկ գին բոլոր պինգ-պոնգի սեղանների համար",
+        "ru": "Например, одна цена для всех столов"
+    },
     "admin.rule.auto_accept_regulars": {
         "en": "Accept regular players automatically",
         "hy": "Մշտական խաղացողներին ընդունել ավտոմատ",
@@ -333,6 +413,26 @@
         "en": "Start times every (min)",
         "hy": "Սկզբի ժամերը ամեն (րոպե)",
         "ru": "Шаг начала (мин)"
+    },
+    "admin.sport.help": {
+        "en": "Players choose the sport first on the home page. A hidden sport and its places are not shown.",
+        "hy": "Խաղացողները գլխավոր էջում նախ ընտրում են մարզաձևը։ Թաքցված մարզաձևն ու նրա վայրերը չեն ցուցադրվում։",
+        "ru": "Игроки сначала выбирают вид спорта на главной. Скрытый вид спорта и его места не показываются."
+    },
+    "admin.sport.many": {
+        "en": "Sports",
+        "hy": "Մարզաձևեր",
+        "ru": "Виды спорта"
+    },
+    "admin.sport.one": {
+        "en": "Sport",
+        "hy": "Մարզաձև",
+        "ru": "Вид спорта"
+    },
+    "admin.sport.visible": {
+        "en": "Shown to players",
+        "hy": "Ցուցադրվում է",
+        "ru": "Показывается игрокам"
     },
     "admin.staff.add": {
         "en": "Add owner or staff",
@@ -594,10 +694,30 @@
         "hy": "Վարչական շրջան",
         "ru": "Район"
     },
+    "admin.venue.features": {
+        "en": "Features",
+        "hy": "Հնարավորություններ",
+        "ru": "Возможности"
+    },
     "admin.venue.lat": {
         "en": "Latitude",
         "hy": "Լայնություն",
         "ru": "Широта"
+    },
+    "admin.venue.listed": {
+        "en": "Show on the home page",
+        "hy": "Ցույց տալ գլխավոր էջում",
+        "ru": "Показывать на главной"
+    },
+    "admin.venue.listed_help": {
+        "en": "Off: the place still opens by its link (e.g. from Instagram), but is not in the list.",
+        "hy": "Անջատված․ վայրը դեռ բացվում է իր հղումով (օր․՝ Instagram-ից), բայց ցանկում չէ։",
+        "ru": "Выключено: место открывается по ссылке (например, из Instagram), но его нет в списке."
+    },
+    "admin.venue.listed_short": {
+        "en": "On home page",
+        "hy": "Գլխավոր էջում",
+        "ru": "На главной"
     },
     "admin.venue.lng": {
         "en": "Longitude",
@@ -628,6 +748,16 @@
         "en": "Leave empty to use the default (shown in grey).",
         "hy": "Թողեք դատարկ՝ լռելյայն արժեքն օգտագործելու համար (մոխրագույնով)։",
         "ru": "Оставьте пустым, чтобы использовать значение по умолчанию (серым)."
+    },
+    "admin.venue.show_features": {
+        "en": "Shown and features",
+        "hy": "Ցուցադրում և հնարավորություններ",
+        "ru": "Показ и возможности"
+    },
+    "admin.venue.show_features_help": {
+        "en": "What players see of this place. A new feature made for one place stays off for the others until switched on here.",
+        "hy": "Ինչ են տեսնում խաղացողները այս վայրից։ Մեկ վայրի համար ստեղծված նոր հնարավորությունը մյուսների համար անջատված է, մինչև այստեղ միացնեք։",
+        "ru": "Что игроки видят у этого места. Новая возможность, сделанная для одного места, у остальных выключена, пока её не включат здесь."
     },
     "admin.venue.slug": {
         "en": "Link name",
@@ -923,6 +1053,26 @@
         "en": "This field is closed.",
         "hy": "Այս դաշտը փակ է։",
         "ru": "Это поле закрыто."
+    },
+    "booking.error.court_has_bookings": {
+        "en": "It has upcoming bookings. Move or cancel them first.",
+        "hy": "Այն ունի առաջիկա ամրագրումներ։ Նախ տեղափոխեք կամ չեղարկեք դրանք։",
+        "ru": "У него есть предстоящие брони. Сначала перенесите или отмените их."
+    },
+    "booking.error.feature_off": {
+        "en": "This place does not offer this.",
+        "hy": "Այս վայրը դա չի առաջարկում։",
+        "ru": "Это место этого не предлагает."
+    },
+    "booking.error.last_court": {
+        "en": "This is the last one of its kind: it can not be switched off or removed.",
+        "hy": "Սա իր տեսակի վերջինն է․ այն չի կարելի անջատել կամ հեռացնել։",
+        "ru": "Это последний такого вида: его нельзя отключить или удалить."
+    },
+    "booking.error.no_such_kind": {
+        "en": "This place has no courts of this kind yet. The admin adds new kinds.",
+        "hy": "Այս վայրը դեռ չունի այս տեսակի դաշտ։ Նոր տեսակներ ավելացնում է ադմինը։",
+        "ru": "У этого места ещё нет площадок такого вида. Новые виды добавляет администратор."
     },
     "booking.error.not_active": {
         "en": "This booking is no longer active.",
@@ -1493,6 +1643,16 @@
         "en": "Send code",
         "hy": "Ուղարկել կոդը",
         "ru": "Отправить код"
+    },
+    "common.sports.football": {
+        "en": "Football",
+        "hy": "Ֆուտբոլ",
+        "ru": "Футбол"
+    },
+    "common.sports.pingpong": {
+        "en": "Ping-pong",
+        "hy": "Պինգ-պոնգ",
+        "ru": "Пинг-понг"
     },
     "common.status": {
         "en": "Status",
@@ -3149,6 +3309,101 @@
         "hy": "Ակումբ",
         "ru": "Поля"
     },
+    "owner.courts.active_hint": {
+        "en": "Switched off: players can not book it",
+        "hy": "Անջատված է․ խաղացողները չեն կարող ամրագրել",
+        "ru": "Отключён: игроки не могут его забронировать"
+    },
+    "owner.courts.add_big": {
+        "en": "Add a field",
+        "hy": "Ավելացնել դաշտ",
+        "ru": "Добавить поле"
+    },
+    "owner.courts.add_small": {
+        "en": "Add a field",
+        "hy": "Ավելացնել դաշտ",
+        "ru": "Добавить поле"
+    },
+    "owner.courts.add_table": {
+        "en": "Add a table",
+        "hy": "Ավելացնել սեղան",
+        "ru": "Добавить стол"
+    },
+    "owner.courts.added": {
+        "en": "Added",
+        "hy": "Ավելացված է",
+        "ru": "Добавлено"
+    },
+    "owner.courts.kind_big": {
+        "en": "Big fields 11×11",
+        "hy": "Մեծ դաշտեր 11×11",
+        "ru": "Большие поля 11×11"
+    },
+    "owner.courts.kind_small": {
+        "en": "Small fields 5×5",
+        "hy": "Փոքր դաշտեր 5×5",
+        "ru": "Малые поля 5×5"
+    },
+    "owner.courts.kind_table": {
+        "en": "Tables",
+        "hy": "Սեղաններ",
+        "ru": "Столы"
+    },
+    "owner.courts.name": {
+        "en": "Name",
+        "hy": "Անուն",
+        "ru": "Название"
+    },
+    "owner.courts.name_big": {
+        "en": "Big field :n",
+        "hy": "Մեծ դաշտ :n",
+        "ru": "Большое поле :n"
+    },
+    "owner.courts.name_small": {
+        "en": "Small field :n",
+        "hy": "Փոքր դաշտ :n",
+        "ru": "Малое поле :n"
+    },
+    "owner.courts.name_table": {
+        "en": "Table :n",
+        "hy": "Սեղան :n",
+        "ru": "Стол :n"
+    },
+    "owner.courts.note": {
+        "en": "Add a table, give it a name, or switch it off for a while (it disappears from booking). Prices are the same for every table of a kind.",
+        "hy": "Ավելացրեք սեղան, անվանեք այն կամ ժամանակավորապես անջատեք (այն կվերանա ամրագրումից)։ Նույն տեսակի բոլոր սեղանների գները նույնն են։",
+        "ru": "Добавьте стол, дайте ему имя или временно отключите (он пропадёт из бронирования). Цены одинаковы для всех столов одного вида."
+    },
+    "owner.courts.off": {
+        "en": "Off",
+        "hy": "Անջատված",
+        "ru": "Отключён"
+    },
+    "owner.courts.on": {
+        "en": "In use",
+        "hy": "Աշխատում է",
+        "ru": "Работает"
+    },
+    "owner.courts.remove_confirm": {
+        "en": "Remove :name? If it was ever booked, it is switched off instead, so the history stays.",
+        "hy": "Հեռացնե՞լ :name-ը։ Եթե այն երբևէ ամրագրվել է, այն պարզապես կանջատվի, որպեսզի պատմությունը մնա։",
+        "ru": "Удалить :name? Если его когда-то бронировали, он будет отключён, чтобы история сохранилась."
+    },
+    "owner.courts.removed": {
+        "en": "Removed",
+        "hy": "Հեռացված է",
+        "ru": "Удалено"
+    },
+    "owner.courts.switched_off": {
+        "en": "It had bookings, so it is switched off and kept in the history",
+        "hy": "Այն ունեցել է ամրագրումներ, ուստի անջատվել է և մնացել պատմության մեջ",
+        "ru": "У него были брони, поэтому он отключён и остался в истории"
+    },
+    "owner.courts.title": {
+        "en": "Tables and fields",
+        "hy": "Սեղաններ և դաշտեր",
+        "ru": "Столы и поля"
+    },
     "owner.dashboard.chart": {
         "en": "Occupancy, next 7 days",
         "hy": "Զբաղվածություն, հաջորդ 7 օր",
@@ -3293,6 +3548,11 @@
         "en": "Small field",
         "hy": "Փոքր դաշտ",
         "ru": "Малое поле"
+    },
+    "owner.field.table": {
+        "en": "Table",
+        "hy": "Սեղան",
+        "ru": "Стол"
     },
     "owner.flash.accepted": {
         "en": "Accepted · the player gets a Telegram message",
@@ -4294,6 +4554,46 @@
         "hy": "Այս ընտրությամբ ազատ դաշտ չկա։ Փորձեք այլ օր կամ ժամ։",
         "ru": "Нет свободных полей. Попробуйте другой день или время."
     },
+    "player.home.pick_sport": {
+        "en": "Choose the sport",
+        "hy": "Ընտրեք մարզաձևը",
+        "ru": "Выберите вид спорта"
+    },
+    "player.home.pingpong.find": {
+        "en": "Find a table",
+        "hy": "Գտնել սեղան",
+        "ru": "Найти стол"
+    },
+    "player.home.pingpong.kicker": {
+        "en": "Yerevan · table tennis",
+        "hy": "Երևան · սեղանի թենիս",
+        "ru": "Ереван · настольный теннис"
+    },
+    "player.home.pingpong.lead": {
+        "en": "Ping-pong clubs with their free hours. Pick a time and any free table is yours: the club confirms it in Telegram.",
+        "hy": "Պինգ-պոնգի ակումբները՝ ազատ ժամերով։ Ընտրեք ժամը, և ցանկացած ազատ սեղան ձերն է․ ակումբը կհաստատի Telegram-ով։",
+        "ru": "Клубы пинг-понга со свободными часами. Выберите время — любой свободный стол ваш, клуб подтвердит в Telegram."
+    },
+    "player.home.pingpong.stat_fields": {
+        "en": "tables",
+        "hy": "սեղան",
+        "ru": "столов"
+    },
+    "player.home.pingpong.tables_n": {
+        "en": ":n tables",
+        "hy": ":n սեղան",
+        "ru": ":n стола"
+    },
+    "player.home.pingpong.title_a": {
+        "en": "Find a table.",
+        "hy": "Գտիր սեղան։",
+        "ru": "Найди стол."
+    },
+    "player.home.pingpong.title_b": {
+        "en": "Play today.",
+        "hy": "Խաղա այսօր։",
+        "ru": "Играй сегодня."
+    },
     "player.home.places_count": {
         "en": "At :n places",
         "hy": ":n վայրում",
@@ -4589,6 +4889,11 @@
         "hy": "Դուք ունեք :n հայտ, որոնք սպասում են պատասխանի։ Նորը կարող եք ուղարկել, երբ դաշտը պատասխանի, կամ չեղարկեք մեկը։",
         "ru": "У вас :n заявки ждут ответа. Отправьте новую, когда площадка ответит, или отмените одну."
     },
+    "player.place.book_a_table": {
+        "en": "Book a table",
+        "hy": "Ամրագրել սեղան",
+        "ru": "Забронировать стол"
+    },
     "player.place.book_button": {
         "en": "Book",
         "hy": "Ամրագրել",
@@ -4603,6 +4908,11 @@
         "en": "Closed this day",
         "hy": "Այս օրը փակ է",
         "ru": "В этот день закрыто"
+    },
+    "player.place.courts_n": {
+        "en": ":n of them, any free one",
+        "hy": ":n հատ, ցանկացած ազատը",
+        "ru": ":n шт., любой свободный"
     },
     "player.place.date": {
         "en": "Date",
@@ -4638,6 +4948,11 @@
         "en": "Rules",
         "hy": "Կանոններ",
         "ru": "Правила"
+    },
+    "player.place.left_n": {
+        "en": ":n tables still free",
+        "hy": ":n սեղան դեռ ազատ է",
+        "ru": "Свободно столов: :n"
     },
     "player.place.loading_times": {
         "en": "Updating free times…",
@@ -4684,6 +4999,11 @@
         "hy": "Այս օրը :dur-ով ազատ ժամ չկա։ Փորձեք այլ օր կամ տևողություն։",
         "ru": "В этот день нет свободного времени на :dur. Попробуйте другой день или длительность."
     },
+    "player.place.no_online_booking": {
+        "en": "This place takes bookings by phone only. Call them.",
+        "hy": "Այս վայրը ամրագրում է միայն հեռախոսով։ Զանգահարեք։",
+        "ru": "Это место принимает брони только по телефону. Позвоните."
+    },
     "player.place.note_label": {
         "en": "Note to the place (optional)",
         "hy": "Նշում վայրի համար (ըստ ցանկության)",
@@ -4703,6 +5023,11 @@
         "en": "Pick a field and a start time.",
         "hy": "Ընտրեք դաշտը և սկզբի ժամը։",
         "ru": "Выберите поле и время начала."
+    },
+    "player.place.pick_time": {
+        "en": "Pick a start time.",
+        "hy": "Ընտրեք սկզբի ժամը։",
+        "ru": "Выберите время начала."
     },
     "player.place.price_mixed": {
         "en": ":a at day rate, :b at prime time",
@@ -4763,6 +5088,11 @@
         "en": "Info",
         "hy": "Տեղեկություն",
         "ru": "Информация"
+    },
+    "player.place.tables_n": {
+        "en": ":n tables",
+        "hy": ":n սեղան",
+        "ru": ":n стола"
     },
     "player.place.taken": {
         "en": "Taken",
@@ -4863,6 +5193,11 @@
         "en": "Small",
         "hy": "Փոքր",
         "ru": "Малое"
+    },
+    "player.size.table": {
+        "en": "Table",
+        "hy": "Սեղան",
+        "ru": "Стол"
     },
     "player.status.accepted": {
         "en": "Confirmed",
@@ -5683,6 +6018,11 @@
         "en": "Small field 5×5",
         "hy": "Փոքր դաշտ 5×5",
         "ru": "Малое поле 5×5"
+    },
+    "telegram.field.table": {
+        "en": "Ping-pong table",
+        "hy": "Պինգ-պոնգի սեղան",
+        "ru": "Стол для пинг-понга"
     },
     "telegram.lang.choose": {
         "en": "🌐 Choose your language for Bookball (the bot and the website):",

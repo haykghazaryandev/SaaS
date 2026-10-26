@@ -20,6 +20,12 @@ interface PriceRow {
     evening: number;
     weekend: number;
 }
+interface CourtKind {
+    size: string;
+    sport: string;
+    label: string;
+    items: { id: number; name: string | null; label: string; active: boolean }[];
+}
 interface HourRow {
     weekday: number;
     open: string | null;
@@ -35,7 +41,8 @@ interface ClosureRow {
 const props = defineProps<{
     canEdit: boolean;
     place: { name: string; address: string | null; district: string; phone: string | null; tel: string | null; status: string };
-    prices: PriceRow[];
+    prices: (PriceRow & { count?: number })[];
+    courts: CourtKind[];
     hours: HourRow[];
     rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number };
     closures: ClosureRow[];
@@ -43,6 +50,24 @@ const props = defineProps<{
 const owner = useOwner();
 const { user } = useShared();
 const opts = { preserveScroll: true, preserveState: true };
+
+// ---------- courts: add / rename / switch off / remove (each saves at once, apart from "Save changes") ----------
+const allCourts = computed(() => props.courts.flatMap((k) => k.items));
+function addCourt(size: string) {
+    router.post(route('owner.courts.store'), { size }, opts);
+}
+function renameCourt(id: number, e: Event) {
+    const name = (e.target as HTMLInputElement).value.trim();
+    const court = allCourts.value.find((c) => c.id === id);
+    if (!court || name === (court.name ?? '') || !name) return;
+    router.patch(route('owner.courts.update', id), { name }, opts);
+}
+function toggleCourt(id: number, active: boolean) {
+    router.patch(route('owner.courts.update', id), { active }, opts);
+}
+function removeCourt(id: number, label: string) {
+    if (window.confirm(trans('owner.courts.remove_confirm', { name: label }))) router.delete(route('owner.courts.destroy', id), opts);
+}
 
 // ---------- helpers ----------
 /** 15000 -> "15 000" (the ֏ sign sits next to the input) */
@@ -266,7 +291,7 @@ const fmtRange = (c: ClosureRow) =>
                             </div>
                             <div class="kv">
                                 <Icon name="grid" size="sm" /><span>{{ $t('common.fields') }}</span
-                                ><b>{{ prices.map((p) => p.label).join(' · ') }}</b>
+                                ><b>{{ courts.map((k) => (k.items.length > 1 ? `${k.label} · ${k.items.filter((c) => c.active).length}` : k.items[0]?.label)).join(' · ') }}</b>
                             </div>
                         </div>
                         <p class="faint" style="font-size: 12.5px; margin: 12px 0 0">{{ $t('owner.settings.profile_note') }}</p>
@@ -279,7 +304,7 @@ const fmtRange = (c: ClosureRow) =>
                         <p class="muted" style="font-size: 13px; margin: 0">{{ $t('owner.settings.prices_note') }}</p>
                         <div v-for="(p, i) in state.prices" :key="p.field_id" class="pfield">
                             <div class="lbl">
-                                <b>{{ priceOf(p.field_id).label }}</b
+                                <b>{{ priceOf(p.field_id).label }}<template v-if="(priceOf(p.field_id).count ?? 1) > 1"> · {{ priceOf(p.field_id).count }}</template></b
                                 ><small
                                     >{{ $t(`common.surfaces.${priceOf(p.field_id).surface}`)
                                     }}{{ priceOf(p.field_id).indoor ? ' · ' + $t('owner.settings.indoor') : '' }}</small
@@ -304,6 +329,40 @@ const fmtRange = (c: ClosureRow) =>
                         <span v-if="errOf('prices')" class="err">{{ errOf('prices') }}</span>
                     </section>
 
+                    <!-- tables / fields: a 4th table, a name, out of order for a while, gone -->
+                    <section class="card panel" data-test="courts">
+                        <div class="sec-h">
+                            <h2>{{ $t('owner.courts.title') }}</h2>
+                        </div>
+                        <p class="muted" style="font-size: 13px; margin: 0">{{ $t('owner.courts.note') }}</p>
+                        <div v-for="k in courts" :key="k.size" class="ckind">
+                            <div class="ckh">
+                                <b>{{ k.label }}</b><small class="faint">{{ k.items.filter((c) => c.active).length }}</small>
+                                <button v-if="canEdit" type="button" class="btn ghost sm" data-test="court-add" @click="addCourt(k.size)">
+                                    <Icon name="plus" size="sm" />{{ $t(`owner.courts.add_${k.size}`) }}
+                                </button>
+                            </div>
+                            <div v-for="c in k.items" :key="c.id" :class="['crt', { off: !c.active }]">
+                                <input
+                                    class="input"
+                                    :value="c.name ?? c.label"
+                                    :disabled="!canEdit"
+                                    maxlength="40"
+                                    :aria-label="$t('owner.courts.name')"
+                                    @change="renameCourt(c.id, $event)"
+                                />
+                                <label class="switch" :title="$t('owner.courts.active_hint')"
+                                    ><input type="checkbox" :checked="c.active" :disabled="!canEdit" @change="toggleCourt(c.id, ($event.target as HTMLInputElement).checked)" />{{
+                                        c.active ? $t('owner.courts.on') : $t('owner.courts.off')
+                                    }}</label
+                                >
+                                <button v-if="canEdit && k.items.length > 1" type="button" class="btn ghost sm hot" :aria-label="$t('common.remove')" @click="removeCourt(c.id, c.label)">
+                                    <Icon name="trash" size="sm" />
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('owner.settings.closures') }}</h2>
@@ -325,7 +384,7 @@ const fmtRange = (c: ClosureRow) =>
                                     <label for="cf">{{ $t('common.field') }}</label>
                                     <select id="cf" v-model="closure.field_id" class="input">
                                         <option :value="null">{{ $t('owner.settings.whole_place') }}</option>
-                                        <option v-for="p in prices" :key="p.field_id" :value="p.field_id">{{ p.label }}</option>
+                                        <option v-for="c in allCourts" :key="c.id" :value="c.id">{{ c.label }}</option>
                                     </select>
                                 </div>
                                 <div class="field">

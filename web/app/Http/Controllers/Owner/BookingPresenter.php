@@ -126,15 +126,21 @@ final class BookingPresenter
         return $out;
     }
 
+    /** "Small field 5×5", or the court's own name ("Table 3"). */
     public static function fieldLabel(Field $f): string
     {
-        return __('owner.field.'.$f->size->value).' '.$f->format;
+        if ($f->name) {
+            return $f->name;
+        }
+
+        return $f->size === \App\Enums\FieldSize::Table ? __('owner.field.table') : __('owner.field.'.$f->size->value).' '.$f->format;
     }
 
     public static function fields(Venue $venue): array
     {
         return $venue->fields->map(fn (Field $f) => [
-            'id' => $f->id, 'size' => $f->size->value, 'format' => $f->format, 'label' => self::fieldLabel($f),
+            'id' => $f->id, 'size' => $f->size->value, 'sport' => $f->sport()->value, 'format' => $f->format, 'label' => self::fieldLabel($f),
+            'short' => $f->name ?: $f->format,
             'durations' => $f->durations, 'default_duration' => $f->default_duration, 'active' => $f->active,
         ])->values()->all();
     }

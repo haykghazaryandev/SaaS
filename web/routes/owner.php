@@ -29,6 +29,9 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::put('settings/hours', [SettingsController::class, 'hours'])->name('settings.hours');
     Route::put('settings/rules', [SettingsController::class, 'rules'])->name('settings.rules');
     Route::put('settings', [SettingsController::class, 'save'])->name('settings.save');
+    Route::post('courts', [SettingsController::class, 'storeCourt'])->name('courts.store');
+    Route::patch('courts/{field}', [SettingsController::class, 'updateCourt'])->whereNumber('field')->name('courts.update');
+    Route::delete('courts/{field}', [SettingsController::class, 'destroyCourt'])->whereNumber('field')->name('courts.destroy');
     Route::post('closures', [SettingsController::class, 'storeClosure'])->name('closures.store');
     Route::delete('closures/{closure}', [SettingsController::class, 'destroyClosure'])->name('closures.destroy');
 });

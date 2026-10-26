@@ -31,13 +31,19 @@ class RequestBooking
             throw new BookingException('banned');
         }
         $venue = $field->loadMissing('venue')->venue;
+        if (! $venue->hasFeature('booking')) {
+            throw new BookingException('feature_off');
+        }
         $pending = Booking::query()->where('user_id', $player->id)->where('status', BookingStatus::Pending)->count();
         if ($pending >= $venue->rule('max_pending_per_phone')) {
             throw new BookingException('too_many_pending');
         }
-        if ($problem = $this->availability->problem($field, $start, $minutes)) {
+        // "a table at 10:00": the asked court, or any free one of the same kind (ping-pong tables)
+        [$free, $problem] = $this->availability->freeInGroup($field, $start, $minutes);
+        if ($problem) {
             throw new BookingException($problem);
         }
+        $field = $free;
 
         return $this->guarded(function () use ($player, $field, $venue, $start, $minutes, $extra) {
             $booking = Booking::create([
