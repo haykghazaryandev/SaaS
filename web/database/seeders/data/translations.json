@@ -359,6 +359,16 @@
         "hy": "Telegram հաղորդագրություն",
         "ru": "Сообщение Telegram"
     },
+    "admin.nav.admin_panel": {
+        "en": "Admin panel",
+        "hy": "Ադմինի վահանակ",
+        "ru": "Панель администратора"
+    },
+    "admin.nav.owner_panel": {
+        "en": "Owner panel",
+        "hy": "Սեփականատիրոջ վահանակ",
+        "ru": "Панель владельца"
+    },
     "admin.nav.people": {
         "en": "People",
         "hy": "Մարդիկ",
@@ -368,6 +378,11 @@
         "en": "Places",
         "hy": "Դաշտեր",
         "ru": "Площадки"
+    },
+    "admin.nav.player_app": {
+        "en": "Open the app (player)",
+        "hy": "Բացել հավելվածը (խաղացող)",
+        "ru": "Открыть приложение (игрок)"
     },
     "admin.nav.system": {
         "en": "System",

@@ -111,6 +111,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
             <div class="oside-foot">
                 <LangSwitch />
                 <a class="olink" :href="route('home', { as: 'player' })"><Icon name="share" size="sm" />{{ $t('owner.player_site') }}</a>
+                <a v-if="user?.isAdmin" class="olink" href="/admin"><Icon name="settings" size="sm" />{{ $t('admin.nav.admin_panel') }}</a>
                 <div class="ome">
                     <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
                     <span
@@ -138,6 +139,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
             <a class="x" :href="route('home', { as: 'player' })" :title="$t('owner.player_site')" :aria-label="$t('owner.player_site')"
                 ><Icon name="share" size="sm"
             /></a>
+            <a v-if="user?.isAdmin" class="x" href="/admin" :title="$t('admin.nav.admin_panel')" :aria-label="$t('admin.nav.admin_panel')"><Icon name="settings" size="sm" /></a>
         </header>
         <main class="omain"><slot /></main>
         <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" :aria-label="$t('common.new_booking')" :title="$t('common.new_booking')" @click="openForm(props.newBooking)">
@@ -163,6 +165,9 @@ onBeforeUnmount(() => clearTimeout(reloadT));
                     <Link v-for="n in more" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined" @click="moreOpen = false">
                         <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span>
                     </Link>
+                    <!-- leave the dashboard: the player app; the admin panel for admins (not part of this app: a full page load) -->
+                    <a :href="route('home', { as: 'player' })"><Icon name="share" /><span>{{ $t('owner.player_site') }}</span></a>
+                    <a v-if="user?.isAdmin" href="/admin"><Icon name="settings" /><span>{{ $t('admin.nav.admin_panel') }}</span></a>
                 </nav>
             </div>
         </div>

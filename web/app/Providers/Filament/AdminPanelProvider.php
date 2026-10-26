@@ -6,7 +6,9 @@ use App\Http\Middleware\AdminAuthenticate;
 use App\Http\Middleware\AdminLocale;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Actions\Action;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -69,6 +71,18 @@ class AdminPanelProvider extends PanelProvider
                     });
                 </script>
                 HTML))
+            // back to the app (phones, the Telegram Mini App: no browser back button): the player app, the owner panel
+            ->navigationItems([
+                NavigationItem::make('player_app')->label(fn () => __('admin.nav.player_app'))->icon('heroicon-o-device-phone-mobile')
+                    ->url(fn () => url('/?as=player'))->sort(-20),
+                NavigationItem::make('owner_panel')->label(fn () => __('admin.nav.owner_panel'))->icon('heroicon-o-building-storefront')
+                    ->url(fn () => url('/owner'))->visible(fn () => (bool) auth()->user()?->venues()->exists())->sort(-19),
+            ])
+            ->userMenuItems([
+                Action::make('player_app')->label(fn () => __('admin.nav.player_app'))->icon('heroicon-o-device-phone-mobile')->url(fn () => url('/?as=player')),
+                Action::make('owner_panel')->label(fn () => __('admin.nav.owner_panel'))->icon('heroicon-o-building-storefront')
+                    ->url(fn () => url('/owner'))->visible(fn () => (bool) auth()->user()?->venues()->exists()),
+            ])
             ->navigationGroups([
                 NavigationGroup::make()->label(fn () => __('admin.nav.places')),
                 NavigationGroup::make()->label(fn () => __('admin.nav.people')),
