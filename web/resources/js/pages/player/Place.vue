@@ -419,7 +419,8 @@ const watchedAlert = (t: number) =>
     field.value ? (props.alerts ?? []).find((a) => a.field === field.value!.id && a.date === date.value && same(toHours(a.start), t)) : undefined;
 // ---------- my own request / booking among the times ----------
 /** the player's own booking covering this start time on the picked field */
-const myAt = (t: number) => (field.value ? (slots.value.mine ?? []).find((m) => m.field === field.value!.id && t >= m.start - 1e-9 && t < m.end - 1e-9) : undefined);
+// my requests / bookings on this day and court kind (shown in their own row above the times)
+const myToday = computed(() => (field.value ? (slots.value.mine ?? []).filter((m) => m.field === field.value!.id) : []));
 const mineOpen = ref<MyTime | null>(null);
 const cancelBusy = ref(false);
 function openMine(m: MyTime) {
@@ -631,23 +632,26 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             <Icon name="bell" size="sm" /><span>{{ $t('player.alert.new_hint') }}</span>
                             <button type="button" class="x" :aria-label="$t('common.close')" @click="seeHint"><Icon name="x" size="sm" /></button>
                         </div>
+                        <!-- my own requests / bookings this day here: one chip each with the whole time; a tap shows it (status, code, cancel) -->
+                        <div v-if="myToday.length" class="minerow">
+                            <span class="faint">{{ $t('player.place.yours') }}</span>
+                            <button
+                                v-for="m in myToday"
+                                :key="m.id"
+                                type="button"
+                                :class="['tslot mine wide', m.status]"
+                                aria-haspopup="dialog"
+                                data-test="mine"
+                                @click="openMine(m)"
+                            >
+                                {{ hhmm(m.start) }}–{{ hhmm(m.end) }}
+                            </button>
+                        </div>
                         <div v-if="allStarts.length" :class="['slots', { dim: loading, pulse }]">
                             <template v-for="s in allStarts" :key="s.t">
-                                <!-- my own request / booking: a tap shows it (status, code, cancel) -->
-                                <button
-                                    v-if="s.taken && myAt(s.t)"
-                                    type="button"
-                                    :class="['tslot mine', myAt(s.t)!.status]"
-                                    aria-haspopup="dialog"
-                                    :title="$t('player.place.mine_title')"
-                                    :aria-label="`${hhmm(s.t)} · ${$t('player.place.mine_title')}`"
-                                    @click="openMine(myAt(s.t)!)"
-                                >
-                                    {{ hhmm(s.t) }}
-                                </button>
                                 <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
                                 <button
-                                    v-else-if="s.taken"
+                                    v-if="s.taken"
                                     type="button"
                                     :class="['tslot taken', { watched: watchedAlert(s.t) }]"
                                     aria-disabled="true"
@@ -1035,6 +1039,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 /* my own request (waiting) or booking (confirmed): blue "yours", tappable */
 .tslot.mine { background: var(--you-soft); color: var(--you); border: 1px solid rgba(92, 200, 255, .4); }
 .tslot.mine.pending { border-style: dashed; }
+.tslot.mine.wide { width: auto; padding: 8px 12px; }
+.minerow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
 .minebtns { display: grid; gap: 8px; }
 .btn.outline.hot { color: var(--hot); border-color: rgba(255, 107, 107, .4); }
 .tslot .bell { width: 11px; height: 11px; margin-left: 4px; vertical-align: -1px; color: var(--faint); }

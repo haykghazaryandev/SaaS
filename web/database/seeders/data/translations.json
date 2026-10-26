@@ -6254,6 +6254,11 @@
         "hy": "Ընդամենը",
         "ru": "Итого"
     },
+    "player.place.yours": {
+        "en": "Yours:",
+        "hy": "Ձերը՝",
+        "ru": "Ваши:"
+    },
     "player.rating.again": {
         "en": "Book this place again",
         "hy": "Կրկին ամրագրել այս վայրը",
