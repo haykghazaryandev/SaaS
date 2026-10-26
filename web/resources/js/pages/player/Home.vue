@@ -224,7 +224,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                                     <span class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ courtShort(fl) }}</span>
                                     <template v-if="fl.starts.length">
                                         <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl, h)" :prefetch="['hover', 'click']">{{ hhmm(h) }}</Link>
-                                        <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)" :prefetch="['hover', 'click']">{{ $t('player.home.more', { n: String(fl.more) }) }}</Link>
+                                        <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)" :prefetch="['hover', 'click']">{{ $t('player.home.more_times', { n: String(fl.more) }) }}<Icon name="arrow" size="sm" /></Link>
                                     </template>
                                     <Link v-else-if="fl.next" class="next-free" :href="placeUrl(v, fl, fl.next.start, fl.next.date)" :prefetch="['hover', 'click']">
                                         {{ $t('common.next_free_t', { t: nextLabel(fl.next.date, days?.[0]?.date ?? '', hhmm(fl.next.start), true) }) }}<Icon name="arrow" size="sm" />
@@ -288,7 +288,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .day.we:not([aria-pressed="true"]) small { color: var(--warn); }
 .vcard .art { display: block; }
 .vcard h3 a:hover { color: var(--accent); }
-.slot-more { font-family: var(--mono); font-size: 12.5px; padding: 5px 7px; color: var(--muted); font-weight: 700; }
+.slot-more { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; padding: 5px 9px; color: var(--muted); font-weight: 700; border-radius: 8px; border: 1px solid var(--line-2); }
 .slot-more:hover { color: var(--ink); }
 .next-free { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink); padding: 4px 9px; border-radius: 8px; border: 1px solid var(--line-2); }
 .next-free:hover { border-color: var(--accent); color: var(--accent); }

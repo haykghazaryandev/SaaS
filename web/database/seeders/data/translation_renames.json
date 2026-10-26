@@ -481,6 +481,7 @@
     "player.home.how4": "player.home.step4_title",
     "player.home.how4s": "player.home.step4_text",
     "player.home.kick": "player.home.kicker",
+    "player.home.more": null,
     "player.home.nextFree": "common.next_free_t",
     "player.home.noFree": "player.home.no_free",
     "player.home.noFreeTime": "player.home.no_free_time",
