@@ -221,7 +221,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                             </div>
                             <div class="slots">
                                 <div v-for="fl in v.fields" :key="fl.id" class="fslots">
-                                    <span class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ courtShort(fl) }}</span>
+                                    <span v-if="isFootball" class="fz" :style="{ color: SIZE_COLOR[fl.size] }">{{ courtShort(fl) }}</span>
                                     <template v-if="fl.starts.length">
                                         <Link v-for="h in fl.starts" :key="h" class="slot-mini" :href="placeUrl(v, fl, h)" :prefetch="['hover', 'click']">{{ hhmm(h) }}</Link>
                                         <Link v-if="fl.more" class="slot-more" :href="placeUrl(v, fl)" :prefetch="['hover', 'click']">{{ $t('player.home.more_times', { n: String(fl.more) }) }}<Icon name="arrow" size="sm" /></Link>
