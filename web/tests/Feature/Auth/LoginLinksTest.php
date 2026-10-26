@@ -104,24 +104,14 @@ it('makes ADMIN_PHONE the admin again after registering anew', function () {
 
 // ---------- test accounts on staging ----------
 
-it('lets only the demo accounts log in with an on-screen code on staging', function () {
+it('has no on-screen code logins on staging: Telegram only', function () {
     config(['app.debug' => false, 'services.otp_driver' => 'log']);
     app()->detectEnvironment(fn () => 'staging');
     $this->withoutMiddleware(Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
 
-    $this->get('/login')->assertInertia(fn ($p) => $p->where('phoneCode', true)->where('testAccounts', true));
-    $this->post('/login/code', ['phone' => '94 369 202'])->assertSessionHasErrors('phone');
-
-    $this->post('/login/code', ['phone' => '93 000 100'])->assertSessionHasNoErrors();
-    $code = null;
-    $this->get('/login')->assertInertia(function ($p) use (&$code) {
-        $code = $p->toArray()['props']['devCode'];
-
-        return $p;
-    });
-    expect($code)->toMatch('/^\d{4}$/');
-    $this->post('/login/verify', ['code' => $code])->assertSessionHasNoErrors();
-    expect(auth()->user()->phone)->toBe('+37493000100');
+    $this->get('/login')->assertInertia(fn ($p) => $p->where('phoneCode', false)->where('testAccounts', false));
+    $this->post('/login/code', ['phone' => '93 000 100'])->assertNotFound();
+    expect(auth()->check())->toBeFalse();
 });
 
 it('has no test accounts in production', function () {

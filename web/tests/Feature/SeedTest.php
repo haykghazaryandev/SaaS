@@ -47,3 +47,13 @@ it('seeds only the admin in production', function () {
         ->and(User::first()->is_admin)->toBeTrue()
         ->and(Venue::count())->toBe(0);
 });
+
+it('makes every ADMIN_PHONE number an admin; on staging each owns their own football place and ping-pong club', function () {
+    config(['app.admin_phone' => '+37499000001, 099 000 002']);
+    $this->seed(Database\Seeders\DatabaseSeeder::class);
+    [$a, $b] = [App\Models\User::where('phone', '+37499000001')->first(), App\Models\User::where('phone', '+37499000002')->first()];
+    expect($a->is_admin)->toBeTrue()->and($b->is_admin)->toBeTrue()
+        ->and($a->venues()->pluck('slug')->sort()->values()->all())->toBe(['pingpong-land', 'zangak'])
+        ->and($b->venues()->pluck('slug')->sort()->values()->all())->toBe(['masis', 'spin-club']);
+    expect(App\Models\Venue::where('slug', 'spin-club')->first()->fields()->count())->toBe(2);
+});

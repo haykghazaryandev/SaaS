@@ -41,7 +41,7 @@ class PingpongSeeder extends Seeder
             'description' => $L('Table tennis club: tables for rent by the hour, trainings and monthly tournaments.',
                 'Սեղանի թենիսի ակումբ․ սեղաններ ժամավարձով, մարզումներ և ամսական մրցաշարեր։',
                 'Клуб настольного тенниса: столы на час, тренировки и ежемесячные турниры.'),
-            'lat' => 40.1838, 'lng' => 44.5096, 'phone' => '+37410555123', 'rating_avg' => 4.9, 'rating_count' => 37,
+            'lat' => 40.1838, 'lng' => 44.5096, 'phone' => '+37410555123',
             'amenities' => ['lockers', 'cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15], 'status' => 'active', 'listed' => true,
             // games (1×1, 2×2) and the whole club package on
             'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
@@ -69,15 +69,52 @@ class PingpongSeeder extends Seeder
         $this->command?->info('Ping-pong club: added (owner +374 91 000 009).');
     }
 
-    /** Local / staging: the admin (ADMIN_PHONE) owns the club too, to try it as its owner (switch places in the owner panel). */
+    /**
+     * Local / staging: the first admin (ADMIN_PHONE) owns this club too; a second admin gets their own club,
+     * Spin Club (2 tables), to try the owner panel apart.
+     */
     private function adminOwns(Venue $venue): void
     {
         if (app()->isProduction()) {
             return;
         }
-        foreach (User::where('is_admin', true)->get() as $admin) {
-            $venue->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+        $admins = collect(AdminSeeder::phones())->map(fn ($p) => User::where('phone', $p)->first())->filter()->values();
+        if ($first = $admins->get(0)) {
+            $venue->staff()->syncWithoutDetaching([$first->id => ['role' => 'owner']]);
         }
+        if ($second = $admins->get(1)) {
+            $this->spinClub()->staff()->syncWithoutDetaching([$second->id => ['role' => 'owner']]);
+        }
+    }
+
+    /** A second demo club (only made when there is a second admin to own it). */
+    private function spinClub(): Venue
+    {
+        if ($club = Venue::where('slug', 'spin-club')->first()) {
+            return $club;
+        }
+        $L = fn ($en, $hy, $ru) => compact('en', 'hy', 'ru');
+        $club = Venue::create([
+            'slug' => 'spin-club', 'name' => 'Spin Club', 'district' => 'arabkir',
+            'address' => $L('5 Baghramyan Ave', 'Բաղրամյան պող. 5', 'пр. Баграмяна, 5'),
+            'description' => $L('A small table tennis club with two tables.', 'Սեղանի թենիսի փոքր ակումբ՝ երկու սեղանով։', 'Небольшой клуб настольного тенниса с двумя столами.'),
+            'lat' => 40.1950, 'lng' => 44.5040, 'amenities' => ['cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15, 'training_prices' => ['table' => 5000]],
+            'status' => 'active', 'listed' => true,
+            'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
+        ]);
+        foreach (range(0, 6) as $wd) {
+            OpeningHour::create(['venue_id' => $club->id, 'weekday' => $wd, 'opens_at' => '11:00', 'closes_at' => '23:00']);
+        }
+        $first = Field::create(['venue_id' => $club->id, 'name' => 'Table 1', 'size' => FieldSize::Table->value, 'format' => FieldSize::Table->format(),
+            'surface' => 'turf', 'indoor' => true, 'max_players' => 4, 'durations' => [30, 60, 90, 120], 'default_duration' => 60, 'sort' => 0, 'active' => true]);
+        PriceRule::create(['field_id' => $first->id, 'weekdays' => [0, 1, 2, 3, 4, 5, 6], 'from_time' => '00:00', 'to_time' => '24:00', 'price_per_hour' => 2500, 'priority' => 1]);
+        app(Courts::class)->add($club, FieldSize::Table, 'Table 2');
+        foreach ([['Cola 0.5 l', 500, 'cola'], ['Water 0.5 l', 300, 'water']] as $i => [$name, $price, $img]) {
+            $file = new UploadedFile(database_path("seeders/data/products/{$img}.png"), "{$img}.png", 'image/png', null, true);
+            app(Shop::class)->save(new Product(['venue_id' => $club->id, 'sort' => $i]), ['name' => $name, 'price' => $price], $file);
+        }
+
+        return $club;
     }
 
     /** Training price, shop, a tournament and two players' cards, once (only what is missing). */

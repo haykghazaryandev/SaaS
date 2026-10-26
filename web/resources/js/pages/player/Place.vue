@@ -379,7 +379,8 @@ function onLoggedIn() {
 const takenAt = ref<number | null>(null);
 /** the time the player had picked, just taken by someone else (refresh or a "taken" error) */
 const lostStart = ref<number | null>(null);
-const hasTaken = computed(() => allStarts.value.some((x) => x.taken));
+// taken by others (a time taken only because of my own booking is not offered "notify me")
+const hasTaken = computed(() => allStarts.value.some((x) => x.taken && !mineOver(x.t)));
 // "find" the booked times: scroll to them with a short pulse
 const pulse = ref(false);
 function showTaken() {
@@ -420,6 +421,8 @@ const watchedAlert = (t: number) =>
 // ---------- my own request / booking among the times ----------
 /** the player's own booking covering this start time on the picked field */
 // my requests / bookings on this day and court kind (shown in their own row above the times)
+/** my booking that overlaps a game of the chosen length starting at t (that start is taken partly because of me) */
+const mineOver = (t: number) => myToday.value.find((m) => t < m.end - 1e-9 && t + minutes.value / 60 > m.start + 1e-9);
 const myToday = computed(() => (field.value ? (slots.value.mine ?? []).filter((m) => m.field === field.value!.id) : []));
 const mineOpen = ref<MyTime | null>(null);
 const cancelBusy = ref(false);
@@ -547,8 +550,9 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     <a v-if="hasMap" class="btn link sm" href="#map" @click.prevent="toMap"><Icon name="directions" size="sm" />{{ $t('common.directions') }}</a>
                 </div>
                 <div class="vmeta">
-                    <span v-if="venue.rating" class="rating"><Icon name="star" size="sm" />{{ venue.rating.toFixed(1) }}</span>
-                    <span v-if="venue.reviews">{{ $t('common.reviews_count', { n: String(venue.reviews) }) }}</span>
+                    <span v-if="venue.rating" class="rating"
+                        ><Icon name="star" size="sm" />{{ venue.rating.toFixed(1) }}<small v-if="venue.reviews" class="rv">({{ $t('common.reviews_count', { n: String(venue.reviews) }) }})</small></span
+                    >
                     <span v-if="venue.address"><Icon name="pin" size="sm" />{{ venue.address }}</span>
                     <span v-if="hoursToday"><Icon name="clock" size="sm" />{{ $t('player.place.open_hours', { a: hhmm(hoursToday[0]), b: hhmm(hoursToday[1]) }) }}</span>
                     <span v-else><Icon name="clock" size="sm" />{{ $t('player.place.closed_day') }}</span>
@@ -650,8 +654,19 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         <div v-if="allStarts.length" :class="['slots', { dim: loading, pulse }]">
                             <template v-for="s in allStarts" :key="s.t">
                                 <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
+                                <!-- taken, and one of the taken tables is mine: a tap shows my booking, not "notify me" -->
                                 <button
-                                    v-if="s.taken"
+                                    v-if="s.taken && mineOver(s.t)"
+                                    type="button"
+                                    class="tslot mine"
+                                    aria-haspopup="dialog"
+                                    :title="$t('player.place.mine_title')"
+                                    @click="openMine(mineOver(s.t)!)"
+                                >
+                                    {{ hhmm(s.t) }}
+                                </button>
+                                <button
+                                    v-else-if="s.taken"
                                     type="button"
                                     :class="['tslot taken', { watched: watchedAlert(s.t) }]"
                                     aria-disabled="true"
@@ -997,6 +1012,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .vhead h1 { font-size: clamp(28px, 4.2vw, 46px); margin: 6px 0 10px; overflow-wrap: anywhere; }
 .vmeta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; align-items: center; }
 .vmeta span { display: inline-flex; align-items: center; gap: 6px; }
+.vmeta .rv { color: var(--muted); font-weight: 600; font-size: 13px; }
 .vmeta .rating { font-size: 15px; }
 .vacts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: -2px 0 12px; }
 #map { scroll-margin-top: 90px; }

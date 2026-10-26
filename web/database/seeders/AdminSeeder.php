@@ -3,21 +3,39 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Venue;
+use App\Support\Phone;
 use Illuminate\Database\Seeder;
 
-/** You: the admin of the Filament panel, by ADMIN_PHONE (set it before seeding). Safe to run again. */
+/**
+ * The admins of the Filament panel: ADMIN_PHONE, one number or several separated by commas (set it before seeding).
+ * Local / staging: each admin also owns demo places to try the owner panel: the first Zangak (football),
+ * the second Masis (football); their ping-pong clubs come in PingpongSeeder. Safe to run again.
+ */
 class AdminSeeder extends Seeder
 {
+    /** The football place each admin owns on local / staging, by their place in ADMIN_PHONE. */
+    public const FOOTBALL = ['zangak', 'masis'];
+
     public function run(): void
     {
         $now = now();
-        $admin = User::firstOrCreate(['phone' => config('app.admin_phone') ?: '+37499000000'], ['name' => 'Admin', 'locale' => 'en', 'phone_verified_at' => $now, 'registered_at' => $now]);
-        $admin->forceFill(['is_admin' => true])->save();
-        // local / staging: the admin also owns the demo place Zangak, to try the owner panel and its Telegram messages
-        $zangak = app()->isProduction() ? null : \App\Models\Venue::where('slug', 'zangak')->first();
-        if ($zangak && ! $admin->venues()->exists()) {
-            $zangak->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+        foreach (self::phones() as $i => $phone) {
+            $admin = User::firstOrCreate(['phone' => $phone], ['name' => $i ? 'Admin '.($i + 1) : 'Admin', 'locale' => 'en', 'phone_verified_at' => $now, 'registered_at' => $now]);
+            $admin->forceFill(['is_admin' => true])->save();
+            $place = app()->isProduction() ? null : Venue::where('slug', self::FOOTBALL[$i] ?? '')->first();
+            if ($place) {
+                $place->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+            }
+            $this->command?->info("Admin: {$admin->phone}");
         }
-        $this->command?->info("Admin: {$admin->phone}");
+    }
+
+    /** ADMIN_PHONE as normalized numbers, in order (the default for a fresh computer: +374 99 000 000). */
+    public static function phones(): array
+    {
+        $raw = (string) (config('app.admin_phone') ?: '+37499000000');
+
+        return array_values(array_unique(array_filter(array_map(fn ($p) => Phone::normalize(trim($p)), explode(',', $raw)))));
     }
 }

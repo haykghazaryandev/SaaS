@@ -33,12 +33,14 @@ npx vue-tsc --noEmit                  # TS check (CI runs it and ESLint: both mu
 PostgreSQL is required (MySQL/SQLite will not work: bookings rely on an exclusion constraint + btree_gist). Redis is
 used for cache/session/queue in dev.
 
-**Demo logins** (after `migrate --seed`; without a bot token the login page shows a "simulate" box, type the 8 digits after +374):
+**Demo logins** (after `migrate --seed`; on a developer's computer only, `App\Support\TestAccounts`: phone + a code shown on screen;
+staging and production log in with Telegram. Without a bot token the login page also shows a "simulate" box):
 
 | Who | Phone | Where |
 |---|---|---|
 | Admin | `ADMIN_PHONE` from `.env` (default `99000000`) | `/admin` |
 | Owner of Zangak Football Park | `91000001` (other places `91000002` … `91000008`) | `/login?to=owner`, then `/owner` |
+| Owner of Pingpong.land (ping-pong club: tables, Now, cards, shop) | `91000009` | `/owner` (lands on Now) |
 | Player Aram Petrosyan (friends, games, chats) | `93000100` | `/` |
 | Player Davit Harutyunyan (Aram's friend, same game chat) | `93000101` | |
 | More players / a new player | `93000102` … `93000159` / any other Armenian mobile | new numbers go through the welcome page |
@@ -55,6 +57,18 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
 - Branch `staging` is also pushed to by a teammate whose deploys need approval in Railway. When merging their work,
   carry their new or changed texts into the seed file and their key changes into the renames file.
 - Routes and translation keys share the `a.b.c` shape; check which one a string is before renaming either.
+
+## Sports and club features
+
+- Sports: `App\Enums\Sport` (football: fields 5×5 / 11×11; ping-pong: tables); the admin shows / hides them (`sports` table).
+  The home page asks "What do you play?" first, then the sport's page (Book / Tournaments / Games tabs).
+- A place's courts of one kind are one group: players book "a table", `Availability::freeInGroup` gives any free one.
+- `venues.features`: what a place offers (booking, team, alerts, reviews, games + the club package: wallet, rating,
+  trainings, shop, tournaments, money). New features start off (`Venue::DEFAULT_FEATURES`); check with `hasFeature()`.
+- Club package: `Domain/Club/*`. Cards are per player per place (QR = `/c/{code}`); a top-up needs the QR scanned,
+  money comes off a card only on a game's check (`Checkout`: time + items, card / cash / both). Owners land on Now.
+- `ADMIN_PHONE` may list several numbers (commas). On local / staging each admin owns demo places
+  (first: Zangak + Pingpong.land, second: Masis + Spin Club). `php artisan club:demo-now` puts test games on the tables.
 
 ## Architecture
 
