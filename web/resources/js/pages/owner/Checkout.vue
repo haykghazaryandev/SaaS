@@ -32,18 +32,34 @@ const owner = useOwner();
 const opts = { preserveScroll: true, preserveState: true };
 const scan = ref(false);
 const canCard = computed(() => props.wallet && !!props.bill.card && props.bill.card.balance > 0);
-// from the card: as much as the balance allows, the rest cash (both editable)
+// how they pay: cash by default; the card (if they have one with money) or part card, part cash, when the owner picks it
+type How = 'cash' | 'card' | 'both';
+const how = ref<How>('cash');
+const cardCovers = computed(() => canCard.value && props.bill.card!.balance >= props.bill.total);
 const fromCard = ref(0);
-const reset = () => (fromCard.value = canCard.value ? Math.min(props.bill.card!.balance, props.bill.total) : 0);
-watch(() => [props.bill.total, props.bill.card?.balance], reset, { immediate: true });
+function pick(h: How) {
+    how.value = h;
+    // card + cash starts half and half (rounded to 100 ֏); either box can be changed, the other follows
+    const half = Math.round(props.bill.total / 200) * 100;
+    fromCard.value = h === 'cash' ? 0 : Math.min(props.bill.card!.balance, h === 'both' ? half : props.bill.total);
+}
+const setCash = (e: Event) => (fromCard.value = Math.max(0, props.bill.total - (Number((e.target as HTMLInputElement).value) || 0)));
+watch(
+    () => [props.bill.total, props.bill.card?.balance],
+    () => {
+        if (!canCard.value || (how.value === 'card' && !cardCovers.value)) how.value = 'cash';
+        pick(how.value);
+    },
+    { immediate: true },
+);
 const cash = computed(() => Math.max(0, props.bill.total - (fromCard.value || 0)));
-const tooMuch = computed(() => canCard.value && (fromCard.value > props.bill.card!.balance || fromCard.value > props.bill.total));
+const tooMuch = computed(() => how.value !== 'cash' && (fromCard.value > props.bill.card!.balance || fromCard.value > props.bill.total));
 
 const shopOpen = ref(false);
 const onCode = (code: string) => router.post(route('owner.bookings.scan', props.booking.id), { code }, opts);
 const stop = () => router.post(route('owner.bookings.stop', props.booking.id));
 function pay() {
-    router.post(route('owner.bookings.pay', props.booking.id), { card: canCard.value ? fromCard.value || 0 : 0, cash: cash.value });
+    router.post(route('owner.bookings.pay', props.booking.id), { card: how.value === 'cash' ? 0 : fromCard.value || 0, cash: how.value === 'cash' ? props.bill.total : cash.value });
 }
 </script>
 
@@ -100,12 +116,19 @@ function pay() {
                         </span>
                         <button v-if="!bill.card && !booking.player" type="button" class="btn sm" data-test="scan-bill" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
                     </div>
-                    <div v-if="canCard" class="split">
+                    <div v-if="canCard" class="seg how" role="group" :aria-label="$t('owner.club.payment')">
+                        <button type="button" :aria-pressed="how === 'cash'" data-test="how-cash" @click="pick('cash')">{{ $t('owner.club.cash') }}</button>
+                        <button type="button" :aria-pressed="how === 'card'" :disabled="!cardCovers" data-test="how-card" @click="pick('card')">
+                            {{ $t('owner.club.from_card') }}
+                        </button>
+                        <button type="button" :aria-pressed="how === 'both'" data-test="how-both" @click="pick('both')">{{ $t('owner.club.card_and_cash') }}</button>
+                    </div>
+                    <div v-if="canCard && how === 'both'" class="split">
                         <label class="field"
                             ><span>{{ $t('owner.club.from_card') }}</span
                             ><span class="money"><input v-model.number="fromCard" class="input" type="number" min="0" :max="Math.min(bill.card!.balance, bill.total)" data-test="from-card" /><span>֏</span></span></label
                         >
-                        <label class="field"><span>{{ $t('owner.club.cash') }}</span><span class="money"><input :value="cash" class="input" disabled /><span>֏</span></span></label>
+                        <label class="field"><span>{{ $t('owner.club.cash') }}</span><span class="money"><input :value="cash" class="input" type="number" min="0" :max="bill.total" data-test="cash" @input="setCash" /><span>֏</span></span></label>
                     </div>
                     <!-- the card's cashback level: this much of the check (card or cash) comes back onto it -->
                     <p v-if="bill.card?.cashback" class="faint" style="font-size: 12.5px; margin: 0">
@@ -114,8 +137,8 @@ function pay() {
                     <p v-if="tooMuch" class="err">{{ $t('booking.error.low_balance') }}</p>
                     <button type="button" class="btn block big" :disabled="tooMuch" data-test="take-payment" @click="pay">
                         <Icon name="check" size="sm" />
-                        <template v-if="canCard && fromCard > 0 && cash > 0">{{ $t('owner.club.take_split', { a: amd(fromCard), b: amd(cash) }) }}</template>
-                        <template v-else-if="canCard && fromCard > 0">{{ $t('owner.club.take_card', { a: amd(fromCard) }) }}</template>
+                        <template v-if="how !== 'cash' && fromCard > 0 && cash > 0">{{ $t('owner.club.take_split', { a: amd(fromCard), b: amd(cash) }) }}</template>
+                        <template v-else-if="how !== 'cash' && fromCard > 0">{{ $t('owner.club.take_card', { a: amd(fromCard) }) }}</template>
                         <template v-else>{{ $t('owner.club.take_cash', { a: amd(bill.total) }) }}</template>
                     </button>
                 </template>
@@ -142,6 +165,9 @@ function pay() {
 .cardrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); margin-bottom: 12px; }
 .cardrow .w { flex: 1; display: flex; flex-direction: column; }
 .cardrow small { color: var(--muted); font-size: 12.5px; }
+.how { display: flex; width: 100%; margin-bottom: 12px; }
+.how button { flex: 1; justify-content: center; }
+.how button:disabled { opacity: 0.45; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .split .field > span:first-child { display: block; font-size: 12.5px; font-weight: 800; color: var(--muted); margin-bottom: 5px; }
 .big { padding: 14px; font-size: 16px; }

@@ -134,7 +134,7 @@ class Venue extends HasFactoryModel
     public function sports(): array
     {
         $sports = [];
-        foreach ($this->fields as $f) {
+        foreach ($this->loadMissing('fields')->fields as $f) {
             if ($f->active) {
                 $sports[$f->size->sport()->value] = $f->size->sport();
             }

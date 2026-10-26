@@ -3769,6 +3769,11 @@
         "hy": "Ըստ տեսակի",
         "ru": "По видам"
     },
+    "owner.club.card_and_cash": {
+        "en": "Card + cash",
+        "hy": "Քարտ + կանխիկ",
+        "ru": "Карта + наличные"
+    },
     "owner.club.card_any": {
         "en": "Card: any",
         "hy": "Քարտ՝ ցանկացած",

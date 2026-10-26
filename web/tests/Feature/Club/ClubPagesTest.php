@@ -151,3 +151,12 @@ it('lets the owner set the cashback levels in Settings: sorted, one per amount, 
     $this->actingAs($this->owner)->get('/owner/settings')->assertInertia(fn (Assert $p) => $p->where('rules.cashback_tiers.1.pct', 6));
     $this->actingAs($this->owner)->put('/owner/settings', ['rules' => $rules + ['cashback_tiers' => [['from' => 1000, 'pct' => 90]]]])->assertSessionHasErrors('rules.cashback_tiers.0.pct');
 });
+
+it('opens every club page for an owner of two places (the place is not lazy loaded from a list)', function () {
+    $football = makeVenue();
+    $football->staff()->attach($this->owner->id, ['role' => 'owner']);
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id]);
+    foreach (['/owner/now', '/owner/players', '/owner/players/'.$this->player->id, '/owner/cards', '/owner/cards/'.$this->card->code, '/owner/shop', '/owner/tournaments', '/owner/money', '/owner/settings', '/owner/schedule'] as $url) {
+        $this->get($url)->assertOk();
+    }
+});

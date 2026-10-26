@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Sport;
 use App\Http\Controllers\Owner\BookingPresenter;
 use App\Models\Booking;
+use App\Models\Venue;
 use App\Support\LocalTime;
 use Closure;
 use Illuminate\Http\Request;
@@ -23,7 +25,10 @@ class EnsureVenueStaff
             abort(403, __('owner.no_access'));
         }
         $id = (int) $request->session()->get('venue_id');
-        $venue = $venues->firstWhere('id', $id) ?? $venues->first();
+        $picked = $venues->firstWhere('id', $id) ?? $venues->first();
+        // loaded on its own: a place taken from a list of several can't load its relations later (lazy loading),
+        // which broke pages for owners of two places
+        $venue = Venue::findOrFail($picked->id)->setRelation('pivot', $picked->pivot);
         $request->session()->put('venue_id', $venue->id);
         // back in the dashboard: the home page brings them here again (not the player app)
         $request->session()->forget('player_mode');
@@ -41,7 +46,7 @@ class EnsureVenueStaff
             'today' => LocalTime::now()->toDateString(),
             // which club pages the place has (admin → place → features) and its main sport (ratings)
             'features' => $venue->featureList(),
-            'sport' => ($venue->sports()[0] ?? \App\Enums\Sport::Football)->value,
+            'sport' => ($venue->sports()[0] ?? Sport::Football)->value,
             'nowHour' => round(LocalTime::hourOf(LocalTime::now()), 3),
         ]);
 
