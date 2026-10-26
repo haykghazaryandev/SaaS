@@ -16,6 +16,9 @@ use App\Models\Tournament;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
+use App\Domain\Venues\PriceCalculator;
+use App\Models\Booking;
+use App\Support\LocalTime;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
 
@@ -30,6 +33,7 @@ class PingpongSeeder extends Seeder
         if ($club = Venue::withTrashed()->where('slug', 'pingpong-land')->first()) {
             $this->clubExtras($club);
             $this->adminOwns($club);
+            $this->demoBookings($club);
             $this->command?->info('Ping-pong club: already there.');
 
             return;
@@ -66,6 +70,7 @@ class PingpongSeeder extends Seeder
         $venue->staff()->syncWithoutDetaching([$owner->id => ['role' => 'owner']]);
         $this->clubExtras($venue);
         $this->adminOwns($venue);
+        $this->demoBookings($venue);
         $this->command?->info('Ping-pong club: added (owner +374 91 000 009).');
     }
 
@@ -142,6 +147,57 @@ class PingpongSeeder extends Seeder
                 CardEntry::create(['card_id' => $card->id, 'amount' => 15000, 'kind' => 'topup', 'note' => 'demo']);
             }
             SportRating::firstOrCreate(['user_id' => $u->id, 'sport' => 'pingpong'], ['rating' => $k ? 1180 : 1420, 'venue_id' => $venue->id]);
+        }
+    }
+
+    /**
+     * Local / staging: the next 7 days look like a real club (games, requests, trainings, the owner's own bookings).
+     * Made again on a deploy once the last ones have passed. Marked note_owner = "demo".
+     */
+    private function demoBookings(Venue $venue): void
+    {
+        if (app()->isProduction() || Booking::where('venue_id', $venue->id)->where('note_owner', 'demo')->where('starts_at', '>', now())->exists()) {
+            return;
+        }
+        $tables = $venue->fields()->where('active', true)->orderBy('sort')->orderBy('id')->get();
+        $players = User::whereIn('phone', collect(range(102, 115))->map(fn ($n) => '+37493000'.$n)->all())->get()->values();
+        if ($tables->count() < 3 || $players->isEmpty()) {
+            return;
+        }
+        // [table, from, hours, status, source, purpose]
+        $plan = [
+            [0, 11, 2, 'accepted', 'player', 'play'], [0, 18, 1, 'pending', 'player', 'play'], [0, 20, 1.5, 'accepted', 'owner', 'play'],
+            [1, 12, 1.5, 'accepted', 'player', 'training'], [1, 19.5, 1.5, 'accepted', 'player', 'play'],
+            [2, 17, 1.5, 'accepted', 'owner', 'play'], [2, 19, 1, 'pending', 'player', 'play'], [2, 20.5, 1, 'accepted', 'player', 'play'],
+        ];
+        $prices = app(PriceCalculator::class);
+        $k = 0;
+        for ($d = 0; $d < 7; $d++) {
+            $day = LocalTime::now()->startOfDay()->addDays($d);
+            foreach ($plan as $j => [$t, $from, $hours, $status, $source, $purpose]) {
+                // a bit different every day: skip some, move some
+                if (($d + $j) % 4 === 3) {
+                    continue;
+                }
+                $start = LocalTime::at($day, $from + ($d % 2 ? 0.5 : 0));
+                $minutes = (int) ($hours * 60);
+                if ($start->isPast() || LocalTime::hourOf($start->addMinutes($minutes), $day) > 22) {
+                    continue;
+                }
+                $field = $tables[$t];
+                $player = $players[$k++ % $players->count()];
+                $free = ! Booking::where('field_id', $field->id)->whereIn('status', ['pending', 'accepted'])
+                    ->where('starts_at', '<', $start->addMinutes($minutes)->utc())->where('ends_at', '>', $start->utc())->exists();
+                if (! $free) {
+                    continue;
+                }
+                Booking::create([
+                    'code' => Booking::newCode(), 'venue_id' => $venue->id, 'field_id' => $field->id, 'user_id' => $source === 'player' ? $player->id : null,
+                    'starts_at' => $start->utc(), 'ends_at' => $start->addMinutes($minutes)->utc(), 'status' => $status, 'source' => $source,
+                    'contact_name' => $player->name, 'contact_phone' => $player->phone, 'purpose' => $purpose,
+                    'price' => $prices->price($field->setRelation('venue', $venue), $start, $minutes, $purpose), 'note_owner' => 'demo',
+                ]);
+            }
         }
     }
 }
