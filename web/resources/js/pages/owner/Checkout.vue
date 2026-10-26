@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import QrScanner from '@/components/owner/QrScanner.vue';
+import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { relDay, useOwner, type BookingRow } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -17,7 +18,7 @@ interface Bill {
     timeFull: number;
     timeDiscount: number;
     time: number;
-    items: { id: number; name: string; qty: number; price_each: number; sum: number }[];
+    items: { id: number; product_id: number | null; name: string; qty: number; price_each: number; sum: number }[];
     itemsTotal: number;
     itemsDiscount: number;
     discountPct: number;
@@ -42,8 +43,7 @@ watch(() => [props.bill.total, props.bill.card?.balance], reset, { immediate: tr
 const cash = computed(() => Math.max(0, props.bill.total - (fromCard.value || 0)));
 const tooMuch = computed(() => canCard.value && (fromCard.value > props.bill.card!.balance || fromCard.value > props.bill.total));
 
-const add = (id: number) => router.post(route('owner.bookings.items.store', props.booking.id), { product_id: id, qty: 1 }, opts);
-const remove = (id: number) => router.delete(route('owner.bookings.items.destroy', id), opts);
+const shopOpen = ref(false);
 const onCode = (code: string) => router.post(route('owner.bookings.scan', props.booking.id), { code }, opts);
 const stop = () => router.post(route('owner.bookings.stop', props.booking.id));
 function pay() {
@@ -75,11 +75,14 @@ function pay() {
                 <div class="bline">
                     <span>{{ booking.purpose === 'training' ? $t('club.training') : $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: bill.minutes }) }}</span><b>{{ amd(bill.timeFull) }}</b>
                 </div>
-                <div v-for="i in bill.items" :key="i.id" class="bline">
-                    <span>{{ i.qty }} × {{ i.name }}</span>
-                    <b>{{ amd(i.sum) }}</b>
-                    <button v-if="!bill.paid" type="button" class="x" :aria-label="$t('common.remove')" @click="remove(i.id)"><Icon name="x" size="sm" /></button>
-                </div>
+                <!-- the shop: one line; a tap opens the products (photo, price, − / +) -->
+                <button type="button" class="bline shopln" :disabled="bill.paid" data-test="shop" @click="shopOpen = true">
+                    <span
+                        ><Icon name="cube" size="sm" /> {{ $t('owner.club.shop') }}<small v-if="bill.items.length" class="faint">
+                            · {{ bill.items.map((i) => `${i.qty} × ${i.name}`).join(', ') }}</small
+                        ></span
+                    ><b>{{ amd(bill.itemsTotal) }}</b><Icon v-if="!bill.paid" name="plus" size="sm" class="plus" />
+                </button>
                 <div v-if="bill.timeDiscount || bill.itemsDiscount" class="bline disc">
                     <span>{{ $t('owner.club.card_discount_all', { p: bill.discountPct }) }}</span><b>−{{ amd(bill.timeDiscount + bill.itemsDiscount) }}</b>
                 </div>
@@ -88,14 +91,6 @@ function pay() {
                 </div>
                 <button v-if="bill.running && !bill.paid" type="button" class="btn ghost block" data-test="stop" @click="stop"><Icon name="check" size="sm" />{{ $t('owner.club.stop_game') }}</button>
 
-                <div v-if="products.length && !bill.paid" class="addbox">
-                    <small class="faint">{{ $t('owner.club.add_items') }}</small>
-                    <div class="chips">
-                        <button v-for="p in products" :key="p.id" type="button" class="chip" data-test="add-item" @click="add(p.id)">
-                            <Icon name="plus" size="sm" />{{ p.name }} <span class="faint">{{ amd(p.price) }}</span>
-                        </button>
-                    </div>
-                </div>
             </section>
 
             <section class="card panel">
@@ -130,6 +125,7 @@ function pay() {
             </section>
         </div>
         <QrScanner v-if="scan" pick @code="onCode" @close="scan = false" />
+        <ShopSheet v-if="shopOpen" :booking-id="booking.id" :items="bill.items" :products="products" :total="bill.itemsTotal" @close="shopOpen = false" />
     </OwnerLayout>
 </template>
 
@@ -143,7 +139,9 @@ function pay() {
 .bline.disc { color: var(--accent); }
 .bline.total { border-bottom: 0; font-size: 18px; }
 .bline.total b { font-size: 22px; color: var(--accent); }
-.addbox { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.shopln { width: 100%; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.shopln small { font-size: 12.5px; }
+.shopln .plus { color: var(--accent); }
 .cardrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); margin-bottom: 12px; }
 .cardrow .w { flex: 1; display: flex; flex-direction: column; }
 .cardrow small { color: var(--muted); font-size: 12.5px; }

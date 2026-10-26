@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Club\Cards;
+use App\Domain\Club\Shop;
 use App\Domain\Venues\Courts;
 use App\Enums\FieldSize;
 use App\Models\CardEntry;
@@ -16,6 +17,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 
 /**
  * The demo ping-pong club (made-up details): 3 tables booked as "any free table", weekday and weekend prices.
@@ -87,8 +89,10 @@ class PingpongSeeder extends Seeder
         // trainings are booked like a table, at their own price per hour
         $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
             'rules' => [...($venue->rules ?? []), 'cashback_pct' => 3, 'training_prices' => ['table' => 6000]]]);
-        foreach ([['Balls ×6 (3★)', 3000, 0], ['Racket Butterfly', 28000, 10], ['Rubber Tenergy', 32000, 0], ['Water 0.5 l', 300, 0], ['Cola 0.5 l', 500, 0]] as $i => [$name, $price, $off]) {
-            Product::create(['venue_id' => $venue->id, 'name' => $name, 'price' => $price, 'discount_pct' => $off, 'sort' => $i]);
+        // the shop: drinks with their pictures (data/products/*.png)
+        foreach ([['Cola 0.5 l', 500, 'cola'], ['Water 0.5 l', 300, 'water']] as $i => [$name, $price, $img]) {
+            $file = new UploadedFile(database_path("seeders/data/products/{$img}.png"), "{$img}.png", 'image/png', null, true);
+            app(Shop::class)->save(new Product(['venue_id' => $venue->id, 'sort' => $i]), ['name' => $name, 'price' => $price], $file);
         }
         Tournament::create(['venue_id' => $venue->id, 'sport' => 'pingpong', 'title' => 'November Open', 'code' => 'novopen1',
             'starts_at' => now()->addDays(12)->setTime(7, 0), 'description' => "Singles, groups then play-off.\nBring your own racket.",

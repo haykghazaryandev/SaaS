@@ -4,7 +4,8 @@ import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, usePoll } from '@inertiajs/vue3';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import ShopSheet from '@/components/owner/ShopSheet.vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // The desk: every table now. A game shows its check live (time so far + what they took, the player's discount,
 // the total, their card); "+ Cola" adds to it; "Stop" fixes the time and opens the check to take the money.
@@ -15,7 +16,7 @@ interface Bill {
     timeFull: number;
     timeDiscount: number;
     time: number;
-    items: { id: number; name: string; qty: number; sum: number }[];
+    items: { id: number; product_id: number | null; name: string; qty: number; sum: number }[];
     itemsTotal: number;
     itemsDiscount: number;
     discountPct: number;
@@ -41,10 +42,9 @@ interface Court {
     } | null;
     next: { start: string; name: string; pending: boolean } | null;
 }
-defineProps<{ courts: Court[]; products: { id: number; name: string; price: number }[]; canDemo?: boolean }>();
+const props = defineProps<{ courts: Court[]; products: { id: number; name: string; price: number; photo: string | null }[]; canDemo?: boolean }>();
 const demo = () => router.post(route('owner.now.demo'), {}, { preserveScroll: true });
 const owner = useOwner();
-const opts = { preserveScroll: true, preserveState: true };
 usePoll(30000, { only: ['courts'] });
 
 // the clock of each game, every second
@@ -59,8 +59,9 @@ const elapsed = (from: number) => {
     return `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 };
 
-const add = (bookingId: number, productId: number) => router.post(route('owner.bookings.items.store', bookingId), { product_id: productId, qty: 1 }, opts);
-const remove = (itemId: number) => router.delete(route('owner.bookings.items.destroy', itemId), opts);
+// the shop window of one game
+const shopFor = ref<number | null>(null);
+const shopGame = computed(() => props.courts.find((c) => c.game?.id === shopFor.value)?.game ?? null);
 const stop = (bookingId: number) => router.post(route('owner.bookings.stop', bookingId));
 
 </script>
@@ -103,10 +104,14 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
                         <div class="ln">
                             <span>{{ $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: c.game.bill.minutes }) }}</span><b>{{ amd(c.game.bill.timeFull) }}</b>
                         </div>
-                        <div v-for="i in c.game.bill.items" :key="i.id" class="ln">
-                            <span>{{ i.qty }} × {{ i.name }}</span><b>{{ amd(i.sum) }}</b>
-                            <button type="button" class="x" :aria-label="$t('common.remove')" @click="remove(i.id)"><Icon name="x" size="sm" /></button>
-                        </div>
+                        <!-- the shop: one line; a tap opens the products (photo, price, − / +) -->
+                        <button v-if="products.length || c.game.bill.items.length" type="button" class="ln shopln" data-test="shop" @click="shopFor = c.game.id">
+                            <span
+                                ><Icon name="cube" size="sm" /> {{ $t('owner.club.shop') }}<small v-if="c.game.bill.items.length">
+                                    · {{ c.game.bill.items.reduce((s, i) => s + i.qty, 0) }}</small
+                                ></span
+                            ><b>{{ amd(c.game.bill.itemsTotal) }}</b><Icon name="plus" size="sm" class="plus" />
+                        </button>
                         <div v-if="c.game.bill.timeDiscount || c.game.bill.itemsDiscount" class="ln disc">
                             <span>{{ $t('owner.club.card_discount_all', { p: c.game.bill.discountPct }) }}</span><b>−{{ amd(c.game.bill.timeDiscount + c.game.bill.itemsDiscount) }}</b>
                         </div>
@@ -121,11 +126,6 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
                         </div>
                     </div>
 
-                    <div v-if="products.length" class="chips adds">
-                        <button v-for="p in products" :key="p.id" type="button" class="chip" data-test="add-item" @click="add(c.game.id, p.id)">
-                            <Icon name="plus" size="sm" />{{ p.name }}
-                        </button>
-                    </div>
                     <div class="acts">
                         <button v-if="c.state === 'playing'" type="button" class="btn" data-test="stop" @click="stop(c.game.id)">
                             <Icon name="check" size="sm" />{{ $t('owner.club.stop_check') }}
@@ -145,6 +145,14 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
                 </template>
             </article>
         </div>
+        <ShopSheet
+            v-if="shopGame"
+            :booking-id="shopGame.id"
+            :items="shopGame.bill.items"
+            :products="products"
+            :total="shopGame.bill.itemsTotal"
+            @close="shopFor = null"
+        />
     </OwnerLayout>
 </template>
 
@@ -170,7 +178,9 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
 .ln.total b { font-size: 20px; color: var(--accent); }
 .nexthint { margin: 2px 0 4px; font-size: 12px; color: var(--muted); }
 .cardline { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-.adds .chip { font-size: 13px; }
+.shopln { width: 100%; border: 0; background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: 10px; padding: 8px 10px; margin: 4px 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.shopln small { color: var(--muted); }
+.shopln .plus { color: var(--accent); }
 .acts .btn { width: 100%; justify-content: center; }
 .small { font-size: 13px; margin: 0; }
 </style>

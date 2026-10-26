@@ -3639,10 +3639,10 @@
         "hy": "Ակումբ",
         "ru": "Поля"
     },
-    "owner.club.add_items": {
-        "en": "Add what they took",
-        "hy": "Ավելացրեք, ինչ վերցրել են",
-        "ru": "Добавьте, что взяли"
+    "owner.club.add_one": {
+        "en": "Add one",
+        "hy": "Ավելացնել մեկը",
+        "ru": "Добавить одну"
     },
     "owner.club.add_sub": {
         "en": "The player has no QR with them: find them by their Bookball phone.",
@@ -3798,6 +3798,11 @@
         "en": "Discounts given: :a",
         "hy": "Տրված զեղչեր՝ :a",
         "ru": "Скидок дано: :a"
+    },
+    "owner.club.done": {
+        "en": "Done",
+        "hy": "Պատրաստ է",
+        "ru": "Готово"
     },
     "owner.club.find_card": {
         "en": "Booked without an account: scan the player's card to pay from it",
@@ -4143,6 +4148,21 @@
         "en": "Sell · cash",
         "hy": "Վաճառել · կանխիկ",
         "ru": "Продать · наличные"
+    },
+    "owner.club.shop": {
+        "en": "Shop",
+        "hy": "Խանութ",
+        "ru": "Магазин"
+    },
+    "owner.club.shop_title": {
+        "en": "Shop · what they took",
+        "hy": "Խանութ · ինչ են վերցրել",
+        "ru": "Магазин · что взяли"
+    },
+    "owner.club.shop_total": {
+        "en": "Shop total",
+        "hy": "Խանութ՝ ընդամենը",
+        "ru": "Итого магазин"
     },
     "owner.club.shown": {
         "en": "Shown to players",

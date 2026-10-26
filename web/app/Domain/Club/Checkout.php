@@ -109,7 +109,7 @@ class Checkout
             'timeFull' => max($time['full'], $time['price']),
             'timeDiscount' => max(0, $time['full'] - $time['price']),
             'time' => $time['price'],
-            'items' => $booking->items->map(fn (BookingItem $i) => ['id' => $i->id, 'name' => $i->name, 'qty' => $i->qty, 'price_each' => $i->price_each, 'sum' => $i->qty * $i->price_each])->values()->all(),
+            'items' => $booking->items->map(fn (BookingItem $i) => ['id' => $i->id, 'product_id' => $i->product_id, 'name' => $i->name, 'qty' => $i->qty, 'price_each' => $i->price_each, 'sum' => $i->qty * $i->price_each])->values()->all(),
             'itemsTotal' => $items,
             'itemsDiscount' => $itemsOff,
             'discountPct' => $pct,

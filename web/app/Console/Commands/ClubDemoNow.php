@@ -46,7 +46,7 @@ class ClubDemoNow extends Command
         $games = [
             [$tables[0] ?? null, $aram, 'play', 50, 60, ['Cola' => 2]],
             [$tables[1] ?? null, $davit, 'training', 25, 90, ['Water' => 1]],
-            [$tables[2] ?? null, null, 'play', 65, 60, ['Balls' => 1]],
+            [$tables[2] ?? null, null, 'play', 65, 60, ['Cola' => 1, 'Water' => 2]],
         ];
         foreach ($games as $i => [$table, $player, $purpose, $ago, $minutes, $items]) {
             if (! $table) {
