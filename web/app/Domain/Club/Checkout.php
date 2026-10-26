@@ -169,7 +169,7 @@ class Checkout
             ];
             foreach ($parts as [$kind, $method, $amount]) {
                 if ($amount > 0) {
-                    $this->money->charge($booking->venue, $by, $kind, $amount, $method, $booking->user, $booking->id, $booking->code, discount: false);
+                    $this->money->charge($booking->venue, $by, $kind, $amount, $method, $booking->user, $booking->id, $booking->code, discount: false, notify: false);
                 }
             }
             foreach ($booking->items as $i) {
@@ -177,6 +177,10 @@ class Checkout
                     'qty' => $i->qty, 'price_each' => $i->price_each, 'created_by' => $by->id]);
             }
             $booking->update(['paid_at' => now()]);
+            // one message for the whole check paid from the card
+            if ($card > 0) {
+                Money::tellPaid($booking->venue, $booking->user, $card, (int) $this->card($booking)?->fresh()?->balance);
+            }
         });
     }
 

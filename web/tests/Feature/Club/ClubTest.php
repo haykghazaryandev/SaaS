@@ -195,3 +195,24 @@ it('tells the owner pages and the player at once: items, top-ups, payments, regi
     // product saved, item added, registration: each tells the place
     Illuminate\Support\Facades\Event::assertDispatchedTimes(App\Domain\Club\Events\ClubChanged::class, 3);
 });
+
+it('tells the player about their card: made, topped up, paid (one message for a whole check)', function () {
+    Illuminate\Support\Facades\Notification::fake();
+    $card = $this->cards->forPlayer($this->club, $this->player);
+    $this->cards->topUp($card, 5000, $this->owner);
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $b = app(RequestBooking::class)->handle($this->player, $small, at(10), 60);   // 15 000
+    $cola = app(Shop::class)->save(new Product(['venue_id' => $this->club->id]), ['name' => 'Cola', 'price' => 500]);
+    app(Checkout::class)->addItem($b, $cola, 2, $this->owner);
+    app(Checkout::class)->pay($b->fresh(), 5000, 11000, $this->owner);
+
+    $sent = fn (string $type) => Illuminate\Support\Facades\Notification::sent($this->player, App\Notifications\Notice::class)->filter(fn ($n) => $n->type === $type);
+    expect($sent('card_created'))->toHaveCount(1)
+        ->and($sent('card_created')->first()->link)->toBe('/me/cards?venue='.$this->club->slug)
+        ->and($sent('card_topup')->first()->params['amount'])->toBe('5 000 ֏')
+        ->and($sent('card_paid'))->toHaveCount(1)
+        ->and($sent('card_paid')->first()->params['amount'])->toBe('5 000 ֏');
+    // the second time it is the same card: no new "card made"
+    $this->cards->forPlayer($this->club, $this->player);
+    expect($sent('card_created'))->toHaveCount(1);
+});

@@ -23,13 +23,13 @@ class Money
      * @param  string  $method  card | cash
      * @param  bool  $discount  take the card discount off $amount
      */
-    public function charge(Venue $venue, User $by, string $kind, int $amount, string $method, ?User $player = null, ?int $refId = null, ?string $note = null, bool $discount = true): Payment
+    public function charge(Venue $venue, User $by, string $kind, int $amount, string $method, ?User $player = null, ?int $refId = null, ?string $note = null, bool $discount = true, bool $notify = true): Payment
     {
         if (! in_array($kind, Payment::KINDS, true) || ! in_array($method, ['card', 'cash'], true) || $amount < 0) {
             throw new BookingException('bad_amount');
         }
 
-        return DB::transaction(function () use ($venue, $by, $kind, $amount, $method, $player, $refId, $note, $discount) {
+        return DB::transaction(function () use ($venue, $by, $kind, $amount, $method, $player, $refId, $note, $discount, $notify) {
             $card = $player ? VenueCard::where('venue_id', $venue->id)->where('user_id', $player->id)->lockForUpdate()->first() : null;
             if ($method === 'card' && ! $card) {
                 throw new BookingException('no_card');
@@ -48,8 +48,21 @@ class Money
             if ($back > 0) {
                 $this->cards->entry($card, $back, 'cashback', $by, null, $payment);
             }
+            if ($notify && $method === 'card') {
+                self::tellPaid($venue, $player, $final, $card->fresh()->balance);
+            }
 
             return $payment;
         });
+    }
+
+    /** "−4 500 ֏ from your Pingpong.land card · balance 3 000 ֏" (after the payment is saved). */
+    public static function tellPaid(Venue $venue, ?User $player, int $amount, int $balance): void
+    {
+        if (! $player || $amount <= 0) {
+            return;
+        }
+        DB::afterCommit(fn () => $player->notify(new \App\Notifications\Notice('card_paid',
+            ['venue' => $venue->name, 'amount' => Cards::amd($amount), 'balance' => Cards::amd($balance)], Cards::link($venue))));
     }
 }

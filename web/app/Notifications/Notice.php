@@ -27,7 +27,9 @@ class Notice extends Notification implements ShouldQueue
         'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed',
         'booking_reminder_day', 'booking_reminder_hour', 'booking_team_invite', 'booking_team_joined', 'booking_team_declined',
         'booking_team_confirmed', 'booking_team_changed', 'booking_team_cancelled',
-        'booking_late', 'booking_not_here', 'booking_no_show', 'booking_ban', 'booking_rate'];
+        'booking_late', 'booking_not_here', 'booking_no_show', 'booking_ban', 'booking_rate',
+        // club cards: money matters, so these go to Telegram too
+        'card_created', 'card_topup', 'card_paid'];
 
     /** Categories that always go by Telegram (if switched on), even while the person uses the app: they matter. */
     private const ALWAYS = ['bookings', 'requests', 'alerts'];

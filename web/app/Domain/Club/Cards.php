@@ -4,6 +4,7 @@ namespace App\Domain\Club;
 
 use App\Domain\Booking\BookingException;
 use App\Models\CardEntry;
+use App\Notifications\Notice;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Venue;
@@ -22,7 +23,13 @@ class Cards
     {
         $this->ensureFeature($venue);
 
-        return VenueCard::firstOrCreate(['venue_id' => $venue->id, 'user_id' => $user->id], ['code' => self::newCode()]);
+        $card = VenueCard::firstOrCreate(['venue_id' => $venue->id, 'user_id' => $user->id], ['code' => self::newCode()]);
+        if ($card->wasRecentlyCreated) {
+            // where to find it: Profile → My cards (its QR, balance, history)
+            $user->notify(new Notice('card_created', ['venue' => $venue->name], self::link($venue)));
+        }
+
+        return $card;
     }
 
     /** The card behind a scanned code, only within this place. */
@@ -43,6 +50,9 @@ class Cards
             $payment = Payment::create(['venue_id' => $card->venue_id, 'user_id' => $card->user_id, 'card_id' => $card->id,
                 'kind' => 'topup', 'method' => 'cash', 'amount' => $amount, 'note' => $note, 'created_by' => $by->id]);
             $this->entry($card, $amount, 'topup', $by, $note, $payment);
+            $card->loadMissing('user', 'venue');
+            $balance = $card->fresh()->balance;
+            DB::afterCommit(fn () => $card->user?->notify(new Notice('card_topup', ['venue' => $card->venue->name, 'amount' => self::amd($amount), 'balance' => self::amd($balance)], self::link($card->venue))));
 
             return $payment;
         });
@@ -112,6 +122,17 @@ class Cards
         $at = session()->get('scanned.'.$card->code);
 
         return $at !== null && time() - (int) $at < self::SCAN_MINUTES * 60;
+    }
+
+    /** "My cards", opened at this place's card. */
+    public static function link(Venue $venue): string
+    {
+        return '/me/cards?venue='.$venue->slug;
+    }
+
+    public static function amd(int $n): string
+    {
+        return number_format($n, 0, '.', ' ').' ֏';
     }
 
     public static function newCode(): string

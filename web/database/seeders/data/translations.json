@@ -3514,6 +3514,21 @@
         "hy": "👥 :who-ն միացավ ձեր խաղին՝ :venue, :date :time։",
         "ru": "👥 :who присоединился(-ась) к вашей игре: :venue, :date :time."
     },
+    "notice.card_created": {
+        "en": "💳 Your card at :venue is ready. Show its QR at the desk: Profile → My cards (balance, discount, history).",
+        "hy": "💳 Ձեր քարտը :venue-ում պատրաստ է։ Ցույց տվեք QR-ը ընդունարանում․ Պրոֆիլ → Իմ քարտերը (հաշիվ, զեղչ, պատմություն)։",
+        "ru": "💳 Ваша карта в :venue готова. Покажите QR на ресепшене: Профиль → Мои карты (баланс, скидка, история)."
+    },
+    "notice.card_paid": {
+        "en": "💳 −:amount from your :venue card. Balance: :balance.",
+        "hy": "💳 −:amount ձեր :venue քարտից։ Հաշիվ՝ :balance։",
+        "ru": "💳 −:amount с вашей карты :venue. Баланс: :balance."
+    },
+    "notice.card_topup": {
+        "en": "💳 +:amount on your :venue card. Balance: :balance.",
+        "hy": "💳 +:amount ձեր :venue քարտին։ Հաշիվ՝ :balance։",
+        "ru": "💳 +:amount на вашу карту :venue. Баланс: :balance."
+    },
     "notice.friend_accepted": {
         "en": ":name accepted your friend request",
         "hy": ":name-ն ընդունեց ձեր ընկերության հայտը",
