@@ -37,7 +37,7 @@ class FieldsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        $durations = [30 => '30 min', 60 => '60 min', 90 => '90 min', 120 => '120 min', 150 => '150 min', 180 => '180 min'];
+        $durations = [15 => '15 min', 30 => '30 min', 45 => '45 min', 60 => '60 min', 90 => '90 min', 120 => '120 min', 150 => '150 min', 180 => '180 min'];
 
         // a place may have many courts of one kind (ping-pong tables): players book "a table", the place gets any free one
         return $schema->columns(2)->components([

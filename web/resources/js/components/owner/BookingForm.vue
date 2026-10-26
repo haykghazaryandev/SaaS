@@ -35,6 +35,34 @@ const form = useForm({
     price: (b?.price ?? null) as number | null,
     repeat: false,
     weeks: 4,
+    // new booking on the tables: any free table unless the owner picks one
+    any: !b && !!props.opts.any,
+});
+// the kinds to choose from: each football field, all the tables as one ("Tables"), then a table or "any free one"
+const kinds = computed(() => {
+    const out: { key: string; label: string; courts: typeof fields.value }[] = [];
+    for (const f of fields.value) {
+        const k = f.size === 'table' ? out.find((x) => x.key === 'table') : undefined;
+        if (k) k.courts.push(f);
+        else out.push({ key: f.size === 'table' ? 'table' : 'f' + f.id, label: f.size === 'table' ? trans('owner.courts.kind_table') : f.label, courts: [f] });
+    }
+    return out;
+});
+const kind = computed(() => kinds.value.find((k) => k.courts.some((c) => c.id === form.field_id)));
+function pickKind(k: { courts: { id: number }[] }) {
+    if (kind.value === k) return;
+    pickField(k.courts[0].id);
+    form.any = !b && k.courts.length > 1;
+}
+const tableChoice = computed({
+    get: () => (form.any ? 'any' : String(form.field_id)),
+    set: (v: string) => {
+        if (v === 'any') form.any = true;
+        else {
+            form.any = false;
+            form.field_id = Number(v);
+        }
+    },
 });
 const touched = ref(false);
 const quote = ref<{
@@ -76,6 +104,7 @@ async function refresh() {
         minutes: String(form.minutes),
         phone: form.phone || '',
     });
+    if (form.any) q.set('any', '1');
     if (b) q.set('ignore', String(b.id));
     try {
         const r = await fetch(`${route('owner.bookings.quote')}?${q}`, {
@@ -100,7 +129,7 @@ const later = () => {
     clearTimeout(timer);
     timer = window.setTimeout(refresh, 250);
 };
-watch(() => [form.field_id, form.date, form.start, form.minutes], refresh);
+watch(() => [form.field_id, form.date, form.start, form.minutes, form.any], refresh);
 watch(() => form.phone, later);
 onMounted(refresh);
 // someone else booked or freed a time meanwhile (OwnerLayout passes on the live signal)
@@ -134,6 +163,7 @@ function submit() {
         note_owner: d.note_owner.trim() || null,
         price: touched.value ? Number(String(d.price ?? '').replace(/\D/g, '')) || 0 : null,
         weeks: !b && d.repeat ? d.weeks : null,
+        any: !b && d.any ? 1 : null,
     }));
     if (b) form.patch(route('owner.bookings.update', b.id), opts);
     else form.post(route('owner.bookings.store'), opts);
@@ -149,9 +179,17 @@ function submit() {
     >
         <form @submit.prevent="submit">
             <div id="ff" class="seg" role="group" :aria-label="$t('common.field')">
-                <button v-for="f in fields" :key="f.id" type="button" :aria-pressed="form.field_id === f.id" @click="pickField(f.id)">
-                    {{ f.label }}
+                <button v-for="k in kinds" :key="k.key" type="button" :aria-pressed="kind === k" @click="pickKind(k)">
+                    {{ k.label }}<template v-if="k.courts.length > 1"> · {{ k.courts.length }}</template>
                 </button>
+            </div>
+            <!-- several tables: any free one (the server picks), or a given table -->
+            <div v-if="kind && kind.courts.length > 1" class="field" style="margin-top: 10px">
+                <label for="ftb">{{ $t('owner.form.table') }}</label>
+                <select id="ftb" v-model="tableChoice" class="input" data-test="table-choice">
+                    <option v-if="!b" value="any">{{ $t('owner.form.any_table') }}</option>
+                    <option v-for="c in kind.courts" :key="c.id" :value="String(c.id)">{{ c.label }}</option>
+                </select>
             </div>
             <div class="fgrid">
                 <div class="field">

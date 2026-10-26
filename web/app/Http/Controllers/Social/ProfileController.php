@@ -43,6 +43,8 @@ class ProfileController extends Controller
                 'games' => $player->gamePlayers()->whereIn('status', GamePlayerStatus::IN)
                     ->whereHas('game', fn ($g) => $g->whereNotIn('status', ['forming', 'cancelled']))->count(),
                 'friends' => count($player->friendIds()),
+                // ratings per sport, set by the clubs (🏓 ping-pong apart from ⚽ football)
+                'ratings' => \App\Domain\Club\Ratings::of($player),
             ],
             'hidden' => $hidden,
             'blockedByMe' => $blockedByMe,

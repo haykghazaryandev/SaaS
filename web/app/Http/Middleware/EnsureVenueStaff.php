@@ -37,6 +37,9 @@ class EnsureVenueStaff
             'fields' => BookingPresenter::fields($venue->loadMissing(['fields', 'openingHours'])),
             'hours' => BookingPresenter::hours($venue),
             'today' => LocalTime::now()->toDateString(),
+            // which club pages the place has (admin → place → features) and its main sport (ratings)
+            'features' => $venue->featureList(),
+            'sport' => ($venue->sports()[0] ?? \App\Enums\Sport::Football)->value,
             'nowHour' => round(LocalTime::hourOf(LocalTime::now()), 3),
         ]);
 

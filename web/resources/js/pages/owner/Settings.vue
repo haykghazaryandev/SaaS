@@ -44,7 +44,7 @@ const props = defineProps<{
     prices: (PriceRow & { count?: number })[];
     courts: CourtKind[];
     hours: HourRow[];
-    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number };
+    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number; cashback_pct: number };
     closures: ClosureRow[];
 }>();
 const owner = useOwner();
@@ -547,6 +547,16 @@ const fmtRange = (c: ClosureRow) =>
                             </div>
                             <select v-model.number="state.rules.late_grace_min" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.grace')">
                                 <option v-for="n in withCurrent(GRACE, state.rules.late_grace_min)" :key="n" :value="n">{{ mins(n) }}</option>
+                            </select>
+                        </div>
+                        <!-- club cards: % of what a card holder pays that goes back onto their card -->
+                        <div v-if="(owner.features ?? []).includes('wallet')" class="srow stack">
+                            <div>
+                                <b>{{ $t('owner.settings.cashback') }}</b
+                                ><small>{{ $t('owner.settings.cashback_help') }}</small>
+                            </div>
+                            <select v-model.number="state.rules.cashback_pct" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.cashback')">
+                                <option v-for="n in withCurrent([0, 1, 2, 3, 5, 7, 10, 15], state.rules.cashback_pct)" :key="n" :value="n">{{ n }}%</option>
                             </select>
                         </div>
                         <span v-if="errOf('rules')" class="err">{{ errOf('rules') }}</span>

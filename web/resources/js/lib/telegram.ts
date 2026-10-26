@@ -18,6 +18,9 @@ export interface TgWebApp {
     onEvent?(event: string, cb: () => void): void;
     isExpanded?: boolean;
     HapticFeedback?: { impactOccurred(style: 'light' | 'medium' | 'heavy'): void };
+    /** Telegram's own QR scanner (Bot API 6.4+): the callback gets each text; return true to close it */
+    showScanQrPopup?(params: { text?: string }, callback: (text: string) => boolean | void): void;
+    closeScanQrPopup?(): void;
 }
 
 /** The Mini App API when we run inside Telegram (with signed initData), otherwise null. */

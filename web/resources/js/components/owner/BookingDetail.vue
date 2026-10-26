@@ -4,6 +4,7 @@ import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
+import { Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
 // Booking details: contact, notes, price, history and the actions for the place.
@@ -45,6 +46,13 @@ function accept() {
 }
 function edit() {
     if (b.value) openForm({ booking: b.value });
+}
+// paid at the desk: from the player's card here or in cash (once)
+const hasFeature = (f: string) => (owner.value.features ?? []).includes(f);
+const canPay = computed(() => b.value && !b.value.paid && ['accepted', 'completed'].includes(b.value.status) && (hasFeature('wallet') || hasFeature('money')));
+function pay(method: 'card' | 'cash') {
+    if (!b.value) return;
+    router.post(route('owner.bookings.pay', b.value.id), { method }, { preserveScroll: true, onSuccess: () => emit('close') });
 }
 </script>
 
@@ -158,6 +166,16 @@ function edit() {
                     {{ $t('owner.action.no_show') }}
                 </button>
                 <a v-if="b.tel" class="btn ghost" :href="`tel:${b.tel}`"><Icon name="phone" size="sm" />{{ $t('common.call') }}</a>
+            </div>
+            <div v-if="b.paid || canPay" class="sheet-actions">
+                <span v-if="b.paid" class="pill green">{{ $t('owner.club.paid_' + b.paid) }}</span>
+                <template v-else>
+                    <button v-if="hasFeature('wallet') && b.card" type="button" class="btn" data-test="pay-card" @click="pay('card')">
+                        <Icon name="wallet" size="sm" />{{ $t('owner.club.paid_by_card', { a: amd(b.card.balance) }) }}
+                    </button>
+                    <button type="button" class="btn ghost" data-test="pay-cash" @click="pay('cash')">{{ $t('owner.club.paid_cash_btn') }}</button>
+                </template>
+                <Link v-if="b.card" class="btn ghost" :href="route('owner.cards.show', b.card.code)"><Icon name="qr" size="sm" />{{ $t('owner.club.open_card') }}</Link>
             </div>
         </template>
     </OwnerSheet>

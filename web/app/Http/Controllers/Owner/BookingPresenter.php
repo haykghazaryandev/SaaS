@@ -80,6 +80,9 @@ final class BookingPresenter
             ...self::row($b),
             'field' => self::fieldLabel($b->field),
             'decline_reason' => $b->decline_reason,
+            // paid at the desk (card / cash), and the player's card here, to pay from it
+            'paid' => \App\Domain\Club\Money::bookingPaid($b)?->method,
+            'card' => $b->user_id ? \App\Models\VenueCard::where('venue_id', $b->venue_id)->where('user_id', $b->user_id)->first(['code', 'balance'])?->only(['code', 'balance']) : null,
             'cancel_reason' => $b->cancel_reason,
             'cancelled_by' => $b->cancelled_by,
             'events' => $b->events->sortBy('id')->values()->map(fn (BookingEvent $e) => [

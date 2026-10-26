@@ -57,6 +57,8 @@ class PlaceController extends Controller
             'fields' => $fields->map(fn ($f) => [...$present->field($f), 'count' => $groups[$f->id]->count()])->values()->all(),
             'sport' => $field?->sport()->value ?? 'football',
             'features' => $venue->featureList(),
+            // the club parts the place has switched on
+            'club' => $this->club($request, $venue),
             'days' => $present->days(),
             'initial' => [
                 'date' => $day->toDateString(),
@@ -135,5 +137,25 @@ class PlaceController extends Controller
                 return ['id' => $b->id, 'code' => $b->code, 'status' => $b->status->value, 'field' => $repOf[$b->field_id] ?? $b->field_id,
                     'start' => round($from, 2), 'end' => round($from + $b->durationMinutes() / 60, 2)];
             })->values()->all();
+    }
+
+    /** Trainings, shop, open tournaments and "my card" (with its discount) for the place page. */
+    private function club(Request $request, Venue $venue): array
+    {
+        $user = $request->user();
+        $card = $user && ($venue->hasFeature('wallet') || $venue->hasFeature('rating'))
+            ? \App\Models\VenueCard::where('venue_id', $venue->id)->where('user_id', $user->id)->first() : null;
+
+        return [
+            'card' => ($venue->hasFeature('wallet') || $venue->hasFeature('rating')) ? ($card ? ['balance' => $card->balance, 'discount' => $venue->hasFeature('wallet') ? $card->discount_pct : 0] : false) : null,
+            'trainings' => $venue->hasFeature('trainings') ? \App\Models\Training::where('venue_id', $venue->id)->where('active', true)->orderBy('starts_at')->get()
+                ->map(fn ($t) => \App\Domain\Club\Trainings::present($t))->values()->all() : [],
+            'products' => $venue->hasFeature('shop') ? \App\Models\Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
+                ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
+                    'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'photo' => $p->photoUrl()])->values()->all() : [],
+            'tournaments' => $venue->hasFeature('tournaments') ? \App\Models\Tournament::where('venue_id', $venue->id)->where('status', 'open')->where('starts_at', '>', now())
+                ->orderBy('starts_at')->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title,
+                    'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price')])->values()->all() : [],
+        ];
     }
 }

@@ -204,6 +204,26 @@
         "hy": "Խաղացողները այստեղ խաղեր են ստեղծում և միանում (առայժմ ֆուտբոլ)",
         "ru": "Игроки создают игры и присоединяются к ним здесь (пока футбол)"
     },
+    "admin.feature.money": {
+        "en": "Money report",
+        "hy": "Եկամուտների հաշվետվություն",
+        "ru": "Отчёт по деньгам"
+    },
+    "admin.feature.money_help": {
+        "en": "Sales by kind, cash, top-ups (owner only)",
+        "hy": "Վաճառք ըստ տեսակի, կանխիկ, լիցքավորում (միայն սեփականատեր)",
+        "ru": "Продажи по видам, наличные, пополнения (только владелец)"
+    },
+    "admin.feature.rating": {
+        "en": "Ratings",
+        "hy": "Ռեյթինգներ",
+        "ru": "Рейтинги"
+    },
+    "admin.feature.rating_help": {
+        "en": "Staff set players' ratings in the place's sport",
+        "hy": "Աշխատակիցները սահմանում են խաղացողների ռեյթինգը վայրի մարզաձևում",
+        "ru": "Сотрудники ставят рейтинг игроков в виде спорта места"
+    },
     "admin.feature.reviews": {
         "en": "Reviews",
         "hy": "Կարծիքներ",
@@ -214,6 +234,16 @@
         "hy": "«Ինչպե՞ս էր վայրը» խաղից հետո",
         "ru": "«Как вам место?» после игры"
     },
+    "admin.feature.shop": {
+        "en": "Shop",
+        "hy": "Խանութ",
+        "ru": "Магазин"
+    },
+    "admin.feature.shop_help": {
+        "en": "Products with photos, sales at the desk",
+        "hy": "Ապրանքներ լուսանկարներով, վաճառք ընդունարանում",
+        "ru": "Товары с фото, продажи на ресепшене"
+    },
     "admin.feature.team": {
         "en": "Booking team",
         "hy": "Ամրագրման թիմ",
@@ -223,6 +253,36 @@
         "en": "Invite friends and the invite link",
         "hy": "Ընկերների հրավեր և հրավերի հղում",
         "ru": "Приглашение друзей и ссылка-приглашение"
+    },
+    "admin.feature.tournaments": {
+        "en": "Tournaments",
+        "hy": "Մրցաշարեր",
+        "ru": "Турниры"
+    },
+    "admin.feature.tournaments_help": {
+        "en": "Registration link, entries, fees, results",
+        "hy": "Գրանցման հղում, մասնակիցներ, վճարներ, արդյունքներ",
+        "ru": "Ссылка на регистрацию, участники, взносы, результаты"
+    },
+    "admin.feature.trainings": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
+    },
+    "admin.feature.trainings_help": {
+        "en": "Schedule for players, visits and payments",
+        "hy": "Ժամանակացույց խաղացողների համար, այցեր և վճարումներ",
+        "ru": "Расписание для игроков, посещения и оплата"
+    },
+    "admin.feature.wallet": {
+        "en": "Player cards (QR, balance, discount)",
+        "hy": "Խաղացողի քարտեր (QR, հաշիվ, զեղչ)",
+        "ru": "Карты игроков (QR, баланс, скидка)"
+    },
+    "admin.feature.wallet_help": {
+        "en": "A card per player with a QR: top-ups, payments, discounts, cashback",
+        "hy": "Քարտ յուրաքանչյուր խաղացողի համար՝ QR-ով․ լիցքավորում, վճարումներ, զեղչեր, քեշբեք",
+        "ru": "Карта на игрока с QR: пополнения, оплата, скидки, кэшбэк"
     },
     "admin.field.active": {
         "en": "Active",
@@ -1029,15 +1089,45 @@
         "hy": "Թեստային հաշիվներ (առանց Telegram)",
         "ru": "Тестовые аккаунты (без Telegram)"
     },
+    "booking.error.already_paid": {
+        "en": "This is paid already.",
+        "hy": "Սա արդեն վճարված է։",
+        "ru": "Это уже оплачено."
+    },
+    "booking.error.already_registered": {
+        "en": "This phone is registered already.",
+        "hy": "Այս հեռախոսն արդեն գրանցված է։",
+        "ru": "Этот телефон уже зарегистрирован."
+    },
+    "booking.error.already_visited": {
+        "en": "This visit is marked already today.",
+        "hy": "Այս այցն այսօր արդեն նշված է։",
+        "ru": "Это посещение сегодня уже отмечено."
+    },
+    "booking.error.bad_amount": {
+        "en": "Check the amount.",
+        "hy": "Ստուգեք գումարը։",
+        "ru": "Проверьте сумму."
+    },
     "booking.error.bad_duration": {
         "en": "This duration is not available for this field.",
         "hy": "Այս տևողությունը հասանելի չէ այս դաշտի համար։",
         "ru": "Такая длительность недоступна для этого поля."
     },
+    "booking.error.bad_options": {
+        "en": "Add 1 to 3 entry options with a name.",
+        "hy": "Ավելացրեք 1-ից 3 անվանված տարբերակ։",
+        "ru": "Добавьте от 1 до 3 вариантов с названием."
+    },
     "booking.error.bad_phone": {
         "en": "Enter a valid Armenian mobile number.",
         "hy": "Մուտքագրեք ճիշտ հայկական բջջային համար։",
         "ru": "Введите корректный армянский мобильный номер."
+    },
+    "booking.error.bad_rating": {
+        "en": "The rating must be between 0 and 4000.",
+        "hy": "Ռեյթինգը պետք է լինի 0-ից 4000։",
+        "ru": "Рейтинг должен быть от 0 до 4000."
     },
     "booking.error.banned": {
         "en": "You missed games too often, so booking is paused for a while. See your notices for the date.",
@@ -1069,6 +1159,16 @@
         "hy": "Սա իր տեսակի վերջինն է․ այն չի կարելի անջատել կամ հեռացնել։",
         "ru": "Это последний такого вида: его нельзя отключить или удалить."
     },
+    "booking.error.low_balance": {
+        "en": "Not enough money on the card.",
+        "hy": "Քարտում բավարար գումար չկա։",
+        "ru": "На карте недостаточно денег."
+    },
+    "booking.error.no_card": {
+        "en": "The player has no card at this club.",
+        "hy": "Խաղացողը այս ակումբում քարտ չունի։",
+        "ru": "У игрока нет карты в этом клубе."
+    },
     "booking.error.no_such_kind": {
         "en": "This place has no courts of this kind yet. The admin adds new kinds.",
         "hy": "Այս վայրը դեռ չունի այս տեսակի դաշտ։ Նոր տեսակներ ավելացնում է ադմինը։",
@@ -1093,6 +1193,11 @@
         "en": "The field belongs to another place.",
         "hy": "Դաշտը պատկանում է այլ ակումբի։",
         "ru": "Поле принадлежит другому клубу."
+    },
+    "booking.error.out_of_stock": {
+        "en": "Out of stock.",
+        "hy": "Առկա չէ։",
+        "ru": "Нет в наличии."
     },
     "booking.error.outside_hours": {
         "en": "The place is closed at this time.",
@@ -1133,6 +1238,16 @@
         "en": "Too close to the start. Book at least 1 hour before.",
         "hy": "Չափազանց մոտ է սկզբին։ Ամրագրեք առնվազն 1 ժամ առաջ։",
         "ru": "Слишком близко к началу. Бронируйте минимум за час."
+    },
+    "booking.error.tournament_closed": {
+        "en": "Registration for this tournament is closed.",
+        "hy": "Այս մրցաշարի գրանցումը փակ է։",
+        "ru": "Регистрация на этот турнир закрыта."
+    },
+    "booking.error.training_full": {
+        "en": "This training is full today.",
+        "hy": "Այս մարզումն այսօր լրացված է։",
+        "ru": "На эту тренировку сегодня мест нет."
     },
     "brand": {
         "en": "Bookball",
@@ -1203,6 +1318,206 @@
         "en": ":name was removed from the game",
         "hy": ":name-ին հեռացրին խաղից",
         "ru": ":name удалён(а) из игры"
+    },
+    "club.card_pitch": {
+        "en": "Balance, discounts and your rating, with one QR",
+        "hy": "Հաշիվ, զեղչեր և ձեր ռեյթինգը՝ մեկ QR-ով",
+        "ru": "Баланс, скидки и ваш рейтинг — по одному QR"
+    },
+    "club.entry.adjust": {
+        "en": "Correction",
+        "hy": "Ուղղում",
+        "ru": "Корректировка"
+    },
+    "club.entry.cashback": {
+        "en": "Cashback",
+        "hy": "Քեշբեք",
+        "ru": "Кэшбэк"
+    },
+    "club.entry.pay": {
+        "en": "Payment",
+        "hy": "Վճարում",
+        "ru": "Оплата"
+    },
+    "club.entry.topup": {
+        "en": "Top-up",
+        "hy": "Լիցքավորում",
+        "ru": "Пополнение"
+    },
+    "club.first_name": {
+        "en": "First name",
+        "hy": "Անուն",
+        "ru": "Имя"
+    },
+    "club.free": {
+        "en": "Free",
+        "hy": "Անվճար",
+        "ru": "Бесплатно"
+    },
+    "club.get_card": {
+        "en": "Get a card",
+        "hy": "Ստանալ քարտ",
+        "ru": "Получить карту"
+    },
+    "club.kind.booking": {
+        "en": "Bookings",
+        "hy": "Ամրագրումներ",
+        "ru": "Бронирования"
+    },
+    "club.kind.other": {
+        "en": "Other",
+        "hy": "Այլ",
+        "ru": "Другое"
+    },
+    "club.kind.shop": {
+        "en": "Shop",
+        "hy": "Խանութ",
+        "ru": "Магазин"
+    },
+    "club.kind.topup": {
+        "en": "Top-ups",
+        "hy": "Լիցքավորումներ",
+        "ru": "Пополнения"
+    },
+    "club.kind.tournament": {
+        "en": "Tournaments",
+        "hy": "Մրցաշարեր",
+        "ru": "Турниры"
+    },
+    "club.kind.training": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
+    },
+    "club.last_name": {
+        "en": "Last name",
+        "hy": "Ազգանուն",
+        "ru": "Фамилия"
+    },
+    "club.level": {
+        "en": "Your level or rating",
+        "hy": "Ձեր մակարդակը կամ ռեյթինգը",
+        "ru": "Ваш уровень или рейтинг"
+    },
+    "club.level_ph": {
+        "en": "e.g. 1200, or leave empty",
+        "hy": "օր․՝ 1200, կամ թողեք դատարկ",
+        "ru": "например, 1200, или оставьте пустым"
+    },
+    "club.my_card_here": {
+        "en": "My card at this club",
+        "hy": "Իմ քարտն այս ակումբում",
+        "ru": "Моя карта в этом клубе"
+    },
+    "club.my_cards": {
+        "en": "My cards",
+        "hy": "Իմ քարտերը",
+        "ru": "Мои карты"
+    },
+    "club.my_cards_sub": {
+        "en": "One card per club. Show its QR at the desk: they top up your balance, take payments and give your discount. A card works only at its own club.",
+        "hy": "Մեկ քարտ յուրաքանչյուր ակումբի համար։ Ցույց տվեք QR-ը ընդունարանում․ այնտեղ կլիցքավորեն հաշիվը, կգանձեն վճարումները և կկիրառեն ձեր զեղչը։ Քարտը գործում է միայն իր ակումբում։",
+        "ru": "По одной карте на клуб. Покажите её QR на ресепшене: там пополнят баланс, примут оплату и учтут вашу скидку. Карта действует только в своём клубе."
+    },
+    "club.no_cards": {
+        "en": "No cards yet. Open a club page and tap \"Get a card\".",
+        "hy": "Քարտեր դեռ չկան։ Բացեք ակումբի էջը և սեղմեք «Ստանալ քարտ»։",
+        "ru": "Карт пока нет. Откройте страницу клуба и нажмите «Получить карту»."
+    },
+    "club.open_cards": {
+        "en": "Open my cards",
+        "hy": "Բացել քարտերը",
+        "ru": "Открыть карты"
+    },
+    "club.option": {
+        "en": "Entry",
+        "hy": "Մասնակցություն",
+        "ru": "Участие"
+    },
+    "club.out_of_stock": {
+        "en": "Out of stock",
+        "hy": "Առկա չէ",
+        "ru": "Нет в наличии"
+    },
+    "club.qr_hint": {
+        "en": "Show this code at :venue. It works only there.",
+        "hy": "Ցույց տվեք այս կոդը :venue-ում։ Այն գործում է միայն այնտեղ։",
+        "ru": "Покажите этот код в :venue. Он действует только там."
+    },
+    "club.rating": {
+        "en": "Rating",
+        "hy": "Ռեյթինգ",
+        "ru": "Рейтинг"
+    },
+    "club.rating_of": {
+        "en": ":sport rating",
+        "hy": "Ռեյթինգ՝ :sport",
+        "ru": "Рейтинг: :sport"
+    },
+    "club.register": {
+        "en": "Register",
+        "hy": "Գրանցվել",
+        "ru": "Зарегистрироваться"
+    },
+    "club.register_note": {
+        "en": "The club sees your phone to confirm the registration.",
+        "hy": "Ակումբը տեսնում է ձեր հեռախոսը՝ գրանցումը հաստատելու համար։",
+        "ru": "Клуб видит ваш телефон, чтобы подтвердить регистрацию."
+    },
+    "club.shop": {
+        "en": "Shop",
+        "hy": "Խանութ",
+        "ru": "Магазин"
+    },
+    "club.shop_hint": {
+        "en": "Buy at the desk: pay from your card or in cash.",
+        "hy": "Գնեք ընդունարանում․ վճարեք քարտից կամ կանխիկ։",
+        "ru": "Покупка на ресепшене: с карты или наличными."
+    },
+    "club.show_big": {
+        "en": "Show the code big",
+        "hy": "Ցույց տալ կոդը մեծ",
+        "ru": "Показать код крупно"
+    },
+    "club.show_qr": {
+        "en": "Show QR",
+        "hy": "Ցույց տալ QR",
+        "ru": "Показать QR"
+    },
+    "club.t_closed": {
+        "en": "Registration is closed.",
+        "hy": "Գրանցումը փակ է։",
+        "ru": "Регистрация закрыта."
+    },
+    "club.t_registered": {
+        "en": "registered: :n",
+        "hy": "գրանցված՝ :n",
+        "ru": "зарегистрировано: :n"
+    },
+    "club.tap_to_close": {
+        "en": "Tap to close",
+        "hy": "Սեղմեք փակելու համար",
+        "ru": "Нажмите, чтобы закрыть"
+    },
+    "club.tournaments": {
+        "en": "Tournaments",
+        "hy": "Մրցաշարեր",
+        "ru": "Турниры"
+    },
+    "club.trainings": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
+    },
+    "club.trainings_hint": {
+        "en": "Come to a training and show your card QR: the visit and the payment are marked there.",
+        "hy": "Եկեք մարզման և ցույց տվեք քարտի QR-ը․ այցն ու վճարումը կնշվեն տեղում։",
+        "ru": "Приходите на тренировку и покажите QR карты: посещение и оплату отметят на месте."
+    },
+    "club.your_discount": {
+        "en": "Your discount :p%",
+        "hy": "Ձեր զեղչը՝ :p%",
+        "ru": "Ваша скидка :p%"
     },
     "common.about": {
         "en": "About",
@@ -3309,6 +3624,511 @@
         "hy": "Ակումբ",
         "ru": "Поля"
     },
+    "owner.club.active": {
+        "en": "Shown to players",
+        "hy": "Ցուցադրվում է խաղացողներին",
+        "ru": "Показывать игрокам"
+    },
+    "owner.club.add_sub": {
+        "en": "The player has no QR with them: find them by their Bookball phone.",
+        "hy": "Խաղացողի մոտ QR չկա․ գտեք նրան Bookball-ի հեռախոսահամարով։",
+        "ru": "У игрока нет QR с собой: найдите его по телефону в Bookball."
+    },
+    "owner.club.add_title": {
+        "en": "Card by phone",
+        "hy": "Քարտ ըստ հեռախոսի",
+        "ru": "Карта по телефону"
+    },
+    "owner.club.adjust_hint": {
+        "en": "A mistake? Pay it back as a top-up, or ask the admin to correct it.",
+        "hy": "Սխա՞լ։ Վերադարձրեք լիցքավորմամբ կամ խնդրեք ադմինին ուղղել։",
+        "ru": "Ошибка? Верните пополнением или попросите администратора исправить."
+    },
+    "owner.club.bad_code": {
+        "en": "This is not a card code.",
+        "hy": "Սա քարտի կոդ չէ։",
+        "ru": "Это не код карты."
+    },
+    "owner.club.balance": {
+        "en": "Balance",
+        "hy": "Հաշիվ",
+        "ru": "Баланс"
+    },
+    "owner.club.bookings": {
+        "en": "Bookings",
+        "hy": "Ամրագրումներ",
+        "ru": "Брони"
+    },
+    "owner.club.by": {
+        "en": "by :name",
+        "hy": "ընդունել է՝ :name",
+        "ru": "принял: :name"
+    },
+    "owner.club.by_day": {
+        "en": "By day",
+        "hy": "Ըստ օրերի",
+        "ru": "По дням"
+    },
+    "owner.club.by_kind": {
+        "en": "By kind",
+        "hy": "Ըստ տեսակի",
+        "ru": "По видам"
+    },
+    "owner.club.came": {
+        "en": "Came today",
+        "hy": "Եկել է այսօր",
+        "ru": "Пришёл сегодня"
+    },
+    "owner.club.came_card": {
+        "en": "Came · card",
+        "hy": "Եկավ · քարտ",
+        "ru": "Пришёл · карта"
+    },
+    "owner.club.came_cash": {
+        "en": "Came · cash",
+        "hy": "Եկավ · կանխիկ",
+        "ru": "Пришёл · наличные"
+    },
+    "owner.club.capacity": {
+        "en": "Places (optional)",
+        "hy": "Տեղեր (ըստ ցանկության)",
+        "ru": "Мест (необязательно)"
+    },
+    "owner.club.cash": {
+        "en": "Cash",
+        "hy": "Կանխիկ",
+        "ru": "Наличные"
+    },
+    "owner.club.cash_in": {
+        "en": "Cash in",
+        "hy": "Կանխիկ մուտք",
+        "ru": "Наличные"
+    },
+    "owner.club.cashback_note": {
+        "en": ":p% goes back onto the card.",
+        "hy": ":p%-ը վերադառնում է քարտին։",
+        "ru": ":p% возвращается на карту."
+    },
+    "owner.club.coach": {
+        "en": "Coach",
+        "hy": "Մարզիչ",
+        "ru": "Тренер"
+    },
+    "owner.club.code_ph": {
+        "en": "Card code",
+        "hy": "Քարտի կոդ",
+        "ru": "Код карты"
+    },
+    "owner.club.copied": {
+        "en": "Copied",
+        "hy": "Պատճենված է",
+        "ru": "Скопировано"
+    },
+    "owner.club.copy_link": {
+        "en": "Copy link",
+        "hy": "Պատճենել հղումը",
+        "ru": "Скопировать ссылку"
+    },
+    "owner.club.date": {
+        "en": "Date",
+        "hy": "Ամսաթիվ",
+        "ru": "Дата"
+    },
+    "owner.club.days": {
+        "en": "Days",
+        "hy": "Օրեր",
+        "ru": "Дни"
+    },
+    "owner.club.declined": {
+        "en": "Declined",
+        "hy": "Մերժված",
+        "ru": "Отклонён"
+    },
+    "owner.club.discount": {
+        "en": "Discount, %",
+        "hy": "Զեղչ, %",
+        "ru": "Скидка, %"
+    },
+    "owner.club.discount_note": {
+        "en": "Their :p% discount comes off automatically.",
+        "hy": "Նրա :p% զեղչը կիրառվում է ավտոմատ։",
+        "ru": "Его скидка :p% применяется автоматически."
+    },
+    "owner.club.discounts_given": {
+        "en": "Discounts given: :a",
+        "hy": "Տրված զեղչեր՝ :a",
+        "ru": "Скидок дано: :a"
+    },
+    "owner.club.from_card": {
+        "en": "From card",
+        "hy": "Քարտից",
+        "ru": "С карты"
+    },
+    "owner.club.from_cards": {
+        "en": "Paid from cards",
+        "hy": "Վճարված քարտերից",
+        "ru": "Оплачено с карт"
+    },
+    "owner.club.history": {
+        "en": "Card history",
+        "hy": "Քարտի պատմություն",
+        "ru": "История карты"
+    },
+    "owner.club.in_stock": {
+        "en": "In stock",
+        "hy": "Առկա է",
+        "ru": "В наличии"
+    },
+    "owner.club.intl_id": {
+        "en": "International rating ID",
+        "hy": "Միջազգային ռեյթինգի ID",
+        "ru": "ID в международном рейтинге"
+    },
+    "owner.club.level_n": {
+        "en": "level :n",
+        "hy": "մակարդակ՝ :n",
+        "ru": "уровень :n"
+    },
+    "owner.club.link_hint": {
+        "en": "Put this link in the Instagram bio or stories: people register there.",
+        "hy": "Տեղադրեք այս հղումը Instagram-ի բիոյում կամ սթորիներում․ մարդիկ կգրանցվեն այնտեղ։",
+        "ru": "Поставьте эту ссылку в био или сторис Instagram: там регистрируются."
+    },
+    "owner.club.m_card": {
+        "en": "card",
+        "hy": "քարտ",
+        "ru": "карта"
+    },
+    "owner.club.m_cash": {
+        "en": "cash",
+        "hy": "կանխիկ",
+        "ru": "наличные"
+    },
+    "owner.club.minutes": {
+        "en": "Minutes",
+        "hy": "Րոպե",
+        "ru": "Минуты"
+    },
+    "owner.club.money": {
+        "en": "Money",
+        "hy": "Գումար",
+        "ru": "Деньги"
+    },
+    "owner.club.new_product": {
+        "en": "New product",
+        "hy": "Նոր ապրանք",
+        "ru": "Новый товар"
+    },
+    "owner.club.new_tournament": {
+        "en": "New tournament",
+        "hy": "Նոր մրցաշար",
+        "ru": "Новый турнир"
+    },
+    "owner.club.new_training": {
+        "en": "New training",
+        "hy": "Նոր մարզում",
+        "ru": "Новая тренировка"
+    },
+    "owner.club.no_camera": {
+        "en": "No camera here. Type the code under the QR instead.",
+        "hy": "Տեսախցիկ չկա։ Մուտքագրեք QR-ի տակի կոդը։",
+        "ru": "Нет камеры. Введите код под QR."
+    },
+    "owner.club.no_cards": {
+        "en": "No cards yet. Scan a player's QR or open one by phone below.",
+        "hy": "Քարտեր դեռ չկան։ Սկանավորեք խաղացողի QR-ը կամ բացեք ըստ հեռախոսի ստորև։",
+        "ru": "Карт пока нет. Отсканируйте QR игрока или откройте по телефону ниже."
+    },
+    "owner.club.no_entries": {
+        "en": "No registrations yet.",
+        "hy": "Գրանցումներ դեռ չկան։",
+        "ru": "Регистраций пока нет."
+    },
+    "owner.club.no_history": {
+        "en": "Nothing yet.",
+        "hy": "Դեռ ոչինչ։",
+        "ru": "Пока ничего."
+    },
+    "owner.club.no_payments": {
+        "en": "No payments in this period.",
+        "hy": "Այս ժամանակահատվածում վճարումներ չկան։",
+        "ru": "Платежей за этот период нет."
+    },
+    "owner.club.no_player": {
+        "en": "No Bookball player with this phone.",
+        "hy": "Այս հեռախոսով Bookball խաղացող չկա։",
+        "ru": "Игрока Bookball с этим телефоном нет."
+    },
+    "owner.club.no_products": {
+        "en": "No products yet.",
+        "hy": "Ապրանքներ դեռ չկան։",
+        "ru": "Товаров пока нет."
+    },
+    "owner.club.no_tournaments": {
+        "en": "No tournaments yet.",
+        "hy": "Մրցաշարեր դեռ չկան։",
+        "ru": "Турниров пока нет."
+    },
+    "owner.club.no_trainings": {
+        "en": "No trainings yet.",
+        "hy": "Մարզումներ դեռ չկան։",
+        "ru": "Тренировок пока нет."
+    },
+    "owner.club.not_here": {
+        "en": "This card is from another club.",
+        "hy": "Այս քարտը այլ ակումբի է։",
+        "ru": "Это карта другого клуба."
+    },
+    "owner.club.open_card": {
+        "en": "Open the card",
+        "hy": "Բացել քարտը",
+        "ru": "Открыть карту"
+    },
+    "owner.club.option_ph_0": {
+        "en": "e.g. Free",
+        "hy": "օր․՝ Անվճար",
+        "ru": "например, Бесплатно"
+    },
+    "owner.club.option_ph_1": {
+        "en": "e.g. Standard",
+        "hy": "օր․՝ Ստանդարտ",
+        "ru": "например, Стандарт"
+    },
+    "owner.club.option_ph_2": {
+        "en": "e.g. With prize pool",
+        "hy": "օր․՝ Մրցանակային ֆոնդով",
+        "ru": "например, С призовым фондом"
+    },
+    "owner.club.options": {
+        "en": "Entry options (up to 3)",
+        "hy": "Մասնակցության տարբերակներ (մինչև 3)",
+        "ru": "Варианты участия (до 3)"
+    },
+    "owner.club.out_of_stock": {
+        "en": "Out of stock",
+        "hy": "Առկա չէ",
+        "ru": "Нет в наличии"
+    },
+    "owner.club.p_desc": {
+        "en": "Short description",
+        "hy": "Կարճ նկարագրություն",
+        "ru": "Краткое описание"
+    },
+    "owner.club.p_name": {
+        "en": "Name",
+        "hy": "Անվանում",
+        "ru": "Название"
+    },
+    "owner.club.paid": {
+        "en": "Paid",
+        "hy": "Վճարված է",
+        "ru": "Оплачено"
+    },
+    "owner.club.paid_by_card": {
+        "en": "From card (:a)",
+        "hy": "Քարտից (:a)",
+        "ru": "С карты (:a)"
+    },
+    "owner.club.paid_card": {
+        "en": "Paid by card",
+        "hy": "Վճարված է քարտով",
+        "ru": "Оплачено картой"
+    },
+    "owner.club.paid_cash": {
+        "en": "Paid in cash",
+        "hy": "Վճարված է կանխիկ",
+        "ru": "Оплачено наличными"
+    },
+    "owner.club.paid_cash_btn": {
+        "en": "Paid in cash",
+        "hy": "Վճարվեց կանխիկ",
+        "ru": "Оплачено наличными"
+    },
+    "owner.club.payments": {
+        "en": "Payments",
+        "hy": "Վճարումներ",
+        "ru": "Платежи"
+    },
+    "owner.club.period_month": {
+        "en": "This month",
+        "hy": "Այս ամիս",
+        "ru": "Этот месяц"
+    },
+    "owner.club.period_today": {
+        "en": "Today",
+        "hy": "Այսօր",
+        "ru": "Сегодня"
+    },
+    "owner.club.period_week": {
+        "en": "This week",
+        "hy": "Այս շաբաթ",
+        "ru": "Эта неделя"
+    },
+    "owner.club.photo": {
+        "en": "Photo",
+        "hy": "Լուսանկար",
+        "ru": "Фото"
+    },
+    "owner.club.place_ph": {
+        "en": "Place",
+        "hy": "Տեղ",
+        "ru": "Место"
+    },
+    "owner.club.places_n": {
+        "en": ":n places",
+        "hy": ":n տեղ",
+        "ru": "мест: :n"
+    },
+    "owner.club.players_kicker": {
+        "en": "Cards, balance, ratings",
+        "hy": "Քարտեր, հաշիվ, ռեյթինգ",
+        "ru": "Карты, баланс, рейтинг"
+    },
+    "owner.club.price": {
+        "en": "Price, ֏",
+        "hy": "Գին, ֏",
+        "ru": "Цена, ֏"
+    },
+    "owner.club.price_visit": {
+        "en": "Price per visit, ֏",
+        "hy": "Մեկ այցի գինը, ֏",
+        "ru": "Цена за посещение, ֏"
+    },
+    "owner.club.qty": {
+        "en": "How many",
+        "hy": "Քանակ",
+        "ru": "Количество"
+    },
+    "owner.club.rating_note": {
+        "en": "Why (optional)",
+        "hy": "Պատճառ (ըստ ցանկության)",
+        "ru": "Почему (необязательно)"
+    },
+    "owner.club.rating_note_ph": {
+        "en": "e.g. won the November league",
+        "hy": "օր․՝ հաղթեց նոյեմբերյան լիգան",
+        "ru": "например, выиграл ноябрьскую лигу"
+    },
+    "owner.club.sales": {
+        "en": "Sales",
+        "hy": "Վաճառքներ",
+        "ru": "Продажи"
+    },
+    "owner.club.sales_total": {
+        "en": "Sales",
+        "hy": "Վաճառք",
+        "ru": "Продажи"
+    },
+    "owner.club.scan": {
+        "en": "Scan",
+        "hy": "Սկանավորել",
+        "ru": "Сканировать"
+    },
+    "owner.club.scan_hint": {
+        "en": "Point the camera at the player's card QR",
+        "hy": "Ուղղեք տեսախցիկը խաղացողի քարտի QR-ին",
+        "ru": "Наведите камеру на QR карты игрока"
+    },
+    "owner.club.search_ph": {
+        "en": "Name or phone",
+        "hy": "Անուն կամ հեռախոս",
+        "ru": "Имя или телефон"
+    },
+    "owner.club.sell_cash": {
+        "en": "Sell · cash",
+        "hy": "Վաճառել · կանխիկ",
+        "ru": "Продать · наличные"
+    },
+    "owner.club.shown": {
+        "en": "Shown to players",
+        "hy": "Ցուցադրվում է",
+        "ru": "Показывать"
+    },
+    "owner.club.sold": {
+        "en": "Sold",
+        "hy": "Վաճառված է",
+        "ru": "Продано"
+    },
+    "owner.club.start": {
+        "en": "Start",
+        "hy": "Սկիզբ",
+        "ru": "Начало"
+    },
+    "owner.club.t_note": {
+        "en": "Description",
+        "hy": "Նկարագրություն",
+        "ru": "Описание"
+    },
+    "owner.club.t_status_closed": {
+        "en": "Registration closed",
+        "hy": "Գրանցումը փակ է",
+        "ru": "Регистрация закрыта"
+    },
+    "owner.club.t_status_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершён"
+    },
+    "owner.club.t_status_open": {
+        "en": "Registration open",
+        "hy": "Գրանցումը բաց է",
+        "ru": "Регистрация открыта"
+    },
+    "owner.club.t_title": {
+        "en": "Title",
+        "hy": "Անվանում",
+        "ru": "Название"
+    },
+    "owner.club.take": {
+        "en": "Take a payment",
+        "hy": "Գանձել վճարում",
+        "ru": "Принять оплату"
+    },
+    "owner.club.topped_up": {
+        "en": "Topped up",
+        "hy": "Լիցքավորված է",
+        "ru": "Пополнено"
+    },
+    "owner.club.topup": {
+        "en": "Top up (cash at the desk)",
+        "hy": "Լիցքավորել (կանխիկ ընդունարանում)",
+        "ru": "Пополнить (наличные на ресепшене)"
+    },
+    "owner.club.topup_btn": {
+        "en": "Top up",
+        "hy": "Լիցքավորել",
+        "ru": "Пополнить"
+    },
+    "owner.club.topups": {
+        "en": "Card top-ups",
+        "hy": "Քարտերի լիցքավորում",
+        "ru": "Пополнения карт"
+    },
+    "owner.club.unpaid": {
+        "en": "Not paid",
+        "hy": "Չվճարված",
+        "ru": "Не оплачено"
+    },
+    "owner.club.visit_marked": {
+        "en": "Visit marked",
+        "hy": "Այցը նշված է",
+        "ru": "Посещение отмечено"
+    },
+    "owner.club.visits": {
+        "en": "Visits",
+        "hy": "Այցեր",
+        "ru": "Посещения"
+    },
+    "owner.club.visits_hint": {
+        "en": "Mark who came on their card: scan the QR → Trainings → \"Came\".",
+        "hy": "Նշեք, թե ով եկավ, նրա քարտում․ սկանավորեք QR → Մարզումներ → «Եկավ»։",
+        "ru": "Отмечайте пришедших на их карте: QR → Тренировки → «Пришёл»."
+    },
+    "owner.club.what_ph": {
+        "en": "What for",
+        "hy": "Ինչի համար",
+        "ru": "За что"
+    },
     "owner.courts.active_hint": {
         "en": "Switched off: players can not book it",
         "hy": "Անջատված է․ խաղացողները չեն կարող ամրագրել",
@@ -3629,6 +4449,11 @@
         "hy": "Այս բոլոր օրերը զբաղված են։ Ոչինչ չավելացվեց։",
         "ru": "Все эти даты заняты. Ничего не добавлено."
     },
+    "owner.form.any_table": {
+        "en": "Any free table",
+        "hy": "Ցանկացած ազատ սեղան",
+        "ru": "Любой свободный стол"
+    },
     "owner.form.bad_phone": {
         "en": "Phone: 8 digits after +374, or leave it empty",
         "hy": "Հեռախոս․ 8 թիվ +374-ից հետո, կամ թողեք դատարկ",
@@ -3703,6 +4528,11 @@
         "en": "Start",
         "hy": "Սկիզբ",
         "ru": "Начало"
+    },
+    "owner.form.table": {
+        "en": "Table",
+        "hy": "Սեղան",
+        "ru": "Стол"
     },
     "owner.form.weeks": {
         "en": ":n weeks",
@@ -3814,6 +4644,21 @@
         "hy": "Bookball",
         "ru": "Bookball"
     },
+    "owner.nav.money": {
+        "en": "Money",
+        "hy": "Եկամուտ",
+        "ru": "Деньги"
+    },
+    "owner.nav.more": {
+        "en": "More",
+        "hy": "Ավելին",
+        "ru": "Ещё"
+    },
+    "owner.nav.players": {
+        "en": "Players",
+        "hy": "Խաղացողներ",
+        "ru": "Игроки"
+    },
     "owner.nav.schedule": {
         "en": "Schedule",
         "hy": "Ժամանակացույց",
@@ -3823,6 +4668,21 @@
         "en": "Settings",
         "hy": "Կարգավորումներ",
         "ru": "Настройки"
+    },
+    "owner.nav.shop": {
+        "en": "Shop",
+        "hy": "Խանութ",
+        "ru": "Магазин"
+    },
+    "owner.nav.tournaments": {
+        "en": "Tournaments",
+        "hy": "Մրցաշարեր",
+        "ru": "Турниры"
+    },
+    "owner.nav.trainings": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
     },
     "owner.no_access": {
         "en": "You don't have access to any place. Ask Bookball to add you.",
@@ -3878,6 +4738,11 @@
         "en": "Staff: schedule and bookings",
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
+    },
+    "owner.schedule.all_taken": {
+        "en": "All tables taken",
+        "hy": "Բոլոր սեղանները զբաղված են",
+        "ru": "Все столы заняты"
     },
     "owner.schedule.book": {
         "en": "Book",
@@ -4034,6 +4899,16 @@
         "hy": "Ցուցադրված է :n՝ :m-ից",
         "ru": "Показано :n из :m"
     },
+    "owner.schedule.tables_free": {
+        "en": ":n free",
+        "hy": ":n ազատ",
+        "ru": "свободно: :n"
+    },
+    "owner.schedule.taken_of": {
+        "en": ":n of :m taken",
+        "hy": ":m-ից :n-ը զբաղված է",
+        "ru": "занято :n из :m"
+    },
     "owner.schedule.week": {
         "en": "Week",
         "hy": "Շաբաթ",
@@ -4083,6 +4958,16 @@
         "en": "Phone: 8 digits after +374, or leave it empty",
         "hy": "Հեռախոս՝ +374-ից հետո 8 թիվ, կամ թողեք դատարկ",
         "ru": "Телефон: 8 цифр после +374 или оставьте пустым"
+    },
+    "owner.settings.cashback": {
+        "en": "Cashback on cards",
+        "hy": "Քեշբեք քարտերին",
+        "ru": "Кэшбэк на карты"
+    },
+    "owner.settings.cashback_help": {
+        "en": "Part of what a card holder pays goes back onto their card",
+        "hy": "Քարտատիրոջ վճարածի մի մասը վերադառնում է նրա քարտին",
+        "ru": "Часть того, что платит владелец карты, возвращается на его карту"
     },
     "owner.settings.closure_past": {
         "en": "This time has already passed.",
@@ -5408,6 +6293,11 @@
         "en": "Invite players for :venue, :when. When they accept, they get the booking news and the reminders 24 h and 1 h before.",
         "hy": "Հրավիրեք խաղացողներին՝ :venue, :when։ Ընդունելուց հետո նրանք կստանան ամրագրման լուրերը և հիշեցումները 24 և 1 ժամ առաջ։",
         "ru": "Пригласите игроков на :venue, :when. Когда они примут приглашение, они будут получать новости о брони и напоминания за 24 ч и за 1 ч."
+    },
+    "player.tournament.registered": {
+        "en": "You are registered. The club will confirm it.",
+        "hy": "Դուք գրանցված եք։ Ակումբը կհաստատի։",
+        "ru": "Вы зарегистрированы. Клуб подтвердит."
     },
     "player.verify.login_first": {
         "en": "Log in first to send a request.",

@@ -37,6 +37,12 @@ abstract class OwnerController extends Controller
         abort_unless($booking->venue_id === $this->venue($request)->id, 403);
     }
 
+    /** A club page the place doesn't have (admin → place → features): not found. */
+    protected function ensureAny(\App\Models\Venue $venue, array $features): void
+    {
+        abort_unless(collect($features)->contains(fn ($f) => $venue->hasFeature($f)), 404);
+    }
+
     /** Runs a booking action; a broken rule becomes a form error ("booking") with the translated text. */
     protected function attempt(callable $fn): mixed
     {

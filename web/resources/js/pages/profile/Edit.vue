@@ -212,6 +212,13 @@ function unblock(p: PlayerCard) {
             </label>
         </section>
 
+        <!-- club cards: one per club, each with its own QR (balance, discount, history) -->
+        <section class="card pad panels">
+            <h2>{{ $t('club.my_cards') }}</h2>
+            <p class="muted" style="margin: 0 0 10px; font-size: 13.5px">{{ $t('club.my_cards_sub') }}</p>
+            <Link class="btn ghost block" :href="route('me.cards')"><Icon name="wallet" size="sm" />{{ $t('club.open_cards') }}</Link>
+        </section>
+
         <!-- owners and the admin: their panels (on phones and in the Telegram Mini App there is no other way in) -->
         <section v-if="user?.isOwner || user?.isAdmin" class="card pad panels">
             <h2>{{ $t('profile.panels') }}</h2>

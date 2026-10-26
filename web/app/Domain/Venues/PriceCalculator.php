@@ -8,7 +8,7 @@ use App\Support\LocalTime;
 use Carbon\CarbonImmutable;
 
 /**
- * Price of a booking: every half hour is charged by the price rule that matches its weekday and time
+ * Price of a booking: every quarter hour is charged by the price rule that matches its weekday and time
  * (e.g. day hours cheaper than evenings and weekends). The highest-priority rule wins.
  */
 class PriceCalculator
@@ -18,9 +18,9 @@ class PriceCalculator
         $rules = $field->relationLoaded('priceRules') ? $field->priceRules : $field->priceRules()->get();
         $start = $start->setTimezone(LocalTime::tz());
         $sum = 0.0;
-        for ($m = 0; $m < $minutes; $m += 30) {
+        for ($m = 0; $m < $minutes; $m += 15) {
             $t = $start->addMinutes($m);
-            $sum += $this->hourlyAt($rules, $t) / 2;
+            $sum += $this->hourlyAt($rules, $t) / 4;
         }
 
         return (int) round($sum);

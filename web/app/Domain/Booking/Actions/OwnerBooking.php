@@ -24,10 +24,16 @@ class OwnerBooking
 
     public function __construct(private Availability $availability, private PriceCalculator $prices) {}
 
-    /** $data: name, phone?, team_name?, note_owner?, price? */
+    /** $data: name, phone?, team_name?, note_owner?, price?, any? (any free court of the kind: "any free table") */
     public function create(User $by, Field $field, CarbonImmutable $start, int $minutes, array $data, ?BookingSeries $series = null): Booking
     {
-        if ($problem = $this->availability->problem($field, $start, $minutes, forPlayer: false)) {
+        if (! empty($data['any'])) {
+            [$free, $problem] = $this->availability->freeInGroup($field, $start, $minutes, forPlayer: false);
+            if ($problem) {
+                throw new BookingException($problem);
+            }
+            $field = $free;
+        } elseif ($problem = $this->availability->problem($field, $start, $minutes, forPlayer: false)) {
             throw new BookingException($problem);
         }
         $phone = Phone::normalize($data['phone'] ?? null);
@@ -46,7 +52,8 @@ class OwnerBooking
                 'contact_name' => $data['name'] ?: ($player?->name ?? '—'),
                 'contact_phone' => $phone,
                 'series_id' => $series?->id,
-                'price' => $data['price'] ?? $this->prices->price($field, $start, $minutes),
+                'price' => $data['price'] ?? (int) round($this->prices->price($field, $start, $minutes)
+                    * (100 - ($player && $field->venue?->hasFeature('wallet') ? \App\Domain\Club\Cards::discountFor($field->venue_id, $player->id) : 0)) / 100),
                 'team_name' => $data['team_name'] ?? null,
                 'note_owner' => $data['note_owner'] ?? null,
                 'decided_by' => $by->id,

@@ -22,6 +22,7 @@ class Venue extends HasFactoryModel
         'max_pending_per_phone' => 2,  // open requests per phone at the same time
         'auto_accept_regulars' => false,
         'late_grace_min' => 15,        // after the start: how long the place waits before "team not here?"
+        'cashback_pct' => 0,           // % of what a card holder pays that goes back onto their card
     ];
 
     /**
@@ -34,6 +35,13 @@ class Venue extends HasFactoryModel
         'alerts',    // "notify me if it frees up"
         'reviews',   // "How was the place?" after playing
         'games',     // players create and join games here
+        // the club package (ping-pong first): off until the admin switches it on for a place
+        'wallet',      // player cards with a QR: balance, discount, cashback
+        'rating',      // the staff set players' ratings in the place's sport
+        'trainings',   // trainings: schedule for players, visits and payments
+        'shop',        // products with photos, sales at the desk
+        'tournaments', // registration link, entries, fees, results
+        'money',       // the money report: sales by kind, cash, top-ups
     ];
 
     protected $fillable = ['slug', 'name', 'district', 'address', 'description', 'lat', 'lng', 'phone', 'rating_avg', 'rating_count', 'amenities', 'rules', 'features', 'status', 'listed'];

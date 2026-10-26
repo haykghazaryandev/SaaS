@@ -2,13 +2,20 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Club\Cards;
 use App\Domain\Venues\Courts;
 use App\Enums\FieldSize;
+use App\Models\CardEntry;
 use App\Models\Field;
 use App\Models\OpeningHour;
 use App\Models\PriceRule;
+use App\Models\Product;
+use App\Models\SportRating;
+use App\Models\Tournament;
+use App\Models\Training;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueCard;
 use Illuminate\Database\Seeder;
 
 /**
@@ -19,7 +26,8 @@ class PingpongSeeder extends Seeder
 {
     public function run(): void
     {
-        if (Venue::withTrashed()->where('slug', 'pingpong-land')->exists()) {
+        if ($club = Venue::withTrashed()->where('slug', 'pingpong-land')->first()) {
+            $this->clubExtras($club);
             $this->command?->info('Ping-pong club: already there.');
 
             return;
@@ -32,16 +40,16 @@ class PingpongSeeder extends Seeder
                 'Սեղանի թենիսի ակումբ․ սեղաններ ժամավարձով, մարզումներ և ամսական մրցաշարեր։',
                 'Клуб настольного тенниса: столы на час, тренировки и ежемесячные турниры.'),
             'lat' => 40.1838, 'lng' => 44.5096, 'phone' => '+37410555123', 'rating_avg' => 4.9, 'rating_count' => 37,
-            'amenities' => ['lockers', 'cafe'], 'rules' => ['min_notice_min' => 30, 'step_min' => 30], 'status' => 'active', 'listed' => true,
-            // no games yet (step 2): booking, the team and "notify me" only
-            'features' => ['booking', 'team', 'alerts', 'reviews'],
+            'amenities' => ['lockers', 'cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15], 'status' => 'active', 'listed' => true,
+            // no games yet (step 2); the whole club package on
+            'features' => ['booking', 'team', 'alerts', 'reviews', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
         ]);
         foreach (range(0, 6) as $wd) {
-            OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '10:00', 'closes_at' => '23:00']);
+            OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '10:00', 'closes_at' => '22:00']);
         }
         $first = Field::create(['venue_id' => $venue->id, 'name' => __('owner.courts.name_table', ['n' => 1]), 'size' => FieldSize::Table->value,
             'format' => FieldSize::Table->format(), 'surface' => 'turf', 'indoor' => true, 'max_players' => FieldSize::Table->maxPlayers(),
-            'durations' => [30, 60, 90, 120], 'default_duration' => 60, 'sort' => 0, 'active' => true]);
+            'durations' => [30, 45, 60, 90, 120], 'default_duration' => 60, 'sort' => 0, 'active' => true]);
         // weekdays 3 000 ֏/h, weekday evenings and weekends 4 000 ֏/h
         PriceRule::create(['field_id' => $first->id, 'weekdays' => [1, 2, 3, 4, 5], 'from_time' => '00:00', 'to_time' => '18:00', 'price_per_hour' => 3000, 'priority' => 1]);
         PriceRule::create(['field_id' => $first->id, 'weekdays' => [1, 2, 3, 4, 5], 'from_time' => '18:00', 'to_time' => '24:00', 'price_per_hour' => 4000, 'priority' => 1]);
@@ -54,6 +62,34 @@ class PingpongSeeder extends Seeder
             'name' => 'Sahak Ping', 'locale' => 'hy', 'phone_verified_at' => now(), 'registered_at' => now(),
         ]);
         $venue->staff()->syncWithoutDetaching([$owner->id => ['role' => 'owner']]);
+        $this->clubExtras($venue);
         $this->command?->info('Ping-pong club: added (owner +374 91 000 009).');
+    }
+
+    /** Trainings, shop, a tournament and two players' cards, once (only what is missing). */
+    private function clubExtras(Venue $venue): void
+    {
+        if (Training::where('venue_id', $venue->id)->exists()) {
+            return;
+        }
+        $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
+            'rules' => [...($venue->rules ?? []), 'cashback_pct' => 3]]);
+        Training::create(['venue_id' => $venue->id, 'title' => 'Kids group', 'coach' => 'Ani', 'weekdays' => [1, 3, 5], 'starts_at' => '16:00', 'minutes' => 60, 'price' => 2500, 'capacity' => 8]);
+        Training::create(['venue_id' => $venue->id, 'title' => 'Adults · technique', 'coach' => 'Sahak', 'weekdays' => [2, 4, 6], 'starts_at' => '19:00', 'minutes' => 90, 'price' => 4000, 'capacity' => 10]);
+        foreach ([['Balls ×6 (3★)', 3000, 0], ['Racket Butterfly', 28000, 10], ['Rubber Tenergy', 32000, 0], ['Water 0.5 l', 300, 0]] as $i => [$name, $price, $off]) {
+            Product::create(['venue_id' => $venue->id, 'name' => $name, 'price' => $price, 'discount_pct' => $off, 'sort' => $i]);
+        }
+        Tournament::create(['venue_id' => $venue->id, 'sport' => 'pingpong', 'title' => 'November Open', 'code' => 'novopen1',
+            'starts_at' => now()->addDays(12)->setTime(7, 0), 'description' => "Singles, groups then play-off.\nBring your own racket.",
+            'options' => [['label' => 'Amateur', 'price' => 0], ['label' => 'Standard', 'price' => 5000], ['label' => 'Pro', 'price' => 10000]]]);
+        // two demo players with cards: +374 93 000 100 (Aram) and 101
+        foreach (User::whereIn('phone', ['+37493000100', '+37493000101'])->get() as $k => $u) {
+            $card = VenueCard::firstOrCreate(['venue_id' => $venue->id, 'user_id' => $u->id], ['code' => Cards::newCode(), 'discount_pct' => $k ? 0 : 10]);
+            if ($card->wasRecentlyCreated) {
+                $card->update(['balance' => 15000]);
+                CardEntry::create(['card_id' => $card->id, 'amount' => 15000, 'kind' => 'topup', 'note' => 'demo']);
+            }
+            SportRating::firstOrCreate(['user_id' => $u->id, 'sport' => 'pingpong'], ['rating' => $k ? 1180 : 1420, 'venue_id' => $venue->id]);
+        }
     }
 }

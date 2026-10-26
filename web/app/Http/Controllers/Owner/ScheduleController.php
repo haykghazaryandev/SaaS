@@ -79,14 +79,15 @@ class ScheduleController extends OwnerController
                 'end' => min(24, round(LocalTime::hourOf($c->ends_at->toImmutable(), $date), 2)),
             ])->values();
 
-        // free gaps per field: the "Free 16:30–17:30 · + Book" rows (same rules as the booking page, without the player limits)
-        $active = $venue->fields->where('active', true)->values();
-        $busy = $availability->busyMany($active, $date);
-        $free = $active->mapWithKeys(fn ($f) => [$f->id => $availability->freeGaps($f, $date, $busy[$f->id] ?? [])])->all();
+        // per lane (a field, or all tables together) how busy it is through the day: "Free · + Book" and "2/3" rows
+        $lanes = self::lanes($venue);
+        $busy = $availability->busyMany($venue->fields->where('active', true)->values(), $date);
+        $load = $lanes->mapWithKeys(fn ($l) => [$l['id'] => $availability->groupLoad($l['models'], $date, $busy)])->all();
 
         return [
             'open' => (float) $open,
-            'free' => (object) $free,
+            'lanes' => $lanes->map(fn ($l) => collect($l)->except('models')->all())->values(),
+            'load' => (object) $load,
             'close' => (float) $close,
             'closed' => $hours === null,
             'hours' => $hours,
@@ -99,6 +100,8 @@ class ScheduleController extends OwnerController
     {
         $bookings = $stats->bookings($venue, $date, $date->addDays(7));
         $active = $venue->fields->where('active', true)->values();
+        $lanes = self::lanes($venue);
+        $step = max(1, (int) $venue->rule('step_min')) / 60;
         $days = [];
         for ($i = 0; $i < 7; $i++) {
             $day = $date->addDays($i);
@@ -106,22 +109,59 @@ class ScheduleController extends OwnerController
             $busy = $availability->busyMany($active, $day);
             $list = $bookings->filter(fn (Booking $b) => $b->starts_at->setTimezone(LocalTime::tz())->toDateString() === $key);
             $fields = [];
-            foreach ($venue->fields as $f) {
-                $mine = $list->where('field_id', $f->id);
+            foreach ($lanes as $l) {
+                $mine = $list->whereIn('field_id', $l['courts']);
                 // a request nobody answered before its start is not holding the time any more
                 $holding = $mine->filter(fn (Booking $b) => in_array($b->status->value, BookingPresenter::USED, true) && BookingPresenter::kind($b) !== 'expired');
-                $fields[$f->id] = [
-                    'blocks' => $holding->map(fn ($b) => BookingPresenter::row($b))
-                        ->map(fn ($r) => ['id' => $r['id'], 'start' => $r['start'], 'end' => $r['end'], 'kind' => $r['kind'], 'name' => $r['team'] ?: $r['name']])->values(),
+                // free time: while at least one court of the lane is free
+                $gaps = [];
+                foreach ($availability->groupLoad($l['models'], $day, $busy) as [$from, $to, $n]) {
+                    if ($n >= $l['count']) {
+                        continue;
+                    }
+                    $last = count($gaps) - 1;
+                    if ($last >= 0 && abs($gaps[$last][1] - $from) < 1e-9) {
+                        $gaps[$last][1] = $to;
+                    } else {
+                        $gaps[] = [$from, $to];
+                    }
+                }
+                $fields[$l['id']] = [
                     'count' => $holding->count(),
                     'pending' => $holding->filter(fn (Booking $b) => BookingPresenter::kind($b) === 'pending')->count(),
-                    'pct' => $stats->occupancy($venue, $f->id, $day, $bookings),
-                    'free' => $f->active ? $availability->freeGaps($f, $day, $busy[$f->id] ?? []) : [],
+                    'free' => array_values(array_filter($gaps, fn ($g) => $g[1] - $g[0] >= $step - 1e-9)),
                 ];
             }
             $days[] = ['date' => $key, 'hours' => $availability->hours($venue, $day), 'fields' => $fields];
         }
 
-        return ['days' => $days];
+        return ['days' => $days, 'lanes' => $lanes->map(fn ($l) => collect($l)->except('models')->all())->values()];
+    }
+
+    /**
+     * The columns of the schedule: one per football field, one for all the tables of a ping-pong place ("Tables · 3").
+     * models: the courts (server side only).
+     */
+    public static function lanes($venue): \Illuminate\Support\Collection
+    {
+        return $venue->fields->where('active', true)->sortBy(fn ($f) => [$f->sort, $f->id])
+            ->groupBy(fn ($f) => $f->size->value)->values()
+            ->flatMap(function ($group) {
+                // football: every field is its own lane; tables: one lane for all of them
+                $parts = $group->first()->size === \App\Enums\FieldSize::Table ? [$group->values()] : $group->map(fn ($f) => collect([$f]))->all();
+
+                return collect($parts)->map(function ($courts) {
+                    $f = $courts->first();
+                    $many = $courts->count() > 1;
+
+                    return [
+                        'id' => $f->id, 'size' => $f->size->value, 'sport' => $f->sport()->value, 'count' => $courts->count(),
+                        'label' => $many ? __('owner.courts.kind_'.$f->size->value) : BookingPresenter::fieldLabel($f),
+                        'short' => $many ? __('owner.courts.kind_'.$f->size->value) : ($f->name ?: $f->format),
+                        'courts' => $courts->pluck('id')->values()->all(),
+                        'models' => $courts->values(),
+                    ];
+                });
+            })->values();
     }
 }

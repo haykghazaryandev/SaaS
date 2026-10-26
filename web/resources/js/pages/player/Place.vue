@@ -57,20 +57,25 @@ const props = defineProps<{
     sport?: string;
     /** what the place offers (admin → place → features) */
     features?: string[];
+    /** the club parts: my card here (null: no cards; false: not made yet), trainings, shop, open tournaments */
+    club?: {
+        card: { balance: number; discount: number } | false | null;
+        trainings: { id: number; title: string; coach: string | null; weekdays: number[]; start: string; end: string; price: number; note: string | null }[];
+        products: { id: number; name: string; description: string | null; price: number; final: number; discount_pct: number; in_stock: boolean; photo: string | null }[];
+        tournaments: { code: string; title: string; when: string; from: number }[];
+    };
 }>();
+// my discount at this place (my card): already in the price the place gets
+const myDiscount = computed(() => (props.club?.card ? props.club.card.discount : 0));
+const getCard = () => router.post(route('places.card', props.venue.slug));
+const ORDER = [1, 2, 3, 4, 5, 6, 0];
+const tDays = (w: number[]) => ORDER.filter((d) => w.includes(d)).map((d) => wdName(d)).join(', ');
 const has = (f: string) => !props.features || props.features.includes(f);
 const isTables = computed(() => props.sport === 'pingpong');
 useSportTheme(() => props.sport);
 // one kind of court only (all the club's tables): no court step, the numbers of the next steps move up
 const oneKind = computed(() => props.fields.length <= 1);
 const stepNo = (n: number) => (oneKind.value && n > 2 ? n - 1 : n);
-// how many tables are still free at a start time ("2 left"); nothing for a single court
-const leftAt = (t: number) => {
-    const row = slots.value.fields.find((x) => x.id === field.value?.id);
-    if (!row?.count || row.count < 2) return null;
-    const n = row.left?.[String(minutes.value)]?.[String(Math.round(t * 100) / 100)];
-    return n != null && n < row.count ? n : null;
-};
 const { user } = useShared();
 const today = computed(() => props.days[0]?.date);
 
@@ -102,9 +107,10 @@ const allStarts = computed(() => {
 /** nothing free this day: the first free start on a later day */
 const nextFree = computed(() => (free.value.length ? null : (slotRow.value?.next?.[String(minutes.value)] ?? null)));
 
-// prices: every half hour is charged by its own hourly rate (same rule as PriceCalculator)
+// prices: every quarter hour is charged by its own hourly rate (same rule as PriceCalculator); rates come per half hour
 function rateAt(f: FieldInfo, h: number): number {
-    const r = slots.value.fields.find((x) => x.id === f.id)?.rates.find(([t]) => same(t, h));
+    const half = Math.floor(h * 2 + 1e-6) / 2;
+    const r = slots.value.fields.find((x) => x.id === f.id)?.rates.find(([t]) => same(t, half));
     return r ? r[1] : f.price.max;
 }
 const isPrime = (f: FieldInfo, h: number) => rateAt(f, h) > f.price.min;
@@ -112,11 +118,11 @@ function priceOf(f: FieldInfo, s: number, m: number) {
     let total = 0;
     let dayMin = 0;
     let primeMin = 0;
-    for (let k = 0; k < m; k += 30) {
+    for (let k = 0; k < m; k += 15) {
         const h = s + k / 60;
-        total += rateAt(f, h) / 2;
-        if (isPrime(f, h)) primeMin += 30;
-        else dayMin += 30;
+        total += rateAt(f, h) / 4;
+        if (isPrime(f, h)) primeMin += 15;
+        else dayMin += 15;
     }
     return { total: Math.round(total), dayMin, primeMin };
 }
@@ -278,7 +284,8 @@ const summary = computed(() => {
     if (!f || start.value == null) return null;
     const p = priceOf(f, start.value, minutes.value);
     const wd = props.days.find((d) => d.date === date.value);
-    return { f, ...p, weekday: wd ? !wd.weekend : true };
+    const d = myDiscount.value;
+    return { f, ...p, total: d ? Math.round((p.total * (100 - d)) / 100) : p.total, full: p.total, discount: d, weekday: wd ? !wd.weekend : true };
 });
 const hoursToday = computed(() => slots.value.hours);
 /** "Every day 08:00–24:00", or runs of days with the same hours: "Mon–Fri 08:00–24:00", "Sat–Sun 09:00–23:00" */
@@ -645,10 +652,9 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                     type="button"
                                     :class="['tslot', { prime: twoRates && isPrime(field, s.t), on: start != null && same(s.t, start) }]"
                                     :aria-pressed="start != null && same(s.t, start)"
-                                    :title="leftAt(s.t) != null ? $t('player.place.left_n', { n: String(leftAt(s.t)) }) : undefined"
                                     @click="pickStart(s.t)"
                                 >
-                                    {{ hhmm(s.t) }}<small v-if="leftAt(s.t) != null" class="left">{{ leftAt(s.t) }}</small>
+                                    {{ hhmm(s.t) }}
                                 </button>
                             </template>
                         </div>
@@ -690,8 +696,9 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         </div>
                         <div class="totalrow">
                             <span>{{ $t('player.place.total') }}</span>
-                            <b>{{ amd(summary.total) }}</b>
+                            <b><s v-if="summary.discount" class="faint" style="font-weight: 400; margin-right: 6px">{{ amd(summary.full) }}</s>{{ amd(summary.total) }}</b>
                         </div>
+                        <div v-if="summary.discount" class="rate">{{ $t('club.your_discount', { p: summary.discount }) }}</div>
                         <div class="rate" :class="{ prime: summary.primeMin }">
                             <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.price_mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
                             <template v-else-if="summary.primeMin">{{ $t('player.place.prime_rate', { p: amd(summary.f.price.max) }) }}</template>
@@ -738,6 +745,52 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 </button>
                 <button type="button" class="btn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.book_button') }}</button>
             </div>
+
+            <!-- the club: my card (QR), trainings, shop, tournaments: only what the place switched on -->
+            <section v-if="club && (club.card !== null || club.trainings.length || club.products.length || club.tournaments.length)" class="section clubs">
+                <div v-if="club.card !== null" class="card pad mycard">
+                    <Icon name="qr" size="lg" />
+                    <span class="mc">
+                        <b>{{ $t('club.my_card_here') }}</b>
+                        <small v-if="club.card">{{ amd(club.card.balance) }}<template v-if="club.card.discount"> · {{ $t('club.your_discount', { p: club.card.discount }) }}</template></small>
+                        <small v-else>{{ $t('club.card_pitch') }}</small>
+                    </span>
+                    <Link v-if="club.card" class="btn sm" :href="route('me.cards', { venue: venue.slug })">{{ $t('club.show_qr') }}</Link>
+                    <button v-else-if="user" type="button" class="btn sm" data-test="get-card" @click="getCard">{{ $t('club.get_card') }}</button>
+                    <Link v-else class="btn sm" :href="route('login')">{{ $t('club.get_card') }}</Link>
+                </div>
+
+                <div v-if="club.tournaments.length" class="card pad">
+                    <h2 class="infoh">{{ $t('club.tournaments') }}</h2>
+                    <Link v-for="t in club.tournaments" :key="t.code" class="crow" :href="route('tournament.show', t.code)">
+                        <Icon name="trophy" size="sm" /><span class="w"><b>{{ t.title }}</b><small>{{ t.when }}</small></span
+                        ><span class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span><Icon name="arrow" size="sm" />
+                    </Link>
+                </div>
+
+                <div v-if="club.trainings.length" class="card pad">
+                    <h2 class="infoh">{{ $t('club.trainings') }}</h2>
+                    <div v-for="t in club.trainings" :key="t.id" class="crow">
+                        <Icon name="whistle" size="sm" />
+                        <span class="w"><b>{{ t.title }}</b><small>{{ tDays(t.weekdays) }} · {{ t.start }}–{{ t.end }}{{ t.coach ? ' · ' + t.coach : '' }}</small></span>
+                        <b class="mono">{{ amd(t.price) }}</b>
+                    </div>
+                    <p class="faint" style="font-size: 12.5px; margin: 8px 0 0">{{ $t('club.trainings_hint') }}</p>
+                </div>
+
+                <div v-if="club.products.length" class="card pad">
+                    <h2 class="infoh">{{ $t('club.shop') }}</h2>
+                    <div class="prods">
+                        <div v-for="p in club.products" :key="p.id" :class="['prod', { out: !p.in_stock }]">
+                            <div class="img"><img v-if="p.photo" :src="p.photo" alt="" loading="lazy" /><Icon v-else name="cube" /></div>
+                            <b>{{ p.name }}</b>
+                            <span class="pr"><s v-if="p.discount_pct">{{ amd(p.price) }}</s> {{ amd(p.final) }}</span>
+                            <small v-if="!p.in_stock" class="faint">{{ $t('club.out_of_stock') }}</small>
+                        </div>
+                    </div>
+                    <p class="faint" style="font-size: 12.5px; margin: 8px 0 0">{{ $t('club.shop_hint') }}</p>
+                </div>
+            </section>
 
             <!-- about the place: one compact list -->
             <section class="section about">
@@ -912,6 +965,22 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .okteam > .ico { color: var(--accent); margin-top: 2px; flex: none; }
 .okteam b { font-size: 14.5px; }
 .okteam p { margin: 2px 0 0; font-size: 13px; }
+.clubs { display: grid; gap: 12px; }
+.mycard { display: flex; align-items: center; gap: 14px; }
+.mycard > .ico { color: var(--accent); flex: none; }
+.mycard .mc { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mycard .mc small { color: var(--muted); font-weight: 700; font-size: 13px; }
+.crow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); color: var(--ink); }
+.crow:last-of-type { border-bottom: 0; }
+.crow .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.crow small { color: var(--muted); font-size: 12.5px; }
+.prods { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.prod { display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; }
+.prod.out { opacity: .55; }
+.prod .img { aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--faint); }
+.prod .img img { width: 100%; height: 100%; object-fit: cover; }
+.prod .pr { font-family: var(--mono); font-weight: 700; }
+.prod .pr s { color: var(--faint); font-weight: 400; }
 .backlink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; margin: 20px 0 14px; }
 .backlink:hover { color: var(--accent); }
 
@@ -955,8 +1024,6 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .tslot.prime::after { content: ''; position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--warn); }
 .tslot.prime.on::after { background: var(--on-accent); }
 .tslot.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-/* "2" in the corner: tables still free at that time (a group of several tables) */
-.tslot .left { position: absolute; bottom: 2px; right: 5px; font-size: 9.5px; font-weight: 800; opacity: .75; font-family: var(--body); }
 .tslot.taken { background: transparent; color: var(--faint); border: 1px dashed var(--line-2); cursor: pointer; }
 .tslot.taken .tt { text-decoration: line-through; }
 .tslot.taken:hover { background: transparent; border-color: var(--muted); color: var(--muted); }

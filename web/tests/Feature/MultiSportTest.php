@@ -158,3 +158,30 @@ it('sets one price for every table of a kind', function () {
         expect(PriceRule::where('field_id', $t->id)->pluck('price_per_hour')->sort()->values()->all())->toBe([2500, 3500, 4000]);
     }
 });
+
+it('shows the tables as one column with how many are taken, and books any free table for the owner', function () {
+    $club = makeClub(3);
+    $owner = User::factory()->create();
+    $club->staff()->attach($owner->id, ['role' => 'owner']);
+    $first = $club->fields->first();
+    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
+    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
+    $date = at(0)->toDateString();
+    $this->actingAs($owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
+        ->has('day.lanes', 1)->where('day.lanes.0.count', 3)
+        ->where("day.load.{$first->id}", fn ($segs) => collect($segs)->contains(fn ($s) => $s[0] == 18 && $s[1] == 19 && $s[2] === 2)));
+    $q = ['field_id' => $first->id, 'date' => $date, 'start' => '18:00', 'minutes' => 60, 'any' => 1];
+    $this->actingAs($owner)->getJson('/owner/bookings/quote?'.http_build_query($q))->assertJson(['problem' => null])->assertJsonPath('starts', fn ($s) => in_array(18, $s));
+    $this->actingAs($owner)->post('/owner/bookings', $q + ['name' => 'Walk-in'])->assertRedirect()->assertSessionHasNoErrors();
+    expect(Booking::where('venue_id', $club->id)->pluck('field_id')->unique())->toHaveCount(3);
+    // full now: the fourth one is refused
+    $this->actingAs($owner)->post('/owner/bookings', $q + ['name' => 'Late'])->assertSessionHasErrors('booking');
+});
+
+it('books in quarter hours where the place starts every 15 minutes', function () {
+    $club = makeClub(1, ['rules' => ['min_notice_min' => 0, 'step_min' => 15]]);
+    $first = $club->fields->first();
+    $b = app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18.25), 30);
+    expect($b->price)->toBe(1500)
+        ->and($b->starts_at->setTimezone('Asia/Yerevan')->format('H:i'))->toBe('18:15');
+});

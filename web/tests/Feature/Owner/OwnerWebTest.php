@@ -127,7 +127,7 @@ it('takes the edited price, and refuses taken times and bad input', function () 
         ->assertSessionHasErrors(['booking' => __('booking.error.taken')]);
     $this->actingAs($this->owner)->post('/owner/bookings', ['field_id' => $this->big->id, 'date' => $date, 'start' => '07:00', 'minutes' => 60, 'name' => 'Early'])
         ->assertSessionHasErrors(['booking' => __('booking.error.outside_hours')]);
-    $this->actingAs($this->owner)->post('/owner/bookings', ['field_id' => $this->small->id, 'date' => $date, 'start' => '10:15', 'minutes' => 60, 'name' => 'X'])->assertSessionHasErrors('start');
+    $this->actingAs($this->owner)->post('/owner/bookings', ['field_id' => $this->small->id, 'date' => $date, 'start' => '10:10', 'minutes' => 60, 'name' => 'X'])->assertSessionHasErrors('start');
     $this->actingAs($this->owner)->post('/owner/bookings', ['field_id' => $this->small->id, 'date' => $date, 'start' => '10:00', 'minutes' => 60])->assertSessionHasErrors('name');
     $this->actingAs($this->owner)->post('/owner/bookings', ['field_id' => $this->small->id, 'date' => $date, 'start' => '10:00', 'minutes' => 60, 'name' => 'X', 'phone' => '12'])->assertSessionHasErrors('phone');
 });
@@ -209,7 +209,6 @@ it('gives the schedule day, week and list data', function () {
         ->where('view', 'week')
         ->has('week.days', 7)
         ->where("week.days.0.fields.{$this->small->id}.pending", 1)
-        ->where("week.days.0.fields.{$this->small->id}.blocks.0.kind", 'pending')
         ->where("week.days.0.fields.{$this->small->id}.free", [[8, 20], [21, 24]]));
     $this->actingAs($this->owner)->get('/owner/schedule?view=list')->assertInertia(fn (Assert $p) => $p->where('view', 'list')->has('list.rows', 1));
     $this->actingAs($this->owner)->get('/owner/schedule?view=nope')->assertSessionHasErrors('view');
@@ -378,8 +377,9 @@ it('lists the free time of each field the way players see it, also where a reque
     Closure::create(['venue_id' => $this->venue->id, 'field_id' => null, 'starts_at' => at(22)->utc(), 'ends_at' => at(23)->utc(), 'reason' => 'Lights']);
     $date = at(0)->toDateString();
     $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
-        ->where("day.free.{$this->small->id}", [[8, 10], [11.5, 20], [21, 22], [23, 24]])
-        ->where("day.free.{$this->big->id}", [[8, 22], [23, 24]]));
+        // [from, to, how many courts taken]: the expired request (14:00) does not take the time
+        ->where("day.load.{$this->small->id}", [[8, 10, 0], [10, 11.5, 1], [11.5, 20, 0], [20, 21, 1], [21, 22, 0], [22, 23, 1], [23, 24, 0]])
+        ->where("day.load.{$this->big->id}", [[8, 22, 0], [22, 23, 1], [23, 24, 0]]));
 });
 
 it('gives the booking form the free and taken start times of the day', function () {

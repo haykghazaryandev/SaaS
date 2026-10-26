@@ -312,6 +312,57 @@ class Availability
         return array_values(array_map(fn ($g) => [round($g[0], 2), round($g[1], 2)], array_filter($out, fn ($g) => $g[1] - $g[0] >= $step - 1e-9)));
     }
 
+    /**
+     * How busy a group of courts is through a local day (owner schedule): [[from, to, busy], …] over the opening hours,
+     * busy = how many of the courts are taken then (bookings or closures). On today it starts at the time step that has begun.
+     * One court: busy is 0 or 1 (the free gaps); three tables: 0…3 ("2/3").
+     */
+    public function groupLoad(Collection $courts, CarbonImmutable $day, array $busy): array
+    {
+        $venue = $courts->first()?->loadMissing('venue.openingHours')->venue;
+        $hours = $venue ? $this->hours($venue, $day) : null;
+        if (! $hours) {
+            return [];
+        }
+        $from = max($hours[0], LocalTime::hourOf($this->ownerEarliest($venue, LocalTime::now()), $day->startOfDay()));
+        if ($from >= $hours[1] - 1e-9) {
+            return [];
+        }
+        $cuts = [$from, $hours[1]];
+        foreach ($courts as $c) {
+            foreach ($busy[$c->id] ?? [] as [$a, $b]) {
+                foreach ([$a, $b] as $x) {
+                    if ($x > $from + 1e-9 && $x < $hours[1] - 1e-9) {
+                        $cuts[] = $x;
+                    }
+                }
+            }
+        }
+        $cuts = array_values(array_unique(array_map(fn ($x) => round($x, 4), $cuts)));
+        sort($cuts);
+        $out = [];
+        for ($i = 0; $i < count($cuts) - 1; $i++) {
+            [$a, $b] = [$cuts[$i], $cuts[$i + 1]];
+            $n = 0;
+            foreach ($courts as $c) {
+                foreach ($busy[$c->id] ?? [] as [$x, $y]) {
+                    if ($x < $b - 1e-9 && $y > $a + 1e-9) {
+                        $n++;
+                        break;
+                    }
+                }
+            }
+            $last = count($out) - 1;
+            if ($last >= 0 && $out[$last][2] === $n && abs($out[$last][1] - $a) < 1e-9) {
+                $out[$last][1] = $b;
+            } else {
+                $out[] = [$a, $b, $n];
+            }
+        }
+
+        return array_map(fn ($s) => [round($s[0], 2), round($s[1], 2), $s[2]], $out);
+    }
+
     /** All bookings of a place for a local day (owner schedule), grouped by field id. */
     public function daySchedule(Venue $venue, CarbonImmutable $day, bool $withInactive = false): Collection
     {

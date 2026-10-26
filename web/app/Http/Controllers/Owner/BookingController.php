@@ -37,11 +37,15 @@ class BookingController extends OwnerController
             ...$this->timeRules($venue),
             'phone' => 'nullable|string|max:20',
             'ignore' => 'nullable|integer',
+            'any' => 'nullable|boolean',
         ]);
         $field = Field::with('priceRules', 'venue.openingHours')->findOrFail($data['field_id']);
         $start = $this->start($data);
         $ignore = isset($data['ignore']) && Booking::where('id', $data['ignore'])->where('venue_id', $venue->id)->exists() ? (int) $data['ignore'] : null;
-        $problem = $availability->problem($field, $start, (int) $data['minutes'], forPlayer: false, ignoreBookingId: $ignore);
+        $any = ! empty($data['any']);
+        $problem = $any
+            ? $availability->freeInGroup($field, $start, (int) $data['minutes'], forPlayer: false)[1]
+            : $availability->problem($field, $start, (int) $data['minutes'], forPlayer: false, ignoreBookingId: $ignore);
         $phone = Phone::normalize($data['phone'] ?? null);
         $player = $phone ? User::where('phone', $phone)->first(['id', 'name', 'no_show_count']) : null;
 
@@ -52,18 +56,30 @@ class BookingController extends OwnerController
             'player' => $player ? ['name' => $player->name, 'no_shows' => (int) $player->no_show_count] : null,
             'phoneValid' => ! filled($data['phone'] ?? null) || $phone !== null,
             // the start times of the chosen day for this field and length, like the booking page: free (green) and taken
-            ...$this->dayStarts($availability, $field, LocalTime::day($data['date']), (int) $data['minutes'], $ignore),
+            ...$this->dayStarts($availability, $field, LocalTime::day($data['date']), (int) $data['minutes'], $ignore, $any),
         ]);
     }
 
-    private function dayStarts(Availability $availability, Field $field, CarbonImmutable $day, int $minutes, ?int $ignore): array
+    private function dayStarts(Availability $availability, Field $field, CarbonImmutable $day, int $minutes, ?int $ignore, bool $any = false): array
     {
-        $busy = $availability->busy($field, $day, $ignore);
+        // "any free table": a start is free when one table of the kind is free
+        $free = [];
+        $all = [];
+        foreach ($any ? $availability->group($field) : [$field] as $court) {
+            $busy = $availability->busy($court, $day, $ignore);
+            foreach ($availability->freeStarts($court, $day, $minutes, false, $busy) as $h) {
+                $free[(string) $h] = $h;
+                $all[(string) $h] = $h;
+            }
+            foreach ($availability->takenStarts($court, $day, $minutes, false, $busy) as $h) {
+                $all[(string) $h] = $h;
+            }
+        }
+        ksort($free, SORT_NUMERIC);
+        $taken = array_diff_key($all, $free);
+        ksort($taken, SORT_NUMERIC);
 
-        return [
-            'starts' => $availability->freeStarts($field, $day, $minutes, false, $busy),
-            'taken' => $availability->takenStarts($field, $day, $minutes, false, $busy),
-        ];
+        return ['starts' => array_values($free), 'taken' => array_values($taken)];
     }
 
     public function store(Request $request, OwnerBooking $owner)
@@ -73,6 +89,7 @@ class BookingController extends OwnerController
             ...$this->timeRules($venue),
             ...$this->contactRules(),
             'weeks' => 'nullable|integer|min:1|max:26',
+            'any' => 'nullable|boolean',
         ], $this->messages());
         $this->checkPhone($data);
         $field = Field::findOrFail($data['field_id']);
@@ -84,6 +101,7 @@ class BookingController extends OwnerController
             'team_name' => $data['team_name'] ?? null,
             'note_owner' => $data['note_owner'] ?? null,
             'price' => isset($data['price']) ? (int) $data['price'] : null,
+            'any' => ! empty($data['any']),
         ];
         $weeks = (int) ($data['weeks'] ?? 1);
 
@@ -194,8 +212,8 @@ class BookingController extends OwnerController
         return [
             'field_id' => ['required', 'integer', Rule::exists('fields', 'id')->where('venue_id', $venue->id)],
             'date' => 'required|date_format:Y-m-d',
-            'start' => ['required', 'regex:/^([01]\d|2[0-3]):(00|30)$/'],
-            'minutes' => 'required|integer|min:30|max:720|multiple_of:30',
+            'start' => ['required', 'regex:/^([01]\d|2[0-3]):(00|15|30|45)$/'],
+            'minutes' => 'required|integer|min:15|max:720|multiple_of:15',
         ];
     }
 

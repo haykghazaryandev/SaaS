@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SPORT_ICON } from '@/composables/usePlayer';
 import Icon from '@/components/Icon.vue';
 import ConfirmSheet from '@/components/social/ConfirmSheet.vue';
 import FriendActions from '@/components/social/FriendActions.vue';
@@ -12,7 +13,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 // A player's profile: who they are, games / friends, friend buttons, Message (if allowed), Block / Report.
 const props = defineProps<{
-    player: PlayerCard & { bio?: string | null; games?: number; friends?: number };
+    player: PlayerCard & { bio?: string | null; games?: number; friends?: number; ratings?: Record<string, { rating: number; intl_id: string | null }> };
     hidden: boolean;
     blockedByMe: boolean;
     canMessage: boolean;
@@ -65,6 +66,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
                     <div class="row wrapflex" style="gap: 6px; margin-top: 10px">
                         <span v-if="player.position" class="pill blue"><Icon name="user" size="sm" />{{ $t('profile.positions.' + player.position) }}</span>
                         <span v-if="player.district" class="pill"><Icon name="pin" size="sm" />{{ $t('common.districts.' + player.district) }}</span>
+                        <!-- a rating per sport: 🏓 1450 is the ping-pong one, football has its own -->
+                        <span v-for="(r, sp) in player.ratings ?? {}" :key="sp" class="pill lime" :title="$t('club.rating_of', { sport: $t(`common.sports.${sp}`) })"
+                            >{{ SPORT_ICON[sp] ?? '' }} {{ $t('club.rating') }} {{ r.rating }}</span
+                        >
                     </div>
                 </div>
                 <div class="pstats">

@@ -521,3 +521,23 @@
 .oapp .crt .input { flex: 1; min-width: 0; }
 .oapp .crt .switch { white-space: nowrap; font-size: 13px; }
 .oapp .crt.off .input { opacity: .55; text-decoration: line-through; }
+
+/* tables column: which table, how many are taken */
+.oapp .drow .ctag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--surface-3); color: var(--muted); font-size: 11.5px; font-weight: 800; vertical-align: 1px; }
+.oapp .drow .occ { display: inline-flex; gap: 3px; }
+.oapp .drow .occ i { width: 9px; height: 9px; border-radius: 3px; background: var(--free-soft); box-shadow: inset 0 0 0 1px rgba(94, 240, 168, .5); }
+.oapp .drow .occ i.on { background: var(--st-pending); box-shadow: none; }
+.oapp .drow.full { padding: 7px 12px; background: var(--bg-2); border: 1px dashed var(--line-2); color: var(--muted); }
+.oapp .drow.full .what b { font-size: 13px; color: var(--muted); }
+.oapp .dhead .pill { font-size: 11px; padding: 1px 7px; }
+
+/* phones: Scan in the bottom bar, the other pages under More */
+.oapp .tabbar button { flex: 1 1 0; border: 0; background: none; font: inherit; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: var(--faint); padding: 7px 0 6px; border-radius: 18px; }
+.oapp .tabbar button[aria-current="page"] { background: rgba(200, 255, 61, 0.08); color: var(--accent); }
+.oapp .tabbar .tb-scan .tb-ico { color: var(--accent); }
+.oapp .moremenu { display: flex; flex-direction: column; gap: 4px; }
+.oapp .moremenu a { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 12px; font-weight: 700; color: var(--ink); }
+.oapp .moremenu a[aria-current="page"] { background: var(--surface-2); color: var(--accent); }
+.oapp .backlink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; margin: 4px 0 12px; }
+.oapp .backlink:hover { color: var(--accent); }
+.oapp .pill.hot { background: var(--hot-soft); color: var(--hot); }

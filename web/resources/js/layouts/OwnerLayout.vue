@@ -11,7 +11,8 @@ import { decisions, openForm, sheets, useOwner, type FormOpts } from '@/composab
 import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount } from 'vue';
+import QrScanner from '@/components/owner/QrScanner.vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 // Owner web: sidebar on desktop; top bar + bottom tabs on phones. Hosts the booking sheets for every owner page.
 // newBooking: the page offers "+ New booking" (its header button on desktop, this floating button on phones).
@@ -19,11 +20,32 @@ import { computed, onBeforeUnmount } from 'vue';
 const props = defineProps<{ title?: string; newBooking?: FormOpts }>();
 const owner = useOwner();
 const { user } = useShared();
+const has = (f: string) => (owner.value.features ?? []).includes(f);
+// the club pages show only where the admin switched them on (admin → place → features)
+const club = computed(() =>
+    [
+        { name: 'owner.players', label: 'owner.nav.players', icon: 'users', on: has('wallet') || has('rating') },
+        { name: 'owner.trainings', label: 'owner.nav.trainings', icon: 'whistle', on: has('trainings') },
+        { name: 'owner.shop', label: 'owner.nav.shop', icon: 'cube', on: has('shop') },
+        { name: 'owner.tournaments', label: 'owner.nav.tournaments', icon: 'trophy', on: has('tournaments') },
+        { name: 'owner.money', label: 'owner.nav.money', icon: 'wallet', on: has('money') && owner.value.role === 'owner' },
+    ]
+        .filter((n) => n.on)
+        .map((n) => ({ ...n, badge: 0 })),
+);
 const nav = computed(() => [
     { name: 'owner.today', label: 'common.today', icon: 'home', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
     { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
+    ...club.value,
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
+// phones: Today · Schedule · Scan (cards) · More (the rest); without club pages the three tabs as before
+const canScan = computed(() => has('wallet') || has('rating'));
+const tabs = computed(() => (club.value.length ? nav.value.slice(0, 2) : nav.value));
+const more = computed(() => (club.value.length ? nav.value.slice(2) : []));
+const moreOpen = ref(false);
+const scanOpen = ref(false);
+const moreActive = computed(() => more.value.some((n) => current(n.name)));
 const current = (name: string) => route().current(name);
 
 function switchVenue(e: Event) {
@@ -108,12 +130,29 @@ onBeforeUnmount(() => clearTimeout(reloadT));
             <Icon name="plus" /><span>{{ $t('common.new_booking') }}</span>
         </button>
         <nav class="tabbar">
-            <Link v-for="n in nav" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">
+            <Link v-for="n in tabs" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">
                 <span class="tb-ico"
                     ><Icon :name="n.icon" size="lg" /><span v-if="n.badge" class="nbadge">{{ n.badge }}</span></span
                 >{{ $t(n.label) }}
             </Link>
+            <button v-if="canScan" type="button" class="tb-scan" data-test="scan" @click="scanOpen = true">
+                <span class="tb-ico"><Icon name="qr" size="lg" /></span>{{ $t('owner.club.scan') }}
+            </button>
+            <button v-if="more.length" type="button" :aria-current="moreActive ? 'page' : undefined" @click="moreOpen = true">
+                <span class="tb-ico"><Icon name="more" size="lg" /></span>{{ $t('owner.nav.more') }}
+            </button>
         </nav>
+        <!-- phones: the other pages -->
+        <div v-if="moreOpen" class="scrim" @click.self="moreOpen = false">
+            <div class="sheet" role="dialog" aria-modal="true">
+                <nav class="moremenu">
+                    <Link v-for="n in more" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined" @click="moreOpen = false">
+                        <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span>
+                    </Link>
+                </nav>
+            </div>
+        </div>
+        <QrScanner v-if="scanOpen" @close="scanOpen = false" />
         <OwnerSheets />
         <Flash />
     </div>

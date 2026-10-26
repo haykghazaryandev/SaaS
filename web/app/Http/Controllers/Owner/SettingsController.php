@@ -34,6 +34,7 @@ class SettingsController extends OwnerController
         'request_expire_min' => 'required|integer|min:15|max:2880',
         'auto_accept_regulars' => 'required|boolean',
         'late_grace_min' => 'sometimes|integer|min:0|max:60',   // "team not here?" this long after the start
+        'cashback_pct' => 'sometimes|integer|min:0|max:50',     // club card: % back onto the card
     ];
 
     public function show(Request $request, PriceCalculator $prices)
@@ -244,7 +245,7 @@ class SettingsController extends OwnerController
 
     private function hourRules(): array
     {
-        $time = ['nullable', 'regex:/^(([01]\d|2[0-3]):(00|30)|24:00)$/'];
+        $time = ['nullable', 'regex:/^(([01]\d|2[0-3]):(00|15|30|45)|24:00)$/'];
 
         return [
             'hours' => 'required|array|size:7',

@@ -27,6 +27,10 @@ export interface OwnerShared {
     hours: ([number, number] | null)[]; // by weekday, 0 = Sunday
     today: string;
     nowHour: number;
+    /** the place's features (admin → place): wallet, rating, trainings, shop, tournaments, money … */
+    features?: string[];
+    /** its main sport (ratings are per sport) */
+    sport?: string;
 }
 
 /** Visual kind of booking (BookingPresenter::kind): colors come from the --st-* tokens. */
@@ -67,6 +71,8 @@ export interface RequestRow extends BookingRow {
 }
 
 export interface BookingDetail extends BookingRow {
+    paid?: string | null;
+    card?: { code: string; balance: number } | null;
     field: string;
     decline_reason: string | null;
     cancel_reason: string | null;
@@ -79,6 +85,8 @@ export interface FormOpts {
     field_id?: number;
     date?: string;
     start?: number;
+    /** any free court of the kind ("any free table") */
+    any?: boolean;
 }
 
 /** The owner props shared by EnsureVenueStaff. */
