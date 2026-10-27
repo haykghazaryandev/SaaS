@@ -7,6 +7,7 @@ import StatusPill from '@/components/player/StatusPill.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { amd, hhmm, useShared } from '@/composables/useShared';
 import { courtName, courtShort, dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
+import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
 import { useLive } from '@/lib/echo';
@@ -61,7 +62,7 @@ const props = defineProps<{
     club?: {
         card: { balance: number; cashback: number } | false | null;
         products: { id: number; name: string; description: string | null; price: number; final: number; discount_pct: number; in_stock: boolean; photo: string | null }[];
-        tournaments: { code: string; title: string; when: string; from: number }[];
+        tournaments: { code: string; title: string; when: string; from: number; phase: Phase }[];
     };
 }>();
 const getCard = () => router.post(route('places.card', props.venue.slug));
@@ -811,8 +812,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <div v-if="club.tournaments.length" class="card pad">
                     <h2 class="infoh">{{ $t('club.tournaments') }}</h2>
                     <Link v-for="t in club.tournaments" :key="t.code" class="crow" :href="route('tournament.show', t.code)">
-                        <Icon name="trophy" size="sm" /><span class="w"><b>{{ t.title }}</b><small>{{ t.when }}</small></span
-                        ><span class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span><Icon name="arrow" size="sm" />
+                        <Icon name="trophy" size="sm" /><span class="w"><b>{{ t.title }}</b><small>{{ t.when }}</small></span><TournamentPhase :phase="t.phase" /><Icon
+                            name="arrow"
+                            size="sm"
+                        />
                     </Link>
                 </div>
 

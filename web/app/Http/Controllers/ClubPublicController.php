@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Booking\BookingException;
+use App\Domain\Chat\Chat;
+use App\Domain\Club\Cards;
 use App\Domain\Club\Tournaments;
+use App\Http\Presenters\TournamentBracket;
 use App\Models\Product;
 use App\Models\Tournament;
 use App\Models\VenueCard;
 use App\Support\LocalTime;
+use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -27,7 +31,7 @@ class ClubPublicController extends Controller
         if ($user && $user->venues()->whereKey($card->venue_id)->exists()) {
             $request->session()->put('venue_id', $card->venue_id);
             // scanned at the desk: the staff may change this card's money for a while
-            \App\Domain\Club\Cards::markScanned($card);
+            Cards::markScanned($card);
 
             return redirect()->route('owner.cards.show', $card->code);
         }
@@ -50,26 +54,51 @@ class ClubPublicController extends Controller
         $t = Tournament::where('code', $code)->with('venue:id,slug,name')->firstOrFail();
         $user = $request->user();
         $at = $t->starts_at->setTimezone(LocalTime::tz());
+        // my registration: mine (my account, or my phone registered by the club)
+        $mine = $user ? $t->entries()->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($w) => $w->orWhere('phone', $user->phone)))->first() : null;
+        $chat = $t->conversation()->first();
+        $phase = Tournaments::phase($t);
+        $count = $t->entries()->where('status', '!=', 'declined')->count();
 
         return Inertia::render('player/Tournament', [
             'tournament' => ['code' => $t->code, 'title' => $t->title, 'sport' => $t->sport, 'date' => $at->toDateString(), 'time' => $at->format('H:i'),
-                'description' => $t->description, 'options' => $t->options, 'open' => $t->status === 'open' && $at->isFuture(),
-                'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $t->entries()->where('status', '!=', 'declined')->count()],
+                'description' => $t->description, 'options' => $t->options, 'phase' => $phase,
+                // the form: only while registration is open and there is a place
+                'open' => $phase === 'registration' && (! $t->max_players || $count < $t->max_players),
+                'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $count,
+                'accepted' => $t->entries()->where('status', 'accepted')->count(),
+                // before the draw: who is in (avatars on the page)
+                'players' => $phase === 'registration' || $phase === 'closed' ? $t->entries()->where('status', 'accepted')->orderBy('id')->limit(32)->get()
+                    ->map(fn ($e) => ['id' => $e->id, 'first' => $e->first_name, 'last' => $e->last_name, 'me' => $e->id === $mine?->id])->values() : [],
+                // the end: 1st, 2nd and the 3rd places
+                'podium' => $phase === 'done' ? $t->entries()->whereNotNull('place')->where('place', '<=', 3)->orderBy('place')->get()
+                    ->map(fn ($e) => ['place' => $e->place, 'name' => Tournaments::name($e)])->values() : [],
+                'min_rating' => $t->min_rating, 'max_rating' => $t->max_rating, 'max_players' => $t->max_players, 'status' => $t->status],
+            // who plays whom (after the draw), live: the public channel tournament.{code}
+            'bracket' => TournamentBracket::of($t, $mine?->id),
+            // my registration: its answer, and the chat once accepted
+            'entry' => $mine ? ['status' => $mine->status, 'place' => $mine->place,
+                // accepted with a fee not paid yet: "pay at the club, card or cash"
+                'unpaid' => $mine->status === 'accepted' && ! $mine->payment_id ? Tournaments::fee($t, $mine) : 0] : null,
+            'chat' => $chat && $user && app(Chat::class)->isMember($chat, $user) ? $chat->id : null,
             'me' => $user ? ['first_name' => explode(' ', (string) $user->name)[0] ?? '', 'last_name' => explode(' ', (string) $user->name, 2)[1] ?? '',
-                'phone' => $user->phone ? substr($user->phone, -8) : '',
-                'registered' => $user->phone ? $t->entries()->where('phone', $user->phone)->exists() : false] : null,
+                'phone' => $user->phone ? Phone::format($user->phone) : null,
+                'registered' => $mine !== null] : null,
         ]);
     }
 
     public function register(Request $request, string $code, Tournaments $tournaments)
     {
         $t = Tournament::where('code', $code)->firstOrFail();
+        $user = $request->user();
         $data = $request->validate([
-            'first_name' => 'required|string|min:2|max:60', 'last_name' => 'required|string|min:2|max:60', 'phone' => 'required|string|max:20',
+            'first_name' => 'required|string|min:2|max:60', 'last_name' => 'required|string|min:2|max:60',
+            // the account's phone; asked only when the account has none
+            'phone' => [$user->phone ? 'nullable' : 'required', 'string', 'max:20'],
             'level' => 'nullable|integer|min:0|max:4000', 'option' => 'required|integer|min:0|max:2',
         ]);
         try {
-            $tournaments->register($t, $data, $request->user());
+            $tournaments->register($t, ['phone' => $user->phone ?: ($data['phone'] ?? null)] + $data, $user);
         } catch (BookingException $e) {
             throw ValidationException::withMessages(['register' => $e->getMessage()]);
         }

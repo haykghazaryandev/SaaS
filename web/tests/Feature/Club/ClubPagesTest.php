@@ -1,14 +1,18 @@
 <?php
 
+use App\Domain\Booking\Actions\OwnerBooking;
+use App\Domain\Booking\Events\ScheduleChanged;
 use App\Domain\Club\Cards;
 use App\Models\Booking;
 use App\Models\Product;
 use App\Models\SportRating;
 use App\Models\Tournament;
+use App\Models\TournamentEntry;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -127,13 +131,22 @@ it('shows the player their card with its QR, and the club page their balance', f
         ->where('club.card.balance', 0)->has('club.products', 1));
 });
 
-it('registers for a tournament by its link, without an account', function () {
+it('registers for a tournament by its link: a guest logs in first, then registers with the account', function () {
     $t = Tournament::create(['venue_id' => $this->club->id, 'sport' => 'pingpong', 'title' => 'Open', 'code' => 'abcd1234', 'starts_at' => now()->addWeek(),
         'options' => [['label' => 'Free', 'price' => 0], ['label' => 'Pro', 'price' => 5000]]]);
     $this->get('/t/abcd1234')->assertOk()->assertInertia(fn (Assert $p) => $p->component('player/Tournament')->where('tournament.open', true)->has('tournament.options', 2));
-    $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'level' => 1200, 'option' => 1])->assertRedirect();
-    $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'option' => 1])->assertSessionHasErrors('register');
-    $this->actingAs($this->owner)->get('/owner/tournaments')->assertInertia(fn (Assert $p) => $p->has('current.list', 1)->where('current.list.0.price', 5000));
+    // a guest: the page says "log in to register"; posting sends them to the login
+    $this->get('/t/abcd1234')->assertInertia(fn (Assert $p) => $p->where('me', null));
+    $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'option' => 1])->assertRedirect(route('login'));
+    expect(TournamentEntry::count())->toBe(0);
+    // logged in: the account's phone, and the entry is theirs
+    $arman = User::factory()->create(['name' => 'Arman Sargsyan', 'phone' => '+37491234567']);
+    $this->actingAs($arman)->get('/t/abcd1234')->assertInertia(fn (Assert $p) => $p->where('me.phone', '+374 91 234 567'));
+    $this->actingAs($arman)->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'level' => 1200, 'option' => 1])->assertRedirect()->assertSessionHasNoErrors();
+    expect(TournamentEntry::first()->only('user_id', 'phone'))->toBe(['user_id' => $arman->id, 'phone' => '+37491234567']);
+    $this->actingAs($arman)->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'option' => 1])->assertSessionHasErrors('register');
+    $this->actingAs($arman)->get('/t/abcd1234')->assertInertia(fn (Assert $p) => $p->where('entry.status', 'applied'));
+    $this->actingAs($this->owner)->get("/owner/tournaments/{$t->id}")->assertInertia(fn (Assert $p) => $p->has('tournament.list', 1)->where('tournament.list.0.price', 5000));
 });
 
 it('lets the owner add test games from the Now page outside production', function () {
@@ -159,4 +172,29 @@ it('opens every club page for an owner of two places (the place is not lazy load
     foreach (['/owner/now', '/owner/players', '/owner/players/'.$this->player->id, '/owner/cards', '/owner/cards/'.$this->card->code, '/owner/shop', '/owner/tournaments', '/owner/money', '/owner/settings', '/owner/schedule'] as $url) {
         $this->get($url)->assertOk();
     }
+});
+
+it('attaches a card to a phone booking from the scanned card (a phone) or by name at the desk; the desk updates live', function () {
+    Event::fake([ScheduleChanged::class]);
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $start = at(12);
+    $other = makeVenue();
+    $b = app(OwnerBooking::class)->create($this->owner, $small, $start, 60, ['name' => 'Walk-in']);
+    $b2 = app(OwnerBooking::class)->create($this->owner, $this->club->fields->firstWhere('size.value', 'big'), $start, 90, ['name' => 'Walk-in 2']);
+    $ob = app(OwnerBooking::class)->create($this->owner, $other->fields->first(), $start, 60, ['name' => 'X']);
+    $this->travelTo($start->addMinutes(30));   // they play
+    // the card page (a scan on the phone) lists the bill; attaching opens it
+    $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p
+        ->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id) == [...collect($bills)->firstWhere('id', $b->id), 'mine' => false, 'total' => 15000]));
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/scan", ['code' => $this->card->code, 'open' => 1])
+        ->assertRedirect(route('owner.bookings.checkout', $b->id));
+    expect($b->fresh()->user_id)->toBe($this->player->id);
+    Event::assertDispatched(ScheduleChanged::class);
+    $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id)['mine'] === true));
+
+    // no camera: find the card by name or phone on another phone booking's bill
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$b2->id}/cards?q=gor")->assertOk()->assertJsonPath('0.code', $this->card->code);
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$b2->id}/cards?q=nobody")->assertExactJson([]);
+    // another place's booking: not here
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$ob->id}/cards?q=gor")->assertForbidden();
 });

@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Owner\Club;
 
 use App\Domain\Booking\BookingException;
 use App\Domain\Club\Cards;
+use App\Domain\Club\Checkout;
+use App\Http\Controllers\Owner\BookingPresenter;
 use App\Http\Controllers\Owner\OwnerController;
+use App\Models\Booking;
 use App\Models\CardEntry;
 use App\Models\Payment;
 use App\Models\User;
@@ -75,6 +78,13 @@ class CardController extends OwnerController
                 'avatar' => $user->avatarUrl(), 'no_shows' => (int) $user->no_show_count],
             // the cashback level: % now, paid so far, the next level (by itself, from the place's levels)
             'level' => Cards::level($venue, Cards::spent($card)),
+            // games waiting for the money that this card can pay: attach it from here (a scan on the phone), the desk updates live
+            'bills' => app(Checkout::class)->openBillsFor($card)->map(fn (Booking $b) => [
+                'id' => $b->id, 'field' => BookingPresenter::fieldLabel($b->field), 'start' => $b->starts_at->setTimezone(LocalTime::tz())->format('H:i'),
+                'end' => $b->ends_at->setTimezone(LocalTime::tz())->format('H:i'), 'stopped' => $b->stopped_at !== null,
+                'name' => $b->user?->name ?? $b->contact_name, 'mine' => $b->user_id === $card->user_id,
+                'total' => app(Checkout::class)->bill($b)['total'],
+            ])->values(),
             'history' => CardEntry::where('card_id', $card->id)->with('author:id,name')->latest('id')->limit(60)->get()
                 ->map(fn (CardEntry $e) => ['id' => $e->id, 'amount' => $e->amount, 'kind' => $e->kind, 'note' => $e->note, 'by' => $e->author?->name,
                     'at' => $e->created_at->setTimezone(LocalTime::tz())->format('d.m H:i')])->values(),

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Owner\Club;
 
-use App\Domain\Booking\BookingException;
 use App\Domain\Club\Cards;
 use App\Domain\Club\Checkout;
 use App\Http\Controllers\Owner\BookingPresenter;
@@ -10,6 +9,7 @@ use App\Http\Controllers\Owner\OwnerController;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\Product;
+use App\Models\VenueCard;
 use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -67,7 +67,26 @@ class CheckoutController extends OwnerController
         }
         $this->attempt(fn () => $checkout->attachCard($booking, $card));
 
-        return back()->with('success', __('owner.club.card_ok'));
+        // from the card page (the phone scanned the card first): go on to the bill
+        return ($request->boolean('open') ? redirect()->route('owner.bookings.checkout', $booking->id) : back())->with('success', __('owner.club.card_ok'));
+    }
+
+    /** No camera at the desk: find the player's card by name or phone, for this bill. */
+    public function cards(Request $request, Booking $booking)
+    {
+        $this->ensureSameVenue($request, $booking);
+        $q = trim((string) $request->query('q', ''));
+        $digits = preg_replace('/\D/', '', $q);
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+        $cards = VenueCard::where('venue_id', $booking->venue_id)->with('user:id,name,phone')
+            ->whereHas('user', fn ($u) => $u->where('name', 'ilike', '%'.$q.'%')
+                ->when(strlen($digits) >= 3, fn ($x) => $x->orWhere('phone', 'like', '%'.$digits.'%')))
+            ->limit(8)->get();
+
+        return response()->json($cards->map(fn (VenueCard $c) => ['code' => $c->code, 'name' => $c->user?->name,
+            'phone' => $c->user?->phone ? Phone::format($c->user->phone) : null, 'balance' => $c->balance])->values());
     }
 
     /** They finished: fix the time and show the check. */

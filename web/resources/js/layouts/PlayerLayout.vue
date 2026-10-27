@@ -144,6 +144,9 @@ watch(() => page.url, () => (menu.value = false));
                                 </div>
                                 <Link role="menuitem" :href="route('me.profile')" :prefetch="PREFETCH"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
                                 <Link role="menuitem" :href="route('me.bookings')" :prefetch="PREFETCH"><Icon name="ticket" size="sm" />{{ $t('common.my_bookings') }}</Link>
+                                <Link v-if="social.counts.tournaments" role="menuitem" :href="route('me.tournaments')" :prefetch="PREFETCH"
+                                    ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }}</Link
+                                >
                                 <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my_bookings.finish_profile') }}</Link>
                                 <Link v-if="user.isOwner" role="menuitem" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
                                 <hr />

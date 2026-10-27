@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Domain\Club\Cards;
 use App\Domain\Club\Shop;
+use App\Domain\Club\Tournaments;
 use App\Domain\Venues\Courts;
 use App\Domain\Venues\PriceCalculator;
 use App\Enums\FieldSize;
@@ -33,6 +34,7 @@ class PingpongSeeder extends Seeder
     {
         if ($club = Venue::withTrashed()->where('slug', 'pingpong-land')->first()) {
             $this->clubExtras($club);
+            $this->demoTournament($club);
             $this->adminOwns($club);
             $this->demoBookings($club);
             $this->command?->info('Ping-pong club: already there.');
@@ -70,6 +72,7 @@ class PingpongSeeder extends Seeder
         ]);
         $venue->staff()->syncWithoutDetaching([$owner->id => ['role' => 'owner']]);
         $this->clubExtras($venue);
+        $this->demoTournament($venue);
         $this->adminOwns($venue);
         $this->demoBookings($venue);
         $this->command?->info('Ping-pong club: added (owner +374 91 000 009).');
@@ -121,6 +124,26 @@ class PingpongSeeder extends Seeder
         }
 
         return $club;
+    }
+
+    /**
+     * The demo tournament gets 8 accepted players (demo players +374 93 000 100 … 107, with ratings), once, so the
+     * owner can try the draw and the bracket. The draw itself is left to the owner.
+     */
+    private function demoTournament(Venue $venue): void
+    {
+        $t = Tournament::where('venue_id', $venue->id)->where('code', 'novopen1')->first();
+        if (! $t || $t->entries()->exists() || $t->starts_at->isPast()) {
+            return;
+        }
+        $tt = app(Tournaments::class);
+        $users = User::whereIn('phone', collect(range(100, 107))->map(fn ($n) => '+37493000'.$n))->orderBy('phone')->get();
+        foreach ($users as $i => $u) {
+            SportRating::firstOrCreate(['user_id' => $u->id, 'sport' => 'pingpong'], ['rating' => 1500 - 40 * $i, 'venue_id' => $venue->id]);
+            [$first, $last] = array_pad(explode(' ', (string) $u->name, 2), 2, '');
+            $e = $tt->register($t, ['first_name' => $first ?: 'Player', 'last_name' => $last ?: (string) ($i + 1), 'phone' => $u->phone, 'option' => $i % 3], $u);
+            $tt->decide($e, 'accepted');
+        }
     }
 
     /** Training price, shop, a tournament and two players' cards, once (only what is missing). */

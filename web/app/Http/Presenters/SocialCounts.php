@@ -8,6 +8,7 @@ use App\Enums\GamePlayerStatus;
 use App\Models\Booking;
 use App\Models\Friendship;
 use App\Models\GamePlayer;
+use App\Models\TournamentEntry;
 use App\Models\User;
 
 /**
@@ -31,6 +32,8 @@ class SocialCounts
             'invites' => GamePlayer::where('user_id', $u->id)->where('status', GamePlayerStatus::Invited)
                 ->whereHas('game', fn ($q) => $q->whereIn('status', ['forming', 'open']))->count(),
             'pendingBookings' => Booking::where('user_id', $u->id)->where('status', BookingStatus::Pending)->where('ends_at', '>', now())->count(),
+            // tournaments I registered for (any): "My tournaments" in the menus
+            'tournaments' => TournamentEntry::where('user_id', $u->id)->count(),
         ];
     }
 }

@@ -13,7 +13,7 @@ import { reactive } from 'vue';
  * otherwise we poll GET /notifications every 30 s.
  */
 export const social = reactive({
-    counts: { notifications: 0, messages: 0, friendRequests: 0, invites: 0, pendingBookings: 0 } as SocialCounts,
+    counts: { notifications: 0, messages: 0, friendRequests: 0, invites: 0, pendingBookings: 0, tournaments: 0 } as SocialCounts,
     items: [] as Notice[],
     loaded: false,
     toast: null as { text: string; link: string | null } | null,

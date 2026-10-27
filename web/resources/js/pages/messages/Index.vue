@@ -19,7 +19,7 @@ function preview(c: ChatItem): string {
     const m = c.last;
     if (!m) return '';
     if (m.type === 'system') return sysText(m.body, m.meta);
-    const who = m.user?.id === user.value?.id ? trans('messages.you') : c.type === 'game' ? userName(m.user) : '';
+    const who = m.user?.id === user.value?.id ? trans('messages.you') : c.type !== 'direct' ? userName(m.user) : '';
     return (who ? who + ': ' : '') + (m.deleted ? trans('messages.deleted') : (m.body ?? ''));
 }
 const hasFind = (() => {
@@ -94,7 +94,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
 
             <section v-if="chats.length" class="clist">
                 <Link v-for="c in chats" :key="c.id" :href="route('messages.show', c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
-                    <span v-if="c.type === 'game'" class="cav"><Icon name="ball" /></span>
+                    <span v-if="c.type !== 'direct'" class="cav"><Icon :name="c.type === 'tournament' ? 'trophy' : 'ball'" /></span>
                     <span v-else class="avw">
                         <Avatar :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <i v-if="isOnline(c.other)" class="on-dot" role="img" :aria-label="$t('messages.online')" />
@@ -122,7 +122,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                 <h2 class="sec">{{ $t('messages.archived_title') }}</h2>
                 <section class="clist off">
                     <Link v-for="c in archived" :key="c.id" :href="route('messages.show', c.id)" class="list-row citem">
-                        <span v-if="c.type === 'game'" class="cav"><Icon name="ball" /></span>
+                        <span v-if="c.type !== 'direct'" class="cav"><Icon :name="c.type === 'tournament' ? 'trophy' : 'ball'" /></span>
                         <Avatar v-else :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <span class="cmain">
                             <span class="crow">

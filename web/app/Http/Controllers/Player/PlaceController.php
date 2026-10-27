@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Player;
 
 use App\Domain\Club\Cards;
+use App\Domain\Club\Tournaments;
 use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerVenues;
@@ -162,8 +163,8 @@ class PlaceController extends Controller
             'products' => $venue->hasFeature('shop') ? Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
                     'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'photo' => $p->photoUrl()])->values()->all() : [],
-            'tournaments' => $venue->hasFeature('tournaments') ? Tournament::where('venue_id', $venue->id)->where('status', 'open')->where('starts_at', '>', now())
-                ->orderBy('starts_at')->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title,
+            'tournaments' => $venue->hasFeature('tournaments') ? Tournament::where('venue_id', $venue->id)->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
+                ->orderBy('starts_at')->limit(8)->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title, 'phase' => Tournaments::phase($t),
                     'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price')])->values()->all() : [],
         ];
     }

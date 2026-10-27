@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Player;
 
+use App\Domain\Club\Tournaments;
 use App\Domain\Venues\Availability;
 use App\Enums\Sport;
+use App\Http\Controllers\Controller;
+use App\Http\Presenters\PlayerGames;
+use App\Http\Presenters\PlayerVenues;
 use App\Models\Game;
 use App\Models\Tournament;
-use App\Http\Controllers\Controller;
-use App\Http\Presenters\PlayerVenues;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use Illuminate\Http\Request;
@@ -77,13 +79,16 @@ class HomeController extends Controller
         $request->session()->put('sport', $sport->value);
 
         // the sport's page: book (places and free times), its tournaments, open games
-        $tournaments = Tournament::where('sport', $sport->value)->where('status', 'open')->where('starts_at', '>', now())
+        // upcoming, on now and finished this week (with where each one is), on now first, finished last
+        $order = ['live' => 0, 'drawn' => 1, 'registration' => 2, 'closed' => 3, 'done' => 4];
+        $tournaments = Tournament::where('sport', $sport->value)->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
             ->whereIn('venue_id', $all->filter(fn (Venue $v) => $v->hasFeature('tournaments'))->pluck('id'))
-            ->with('venue:id,name,slug')->orderBy('starts_at')->limit(6)->get()
-            ->map(fn (Tournament $t) => ['code' => $t->code, 'title' => $t->title, 'venue' => $t->venue->name,
-                'when' => $t->starts_at->setTimezone(LocalTime::tz())->toIso8601String(), 'from' => (int) collect($t->options)->min('price')])->values();
+            ->with('venue:id,name,slug')->orderBy('starts_at')->limit(12)->get()
+            ->map(fn (Tournament $t) => ['code' => $t->code, 'title' => $t->title, 'venue' => $t->venue->name, 'phase' => Tournaments::phase($t),
+                'when' => $t->starts_at->setTimezone(LocalTime::tz())->toIso8601String(), 'from' => (int) collect($t->options)->min('price')])
+            ->sortBy(fn ($t) => $order[$t['phase']])->values();
         // open games of this sport anybody can join (the Games tab)
-        $openGames = Game::query()->with(\App\Http\Presenters\PlayerGames::WITH)->where('status', 'open')->where('sport', $sport->value)
+        $openGames = Game::query()->with(PlayerGames::WITH)->where('status', 'open')->where('sport', $sport->value)
             ->where(fn ($q) => $q->whereNull('when_to')->orWhere('when_to', '>', now()))->latest('opened_at')->limit(12)->get();
         $games = $openGames->count();
 
@@ -91,7 +96,7 @@ class HomeController extends Controller
             'pick' => false,
             'tournaments' => $tournaments,
             'openGames' => $games,
-            'games' => $openGames->map(fn (Game $g) => app(\App\Http\Presenters\PlayerGames::class)->card($g, $request->user()))->values(),
+            'games' => $openGames->map(fn (Game $g) => app(PlayerGames::class)->card($g, $request->user()))->values(),
             'tab' => in_array($request->query('tab'), ['book', 'tournaments', 'games'], true) ? $request->query('tab') : 'book',
             'filters' => ['sport' => $sport->value, 'date' => $day->toDateString(), 'time' => $time, 'size' => $size, 'district' => $district],
             // the sport picker: visible sports that have at least one place

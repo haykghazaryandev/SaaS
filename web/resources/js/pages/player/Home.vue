@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
-import { amd, hhmm } from '@/composables/useShared';
+import { social } from '@/composables/useSocial';
+import { amd, hhmm, useShared } from '@/composables/useShared';
 import { SIZE_COLOR, courtShort, dateLong, dur, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
+import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
+import { useLive } from '@/lib/echo';
 import { useSportTheme } from '@/lib/sport';
 import GameCard from '@/components/games/GameCard.vue';
 import type { GameCard as GameCardT } from '@/types/games';
@@ -33,13 +36,30 @@ const props = defineProps<{
     days?: DayInfo[];
     districts?: string[];
     venues?: VenueCard[];
-    tournaments?: { code: string; title: string; venue: string; when: string; from: number }[];
+    tournaments?: { code: string; title: string; venue: string; when: string; from: number; phase: Phase }[];
     openGames?: number | null;
     games?: GameCardT[];
     tab?: 'book' | 'tournaments' | 'games';
 }>();
 // the sport page's sections: fixed tabs under the title; one shows below (the tab is kept in the address)
 const tab = ref<'book' | 'tournaments' | 'games'>(props.tab ?? 'book');
+const { user } = useShared();
+// tournaments: Live · Open · Finished — on Live when something is on, else Open, else Finished
+type TGroup = 'live' | 'open' | 'done';
+const groupOf = (p: Phase): TGroup => (p === 'live' ? 'live' : p === 'done' ? 'done' : 'open');
+const tCount = (g: TGroup) => (props.tournaments ?? []).filter((t) => groupOf(t.phase) === g).length;
+const tGroup = ref<TGroup>((['live', 'open', 'done'] as const).find((g) => tCount(g) > 0) ?? 'open');
+// live: a tournament starts, a result comes, one ends (the tab open: its list reloads)
+let tReload: number | undefined;
+useLive(
+    () => (tab.value === 'tournaments' ? 'tournaments' : null),
+    'tournament.changed',
+    () => {
+        clearTimeout(tReload);
+        tReload = window.setTimeout(() => router.reload({ only: ['tournaments'] }), 400);
+    },
+);
+const tShown = computed(() => (props.tournaments ?? []).filter((t) => groupOf(t.phase) === tGroup.value));
 function pickTab(t: 'book' | 'tournaments' | 'games') {
     tab.value = t;
     const u = new URL(window.location.href);
@@ -144,14 +164,33 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
             </nav>
 
             <section v-if="tab === 'tournaments'" class="section tabsec">
-                <div v-if="tournaments?.length" class="tlist">
-                    <Link v-for="t in tournaments" :key="t.code" class="card trow" :href="route('tournament.show', t.code)">
+                <Link v-if="user && social.counts.tournaments" class="mylink" :href="route('me.tournaments')" data-test="my-tournaments"
+                    ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }} <span class="faint">{{ social.counts.tournaments }}</span><Icon name="arrow" size="sm"
+                /></Link>
+                <div v-if="tournaments?.length" class="chips tfilter" role="tablist">
+                    <button
+                        v-for="g in ['live', 'open', 'done'] as const"
+                        :key="g"
+                        type="button"
+                        role="tab"
+                        :class="['chip', 'tf-' + g]"
+                        :aria-pressed="tGroup === g"
+                        :data-test="`tgroup-${g}`"
+                        @click="tGroup = g"
+                    >
+                        <i v-if="g === 'live' && tCount('live')" class="tdot" />{{ $t('player.home.t_' + g) }} <span class="faint">{{ tCount(g) }}</span>
+                    </button>
+                </div>
+                <div v-if="tShown.length" class="tlist">
+                    <Link v-for="t in tShown" :key="t.code" class="card trow" :href="route('tournament.show', t.code)">
                         <Icon name="trophy" />
-                        <span class="w"><b>{{ t.title }}</b><small>{{ t.venue }} · {{ whenOf(t.when) }}</small></span>
-                        <span class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
+                        <span class="w"
+                            ><b>{{ t.title }}</b><small>{{ t.venue }} · {{ whenOf(t.when) }}</small><span class="tph"><TournamentPhase :phase="t.phase" /></span
+                        ></span>
+                        <span v-if="t.phase === 'registration'" class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
                     </Link>
                 </div>
-                <div v-else class="empty">{{ $t('player.home.no_tournaments') }}</div>
+                <div v-else class="empty">{{ tournaments?.length ? $t('player.home.t_none_' + tGroup) : $t('player.home.no_tournaments') }}</div>
             </section>
 
             <section v-else-if="tab === 'games'" class="section tabsec">
@@ -254,6 +293,14 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 </template>
 
 <style scoped>
+.tph { display: block; margin-top: 4px; }
+.mylink { display: flex; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 12px; border-radius: 14px; background: rgba(255, 159, 67, 0.08); border: 1px solid rgba(255, 159, 67, 0.25); color: #ffd166; font-weight: 800; text-decoration: none; }
+.mylink .faint { flex: 1; }
+.tfilter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.tfilter .chip { display: inline-flex; align-items: center; gap: 6px; }
+.tf-live[aria-pressed='true'] { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
+.tdot { width: 7px; height: 7px; border-radius: 50%; background: #ff6b6b; animation: tdp 1.4s infinite; }
+@keyframes tdp { 50% { opacity: 0.3; } }
 .pick { max-width: 720px; margin: 28px auto 0; text-align: center; }
 .pick h2 { font-size: clamp(26px, 5vw, 38px); margin: 0 0 6px; }
 .intro { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 28px; }

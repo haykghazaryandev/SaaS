@@ -41,6 +41,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::post('bookings/{booking}/items', [CheckoutController::class, 'addItem'])->whereNumber('booking')->name('bookings.items.store');
     Route::delete('booking-items/{item}', [CheckoutController::class, 'removeItem'])->whereNumber('item')->name('bookings.items.destroy');
     Route::post('bookings/{booking}/scan', [CheckoutController::class, 'scan'])->whereNumber('booking')->name('bookings.scan');
+    Route::get('bookings/{booking}/cards', [CheckoutController::class, 'cards'])->whereNumber('booking')->name('bookings.cards');
     Route::post('bookings/{booking}/pay', [CheckoutController::class, 'pay'])->whereNumber('booking')->name('bookings.pay');
     Route::post('bookings/{booking}/stop', [CheckoutController::class, 'stop'])->whereNumber('booking')->name('bookings.stop');
     // the desk: every table now (the booked games playing, their check: time + items = what to pay)
@@ -62,8 +63,14 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::post('shop/{product}/sell', [ShopController::class, 'sell'])->name('shop.sell');
     Route::get('tournaments', [TournamentController::class, 'index'])->name('tournaments');
     Route::post('tournaments', [TournamentController::class, 'store'])->name('tournaments.store');
+    Route::get('tournaments/{tournament}', [TournamentController::class, 'show'])->whereNumber('tournament')->name('tournaments.show');
     Route::put('tournaments/{tournament}', [TournamentController::class, 'update'])->name('tournaments.update');
     Route::patch('tournament-entries/{entry}', [TournamentController::class, 'entry'])->name('tournaments.entry');
+    Route::post('tournaments/{tournament}/draw', [TournamentController::class, 'draw'])->name('tournaments.draw');
+    Route::post('tournaments/{tournament}/announce', [TournamentController::class, 'announce'])->middleware('throttle:10,1')->name('tournaments.announce');
+    Route::post('tournaments/{tournament}/chat', [TournamentController::class, 'chat'])->name('tournaments.chat');
+    Route::post('tournaments/{tournament}/remind', [TournamentController::class, 'remind'])->middleware('throttle:6,1')->name('tournaments.remind');
+    Route::patch('tournament-matches/{match}', [TournamentController::class, 'match'])->name('tournaments.match');
     Route::get('money', MoneyController::class)->name('money');
 
     Route::get('settings', [SettingsController::class, 'show'])->name('settings');

@@ -1104,6 +1104,16 @@
         "hy": "Թեստային հաշիվներ (առանց Telegram)",
         "ru": "Тестовые аккаунты (без Telegram)"
     },
+    "booking.error.already_drawn": {
+        "en": "The draw is made: redo the draw first.",
+        "hy": "Վիճակահանությունն արված է․ նախ կրկնեք այն։",
+        "ru": "Жеребьёвка уже проведена: сначала проведите её заново."
+    },
+    "booking.error.already_drawn_closed": {
+        "en": "Registration is closed: the draw is made.",
+        "hy": "Գրանցումը փակ է․ վիճակահանությունն արված է։",
+        "ru": "Регистрация закрыта: жеребьёвка уже проведена."
+    },
     "booking.error.already_paid": {
         "en": "This is paid already.",
         "hy": "Սա արդեն վճարված է։",
@@ -1113,6 +1123,11 @@
         "en": "This phone is registered already.",
         "hy": "Այս հեռախոսն արդեն գրանցված է։",
         "ru": "Этот телефон уже зарегистрирован."
+    },
+    "booking.error.already_started": {
+        "en": "Matches are already played: the bracket can't change here.",
+        "hy": "Խաղերն արդեն անցկացվել են․ սխեման այստեղ փոխել հնարավոր չէ։",
+        "ru": "Матчи уже сыграны: сетку здесь изменить нельзя."
     },
     "booking.error.already_visited": {
         "en": "This visit is marked already today.",
@@ -1234,6 +1249,16 @@
         "hy": "Այս խաղն այլևս հնարավոր չէ գնահատել։",
         "ru": "Эту игру уже нельзя оценить."
     },
+    "booking.error.rating_needed": {
+        "en": "Give your rating (level): this tournament is for a rating range.",
+        "hy": "Նշեք ձեր ռեյթինգը (մակարդակը)․ մրցաշարը որոշակի ռեյթինգի համար է։",
+        "ru": "Укажите ваш рейтинг (уровень): турнир для определённого диапазона рейтинга."
+    },
+    "booking.error.rating_out_of_range": {
+        "en": "Your rating is outside this tournament's range.",
+        "hy": "Ձեր ռեյթինգը դուրս է այս մրցաշարի սահմաններից։",
+        "ru": "Ваш рейтинг вне диапазона этого турнира."
+    },
     "booking.error.scan_first": {
         "en": "Scan the player's card first.",
         "hy": "Նախ սկանավորեք խաղացողի քարտը։",
@@ -1254,6 +1279,11 @@
         "hy": "Կարելի է ամրագրել առավելագույնը 14 օր առաջ։",
         "ru": "Бронировать можно максимум на 14 дней вперёд."
     },
+    "booking.error.too_few_players": {
+        "en": "Accept at least 2 players first.",
+        "hy": "Նախ ընդունեք առնվազն 2 խաղացող։",
+        "ru": "Сначала примите хотя бы 2 игроков."
+    },
     "booking.error.too_many_pending": {
         "en": "You already have 2 requests waiting. Wait for an answer first.",
         "hy": "Դուք արդեն ունեք 2 սպասող հայտ։ Սպասեք պատասխանին։",
@@ -1268,6 +1298,11 @@
         "en": "Registration for this tournament is closed.",
         "hy": "Այս մրցաշարի գրանցումը փակ է։",
         "ru": "Регистрация на этот турнир закрыта."
+    },
+    "booking.error.tournament_full": {
+        "en": "No places left in this tournament.",
+        "hy": "Այս մրցաշարում ազատ տեղեր չկան։",
+        "ru": "В этом турнире не осталось мест."
     },
     "booking.error.training_full": {
         "en": "This training is full today.",
@@ -1334,6 +1369,11 @@
         "hy": ":name-ն լքեց խաղը",
         "ru": ":name покинул(а) игру"
     },
+    "chat.sys.match_result": {
+        "en": ":winner beat :loser :score",
+        "hy": ":winner-ը հաղթեց :loser-ին :score",
+        "ru": ":winner победил(а) :loser :score"
+    },
     "chat.sys.opened": {
         "en": "The :format game is open. Say hi and agree on a day!",
         "hy": "Ձեր :format խաղը բաց է։ Ողջունեք միմյանց և պայմանավորվեք օրվա մասին։",
@@ -1343,6 +1383,146 @@
         "en": ":name was removed from the game",
         "hy": ":name-ին հեռացրին խաղից",
         "ru": ":name удалён(а) из игры"
+    },
+    "chat.sys.tournament_drawn": {
+        "en": "The draw is made: see the bracket",
+        "hy": "Վիճակահանությունն արված է․ նայեք սխեման",
+        "ru": "Жеребьёвка проведена: смотрите сетку"
+    },
+    "chat.sys.tournament_opened": {
+        "en": "The :title chat is open",
+        "hy": "«:title» մրցաշարի չատը բաց է",
+        "ru": "Чат турнира «:title» открыт"
+    },
+    "chat.sys.tournament_over": {
+        "en": ":title is over: :winner is the champion 🏆",
+        "hy": ":title-ն ավարտվեց․ չեմպիոնը՝ :winner 🏆",
+        "ru": ":title завершён: чемпион — :winner 🏆"
+    },
+    "club.bracket.bye": {
+        "en": "goes on",
+        "hy": "անցնում է",
+        "ru": "проходит"
+    },
+    "club.bracket.byes": {
+        "en": ":n players go on without a match",
+        "hy": ":n խաղացող անցնում է առանց խաղի",
+        "ru": ":n игроков проходят без матча"
+    },
+    "club.bracket.champion": {
+        "en": "Champion",
+        "hy": "Չեմպիոն",
+        "ru": "Чемпион"
+    },
+    "club.bracket.early": {
+        "en": "Early rounds",
+        "hy": "Սկզբնական փուլեր",
+        "ru": "Первые раунды"
+    },
+    "club.bracket.final": {
+        "en": "Final",
+        "hy": "Եզրափակիչ",
+        "ru": "Финал"
+    },
+    "club.bracket.final_stage": {
+        "en": "Final stage",
+        "hy": "Եզրափակիչ փուլ",
+        "ru": "Финальная стадия"
+    },
+    "club.bracket.goes_on": {
+        "en": "goes on without a match",
+        "hy": "անցնում է առանց խաղի",
+        "ru": "проходит без матча"
+    },
+    "club.bracket.grand_final": {
+        "en": "Grand Final",
+        "hy": "Եզրափակիչ",
+        "ru": "Финал"
+    },
+    "club.bracket.halves_meet": {
+        "en": "The two halves meet in the Final",
+        "hy": "Երկու կեսերը հանդիպում են եզրափակչում",
+        "ru": "Две половины встречаются в финале"
+    },
+    "club.bracket.left_side": {
+        "en": "Left side",
+        "hy": "Ձախ կողմ",
+        "ru": "Левая сторона"
+    },
+    "club.bracket.live": {
+        "en": "Live",
+        "hy": "Ուղիղ",
+        "ru": "Идёт"
+    },
+    "club.bracket.not_drawn": {
+        "en": "The pairs will be here after the draw.",
+        "hy": "Զույգերը կհայտնվեն այստեղ վիճակահանությունից հետո։",
+        "ru": "Пары появятся здесь после жеребьёвки."
+    },
+    "club.bracket.open_large": {
+        "en": "Full screen",
+        "hy": "Ամբողջ էկրանով",
+        "ru": "На весь экран"
+    },
+    "club.bracket.page": {
+        "en": "Page :n of :total",
+        "hy": "Էջ :n / :total",
+        "ru": "Стр. :n из :total"
+    },
+    "club.bracket.players_n": {
+        "en": ":n players",
+        "hy": ":n խաղացող",
+        "ru": ":n игроков"
+    },
+    "club.bracket.quarter": {
+        "en": "Quarter-final",
+        "hy": "Քառորդ եզրափակիչ",
+        "ru": "Четвертьфинал"
+    },
+    "club.bracket.right_side": {
+        "en": "Right side",
+        "hy": "Աջ կողմ",
+        "ru": "Правая сторона"
+    },
+    "club.bracket.round_of": {
+        "en": "Round of :n (1/:half)",
+        "hy": "1/:half եզրափակիչ (:n մասնակից)",
+        "ru": "1/:half финала (:n участников)"
+    },
+    "club.bracket.semi": {
+        "en": "Semi-final",
+        "hy": "Կիսաեզրափակիչ",
+        "ru": "Полуфинал"
+    },
+    "club.bracket.swipe": {
+        "en": "swipe",
+        "hy": "սահեցրեք",
+        "ru": "листайте"
+    },
+    "club.bracket.swipe_sides": {
+        "en": "← swipe →",
+        "hy": "← սահեցրեք →",
+        "ru": "← листайте →"
+    },
+    "club.bracket.tbd": {
+        "en": "to be decided",
+        "hy": "կորոշվի",
+        "ru": "определится"
+    },
+    "club.bracket.to_final": {
+        "en": "winner → Final ↓",
+        "hy": "հաղթող → Եզրափակիչ ↓",
+        "ru": "победитель → Финал ↓"
+    },
+    "club.bracket.to_final_left": {
+        "en": "↓ Final ← winner",
+        "hy": "↓ Եզրափակիչ ← հաղթող",
+        "ru": "↓ Финал ← победитель"
+    },
+    "club.bracket.winner_of": {
+        "en": "Winner of :m",
+        "hy": ":m-ի հաղթող",
+        "ru": "Победитель :m"
     },
     "club.card_pitch": {
         "en": "Balance, cashback and your rating, with one QR",
@@ -1454,6 +1634,86 @@
         "hy": "օր․՝ 1200, կամ թողեք դատարկ",
         "ru": "например, 1200, или оставьте пустым"
     },
+    "club.mine.find": {
+        "en": "Find a tournament",
+        "hy": "Գտնել մրցաշար",
+        "ru": "Найти турнир"
+    },
+    "club.mine.g_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершены"
+    },
+    "club.mine.g_live": {
+        "en": "Live",
+        "hy": "Ուղիղ",
+        "ru": "Идут"
+    },
+    "club.mine.g_upcoming": {
+        "en": "Upcoming",
+        "hy": "Առաջիկա",
+        "ru": "Предстоящие"
+    },
+    "club.mine.none": {
+        "en": "You haven't registered for a tournament yet.",
+        "hy": "Դուք դեռ ոչ մի մրցաշարի չեք գրանցվել։",
+        "ru": "Вы ещё не записывались на турниры."
+    },
+    "club.mine.none_done": {
+        "en": "No finished tournaments yet.",
+        "hy": "Ավարտված մրցաշարեր դեռ չկան։",
+        "ru": "Завершённых турниров пока нет."
+    },
+    "club.mine.none_live": {
+        "en": "None of your tournaments is on now.",
+        "hy": "Ձեր մրցաշարերից ոչ մեկը հիմա չի ընթանում։",
+        "ru": "Сейчас ни один из ваших турниров не идёт."
+    },
+    "club.mine.none_upcoming": {
+        "en": "No upcoming tournaments.",
+        "hy": "Առաջիկա մրցաշարեր չկան։",
+        "ru": "Предстоящих турниров нет."
+    },
+    "club.mine.open": {
+        "en": "Open my tournaments",
+        "hy": "Բացել իմ մրցաշարերը",
+        "ru": "Открыть мои турниры"
+    },
+    "club.mine.paid": {
+        "en": "Paid :amount",
+        "hy": "Վճարված՝ :amount",
+        "ru": "Оплачено :amount"
+    },
+    "club.mine.s_accepted": {
+        "en": "Accepted",
+        "hy": "Ընդունված",
+        "ru": "Принят(а)"
+    },
+    "club.mine.s_applied": {
+        "en": "Waiting for the club",
+        "hy": "Սպասում է ակումբին",
+        "ru": "Ждёт ответа клуба"
+    },
+    "club.mine.s_declined": {
+        "en": "Not accepted",
+        "hy": "Չի ընդունվել",
+        "ru": "Не принят(а)"
+    },
+    "club.mine.sub": {
+        "en": "Tournaments you registered for: the club's answer, the fee and your results.",
+        "hy": "Մրցաշարեր, որոնց գրանցվել եք․ ակումբի պատասխանը, վճարը և ձեր արդյունքները։",
+        "ru": "Турниры, на которые вы записались: ответ клуба, взнос и ваши результаты."
+    },
+    "club.mine.title": {
+        "en": "My tournaments",
+        "hy": "Իմ մրցաշարերը",
+        "ru": "Мои турниры"
+    },
+    "club.mine.to_pay": {
+        "en": "Not paid: :amount",
+        "hy": "Չվճարված՝ :amount",
+        "ru": "Не оплачено: :amount"
+    },
     "club.my_card_here": {
         "en": "My card at this club",
         "hy": "Իմ քարտն այս ակումբում",
@@ -1493,6 +1753,96 @@
         "en": "Play",
         "hy": "Խաղ",
         "ru": "Игра"
+    },
+    "club.preview.first_matches": {
+        "en": "First matches",
+        "hy": "Առաջին խաղերը",
+        "ru": "Первые матчи"
+    },
+    "club.preview.latest": {
+        "en": "Latest results",
+        "hy": "Վերջին արդյունքները",
+        "ru": "Последние результаты"
+    },
+    "club.preview.live_now": {
+        "en": "Live now",
+        "hy": "Հիմա ուղիղ",
+        "ru": "Сейчас идёт"
+    },
+    "club.preview.more_live": {
+        "en": "and :n more live →",
+        "hy": "և ևս :n ուղիղ →",
+        "ru": "и ещё :n в игре →"
+    },
+    "club.preview.more_matches": {
+        "en": "+ :n more matches →",
+        "hy": "+ ևս :n խաղ →",
+        "ru": "+ ещё :n матчей →"
+    },
+    "club.preview.n_matches": {
+        "en": "Matches: :n",
+        "hy": "Խաղեր՝ :n",
+        "ru": "Матчей: :n"
+    },
+    "club.preview.next_matches": {
+        "en": "Next matches",
+        "hy": "Հաջորդ խաղերը",
+        "ru": "Следующие матчи"
+    },
+    "club.preview.no_draw": {
+        "en": "The draw is not made yet",
+        "hy": "Վիճակահանությունը դեռ արված չէ",
+        "ru": "Жеребьёвки ещё не было"
+    },
+    "club.preview.no_draw_note": {
+        "en": "The bracket appears here after the draw",
+        "hy": "Սխեման կհայտնվի այստեղ վիճակահանությունից հետո",
+        "ru": "Сетка появится здесь после жеребьёвки"
+    },
+    "club.preview.of": {
+        "en": "of :max",
+        "hy": "/ :max",
+        "ru": "из :max"
+    },
+    "club.preview.open": {
+        "en": "Open the bracket",
+        "hy": "Բացել սխեման",
+        "ru": "Открыть сетку"
+    },
+    "club.preview.places_left": {
+        "en": ":n places left",
+        "hy": ":n ազատ տեղ",
+        "ru": "Осталось мест: :n"
+    },
+    "club.preview.registered": {
+        "en": "Players registered",
+        "hy": "Գրանցված խաղացողներ",
+        "ru": "Записались игроков"
+    },
+    "club.preview.runner_up": {
+        "en": "runner-up",
+        "hy": "երկրորդ տեղ",
+        "ru": "второе место"
+    },
+    "club.preview.sf_live": {
+        "en": ":sf live",
+        "hy": ":sf ուղիղ",
+        "ru": ":sf идёт"
+    },
+    "club.preview.to_be_decided": {
+        "en": "to be decided",
+        "hy": "կորոշվի",
+        "ru": "определится"
+    },
+    "club.preview.won": {
+        "en": "won :sf :score",
+        "hy": "հաղթեց :sf :score",
+        "ru": "выиграл(а) :sf :score"
+    },
+    "club.preview.you": {
+        "en": "you",
+        "hy": "դուք",
+        "ru": "вы"
     },
     "club.qr_hint": {
         "en": "Show this code at :venue. It works only there.",
@@ -1553,6 +1903,111 @@
         "en": "Tap to close",
         "hy": "Սեղմեք փակելու համար",
         "ru": "Нажмите, чтобы закрыть"
+    },
+    "club.tournament.badge_closed": {
+        "en": "Registration closed",
+        "hy": "Գրանցումը փակ է",
+        "ru": "Регистрация закрыта"
+    },
+    "club.tournament.badge_done": {
+        "en": "Finished",
+        "hy": "Ավարտված է",
+        "ru": "Завершён"
+    },
+    "club.tournament.badge_drawn": {
+        "en": "Draw made",
+        "hy": "Վիճակահանությունն արված է",
+        "ru": "Жеребьёвка проведена"
+    },
+    "club.tournament.badge_live": {
+        "en": "On now",
+        "hy": "Ընթացքի մեջ է",
+        "ru": "Идёт сейчас"
+    },
+    "club.tournament.badge_registration": {
+        "en": "Registration open",
+        "hy": "Գրանցումը բաց է",
+        "ru": "Регистрация открыта"
+    },
+    "club.tournament.chat": {
+        "en": "Tournament chat",
+        "hy": "Մրցաշարի չատ",
+        "ru": "Чат турнира"
+    },
+    "club.tournament.full": {
+        "en": "No places left",
+        "hy": "Ազատ տեղեր չկան",
+        "ru": "Мест нет"
+    },
+    "club.tournament.login_btn": {
+        "en": "Log in and register",
+        "hy": "Մուտք և գրանցում",
+        "ru": "Войти и записаться"
+    },
+    "club.tournament.login_note": {
+        "en": "Registration needs an account: log in with Telegram in a few seconds and you come back here.",
+        "hy": "Գրանցման համար պետք է հաշիվ․ մի քանի վայրկյանում մուտք գործեք Telegram-ով, և կվերադառնաք այստեղ։",
+        "ru": "Для записи нужен аккаунт: войдите через Telegram за пару секунд и вернётесь сюда."
+    },
+    "club.tournament.login_title": {
+        "en": "Log in to register",
+        "hy": "Մուտք գործեք՝ գրանցվելու համար",
+        "ru": "Войдите, чтобы записаться"
+    },
+    "club.tournament.my_place": {
+        "en": "Your place: :n",
+        "hy": "Ձեր տեղը՝ :n",
+        "ru": "Ваше место: :n"
+    },
+    "club.tournament.phase_closed": {
+        "en": "Registration is closed.",
+        "hy": "Գրանցումը փակ է։",
+        "ru": "Регистрация закрыта."
+    },
+    "club.tournament.phase_done": {
+        "en": "The tournament is over.",
+        "hy": "Մրցաշարն ավարտվել է։",
+        "ru": "Турнир завершён."
+    },
+    "club.tournament.phase_drawn": {
+        "en": "Registration is closed: the draw is made, see who plays whom below.",
+        "hy": "Գրանցումը փակ է․ վիճակահանությունն արված է, ներքևում տեսեք՝ ով ում հետ է խաղում։",
+        "ru": "Регистрация закрыта: жеребьёвка проведена, ниже — кто с кем играет."
+    },
+    "club.tournament.phase_live": {
+        "en": "The tournament is on now: results update live below.",
+        "hy": "Մրցաշարն ընթացքի մեջ է․ արդյունքները թարմանում են ներքևում։",
+        "ru": "Турнир идёт: результаты обновляются ниже."
+    },
+    "club.tournament.players": {
+        "en": ":n of :max players",
+        "hy": ":n / :max խաղացող",
+        "ru": ":n из :max игроков"
+    },
+    "club.tournament.rating": {
+        "en": "Rating :range",
+        "hy": "Ռեյթինգ :range",
+        "ru": "Рейтинг :range"
+    },
+    "club.tournament.status_accepted": {
+        "en": "You're in! See you at the tournament.",
+        "hy": "Դուք ընդունված եք։ Կհանդիպենք մրցաշարում։",
+        "ru": "Вы приняты! До встречи на турнире."
+    },
+    "club.tournament.status_applied": {
+        "en": "Registered: waiting for the club's answer.",
+        "hy": "Գրանցված եք․ սպասում ենք ակումբի պատասխանին։",
+        "ru": "Вы зарегистрированы: ждём ответа клуба."
+    },
+    "club.tournament.status_declined": {
+        "en": "Your registration was not accepted.",
+        "hy": "Ձեր գրանցումը չի ընդունվել։",
+        "ru": "Ваша заявка не принята."
+    },
+    "club.tournament.unpaid": {
+        "en": "Your fee of :amount isn't paid yet: pay at the club, by card or cash.",
+        "hy": "Ձեր :amount վճարը դեռ վճարված չէ․ վճարեք ակումբում՝ քարտով կամ կանխիկ։",
+        "ru": "Ваш взнос :amount ещё не оплачен: оплатите в клубе картой или наличными."
     },
     "club.tournaments": {
         "en": "Tournaments",
@@ -3289,10 +3744,20 @@
         "hy": ":n առցանց",
         "ru": ":n в сети"
     },
+    "messages.open_bracket": {
+        "en": "Bracket",
+        "hy": "Սխեմա",
+        "ru": "Сетка"
+    },
     "messages.open_game": {
         "en": "Game page",
         "hy": "Խաղի էջը",
         "ru": "Страница игры"
+    },
+    "messages.organiser": {
+        "en": "Organiser",
+        "hy": "Կազմակերպիչ",
+        "ru": "Организатор"
     },
     "messages.placeholder": {
         "en": "Write a message…",
@@ -3398,6 +3863,11 @@
         "en": "Chats",
         "hy": "Զրույցներ",
         "ru": "Чаты"
+    },
+    "messages.tournament_over": {
+        "en": "The tournament is over: the chat stays here to read, nobody can write.",
+        "hy": "Մրցաշարն ավարտվել է․ չատը մնում է կարդալու համար, գրել այլևս հնարավոր չէ։",
+        "ru": "Турнир завершён: чат остаётся для чтения, писать больше нельзя."
     },
     "messages.typing_many": {
         "en": "Several people are typing…",
@@ -3629,6 +4099,51 @@
         "hy": "🔔 :venue :field, :date :time-ն այժմ ազատ է։ Ամրագրեք, քանի դեռ ուրիշը չի զբաղեցրել։",
         "ru": "🔔 :venue :field, :date в :time освободилось! Бронируйте, пока не заняли."
     },
+    "notice.tournament_accepted": {
+        "en": "🏆 You're in :title at :venue (:when). The tournament chat is open for you.",
+        "hy": "🏆 Դուք ընդունված եք :title մրցաշարին :venue-ում (:when)։ Մրցաշարի չատը բաց է ձեզ համար։",
+        "ru": "🏆 Вы приняты на :title в :venue (:when). Чат турнира открыт для вас."
+    },
+    "notice.tournament_accepted_fee": {
+        "en": "🏆 You're in :title at :venue (:when). Fee to pay: :amount, at the club by card or cash.",
+        "hy": "🏆 Դուք ընդունված եք :title մրցաշարին :venue-ում (:when)։ Վճարը՝ :amount, ակումբում՝ քարտով կամ կանխիկ։",
+        "ru": "🏆 Вы приняты на :title в :venue (:when). Взнос: :amount, в клубе картой или наличными."
+    },
+    "notice.tournament_bye": {
+        "en": "🎾 :title draw: you go straight to the next round (:when).",
+        "hy": "🎾 :title վիճակահանություն․ դուք անմիջապես անցնում եք հաջորդ փուլ (:when)։",
+        "ru": "🎾 Жеребьёвка :title: вы сразу проходите в следующий раунд (:when)."
+    },
+    "notice.tournament_champion": {
+        "en": "🥇 You won :title! Final: :winner – :loser :score.",
+        "hy": "🥇 Դուք հաղթեցիք :title մրցաշարում։ Եզրափակիչ՝ :winner – :loser :score։",
+        "ru": "🥇 Вы выиграли :title! Финал: :winner – :loser :score."
+    },
+    "notice.tournament_declined": {
+        "en": "Your registration for :title at :venue was not accepted.",
+        "hy": "Ձեր գրանցումը :title մրցաշարին (:venue) չի ընդունվել։",
+        "ru": "Ваша заявка на :title в :venue не принята."
+    },
+    "notice.tournament_draw": {
+        "en": "🎾 :title draw: your first match is against :vs (:when).",
+        "hy": "🎾 :title վիճակահանություն․ ձեր առաջին խաղը :vs-ի հետ է (:when)։",
+        "ru": "🎾 Жеребьёвка :title: ваш первый матч против :vs (:when)."
+    },
+    "notice.tournament_news": {
+        "en": "📣 :title: :text",
+        "hy": "📣 :title․ :text",
+        "ru": "📣 :title: :text"
+    },
+    "notice.tournament_result": {
+        "en": ":title: :winner beat :loser :score.",
+        "hy": ":title․ :winner-ը հաղթեց :loser-ին :score։",
+        "ru": ":title: :winner победил(а) :loser :score."
+    },
+    "notice.tournament_unpaid": {
+        "en": "💳 :title (:when): your fee of :amount isn't paid yet. Pay at the club by card or cash.",
+        "hy": "💳 :title (:when)․ ձեր :amount վճարը դեռ վճարված չէ։ Վճարեք ակումբում՝ քարտով կամ կանխիկ։",
+        "ru": "💳 :title (:when): ваш взнос :amount ещё не оплачен. Оплатите в клубе картой или наличными."
+    },
     "owner.action.create": {
         "en": "Create booking",
         "hy": "Ստեղծել ամրագրում",
@@ -3723,6 +4238,11 @@
         "en": "Card by phone",
         "hy": "Քարտ ըստ հեռախոսի",
         "ru": "Карта по телефону"
+    },
+    "owner.club.attach_card": {
+        "en": "Attach to this bill",
+        "hy": "Կցել այս հաշվին",
+        "ru": "Привязать к счёту"
     },
     "owner.club.bad_code": {
         "en": "This is not a card code.",
@@ -3869,6 +4389,11 @@
         "hy": "Ամրագրված է առանց հաշվի․ սկանավորեք խաղացողի քարտը՝ դրանից վճարելու համար",
         "ru": "Бронь без аккаунта: отсканируйте карту игрока, чтобы оплатить с неё"
     },
+    "owner.club.find_card_search": {
+        "en": "Or find the card: name or phone",
+        "hy": "Կամ գտեք քարտը՝ անուն կամ հեռախոս",
+        "ru": "Или найдите карту: имя или телефон"
+    },
     "owner.club.free_now": {
         "en": "Free",
         "hy": "Ազատ",
@@ -3979,6 +4504,11 @@
         "hy": "Քարտեր դեռ չկան։ Սկանավորեք խաղացողի QR-ը կամ բացեք ըստ հեռախոսի ստորև։",
         "ru": "Карт пока нет. Отсканируйте QR игрока или откройте по телефону ниже."
     },
+    "owner.club.no_cards_found": {
+        "en": "No card found",
+        "hy": "Քարտ չի գտնվել",
+        "ru": "Карта не найдена"
+    },
     "owner.club.no_entries": {
         "en": "No registrations yet.",
         "hy": "Գրանցումներ դեռ չկան։",
@@ -4018,6 +4548,16 @@
         "en": "Nothing booked later today.",
         "hy": "Այսօր ավելի ուշ ամրագրում չկա։",
         "ru": "Позже сегодня броней нет."
+    },
+    "owner.club.open_bill": {
+        "en": "Open the bill",
+        "hy": "Բացել հաշիվը",
+        "ru": "Открыть счёт"
+    },
+    "owner.club.open_bills": {
+        "en": "Bills waiting for payment",
+        "hy": "Վճարման սպասող հաշիվներ",
+        "ru": "Счета, ожидающие оплаты"
     },
     "owner.club.open_card": {
         "en": "Open the card",
@@ -5549,6 +6089,196 @@
         "hy": "Հայտ",
         "ru": "Заявка"
     },
+    "owner.tournament.announce": {
+        "en": "News to the players",
+        "hy": "Լուր խաղացողներին",
+        "ru": "Новость игрокам"
+    },
+    "owner.tournament.announce_hint": {
+        "en": "Everybody registered gets it in the app and on Telegram; it is also written in the chat.",
+        "hy": "Բոլոր գրանցվածները կստանան այն հավելվածում և Telegram-ում․ այն կգրվի նաև չատում։",
+        "ru": "Все зарегистрированные получат это в приложении и в Telegram; текст также появится в чате."
+    },
+    "owner.tournament.announce_hint_applied": {
+        "en": "Players still waiting for your answer get it in the app and on Telegram. They are not in the chat.",
+        "hy": "Ձեր պատասխանին սպասող խաղացողները կստանան այն հավելվածում և Telegram-ում։ Նրանք չատում չեն։",
+        "ru": "Игроки, ждущие вашего ответа, получат это в приложении и в Telegram. В чате их нет."
+    },
+    "owner.tournament.announce_ph": {
+        "en": "e.g. We start at 11:00, come 15 min earlier",
+        "hy": "օր․՝ Սկսում ենք 11:00-ին, եկեք 15 րոպե շուտ",
+        "ru": "напр. Начинаем в 11:00, приходите за 15 минут"
+    },
+    "owner.tournament.any": {
+        "en": "any",
+        "hy": "ցանկացած",
+        "ru": "любой"
+    },
+    "owner.tournament.aud_accepted": {
+        "en": "Accepted",
+        "hy": "Ընդունվածներին",
+        "ru": "Принятым"
+    },
+    "owner.tournament.aud_all": {
+        "en": "Everyone",
+        "hy": "Բոլորին",
+        "ru": "Всем"
+    },
+    "owner.tournament.aud_applied": {
+        "en": "Not accepted yet",
+        "hy": "Դեռ չընդունվածներին",
+        "ru": "Ещё не принятым"
+    },
+    "owner.tournament.bracket": {
+        "en": "Bracket",
+        "hy": "Սխեմա",
+        "ru": "Сетка"
+    },
+    "owner.tournament.draw": {
+        "en": "Make the draw",
+        "hy": "Կատարել վիճակահանություն",
+        "ru": "Провести жеребьёвку"
+    },
+    "owner.tournament.draw_hint": {
+        "en": "Pairs by rating: the best meet last, the best get a bye if places are left. You can do it days before: players see who they play.",
+        "hy": "Զույգերը՝ ըստ ռեյթինգի․ ուժեղները հանդիպում են վերջում, ազատ տեղերի դեպքում ուժեղներն անցնում են առանց խաղի։ Կարող եք անել օրեր առաջ․ խաղացողները կտեսնեն իրենց մրցակիցներին։",
+        "ru": "Пары по рейтингу: сильнейшие встречаются в конце, при свободных местах сильнейшие проходят без игры. Можно сделать за несколько дней: игроки увидят соперников."
+    },
+    "owner.tournament.drawn": {
+        "en": "Draw made: the players were told who they play.",
+        "hy": "Վիճակահանությունն արված է․ խաղացողներին տեղեկացվել է, թե ում հետ են խաղում։",
+        "ru": "Жеребьёвка проведена: игрокам сообщили, с кем они играют."
+    },
+    "owner.tournament.f_accepted": {
+        "en": "Accepted",
+        "hy": "Ընդունված",
+        "ru": "Приняты"
+    },
+    "owner.tournament.f_all": {
+        "en": "All",
+        "hy": "Բոլորը",
+        "ru": "Все"
+    },
+    "owner.tournament.f_applied": {
+        "en": "Waiting",
+        "hy": "Սպասում են",
+        "ru": "Ожидают"
+    },
+    "owner.tournament.f_declined": {
+        "en": "Declined",
+        "hy": "Մերժված",
+        "ru": "Отклонены"
+    },
+    "owner.tournament.f_paid": {
+        "en": "Paid",
+        "hy": "Վճարած",
+        "ru": "Оплатили"
+    },
+    "owner.tournament.f_unpaid": {
+        "en": "Not paid",
+        "hy": "Չվճարած",
+        "ru": "Не оплатили"
+    },
+    "owner.tournament.live_off": {
+        "en": "Not playing",
+        "hy": "Չեն խաղում",
+        "ru": "Не играют"
+    },
+    "owner.tournament.live_on": {
+        "en": "Playing now",
+        "hy": "Հիմա խաղում են",
+        "ru": "Играют сейчас"
+    },
+    "owner.tournament.max_players": {
+        "en": "Players, max",
+        "hy": "Խաղացողներ, առավելագույնը",
+        "ru": "Игроков, максимум"
+    },
+    "owner.tournament.max_rating": {
+        "en": "Rating up to",
+        "hy": "Ռեյթինգ՝ մինչև",
+        "ru": "Рейтинг до"
+    },
+    "owner.tournament.min_rating": {
+        "en": "Rating from",
+        "hy": "Ռեյթինգ՝ սկսած",
+        "ru": "Рейтинг от"
+    },
+    "owner.tournament.n_accepted": {
+        "en": ":n accepted",
+        "hy": ":n ընդունված",
+        "ru": ":n принято"
+    },
+    "owner.tournament.n_registered": {
+        "en": ":n registered",
+        "hy": ":n գրանցված",
+        "ru": ":n заявок"
+    },
+    "owner.tournament.n_unpaid": {
+        "en": ":n not paid",
+        "hy": ":n չվճարած",
+        "ru": ":n не оплатили"
+    },
+    "owner.tournament.n_waiting": {
+        "en": ":n waiting",
+        "hy": ":n սպասում",
+        "ru": ":n ждут"
+    },
+    "owner.tournament.not_paid": {
+        "en": "Not paid",
+        "hy": "Չի վճարել",
+        "ru": "Не оплачено"
+    },
+    "owner.tournament.open_chat": {
+        "en": "Tournament chat",
+        "hy": "Մրցաշարի չատ",
+        "ru": "Чат турнира"
+    },
+    "owner.tournament.players": {
+        "en": "Players",
+        "hy": "Խաղացողներ",
+        "ru": "Игроки"
+    },
+    "owner.tournament.redraw": {
+        "en": "Redo the draw",
+        "hy": "Կրկնել վիճակահանությունը",
+        "ru": "Провести жеребьёвку заново"
+    },
+    "owner.tournament.remind_unpaid": {
+        "en": "Remind unpaid (:n)",
+        "hy": "Հիշեցնել չվճարածներին (:n)",
+        "ru": "Напомнить неоплатившим (:n)"
+    },
+    "owner.tournament.reminded": {
+        "en": "Reminder sent to :n players who haven't paid (those who paid don't get it).",
+        "hy": "Հիշեցումն ուղարկվեց :n չվճարած խաղացողի (վճարածները չեն ստանում)։",
+        "ru": "Напоминание отправлено :n неоплатившим игрокам (оплатившие его не получают)."
+    },
+    "owner.tournament.score_hint": {
+        "en": "Type each player's score (e.g. 3 and 1): the higher one wins and goes on.",
+        "hy": "Գրեք յուրաքանչյուր խաղացողի հաշիվը (օր․՝ 3 և 1)․ ավելի մեծը հաղթում է և անցնում առաջ։",
+        "ru": "Введите счёт каждого игрока (напр. 3 и 1): у кого больше — побеждает и проходит дальше."
+    },
+    "owner.tournament.send": {
+        "en": "Send",
+        "hy": "Ուղարկել",
+        "ru": "Отправить"
+    },
+    "owner.tournament.sent": {
+        "en": "Sent to :n players.",
+        "hy": "Ուղարկվեց :n խաղացողի։",
+        "ru": "Отправлено :n игрокам."
+    },
+    "owner.tournament.tap_match": {
+        "en": "Tap a match to mark the winner: the bracket updates for everybody and both players are told.",
+        "hy": "Սեղմեք խաղի վրա՝ հաղթողին նշելու համար․ սխեման կթարմանա բոլորի համար, և երկու խաղացողներին կտեղեկացվի։",
+        "ru": "Нажмите на матч, чтобы отметить победителя: сетка обновится у всех, игрокам придёт уведомление."
+    },
+    "owner.tournament.who_won": {
+        "en": "The score",
+        "hy": "Հաշիվը",
+        "ru": "Счёт"
+    },
     "owner.undo": {
         "en": "Undo",
         "hy": "Հետ բերել",
@@ -5893,6 +6623,36 @@
         "en": "Get it confirmed",
         "hy": "Ստացեք հաստատում",
         "ru": "Получите подтверждение"
+    },
+    "player.home.t_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершены"
+    },
+    "player.home.t_live": {
+        "en": "Live",
+        "hy": "Ուղիղ",
+        "ru": "Идут"
+    },
+    "player.home.t_none_done": {
+        "en": "No finished tournaments this week.",
+        "hy": "Այս շաբաթ ավարտված մրցաշարեր չկան։",
+        "ru": "На этой неделе завершённых турниров нет."
+    },
+    "player.home.t_none_live": {
+        "en": "No tournament is on right now.",
+        "hy": "Հիմա մրցաշար չկա։",
+        "ru": "Сейчас турниров нет."
+    },
+    "player.home.t_none_open": {
+        "en": "No upcoming tournaments yet.",
+        "hy": "Մոտակա մրցաշարեր դեռ չկան։",
+        "ru": "Ближайших турниров пока нет."
+    },
+    "player.home.t_open": {
+        "en": "Open",
+        "hy": "Բաց",
+        "ru": "Скоро"
     },
     "player.home.tab_book": {
         "en": "Book",

@@ -22,6 +22,8 @@ const props = defineProps<{
     card: { code: string; balance: number; note: string | null; scanned: boolean };
     player: { id: number; name: string | null; phone: string | null; tel: string | null; avatar: string | null; no_shows: number };
     level: Level;
+    /** games waiting for the money this card can pay (a phone booking without a player, or this player's own) */
+    bills: { id: number; field: string; start: string; end: string; stopped: boolean; name: string | null; mine: boolean; total: number }[];
     history: Entry[];
 }>();
 const opts = { preserveScroll: true, preserveState: true };
@@ -32,6 +34,8 @@ const money = reactive({ topup: '' });
 function topUp() {
     if (num(money.topup)) router.post(r('owner.cards.topup'), { amount: num(money.topup) }, { ...opts, onSuccess: () => (money.topup = '') });
 }
+// attach this card to a bill and go on to it (the desk screen shows it at once)
+const attach = (id: number) => router.post(route('owner.bookings.scan', id), { code: props.card.code, open: 1 });
 const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 </script>
 
@@ -52,6 +56,20 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
             </div>
             <div class="bal">
                 <small>{{ $t('owner.club.balance') }}</small><b data-test="balance">{{ amd(card.balance) }}</b>
+            </div>
+        </section>
+
+        <!-- bills waiting for the money: attach the card to one (scanned on a phone; the desk updates by itself) -->
+        <section v-if="bills.length" class="card panel bills" data-test="open-bills">
+            <div class="sec-h"><h2>{{ $t('owner.club.open_bills') }}</h2></div>
+            <div v-for="b in bills" :key="b.id" class="obill">
+                <span class="w"
+                    ><b>{{ b.field }} · {{ b.start }}–{{ b.end }}</b
+                    ><small>{{ b.name || '—' }} · {{ b.stopped ? $t('owner.club.to_pay') : $t('owner.club.playing') }}</small></span
+                >
+                <b class="sum">{{ amd(b.total) }}</b>
+                <Link v-if="b.mine" class="btn sm ghost" :href="route('owner.bookings.checkout', b.id)">{{ $t('owner.club.open_bill') }}</Link>
+                <button v-else type="button" class="btn sm" :data-test="`attach-${b.id}`" @click="attach(b.id)">{{ $t('owner.club.attach_card') }}</button>
             </div>
         </section>
 
@@ -89,6 +107,12 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 </template>
 
 <style scoped>
+.bills { margin-bottom: 14px; border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.obill { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.obill:first-of-type { border-top: 0; }
+.obill .w { flex: 1; min-width: 150px; display: flex; flex-direction: column; }
+.obill small { color: var(--muted); font-size: 12.5px; }
+.obill .sum { font-family: var(--mono); }
 .who { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .who h1 a { color: var(--ink); }
 .bal { text-align: right; }

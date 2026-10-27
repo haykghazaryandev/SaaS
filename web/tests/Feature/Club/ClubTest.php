@@ -194,7 +194,7 @@ it('runs a tournament: register by link, accept, pay the option, results', funct
         ->and(fn () => $tt->register($t, ['first_name' => 'A', 'last_name' => 'B', 'phone' => '+37491234567', 'option' => 0]))->toThrow(BookingException::class);
     $tt->decide($e, 'accepted');
     expect($tt->pay($e, 'cash', $this->owner)->amount)->toBe(5000);
-    $tt->result($e->fresh(), 1);
+    $tt->place($e->fresh(), 1);
     expect($e->fresh()->place)->toBe(1);
     $t->update(['status' => 'closed']);
     expect(fn () => $tt->register($t->fresh(), ['first_name' => 'A', 'last_name' => 'B', 'phone' => '+37491234568', 'option' => 0]))->toThrow(BookingException::class);
