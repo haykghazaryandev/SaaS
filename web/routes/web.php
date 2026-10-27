@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClubPublicController;
 use App\Http\Controllers\LangController;
 use App\Http\Controllers\Player\BookingController;
 use App\Http\Controllers\Player\BookingTeamController;
+use App\Http\Controllers\Player\CardsController;
 use App\Http\Controllers\Player\HomeController;
 use App\Http\Controllers\Player\MyBookingsController;
 use App\Http\Controllers\Player\PlaceController;
@@ -34,16 +36,17 @@ Route::middleware('auth')->group(function () {
     Route::get('join/{token}', [BookingTeamController::class, 'join'])->name('bookings.join');
     Route::get('rate/{booking}', [RateController::class, 'show'])->name('rate.show');
     // club cards: one per club, its own QR
-    Route::get('me/cards', [App\Http\Controllers\Player\CardsController::class, 'index'])->name('me.cards');
-    Route::post('places/{venue:slug}/card', [App\Http\Controllers\Player\CardsController::class, 'store'])->middleware('throttle:20,1')->name('places.card');
+    Route::get('me/cards', [CardsController::class, 'index'])->name('me.cards');
+    Route::post('places/{venue:slug}/card', [CardsController::class, 'store'])->middleware('throttle:20,1')->name('places.card');
     // later: games, messages, friends, profile
 });
 
 // ---------- club links: a scanned card QR, shop photos, tournament registration (Instagram bio) ----------
-Route::get('c/{code}', [App\Http\Controllers\ClubPublicController::class, 'card'])->where('code', '[a-z0-9]{20}')->name('card.open');
-Route::get('shop-photo/{id}-{token}.webp', [App\Http\Controllers\ClubPublicController::class, 'photo'])->whereNumber('id')->where('token', '[A-Za-z0-9]{8}')->name('shop.photo');
-Route::get('t/{code}', [App\Http\Controllers\ClubPublicController::class, 'tournament'])->where('code', '[a-z0-9]{8}')->name('tournament.show');
-Route::post('t/{code}', [App\Http\Controllers\ClubPublicController::class, 'register'])->where('code', '[a-z0-9]{8}')->middleware('throttle:10,1')->name('tournament.register');
+Route::get('c/{code}', [ClubPublicController::class, 'card'])->where('code', '[a-z0-9]{20}')->name('card.open');
+Route::get('shop-photo/{id}-{token}.webp', [ClubPublicController::class, 'photo'])->whereNumber('id')->where('token', '[A-Za-z0-9]{8}')->name('shop.photo');
+Route::get('t/{code}', [ClubPublicController::class, 'tournament'])->where('code', '[a-z0-9]{8}')->name('tournament.show');
+// registering needs an account (log in with Telegram, then back to the tournament)
+Route::post('t/{code}', [ClubPublicController::class, 'register'])->where('code', '[a-z0-9]{8}')->middleware(['auth', 'throttle:10,1'])->name('tournament.register');
 
 // ---------- login / registration (phone + Telegram code) ----------
 Route::middleware('guest')->group(function () {

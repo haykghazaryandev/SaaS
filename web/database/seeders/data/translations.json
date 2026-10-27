@@ -1844,6 +1844,21 @@
         "hy": "Ազատ տեղեր չկան",
         "ru": "Мест нет"
     },
+    "club.tournament.login_btn": {
+        "en": "Log in and register",
+        "hy": "Մուտք և գրանցում",
+        "ru": "Войти и записаться"
+    },
+    "club.tournament.login_note": {
+        "en": "Registration needs an account: log in with Telegram in a few seconds and you come back here.",
+        "hy": "Գրանցման համար պետք է հաշիվ․ մի քանի վայրկյանում մուտք գործեք Telegram-ով, և կվերադառնաք այստեղ։",
+        "ru": "Для записи нужен аккаунт: войдите через Telegram за пару секунд и вернётесь сюда."
+    },
+    "club.tournament.login_title": {
+        "en": "Log in to register",
+        "hy": "Մուտք գործեք՝ գրանցվելու համար",
+        "ru": "Войдите, чтобы записаться"
+    },
     "club.tournament.my_place": {
         "en": "Your place: :n",
         "hy": "Ձեր տեղը՝ :n",

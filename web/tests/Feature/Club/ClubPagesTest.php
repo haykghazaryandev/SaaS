@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Product;
 use App\Models\SportRating;
 use App\Models\Tournament;
+use App\Models\TournamentEntry;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
@@ -130,12 +131,21 @@ it('shows the player their card with its QR, and the club page their balance', f
         ->where('club.card.balance', 0)->has('club.products', 1));
 });
 
-it('registers for a tournament by its link, without an account', function () {
+it('registers for a tournament by its link: a guest logs in first, then registers with the account', function () {
     $t = Tournament::create(['venue_id' => $this->club->id, 'sport' => 'pingpong', 'title' => 'Open', 'code' => 'abcd1234', 'starts_at' => now()->addWeek(),
         'options' => [['label' => 'Free', 'price' => 0], ['label' => 'Pro', 'price' => 5000]]]);
     $this->get('/t/abcd1234')->assertOk()->assertInertia(fn (Assert $p) => $p->component('player/Tournament')->where('tournament.open', true)->has('tournament.options', 2));
-    $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'level' => 1200, 'option' => 1])->assertRedirect();
-    $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'option' => 1])->assertSessionHasErrors('register');
+    // a guest: the page says "log in to register"; posting sends them to the login
+    $this->get('/t/abcd1234')->assertInertia(fn (Assert $p) => $p->where('me', null));
+    $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'option' => 1])->assertRedirect(route('login'));
+    expect(TournamentEntry::count())->toBe(0);
+    // logged in: the account's phone, and the entry is theirs
+    $arman = User::factory()->create(['name' => 'Arman Sargsyan', 'phone' => '+37491234567']);
+    $this->actingAs($arman)->get('/t/abcd1234')->assertInertia(fn (Assert $p) => $p->where('me.phone', '+374 91 234 567'));
+    $this->actingAs($arman)->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'level' => 1200, 'option' => 1])->assertRedirect()->assertSessionHasNoErrors();
+    expect(TournamentEntry::first()->only('user_id', 'phone'))->toBe(['user_id' => $arman->id, 'phone' => '+37491234567']);
+    $this->actingAs($arman)->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'option' => 1])->assertSessionHasErrors('register');
+    $this->actingAs($arman)->get('/t/abcd1234')->assertInertia(fn (Assert $p) => $p->where('entry.status', 'applied'));
     $this->actingAs($this->owner)->get("/owner/tournaments/{$t->id}")->assertInertia(fn (Assert $p) => $p->has('tournament.list', 1)->where('tournament.list.0.price', 5000));
 });
 

@@ -69,7 +69,7 @@ class Tournaments
         if (! isset($t->options[(int) $data['option']])) {
             throw new BookingException('bad_options');
         }
-        if (TournamentEntry::where('tournament_id', $t->id)->where('phone', $phone)->exists()) {
+        if (TournamentEntry::where('tournament_id', $t->id)->where(fn ($q) => $q->where('phone', $phone)->when($user, fn ($w) => $w->orWhere('user_id', $user->id)))->exists()) {
             throw new BookingException('already_registered');
         }
         if ($t->max_players && TournamentEntry::where('tournament_id', $t->id)->where('status', '!=', 'declined')->count() >= $t->max_players) {

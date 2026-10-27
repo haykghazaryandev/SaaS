@@ -223,10 +223,11 @@ it('takes a score for each side: the higher one wins', function () {
 it('shows players and guests where the tournament is, and closes registration once the draw is made', function () {
     $code = $this->t->code;
     $form = ['first_name' => 'Guest', 'last_name' => 'One', 'phone' => '+37491888001', 'option' => 0, 'level' => 1200];
-    // registration: the form; a guest who registers sees their status after a reload
+    // registration: open; a player registers and sees their status
     $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'registration')->where('tournament.open', true)->where('entry', null));
-    $this->post("/t/$code", $form)->assertSessionHasNoErrors();
-    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('entry.status', 'applied'));
+    $guest = User::factory()->create(['phone' => '+37491888001']);
+    $this->actingAs($guest)->post("/t/$code", $form)->assertSessionHasNoErrors();
+    $this->actingAs($guest)->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('entry.status', 'applied'));
 
     // before the draw the page shows who is in (the accepted players)
     $e = ($this->players)(3);
@@ -239,7 +240,9 @@ it('shows players and guests where the tournament is, and closes registration on
     auth()->logout();
     $this->flushSession();
     $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'drawn')->where('tournament.open', false)->where('tournament.accepted', 3));
-    $this->post("/t/$code", ['phone' => '+37491888002'] + $form)->assertSessionHasErrors('register');
+    $late = User::factory()->create(['phone' => '+37491888002']);
+    $this->actingAs($late)->post("/t/$code", $form)->assertSessionHasErrors('register');
+    auth()->logout();
     expect(TournamentEntry::where('phone', '+37491888002')->exists())->toBeFalse()
         ->and(fn () => $this->tt->decide(TournamentEntry::where('phone', '+37491888001')->first(), 'accepted'))->toThrow(BookingException::class, __('booking.error.already_drawn'));
 
@@ -258,5 +261,5 @@ it('shows players and guests where the tournament is, and closes registration on
     $t2 = $this->tt->save(new Tournament(['venue_id' => $this->club->id]), ['title' => 'Closed', 'sport' => 'pingpong', 'starts_at' => now()->addDays(3),
         'options' => [['label' => 'Free', 'price' => 0]], 'status' => 'closed']);
     $this->get('/t/'.$t2->code)->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'closed')->where('tournament.open', false));
-    $this->post('/t/'.$t2->code, ['phone' => '+37491888003'] + $form)->assertSessionHasErrors('register');
+    $this->actingAs(User::factory()->create(['phone' => '+37491888003']))->post('/t/'.$t2->code, $form)->assertSessionHasErrors('register');
 });

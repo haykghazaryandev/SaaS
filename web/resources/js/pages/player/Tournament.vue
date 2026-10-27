@@ -40,7 +40,8 @@ const props = defineProps<{
         max_players: number | null;
         status: string;
     };
-    me: { first_name: string; last_name: string; phone: string; registered: boolean } | null;
+    /** logged in: my name and the account's phone (null: the account has none, then it is asked) */
+    me: { first_name: string; last_name: string; phone: string | null; registered: boolean } | null;
     bracket: BracketData | null;
     entry: { status: 'applied' | 'accepted' | 'declined'; place: number | null; unpaid: number } | null;
     chat: number | null;
@@ -72,10 +73,12 @@ onBeforeUnmount(() => {
 });
 useSportTheme(() => props.tournament.sport);
 const done = ref(!!props.me?.registered);
-const form = useForm({ first_name: props.me?.first_name ?? '', last_name: props.me?.last_name ?? '', phone: props.me?.phone ?? '', level: '' as string | number, option: 0 });
+const form = useForm({ first_name: props.me?.first_name ?? '', last_name: props.me?.last_name ?? '', phone: '', level: '' as string | number, option: 0 });
+// registering needs an account: log in (Telegram) and come back here
+const loginUrl = computed(() => route('login', { redirect: `/t/${props.tournament.code}` }));
 const err = computed(() => (form.errors as Record<string, string>).register);
 function send() {
-    form.transform((d) => ({ ...d, phone: '+374' + String(d.phone).replace(/\D/g, '').slice(-8), level: d.level === '' ? null : Number(d.level) })).post(route('tournament.register', props.tournament.code), {
+    form.transform((d) => ({ ...d, phone: props.me?.phone ? null : '+374' + String(d.phone).replace(/\D/g, '').slice(-8), level: d.level === '' ? null : Number(d.level) })).post(route('tournament.register', props.tournament.code), {
         preserveScroll: true,
         onSuccess: () => (done.value = true),
     });
@@ -119,12 +122,22 @@ function send() {
                 </ol>
                 <template v-if="entry || done || tournament.phase !== 'registration'" />
                 <p v-else-if="full" class="muted">{{ $t('club.tournament.full') }}</p>
+                <!-- a guest: log in first (a Telegram login takes a few seconds), then back here to register -->
+                <div v-else-if="tournament.open && !me" class="needlogin" data-test="login-to-register">
+                    <b>{{ $t('club.tournament.login_title') }}</b>
+                    <small>{{ $t('club.tournament.login_note') }}</small>
+                    <Link class="btn block" :href="loginUrl" data-test="login-register"><Icon name="user" size="sm" />{{ $t('club.tournament.login_btn') }}</Link>
+                </div>
                 <form v-else-if="tournament.open" class="tf" data-test="register-form" @submit.prevent="send">
                     <div class="two">
                         <label class="field"><span>{{ $t('club.first_name') }}</span><input v-model="form.first_name" class="input" required minlength="2" maxlength="60" autocomplete="given-name" /></label>
                         <label class="field"><span>{{ $t('club.last_name') }}</span><input v-model="form.last_name" class="input" required minlength="2" maxlength="60" autocomplete="family-name" /></label>
                     </div>
-                    <label class="field"
+                    <!-- the account's phone (the club calls it); asked only when the account has none -->
+                    <div v-if="me?.phone" class="field">
+                        <span>{{ $t('common.phone') }}</span><b class="mono myphone">{{ me.phone }}</b>
+                    </div>
+                    <label v-else class="field"
                         ><span>{{ $t('common.phone') }}</span>
                         <div class="row" style="gap: 6px"><span class="input pre">+374</span><input v-model="form.phone" class="input mono" inputmode="tel" required placeholder="91 234 567" /></div
                     ></label>
@@ -182,6 +195,9 @@ function send() {
 .tfull-b { flex: 1; overflow: auto; padding: 14px; -webkit-overflow-scrolling: touch; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .chip.hot { color: var(--hot); border-color: var(--hot); }
+.needlogin { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px; background: rgba(255, 159, 67, 0.08); border: 1px solid rgba(255, 159, 67, 0.3); }
+.needlogin small { color: var(--muted); }
+.myphone { display: block; padding: 10px 0 2px; font-size: 15px; }
 .phase { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; font-weight: 800; background: var(--surface-2); color: var(--muted); }
 .phase.drawn { background: rgba(255, 159, 67, 0.12); color: #ff9f43; }
 .phase.live { background: var(--hot-soft); color: var(--hot); }

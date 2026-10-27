@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Tournament;
 use App\Models\VenueCard;
 use App\Support\LocalTime;
+use App\Support\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -53,9 +54,8 @@ class ClubPublicController extends Controller
         $t = Tournament::where('code', $code)->with('venue:id,slug,name')->firstOrFail();
         $user = $request->user();
         $at = $t->starts_at->setTimezone(LocalTime::tz());
-        // my registration: by my phone, or (a guest) the one made from this browser
-        $mine = ($user?->phone ? $t->entries()->where('phone', $user->phone)->first() : null)
-            ?? (($id = $request->session()->get('tournament.'.$t->code)) ? $t->entries()->find($id) : null);
+        // my registration: mine (my account, or my phone registered by the club)
+        $mine = $user ? $t->entries()->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($w) => $w->orWhere('phone', $user->phone)))->first() : null;
         $chat = $t->conversation()->first();
         $phase = Tournaments::phase($t);
         $count = $t->entries()->where('status', '!=', 'declined')->count();
@@ -82,7 +82,7 @@ class ClubPublicController extends Controller
                 'unpaid' => $mine->status === 'accepted' && ! $mine->payment_id ? Tournaments::fee($t, $mine) : 0] : null,
             'chat' => $chat && $user && app(Chat::class)->isMember($chat, $user) ? $chat->id : null,
             'me' => $user ? ['first_name' => explode(' ', (string) $user->name)[0] ?? '', 'last_name' => explode(' ', (string) $user->name, 2)[1] ?? '',
-                'phone' => $user->phone ? substr($user->phone, -8) : '',
+                'phone' => $user->phone ? Phone::format($user->phone) : null,
                 'registered' => $mine !== null] : null,
         ]);
     }
@@ -90,14 +90,15 @@ class ClubPublicController extends Controller
     public function register(Request $request, string $code, Tournaments $tournaments)
     {
         $t = Tournament::where('code', $code)->firstOrFail();
+        $user = $request->user();
         $data = $request->validate([
-            'first_name' => 'required|string|min:2|max:60', 'last_name' => 'required|string|min:2|max:60', 'phone' => 'required|string|max:20',
+            'first_name' => 'required|string|min:2|max:60', 'last_name' => 'required|string|min:2|max:60',
+            // the account's phone; asked only when the account has none
+            'phone' => [$user->phone ? 'nullable' : 'required', 'string', 'max:20'],
             'level' => 'nullable|integer|min:0|max:4000', 'option' => 'required|integer|min:0|max:2',
         ]);
         try {
-            $e = $tournaments->register($t, $data, $request->user());
-            // a guest sees their registration on this page afterwards
-            $request->session()->put('tournament.'.$t->code, $e->id);
+            $tournaments->register($t, ['phone' => $user->phone ?: ($data['phone'] ?? null)] + $data, $user);
         } catch (BookingException $e) {
             throw ValidationException::withMessages(['register' => $e->getMessage()]);
         }
