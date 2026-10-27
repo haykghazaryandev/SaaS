@@ -189,21 +189,6 @@ class Tournaments
         return $users->count();
     }
 
-    /** A message from the organiser to one registered player (app + Telegram). They need an account (a phone call otherwise). */
-    public function message(TournamentEntry $e, string $text): void
-    {
-        $text = trim($text);
-        if ($text === '' || mb_strlen($text) > 1000) {
-            throw new BookingException('bad_options');
-        }
-        $user = $e->user_id ? User::find($e->user_id) : null;
-        if (! $user) {
-            throw new BookingException('no_account');
-        }
-        $e->loadMissing('tournament');
-        $user->notify(new Notice('tournament_message', ['title' => $e->tournament->title, 'text' => mb_substr($text, 0, 500)], '/t/'.$e->tournament->code));
-    }
-
     // ---------- the fee ----------
 
     /** The fee of the entry's option (0: free). */

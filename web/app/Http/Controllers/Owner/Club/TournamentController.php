@@ -134,16 +134,6 @@ class TournamentController extends OwnerController
         return back()->with('success', __('owner.tournament.sent', ['n' => $n]));
     }
 
-    /** A message to one registered player (app + Telegram). */
-    public function message(Request $request, TournamentEntry $entry, Tournaments $tournaments)
-    {
-        $this->own($request, $entry->tournament);
-        $data = $request->validate(['text' => 'required|string|max:1000']);
-        $this->attempt(fn () => $tournaments->message($entry, $data['text']));
-
-        return back()->with('success', __('owner.tournament.sent', ['n' => 1]));
-    }
-
     /** "You haven't paid yet" to the accepted players with an unpaid fee. */
     public function remind(Request $request, Tournament $tournament, Tournaments $tournaments)
     {

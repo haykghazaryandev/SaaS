@@ -10,7 +10,7 @@ import { Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 // One tournament: its link and settings; the registered players (filters: waiting / accepted / declined / paid /
-// not paid) with accept / decline, the fee (card or cash), a message to one of them; "remind the unpaid"; the draw and
+// not paid) with accept / decline, the fee (card or cash); "remind the unpaid"; the draw and
 // the bracket (tap a match: the winner, the score, playing now — live for everybody, players only look); news to the
 // players (everybody / accepted / waiting: the waiting ones get a notification only, they are not in the chat); the chat.
 interface Entry {
@@ -52,12 +52,6 @@ const accepted = computed(() => count('accepted'));
 const entry = (id: number, data: Record<string, string>) => router.patch(route('owner.tournaments.entry', id), data, opts);
 const remind = () => router.post(route('owner.tournaments.remind', t.value.id), {}, opts);
 const placeName = (n: number) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : `#${n}`);
-
-// a message to one player
-const to = ref<Entry | null>(null);
-const msg = useForm({ text: '' });
-const msgError = computed(() => (msg.errors as Record<string, string>).booking);
-const sendMsg = () => to.value && msg.post(route('owner.tournaments.message', to.value.id), { ...opts, onSuccess: () => ((to.value = null), msg.reset()) });
 
 // ---------- the draw and the bracket ----------
 const draw = () => router.post(route('owner.tournaments.draw', t.value.id), {}, opts);
@@ -155,18 +149,6 @@ async function copy() {
                         <button type="button" class="btn ghost sm" @click="entry(e.id, { pay: 'cash' })">{{ $t('owner.club.cash') }}</button>
                     </span>
                 </template>
-                <button
-                    v-if="canEdit"
-                    type="button"
-                    class="btn ghost sm icon"
-                    :disabled="!e.account"
-                    :title="e.account ? $t('owner.tournament.message') : $t('owner.tournament.no_account')"
-                    :aria-label="$t('owner.tournament.message')"
-                    :data-test="`msg-${e.id}`"
-                    @click="to = e"
-                >
-                    <Icon name="send" size="sm" />
-                </button>
             </div>
             <p v-if="!shown.length" class="faint" style="margin: 8px 0 0">{{ $t('owner.club.no_entries') }}</p>
         </section>
@@ -181,7 +163,7 @@ async function copy() {
             </div>
             <template v-if="tournament.bracket">
                 <p v-if="canEdit" class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
-                <Bracket :bracket="tournament.bracket" :editable="canEdit" :title="tournament.title" :when="when" @pick="pick" />
+                <Bracket :bracket="tournament.bracket" :editable="canEdit" :title="tournament.title" :when="when" :players="accepted" @pick="pick" />
             </template>
             <p v-else class="faint" style="font-size: 13px; margin: 0">{{ $t('owner.tournament.draw_hint') }}</p>
         </section>
@@ -224,15 +206,6 @@ async function copy() {
             </div>
         </OwnerSheet>
 
-        <!-- a message to one player -->
-        <OwnerSheet v-if="to" :title="$t('owner.tournament.message_to', { name: to.name })" @close="to = null">
-            <form class="news" @submit.prevent="sendMsg">
-                <textarea v-model="msg.text" class="input" rows="4" maxlength="1000" :placeholder="$t('owner.tournament.message_ph')" data-test="msg-text" />
-                <div v-if="msgError" class="err">{{ msgError }}</div>
-                <button class="btn block" :disabled="msg.processing || !msg.text.trim()" data-test="msg-send"><Icon name="send" size="sm" />{{ $t('owner.tournament.send') }}</button>
-                <small class="faint">{{ $t('owner.tournament.message_hint') }}</small>
-            </form>
-        </OwnerSheet>
     </OwnerLayout>
 </template>
 
@@ -245,7 +218,6 @@ async function copy() {
 .erow .w { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
 .erow small { color: var(--muted); font-size: 12.5px; }
 .erow .place { margin-right: 4px; }
-.btn.icon { padding: 7px 9px; }
 .pill.hot { color: var(--hot); background: var(--hot-soft); }
 .news { display: grid; gap: 8px; min-width: 0; }
 .news textarea { width: 100%; box-sizing: border-box; resize: vertical; }

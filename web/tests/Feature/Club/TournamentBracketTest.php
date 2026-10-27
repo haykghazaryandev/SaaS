@@ -149,7 +149,7 @@ it('shows the bracket on the public page with my match, and on the owner page', 
     $this->actingAs($other)->post("/owner/tournaments/{$this->t->id}/draw")->assertNotFound();
 });
 
-it('messages one player, sends news to the waiting ones only (no chat) and reminds the unpaid', function () {
+it('sends news to the registered ones only (no chat) and reminds the unpaid', function () {
     Notification::fake();
     $this->t->update(['options' => [['label' => 'Standard', 'price' => 5000]]]);
     [$a, $b] = ($this->players)(2)->all();
@@ -158,12 +158,8 @@ it('messages one player, sends news to the waiting ones only (no chat) and remin
     // accepted with a fee: the message says how much
     Notification::assertSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_accepted_fee' && $n->params['amount'] === '5 000 ֏');
 
-    $this->actingAs($this->owner)->post("/owner/tournament-entries/{$a->id}/message", ['text' => 'Table 2 at 12:30'])->assertSessionHasNoErrors();
-    Notification::assertSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_message' && $n->params['text'] === 'Table 2 at 12:30');
-    Notification::assertNotSentTo(User::find($b->user_id), Notice::class, fn ($n) => $n->type === 'tournament_message');
-    // no account: refused with a hint
-    $phoneOnly = $this->tt->register($this->t, ['first_name' => 'No', 'last_name' => 'App', 'phone' => '+37491777777', 'option' => 0, 'level' => 1200]);
-    $this->actingAs($this->owner)->post("/owner/tournament-entries/{$phoneOnly->id}/message", ['text' => 'Hi'])->assertSessionHasErrors('booking');
+    // the one-player message is gone
+    $this->actingAs($this->owner)->post("/owner/tournament-entries/{$a->id}/message", ['text' => 'Hi'])->assertNotFound();
 
     // news to the waiting ones: a notification, nothing in the chat
     $before = Message::count();

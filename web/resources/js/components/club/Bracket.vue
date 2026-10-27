@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import BracketTree from '@/components/club/BracketTree.vue';
+import Icon from '@/components/Icon.vue';
 import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// A tournament bracket, "arena" style: two halves that meet in the middle at the Grand Final (a World Cup scheme),
-// glowing curved wires between the rounds, winners lit green, losers greyed out, a live match pulsing red.
-// Any size: the draw rounds the players up to 4, 8, 16 … 128 (byes for the best seeds), so the first round of each
-// half has size / 4 matches; columns stretch to the same height so every match sits between the two it comes from.
+// A tournament bracket, "arena" style (design B). The last 16 players (1/8 → the Grand Final) are the glowing tree:
+// two halves meeting at the final; a tap opens it full screen. A bigger tournament (17–128 players) shows its early
+// rounds above it as round tabs with 16 match cards per page, so a 100-player bracket stays light.
 // editable: the owner taps a match to mark the winner (the page opens its sheet). Players only look.
 export interface Side {
     id: number;
     name: string;
+    first?: string;
+    last?: string;
     rating: number | null;
     me?: boolean;
 }
@@ -23,306 +26,172 @@ export interface Match {
     live: boolean;
     bye: boolean;
 }
+export interface Round {
+    round: number;
+    size: number;
+    matches: Match[];
+}
 export interface BracketData {
     total: number;
-    rounds: { round: number; size: number; matches: Match[] }[];
+    rounds: Round[];
 }
-const props = defineProps<{ bracket: BracketData; editable?: boolean; title?: string; when?: string }>();
+const props = defineProps<{ bracket: BracketData; editable?: boolean; title?: string; when?: string; players?: number }>();
 const emit = defineEmits<{ pick: [m: Match] }>();
 
-const roundName = (size: number) =>
-    size === 2 ? trans('club.bracket.final') : size === 4 ? trans('club.bracket.semi') : size === 8 ? trans('club.bracket.quarter') : trans('club.bracket.round_of', { n: size, half: size / 2 });
+/** the tree: at most the last 4 rounds (16 players) */
+const TREE_ROUNDS = 4;
+const tree = computed(() => props.bracket.rounds.slice(-TREE_ROUNDS));
+const early = computed(() => props.bracket.rounds.slice(0, -TREE_ROUNDS));
 
-type Col = { round: number; size: number; side: 'L' | 'R'; matches: Match[] };
-// columns: the left half (top of every round) rounds 1…R-1, the final, the right half R-1…1 (mirrored)
-const cols = computed(() => {
-    const rs = props.bracket.rounds;
-    const half = (r: (typeof rs)[number], side: 'L' | 'R'): Col => ({ round: r.round, size: r.size, side, matches: r.matches.filter((m) => (m.slot < r.matches.length / 2) === (side === 'L')) });
-    const inner = rs.slice(0, -1);
-    return { left: inner.map((r) => half(r, 'L')), right: inner.map((r) => half(r, 'R')).reverse(), final: rs[rs.length - 1]?.matches[0] ?? null };
-});
-const finalMatch = computed(() => cols.value.final);
-
-// ---------- phones, big brackets (16+ players): one round at a time, the tree on request ----------
-const narrow = ref(typeof window !== 'undefined' && window.innerWidth < 760);
-const onResize = () => (narrow.value = window.innerWidth < 760);
-const big = computed(() => props.bracket.total >= 4);
-const treeOnPhone = ref(false);
-const byRound = computed(() => narrow.value && big.value && !treeOnPhone.value);
-// the round being played: the first with a real match not decided yet (else the final)
-const current = computed(() => props.bracket.rounds.find((r) => r.matches.some((m) => m.a && m.b && !m.winner))?.round ?? props.bracket.total);
-const shownRound = ref<number | null>(null);
-const roundNow = computed(() => props.bracket.rounds.find((r) => r.round === (shownRound.value ?? current.value)) ?? props.bracket.rounds[0]);
-const shortName = (size: number) => (size === 2 ? trans('club.bracket.final') : size === 4 ? '1/2' : size === 8 ? '1/4' : `1/${size / 2}`);
-const doneIn = (r: (typeof props.bracket.rounds)[number]) => r.matches.every((m) => m.winner || m.bye);
-const liveIn = (r: (typeof props.bracket.rounds)[number]) => r.matches.some((m) => m.live);
-// n columns per side + the final (2 players: only the final)
-const gridCols = computed(() => {
-    const n = cols.value.left.length;
-    const side = n ? `repeat(${n}, minmax(128px, 1fr))` : '';
-    return [side, 'minmax(190px, 1.1fr)', side].filter(Boolean).join(' ');
-});
-const champion = computed(() => {
-    const f = finalMatch.value;
-    return f?.winner ? (f.a?.id === f.winner ? f.a : f.b) : null;
-});
-// everybody who lost a match: their wires stop glowing
-const out = computed(() => {
-    const s = new Set<number>();
-    for (const r of props.bracket.rounds) for (const m of r.matches) if (m.winner && m.a && m.b) s.add(m.winner === m.a.id ? m.b.id : m.a.id);
-    return s;
-});
-
-const initials = (n: string) =>
-    n
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((w) => w[0]!.toUpperCase())
-        .join('');
-/** "Aram Petrosyan" → "A. Petrosyan" for the narrow tree cards (the full name on hover, the final and the round list) */
-const short = (n: string) => {
-    const w = n.trim().split(/\s+/);
-    return w.length > 1 ? `${w[0]![0]}. ${w.slice(1).join(' ')}` : n;
-};
-const hue = (id: number) => (id * 47) % 360;
-/** "3:1" → the winner's number on the winner's line (whichever way it was typed) */
+// ---------- early rounds: tabs, 16 cards a page ----------
+const PAGE = 16;
+const current = computed(() => early.value.find((r) => r.matches.some((m) => m.a && m.b && !m.winner))?.round ?? early.value[0]?.round ?? 0);
+const shown = ref<number | null>(null);
+const round = computed(() => early.value.find((r) => r.round === (shown.value ?? current.value)) ?? early.value[0]);
+const page = ref(0);
+const real = computed(() => round.value?.matches.filter((m) => !m.bye) ?? []);
+const pages = computed(() => Math.max(1, Math.ceil(real.value.length / PAGE)));
+const onPage = computed(() => real.value.slice(page.value * PAGE, (page.value + 1) * PAGE));
+const byes = computed(() => round.value?.matches.filter((m) => m.bye).length ?? 0);
+watch(round, () => (page.value = 0));
+const tabName = (size: number) => `1/${size / 2}`;
+const done = (r: Round) => r.matches.every((m) => m.winner || m.bye);
+const live = (r: Round) => r.matches.some((m) => m.live);
+const roundName = (size: number) => trans('club.bracket.round_of', { n: size, half: size / 2 });
+const state = (m: Match, s: Side | null) => (!s ? 'tbd' : m.winner ? (m.winner === s.id ? 'win' : 'lose') : '');
 function scoreOf(m: Match, s: Side | null): string {
-    if (!m.score || !s || !m.winner) return '';
+    if (!s || !m.score || !m.winner) return '';
     const p = /^\s*(\d+)\s*\D+\s*(\d+)\s*$/.exec(m.score);
     if (!p) return s.id === m.winner ? m.score : '';
-    const [hi, lo] = [Math.max(+p[1], +p[2]), Math.min(+p[1], +p[2])];
-    return String(s.id === m.winner ? hi : lo);
+    return String(s.id === m.winner ? Math.max(+p[1], +p[2]) : Math.min(+p[1], +p[2]));
 }
-const state = (m: Match, s: Side | null) => (!s ? 'tbd' : m.winner ? (m.winner === s.id ? 'win' : 'lose') : '');
-const canPick = (m: Match | null) => !!m && !!props.editable && !!m.a && !!m.b;
-const pick = (m: Match | null) => m && canPick(m) && emit('pick', m);
-const emptyName = (m: Match) => (m.bye ? '—' : trans('club.bracket.tbd'));
+const canPick = (m: Match) => !!props.editable && !!m.a && !!m.b;
 
-// ---------- the wires: from each match to the one its winner goes to, measured on the page ----------
-const root = ref<HTMLElement>();
-const paths = ref<{ d: string; cls: string }[]>([]);
-const rounds = computed(() => props.bracket.total);
-function wire() {
-    const tree = root.value;
-    if (!tree) return;
-    const tb = tree.getBoundingClientRect();
-    if (!tb.width) return;
-    const next: { d: string; cls: string }[] = [];
-    for (const r of props.bracket.rounds) {
-        if (r.round >= rounds.value) continue;
-        for (const m of r.matches) {
-            const a = tree.querySelector(`[data-m="${r.round}-${m.slot}"] .anc`);
-            const b = tree.querySelector(`[data-m="${r.round + 1}-${m.slot >> 1}"] .anc`);
-            if (!a || !b) continue;
-            const left = m.slot < r.matches.length / 2;
-            const ra = a.getBoundingClientRect();
-            const rb = b.getBoundingClientRect();
-            const x1 = (left ? ra.right : ra.left) - tb.left;
-            const y1 = ra.top + ra.height / 2 - tb.top;
-            const x2 = (left ? rb.left : rb.right) - tb.left;
-            const y2 = rb.top + rb.height / 2 - tb.top;
-            const mx = (x1 + x2) / 2;
-            const d = `M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
-            next.push({ d, cls: !m.winner ? 'off' : out.value.has(m.winner) ? 'on' : 'on alive' });
-        }
-    }
-    // the dim ones first, the glowing ones on top
-    paths.value = next.sort((x, y) => (x.cls === 'off' ? 0 : 1) - (y.cls === 'off' ? 0 : 1));
+// ---------- the tree: scroll fade + "swipe →", full screen ----------
+const scroller = ref<HTMLElement>();
+const ov = ref(false);
+const end = ref(false);
+function onScroll() {
+    const s = scroller.value;
+    if (!s) return;
+    ov.value = s.scrollWidth > s.clientWidth + 4;
+    end.value = s.scrollLeft + s.clientWidth >= s.scrollWidth - 4;
 }
 let ro: ResizeObserver | undefined;
 onMounted(() => {
-    window.addEventListener('resize', onResize);
-    nextTick(wire);
-    ro = new ResizeObserver(() => wire());
-    if (root.value) ro.observe(root.value);
-    document.fonts?.ready.then(wire);
+    nextTick(onScroll);
+    ro = new ResizeObserver(onScroll);
+    if (scroller.value) ro.observe(scroller.value);
 });
+const large = ref(false);
+function openLarge() {
+    large.value = true;
+    document.body.style.overflow = 'hidden';
+}
+function closeLarge() {
+    large.value = false;
+    document.body.style.overflow = '';
+}
 onBeforeUnmount(() => {
     ro?.disconnect();
-    window.removeEventListener('resize', onResize);
+    if (large.value) document.body.style.overflow = '';
 });
-watch(byRound, (v) => !v && nextTick(wire));
-watch(() => props.bracket, () => nextTick(wire), { deep: true });
+const pick = (m: Match) => emit('pick', m);
+function pickLarge(m: Match) {
+    closeLarge();
+    pick(m);
+}
+// players tap the tree to see it large; the owner taps a match (and has the full screen chip)
+const tapTree = () => !props.editable && openLarge();
 </script>
 
 <template>
-    <div class="arena">
-        <div v-if="title" class="ar-h">
-            <b>{{ title }}</b>
+    <div class="stage">
+        <div class="tour">
+            <div class="tt">{{ title }}</div>
+            <div class="chips">
+                <span v-if="players" class="chip">{{ $t('club.bracket.players_n', { n: players }) }}</span>
+                <span v-if="when" class="chip">{{ when }}</span>
+                <button type="button" class="chip big" data-test="bracket-large" @click="openLarge"><Icon name="grid" size="sm" />{{ $t('club.bracket.open_large') }}</button>
+            </div>
         </div>
-        <!-- phones, 16+ players: one round at a time -->
-        <template v-if="byRound">
+
+        <!-- 17+ players: the early rounds, one round at a time, 16 matches a page -->
+        <section v-if="early.length && round" class="early">
+            <div class="ch">{{ $t('club.bracket.early') }}</div>
             <div class="rtabs" role="tablist">
-                <button
-                    v-for="r in bracket.rounds"
-                    :key="r.round"
-                    type="button"
-                    role="tab"
-                    :aria-selected="r.round === roundNow.round"
-                    :class="{ done: doneIn(r) }"
-                    @click="shownRound = r.round"
-                >
-                    {{ shortName(r.size) }}<i v-if="liveIn(r)" class="dot" />
+                <button v-for="r in early" :key="r.round" type="button" role="tab" :aria-selected="r.round === round.round" :class="{ done: done(r) }" @click="shown = r.round">
+                    {{ tabName(r.size) }}<i v-if="live(r)" class="dot" />
                 </button>
             </div>
-            <div class="rlist">
-                <div class="ch">{{ roundName(roundNow.size) }}</div>
+            <div class="sub">
+                {{ roundName(round.size) }}<template v-if="pages > 1"> · {{ $t('club.bracket.page', { n: page + 1, total: pages }) }}</template>
+            </div>
+            <div class="grid">
                 <component
                     :is="canPick(m) ? 'button' : 'div'"
-                    v-for="m in roundNow.matches.filter((x) => !x.bye)"
+                    v-for="m in onPage"
                     :key="m.id"
                     :type="canPick(m) ? 'button' : undefined"
-                    :class="['mb', { live: m.live, pick: canPick(m) }]"
+                    :class="['em', { live: m.live, pick: canPick(m) }]"
                     :data-test="`match-${m.id}`"
-                    @click="pick(m)"
+                    @click="canPick(m) && pick(m)"
                 >
-                    <div v-for="(s, j) in [m.a, m.b]" :key="j" :class="['pl', state(m, s), { me: s?.me }]">
-                        <span v-if="s" class="av" :style="{ '--h': hue(s.id) }">{{ initials(s.name) }}</span><span v-else class="av q">?</span>
-                        <span class="who"
-                            ><span class="nm">{{ s ? s.name : $t('club.bracket.tbd') }}</span><span v-if="s?.rating" class="rt">{{ s.rating }}</span></span
-                        >
+                    <div v-for="(s, j) in [m.a, m.b]" :key="j" :class="['er', state(m, s), { me: s?.me }]">
+                        <span class="nm">{{ s ? s.name : $t('club.bracket.tbd') }}</span>
+                        <span v-if="s?.rating" class="rt">{{ s.rating }}</span>
                         <b class="sc">{{ scoreOf(m, s) }}</b>
                     </div>
-                    <div v-if="m.live" class="lv"><i class="dot" />{{ $t('club.bracket.live') }}</div>
+                    <div v-if="m.live" class="livetag"><i class="dot" />LIVE</div>
                 </component>
-                <p v-if="roundNow.matches.some((x) => x.bye)" class="byes">
-                    {{ $t('club.bracket.byes', { n: roundNow.matches.filter((x) => x.bye).length }) }}
-                </p>
-                <div v-if="champion && roundNow.round === bracket.total" class="fstat champ-row">
-                    🥇 {{ $t('club.bracket.champion') }} <b>{{ champion.name }}</b>
-                </div>
             </div>
-            <button type="button" class="tree-btn" @click="treeOnPhone = true">{{ $t('club.bracket.show_tree') }}</button>
-        </template>
-        <button v-else-if="narrow && big" type="button" class="tree-btn" @click="treeOnPhone = false">{{ $t('club.bracket.by_round') }}</button>
-        <p v-if="!byRound" class="ar-swipe">{{ $t('club.bracket.swipe') }}</p>
-        <div v-if="!byRound" class="ar-scroll">
-            <div ref="root" class="tree" :style="{ gridTemplateColumns: gridCols, minWidth: `${cols.left.length * 2 * (128 + 12) + 190}px` }">
-                <svg class="wires" aria-hidden="true"><path v-for="(p, i) in paths" :key="i" :class="p.cls" :d="p.d" /></svg>
+            <div v-if="pages > 1" class="pager">
+                <button type="button" :disabled="page === 0" aria-label="‹" @click="page--">‹</button>
+                <button v-for="i in pages" :key="i" type="button" :aria-current="page === i - 1" @click="page = i - 1">{{ i }}</button>
+                <button type="button" :disabled="page === pages - 1" aria-label="›" @click="page++">›</button>
+            </div>
+            <p v-if="byes" class="byes">{{ $t('club.bracket.byes', { n: byes }) }}</p>
+            <div class="ch" style="margin-top: 18px">{{ $t('club.bracket.final_stage') }}</div>
+        </section>
 
-                <div v-for="c in cols.left" :key="`L${c.round}`" class="col">
-                    <div class="ch">{{ roundName(c.size) }}</div>
-                    <div class="cb">
-                        <div v-for="m in c.matches" :key="m.id" class="slot">
-                            <component
-                                :is="canPick(m) ? 'button' : 'div'"
-                                :type="canPick(m) ? 'button' : undefined"
-                                :class="['mb', { live: m.live, pick: canPick(m), bye: m.bye }]"
-                                :data-m="`${c.round}-${m.slot}`"
-                                :data-test="`match-${m.id}`"
-                                @click="pick(m)"
-                            >
-                                <div class="anc">
-                                    <div v-for="(s, j) in [m.a, m.b]" :key="j" :class="['pl', state(m, s), { me: s?.me }]">
-                                        <span v-if="s" class="av" :style="{ '--h': hue(s.id) }">{{ initials(s.name) }}</span><span v-else class="av q">?</span>
-                                        <span class="who"
-                                            ><span class="nm" :title="s?.name">{{ s ? short(s.name) : emptyName(m) }}</span
-                                            ><span v-if="s?.rating" class="rt">{{ s.rating }}</span></span
-                                        >
-                                        <b class="sc">{{ scoreOf(m, s) }}</b>
-                                    </div>
-                                </div>
-                                <div v-if="m.live" class="lv"><i class="dot" />{{ $t('club.bracket.live') }}</div>
-                            </component>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- the Grand Final in the middle -->
-                <div class="col fin">
-                    <div class="ch">{{ roundName(2) }}</div>
-                    <div class="cb">
-                        <div class="slot">
-                            <component
-                                :is="canPick(finalMatch) ? 'button' : 'div'"
-                                v-if="finalMatch"
-                                :type="canPick(finalMatch) ? 'button' : undefined"
-                                :class="['fb', { live: finalMatch.live, pick: canPick(finalMatch) }]"
-                                :data-m="`${bracket.total}-0`"
-                                :data-test="`match-${finalMatch.id}`"
-                                @click="pick(finalMatch)"
-                            >
-                                <div class="cup" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z" />
-                                        <path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
-                                    </svg>
-                                </div>
-                                <h4>{{ $t('club.bracket.grand_final') }}</h4>
-                                <div v-if="when" class="when">{{ when }}</div>
-                                <div class="anc vs">
-                                    <template v-for="(s, j) in [finalMatch.a, finalMatch.b]" :key="j">
-                                        <span v-if="j === 1" class="vsb">VS</span>
-                                        <div :class="['fp', state(finalMatch, s), { me: s?.me }]">
-                                            <span v-if="s" class="av" :style="{ '--h': hue(s.id) }">{{ initials(s.name) }}</span><span v-else class="av q">?</span>
-                                            <div class="nm">{{ s ? s.name : $t('club.bracket.tbd') }}</div>
-                                            <div v-if="s?.rating" class="rt">{{ s.rating }}</div>
-                                            <span class="sc">{{ scoreOf(finalMatch, s) || (finalMatch.winner ? '' : '–') }}</span>
-                                        </div>
-                                    </template>
-                                </div>
-                                <div class="fstat">
-                                    <span v-if="champion" class="champ">🥇 {{ $t('club.bracket.champion') }} <b>{{ champion.name }}</b></span>
-                                    <span v-else-if="finalMatch.live" class="livetag"><i class="dot" />{{ $t('club.bracket.live') }}</span>
-                                </div>
-                            </component>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-for="c in cols.right" :key="`R${c.round}`" class="col right">
-                    <div class="ch">{{ roundName(c.size) }}</div>
-                    <div class="cb">
-                        <div v-for="m in c.matches" :key="m.id" class="slot">
-                            <component
-                                :is="canPick(m) ? 'button' : 'div'"
-                                :type="canPick(m) ? 'button' : undefined"
-                                :class="['mb', { live: m.live, pick: canPick(m), bye: m.bye }]"
-                                :data-m="`${c.round}-${m.slot}`"
-                                :data-test="`match-${m.id}`"
-                                @click="pick(m)"
-                            >
-                                <div class="anc">
-                                    <div v-for="(s, j) in [m.a, m.b]" :key="j" :class="['pl', state(m, s), { me: s?.me }]">
-                                        <span v-if="s" class="av" :style="{ '--h': hue(s.id) }">{{ initials(s.name) }}</span><span v-else class="av q">?</span>
-                                        <span class="who"
-                                            ><span class="nm" :title="s?.name">{{ s ? short(s.name) : emptyName(m) }}</span
-                                            ><span v-if="s?.rating" class="rt">{{ s.rating }}</span></span
-                                        >
-                                        <b class="sc">{{ scoreOf(m, s) }}</b>
-                                    </div>
-                                </div>
-                                <div v-if="m.live" class="lv"><i class="dot" />{{ $t('club.bracket.live') }}</div>
-                            </component>
-                        </div>
-                    </div>
-                </div>
+        <div :class="['scwrap', { ov, end }]">
+            <div ref="scroller" class="scroller" @scroll.passive="onScroll" @click="tapTree">
+                <BracketTree :rounds="tree" :total="bracket.total" :editable="editable" :when="when" @pick="pick" />
             </div>
         </div>
+        <div v-if="ov" class="hint">{{ $t('club.bracket.swipe') }} <b>→</b></div>
+
+        <!-- full screen -->
+        <Teleport to="body">
+            <div v-if="large" class="bk-full" role="dialog" aria-modal="true">
+                <div class="bk-full-h">
+                    <b>{{ title }}</b>
+                    <button type="button" class="bk-x" :aria-label="$t('common.close')" data-test="bracket-close" @click="closeLarge"><Icon name="x" /></button>
+                </div>
+                <div class="bk-full-b">
+                    <BracketTree :rounds="tree" :total="bracket.total" :editable="editable" :when="when" large @pick="pickLarge" />
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <style scoped>
-.arena {
-    --win: #5ef0a8;
-    --live: #ff6b6b;
-    --gold: #ff9f43;
-    --grad-gold: linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%);
+/* the stage of design B: a night stadium (glow in the middle, a fading grid) */
+.stage {
     position: relative;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 159, 67, 0.2);
-    padding: 16px 12px;
     overflow: hidden;
+    border-radius: 22px;
+    padding: 18px;
+    color: #eef5ec;
+    border: 1px solid rgba(255, 159, 67, 0.2);
     background:
         radial-gradient(ellipse 45% 55% at 50% 50%, rgba(255, 159, 67, 0.16), transparent 70%),
         radial-gradient(ellipse 35% 60% at 0% 50%, rgba(94, 240, 168, 0.06), transparent 70%),
         radial-gradient(ellipse 35% 60% at 100% 50%, rgba(94, 240, 168, 0.06), transparent 70%),
         #070908;
-    color: #eef5ec;
 }
-/* the stadium grid, fading out to the edges */
-.arena::before {
+.stage::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -332,85 +201,57 @@ watch(() => props.bracket, () => nextTick(wire), { deep: true });
     -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
     mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
 }
-.arena > * { position: relative; }
-.ar-h { margin: 0 4px 10px; font: 800 15px var(--display); letter-spacing: 0.06em; text-transform: uppercase; text-shadow: 0 0 18px rgba(255, 159, 67, 0.45); }
-.ar-swipe { display: none; font-size: 12px; color: #657066; margin: 0 4px 8px; }
-.ar-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
-@media (max-width: 900px) { .ar-swipe { display: block; } }
+.stage > * { position: relative; }
+@media (max-width: 600px) { .stage { padding: 14px 12px; border-radius: 18px; } }
+.tour { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 12px; }
+.tt { font: 700 16px var(--display); text-transform: uppercase; text-shadow: 0 0 18px rgba(255, 159, 67, 0.45); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 11px var(--mono); color: #9aa69b; padding: 4px 9px; border-radius: 999px; border: 1px solid rgba(220, 255, 220, 0.08); background: rgba(255, 255, 255, 0.02); display: inline-flex; align-items: center; gap: 5px; }
+.chip.big { cursor: pointer; color: #ffd166; border-color: rgba(255, 159, 67, 0.35); }
 
-/* columns: n per side + the final; every column as tall as the tallest, so matches line up between their two */
-.tree { position: relative; display: grid; column-gap: 12px; width: 100%; }
-.col { display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 1; }
-.ch { text-align: center; font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); text-shadow: 0 0 10px rgba(255, 159, 67, 0.35); padding: 2px 0 8px; white-space: nowrap; }
-.cb { flex: 1; display: flex; flex-direction: column; }
-.slot { flex: 1; display: flex; align-items: center; padding: 6px 0; }
-.slot > * { width: 100%; }
+/* the tree scrolls sideways in its own box, with a fade and "swipe →" */
+.scwrap { position: relative; }
+.scroller { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; margin: 0 -18px; padding: 6px 18px 12px; scrollbar-width: thin; scrollbar-color: #2a332b transparent; cursor: zoom-in; }
+@media (max-width: 600px) { .scroller { margin: 0 -12px; padding: 6px 12px 12px; } }
+.scwrap::after { content: ''; position: absolute; top: 0; bottom: 0; right: -18px; width: 46px; pointer-events: none; background: linear-gradient(90deg, transparent, #070908); opacity: 0; transition: opacity 0.2s; }
+.scwrap.ov:not(.end)::after { opacity: 1; }
+.hint { display: inline-flex; align-items: center; gap: 6px; font: 600 12px var(--body); color: #ff9f43; margin: 2px 0 0; }
+.hint b { display: inline-block; animation: nudge 1.4s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateX(5px); } }
 
-.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: visible; }
-.wires path { fill: none; stroke-width: 2; stroke-linecap: round; }
-.wires .off { stroke: rgba(255, 159, 67, 0.14); stroke-dasharray: 3 5; }
-.wires .on { stroke: rgba(94, 240, 168, 0.38); }
-.wires .alive { stroke: #ffb36b; stroke-width: 3; filter: drop-shadow(0 0 3px #ff9f43) drop-shadow(0 0 10px rgba(255, 138, 61, 0.9)); }
+/* early rounds: light cards (no glow), paged */
+.ch { font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); margin: 0 0 8px; }
+.rtabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.rtabs button { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 159, 67, 0.25); background: rgba(18, 23, 19, 0.88); color: #9aa69b; font: 700 12px var(--display); padding: 7px 13px; border-radius: 999px; cursor: pointer; }
+.rtabs button.done { color: #5ef0a8; border-color: rgba(94, 240, 168, 0.35); }
+.rtabs button[aria-selected='true'] { color: #1a1206; background: linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%); border-color: transparent; }
+.sub { font: 500 11px var(--mono); color: #657066; margin: 2px 0 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.em { display: block; width: 100%; font: inherit; color: #eef5ec; text-align: left; background: rgba(18, 23, 19, 0.88); border: 1px solid rgba(255, 159, 67, 0.16); border-radius: 14px; padding: 4px; }
+.em.pick { cursor: pointer; }
+.em.pick:hover { border-color: rgba(255, 159, 67, 0.6); }
+.em.live { border-color: rgba(255, 107, 107, 0.55); }
+.er { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 10px; font-size: 12.5px; }
+.er .nm { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.er .rt { font: 400 10px var(--mono); color: #657066; }
+.er .sc { width: 16px; text-align: center; font: 600 13px var(--mono); color: #9aa69b; }
+.er.win { background: rgba(94, 240, 168, 0.08); }
+.er.win .sc { color: #5ef0a8; }
+.er.lose { opacity: 0.4; }
+.er.tbd .nm { color: #657066; font-style: italic; font-weight: 500; }
+.er.me .nm::after { content: ' ●'; color: #5ef0a8; font-size: 9px; }
+.livetag { color: #ff6b6b; display: inline-flex; align-items: center; gap: 6px; font: 600 10px var(--mono); padding: 2px 8px 3px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #ff6b6b; display: inline-block; flex: none; }
+.pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 10px; }
+.pager button { min-width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(255, 159, 67, 0.2); background: rgba(18, 23, 19, 0.88); color: #9aa69b; font: 600 12px var(--mono); cursor: pointer; }
+.pager button[aria-current='true'] { color: #1a1206; background: #ff9f43; border-color: transparent; }
+.pager button:disabled { opacity: 0.35; cursor: default; }
+.byes { font-size: 12px; color: #657066; margin: 8px 0 0; }
 
-/* a match */
-.mb { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: rgba(18, 23, 19, 0.88); border: 1px solid rgba(255, 159, 67, 0.16); border-radius: 16px; padding: 5px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4); }
-.mb.pick { cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
-.mb.pick:hover { border-color: rgba(255, 159, 67, 0.6); }
-.mb.pick:active { transform: scale(0.98); }
-.mb.live { border-color: rgba(255, 107, 107, 0.55); box-shadow: 0 0 22px rgba(255, 107, 107, 0.22); }
-.mb.bye { opacity: 0.55; }
-.pl { display: flex; align-items: center; gap: 6px; padding: 5px; border-radius: 11px; }
-.right .pl { flex-direction: row-reverse; }
-.right .who { text-align: right; }
-.av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 10px var(--display); flex: none; background: hsl(var(--h) 38% 20%); color: hsl(var(--h) 85% 80%); border: 1.5px solid hsl(var(--h) 45% 38%); }
-.av.q { background: transparent; border: 1.5px dashed #657066; color: #657066; }
-.who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.nm { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rt { font: 400 10px var(--mono); color: #657066; }
-.sc { min-width: 16px; text-align: center; font: 600 14px var(--mono); color: #9aa69b; }
-.pl.win { background: rgba(94, 240, 168, 0.08); }
-.pl.win .nm { font-weight: 800; }
-.pl.win .av { border-color: var(--win); box-shadow: 0 0 12px rgba(94, 240, 168, 0.6); }
-.pl.win .sc { color: var(--win); text-shadow: 0 0 10px rgba(94, 240, 168, 0.7); }
-.pl.lose { opacity: 0.36; filter: grayscale(1); }
-.pl.tbd .nm { color: #657066; font-style: italic; font-weight: 500; }
-/* me: the player looking at it */
-.pl.me .nm::after, .fp.me .nm::after { content: ' ●'; color: var(--win); font-size: 9px; vertical-align: middle; }
-.lv { display: flex; align-items: center; gap: 6px; font: 500 10px var(--mono); color: var(--live); padding: 3px 6px 2px; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live); display: inline-block; flex: none; animation: pulse 1.4s infinite; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.75); } 70% { box-shadow: 0 0 0 8px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
-
-/* phones: round tabs and one round's matches */
-.rtabs { display: flex; gap: 6px; overflow-x: auto; padding: 0 2px 10px; scrollbar-width: none; }
-.rtabs button { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 159, 67, 0.25); background: rgba(18, 23, 19, 0.88); color: #9aa69b; font: 700 12px var(--display); padding: 7px 12px; border-radius: 999px; }
-.rtabs button.done { color: var(--win); border-color: rgba(94, 240, 168, 0.35); }
-.rtabs button[aria-selected='true'] { color: #1a1206; background: var(--grad-gold); border-color: transparent; box-shadow: 0 0 18px rgba(255, 159, 67, 0.4); }
-.rlist { display: grid; gap: 10px; }
-.rlist .ch { text-align: left; padding: 0 2px; }
-.byes { margin: 2px; font-size: 12px; color: #657066; }
-.champ-row { text-align: center; padding: 8px; }
-.tree-btn { margin: 12px auto 0; display: block; border: 1px solid rgba(255, 159, 67, 0.3); background: transparent; color: #ffd166; font: 700 12px var(--body); padding: 8px 14px; border-radius: 999px; }
-
-/* the Grand Final */
-.fb { display: block; width: 100%; font: inherit; color: inherit; text-align: center; padding: 16px 12px 14px; border-radius: 22px; border: 1.5px solid transparent;
-    background: radial-gradient(circle at 50% 0%, rgba(255, 209, 102, 0.22), transparent 60%) padding-box, linear-gradient(#111612, #111612) padding-box, var(--grad-gold) border-box;
-    box-shadow: 0 0 50px rgba(255, 159, 67, 0.28), 0 0 0 6px rgba(255, 159, 67, 0.05); }
-.fb.pick { cursor: pointer; }
-.fb.live { box-shadow: 0 0 50px rgba(255, 107, 107, 0.3), 0 0 0 6px rgba(255, 107, 107, 0.08); }
-.cup { color: var(--gold); }
-.cup svg { width: 54px; height: 54px; filter: drop-shadow(0 0 16px rgba(255, 159, 67, 0.8)); }
-.fb h4 { font: 800 13px var(--display); letter-spacing: 0.18em; margin: 4px 0 2px; text-transform: uppercase; }
-.when { font: 500 10.5px var(--mono); color: #9aa69b; }
-.vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 6px; margin: 12px 0 8px; }
-.fp .av { width: 46px; height: 46px; font-size: 13px; margin: 0 auto 6px; border-width: 2px; }
-.fp .nm { white-space: normal; font-size: 12.5px; line-height: 1.2; }
-.fp .sc { display: block; font-size: 24px; margin-top: 4px; }
-.fp.win .av { border-color: var(--win); box-shadow: 0 0 18px rgba(94, 240, 168, 0.7); }
-.fp.win .sc { color: var(--win); }
-.fp.lose { opacity: 0.4; filter: grayscale(1); }
-.fp.tbd .nm { color: #657066; font-style: italic; }
-.vsb { font: 800 12px var(--display); color: var(--gold); align-self: center; text-shadow: 0 0 12px rgba(255, 159, 67, 0.8); padding-top: 14px; }
-.fstat { font: 500 11px var(--mono); color: #9aa69b; min-height: 16px; }
-.champ b { font-size: 14px; color: var(--win); }
-.livetag { color: var(--live); display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+/* full screen */
+.bk-full { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; color: #eef5ec;
+    background: radial-gradient(ellipse 45% 55% at 50% 50%, rgba(255, 159, 67, 0.14), transparent 70%), #070908; }
+.bk-full-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); border-bottom: 1px solid rgba(255, 159, 67, 0.15); font: 700 15px var(--display); text-transform: uppercase; }
+.bk-x { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 159, 67, 0.3); background: rgba(18, 23, 19, 0.9); color: #eef5ec; display: grid; place-items: center; cursor: pointer; }
+.bk-full-b { flex: 1; overflow: auto; padding: 18px; -webkit-overflow-scrolling: touch; }
 </style>

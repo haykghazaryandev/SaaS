@@ -119,7 +119,7 @@ function send() {
         </div>
         <!-- who plays whom, live -->
         <section v-if="bracket" class="pg wide card pad" style="margin-top: 14px" data-test="bracket">
-            <Bracket :bracket="bracket" :title="tournament.title" :when="`${tournament.date.slice(8)}.${tournament.date.slice(5, 7)} · ${tournament.time}`" />
+            <Bracket :bracket="bracket" :players="tournament.count" :title="tournament.title" :when="`${tournament.date.slice(8)}.${tournament.date.slice(5, 7)} · ${tournament.time}`" />
         </section>
     </PlayerLayout>
 </template>

@@ -23,7 +23,7 @@ class TournamentBracket
         $entries = TournamentEntry::whereIn('id', $matches->flatMap(fn ($m) => [$m->a_id, $m->b_id])->filter()->unique())->get()->keyBy('id');
         $total = (int) $matches->max('round');
         $side = fn (?int $id) => $id && isset($entries[$id]) ? [
-            'id' => $id, 'name' => Tournaments::name($entries[$id]), 'rating' => Tournaments::ratingOf($t, $entries[$id]->user_id, $entries[$id]->level),
+            'id' => $id, 'name' => Tournaments::name($entries[$id]), 'first' => $entries[$id]->first_name, 'last' => $entries[$id]->last_name, 'rating' => Tournaments::ratingOf($t, $entries[$id]->user_id, $entries[$id]->level),
             'me' => $id === $myEntryId,
         ] : null;
 

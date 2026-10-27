@@ -70,7 +70,6 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::post('tournaments/{tournament}/announce', [TournamentController::class, 'announce'])->middleware('throttle:10,1')->name('tournaments.announce');
     Route::post('tournaments/{tournament}/chat', [TournamentController::class, 'chat'])->name('tournaments.chat');
     Route::post('tournaments/{tournament}/remind', [TournamentController::class, 'remind'])->middleware('throttle:6,1')->name('tournaments.remind');
-    Route::post('tournament-entries/{entry}/message', [TournamentController::class, 'message'])->middleware('throttle:20,1')->name('tournaments.message');
     Route::patch('tournament-matches/{match}', [TournamentController::class, 'match'])->name('tournaments.match');
     Route::get('money', MoneyController::class)->name('money');
 
