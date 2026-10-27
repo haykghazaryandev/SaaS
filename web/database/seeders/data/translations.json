@@ -1394,6 +1394,11 @@
         "hy": "«:title» մրցաշարի չատը բաց է",
         "ru": "Чат турнира «:title» открыт"
     },
+    "club.bracket.bottom_half": {
+        "en": "Bottom half",
+        "hy": "Ստորին կես",
+        "ru": "Нижняя половина"
+    },
     "club.bracket.bye": {
         "en": "goes on",
         "hy": "անցնում է",
@@ -1433,6 +1438,11 @@
         "en": "Grand Final",
         "hy": "Եզրափակիչ",
         "ru": "Финал"
+    },
+    "club.bracket.halves_meet": {
+        "en": "The two halves meet in the Final",
+        "hy": "Երկու կեսերը հանդիպում են եզրափակչում",
+        "ru": "Две половины встречаются в финале"
     },
     "club.bracket.live": {
         "en": "Live",
@@ -1483,6 +1493,16 @@
         "en": "to be decided",
         "hy": "կորոշվի",
         "ru": "определится"
+    },
+    "club.bracket.to_final": {
+        "en": "winner → Final ↓",
+        "hy": "հաղթող → Եզրափակիչ ↓",
+        "ru": "победитель → Финал ↓"
+    },
+    "club.bracket.top_half": {
+        "en": "Top half",
+        "hy": "Վերին կես",
+        "ru": "Верхняя половина"
     },
     "club.bracket.winner_of": {
         "en": "Winner of :m",

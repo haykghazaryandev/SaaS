@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BracketHalves from '@/components/club/BracketHalves.vue';
 import BracketTree from '@/components/club/BracketTree.vue';
 import Icon from '@/components/Icon.vue';
 import { trans } from '@/lib/i18n';
@@ -69,6 +70,10 @@ function scoreOf(m: Match, s: Side | null): string {
 }
 const canPick = (m: Match) => !!props.editable && !!m.a && !!m.b;
 
+// phones: the half-by-half view (the tree stays for computers and full screen)
+const narrow = ref(typeof window !== 'undefined' && window.innerWidth < 760);
+const onResize = () => (narrow.value = window.innerWidth < 760);
+
 // ---------- the tree: scroll fade + "swipe →", full screen ----------
 const scroller = ref<HTMLElement>();
 const ov = ref(false);
@@ -81,6 +86,7 @@ function onScroll() {
 }
 let ro: ResizeObserver | undefined;
 onMounted(() => {
+    window.addEventListener('resize', onResize);
     nextTick(onScroll);
     ro = new ResizeObserver(onScroll);
     if (scroller.value) ro.observe(scroller.value);
@@ -95,6 +101,7 @@ function closeLarge() {
     document.body.style.overflow = '';
 }
 onBeforeUnmount(() => {
+    window.removeEventListener('resize', onResize);
     ro?.disconnect();
     if (large.value) document.body.style.overflow = '';
 });
@@ -154,12 +161,13 @@ const tapTree = () => !props.editable && openLarge();
             <div class="ch" style="margin-top: 18px">{{ $t('club.bracket.final_stage') }}</div>
         </section>
 
-        <div :class="['scwrap', { ov, end }]">
+        <BracketHalves v-if="narrow" :rounds="tree" :total="bracket.total" :editable="editable" :when="when" @pick="pick" />
+        <div v-else :class="['scwrap', { ov, end }]">
             <div ref="scroller" class="scroller" @scroll.passive="onScroll" @click="tapTree">
                 <BracketTree :rounds="tree" :total="bracket.total" :editable="editable" :when="when" @pick="pick" />
             </div>
         </div>
-        <div v-if="ov" class="hint">{{ $t('club.bracket.swipe') }} <b>→</b></div>
+        <div v-if="ov && !narrow" class="hint">{{ $t('club.bracket.swipe') }} <b>→</b></div>
 
         <!-- full screen -->
         <Teleport to="body">

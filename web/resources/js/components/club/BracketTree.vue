@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BracketFinal from '@/components/club/BracketFinal.vue';
 import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Match, Round, Side } from './Bracket.vue';
@@ -34,7 +35,6 @@ const gridCols = computed(() => {
 const minW = computed(() => n.value * 2 * (colW.value + 16) + (props.large ? 230 : 190));
 
 const fin = computed(() => cols.value.final);
-const champion = computed(() => (fin.value?.winner ? (fin.value.a?.id === fin.value.winner ? fin.value.a : fin.value.b) : null));
 const out = computed(() => {
     const s = new Set<number>();
     for (const r of props.rounds) for (const m of r.matches) if (m.winner && m.a && m.b) s.add(m.winner === m.a.id ? m.b.id : m.a.id);
@@ -52,9 +52,7 @@ function scoreOf(m: Match, s: Side | null): string {
     if (!m.winner) return String(s.id === m.a?.id ? +p[1] : +p[2]);
     return String(s.id === m.winner ? Math.max(+p[1], +p[2]) : Math.min(+p[1], +p[2]));
 }
-/** an empty place: "Winner of QF3" (the match it comes from) */
-const fromName = (round: number, slot: number, j: number) => (round > first.value ? trans('club.bracket.winner_of', { m: label(round - 1, 2 * slot + j) }) : trans('club.bracket.tbd'));
-// the narrow cards: just the match it comes from ("QF3", "R16·5"); the Grand Final card says "Winner of SF2"
+// an empty place: the match it comes from ("QF3", "R16·5"); the Grand Final card says "Winner of SF2"
 const fromShort = (round: number, slot: number, j: number) => (round > first.value ? label(round - 1, 2 * slot + j) : trans('club.bracket.tbd'));
 const canPick = (m: Match | null) => !!m && !!props.editable && !!m.a && !!m.b;
 
@@ -153,43 +151,7 @@ watch(() => props.rounds, () => nextTick(later));
                 <div class="ch">{{ roundName(2) }}</div>
                 <div class="cb">
                     <div class="slot">
-                        <component
-                            :is="canPick(fin) ? 'button' : 'div'"
-                            v-if="fin"
-                            :type="canPick(fin) ? 'button' : undefined"
-                            :class="['fb', { 'st-l': fin.live, pick: canPick(fin) }]"
-                            :data-m="`${total}-0`"
-                            :data-test="`match-${fin.id}`"
-                            @click.stop="canPick(fin) && emit('pick', fin)"
-                        >
-                            <div class="cup" aria-hidden="true">
-                                <svg viewBox="0 0 64 64">
-                                    <defs>
-                                        <linearGradient id="bk-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd166" /><stop offset="1" stop-color="#ff8a3d" /></linearGradient>
-                                    </defs>
-                                    <path fill="url(#bk-gold)" d="M18 8h28v12c0 9-6 16-14 16s-14-7-14-16Z" />
-                                    <path fill="none" stroke="url(#bk-gold)" stroke-width="4" d="M18 13H9v4c0 6 4 10 10 10M46 13h9v4c0 6-4 10-10 10" />
-                                    <path fill="url(#bk-gold)" d="M28 36h8v10h-8zM20 48h24v6H20z" />
-                                </svg>
-                            </div>
-                            <h4>{{ $t('club.bracket.grand_final') }}</h4>
-                            <div v-if="when" class="when">{{ when }}</div>
-                            <div class="anc vs">
-                                <template v-for="(s, j) in [fin.a, fin.b]" :key="j">
-                                    <span v-if="j === 1" class="vsb">VS</span>
-                                    <div :class="['fp', state(fin, s), { me: s?.me }]">
-                                        <span v-if="s" class="av" :style="{ '--h': hue(s.id) }">{{ ini(s) }}</span><span v-else class="av q">?</span>
-                                        <div class="nm">{{ s ? s.name : fromName(total, 0, j) }}</div>
-                                        <div v-if="s?.rating" class="rt">{{ s.rating }}</div>
-                                        <span class="sc">{{ scoreOf(fin, s) || '–' }}</span>
-                                    </div>
-                                </template>
-                            </div>
-                            <div class="fstat">
-                                <span v-if="champion" class="champ">🏆 {{ $t('club.bracket.champion') }}<b>{{ champion.name }}</b></span>
-                                <span v-else-if="fin.live" class="livetag"><i class="dot" />LIVE</span>
-                            </div>
-                        </component>
+                        <BracketFinal v-if="fin" :match="fin" :total="total" :editable="editable" :when="when" :large="large" @pick="(m) => emit('pick', m)" />
                     </div>
                 </div>
             </div>
@@ -239,27 +201,6 @@ watch(() => props.rounds, () => nextTick(later));
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live); display: inline-block; flex: none; animation: pulse 1.4s infinite; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.75); } 70% { box-shadow: 0 0 0 8px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
 
-.fb { display: block; width: 100%; font: inherit; color: #eef5ec; text-align: center; padding: 16px 12px 14px; border-radius: 22px; border: 1.5px solid transparent;
-    background: radial-gradient(circle at 50% 0%, rgba(255, 209, 102, 0.22), transparent 60%) padding-box, linear-gradient(#111612, #111612) padding-box, linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%) border-box;
-    box-shadow: 0 0 50px rgba(255, 159, 67, 0.28), 0 0 0 6px rgba(255, 159, 67, 0.05); }
-.fb.pick { cursor: pointer; }
-.fb .cup svg { width: 54px; height: 54px; filter: drop-shadow(0 0 16px rgba(255, 159, 67, 0.8)); }
-.fb h4 { font: 800 13px var(--display); letter-spacing: 0.18em; margin: 4px 0 2px; text-transform: uppercase; }
-.fb .when { font: 500 10.5px var(--mono); color: var(--muted); }
-.fb .vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 6px; margin: 12px 0 8px; }
-.fp .av { width: 46px; height: 46px; font-size: 13px; margin: 0 auto 6px; border-width: 2px; }
-.fp .nm { white-space: normal; font-size: 12.5px; line-height: 1.2; }
-.fp .rt { margin-top: 2px; white-space: normal; }
-.fp .sc { display: block; width: auto; font-size: 24px; margin-top: 4px; color: var(--muted); }
-.fp.win .av { border-color: var(--win); box-shadow: 0 0 18px rgba(94, 240, 168, 0.7); }
-.fp.win .sc { color: var(--win); }
-.fp.lose { opacity: 0.4; filter: grayscale(1); }
-.fp.tbd .nm { color: var(--faint); font-style: italic; }
-.fb.st-l .sc { color: var(--live); }
-.vsb { font: 800 12px var(--display); color: #ff9f43; align-self: center; text-shadow: 0 0 12px rgba(255, 159, 67, 0.8); padding-top: 2px; }
-.fstat { font: 500 11px var(--mono); color: var(--muted); min-height: 14px; }
-.champ { display: inline-flex; flex-direction: column; gap: 2px; }
-.champ b { font-size: 15px; color: var(--win); font-family: var(--display); }
 
 /* full screen: everything a bit bigger */
 .tree.large .nm { font-size: 14.5px; }
@@ -267,6 +208,4 @@ watch(() => props.rounds, () => nextTick(later));
 .tree.large .av { width: 30px; height: 30px; font-size: 11px; }
 .tree.large .sc { font-size: 16px; width: 22px; }
 .tree.large .slot { padding: 12px 0; }
-.tree.large .fp .av { width: 60px; height: 60px; font-size: 16px; }
-.tree.large .fb h4 { font-size: 16px; }
 </style>
