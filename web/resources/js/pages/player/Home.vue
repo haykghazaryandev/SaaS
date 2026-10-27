@@ -11,7 +11,7 @@ import type { DayInfo, VenueCard } from '@/types/player';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 
-// Home: first "What do you play?" (⚽ Football, 🏓 Ping-pong … only the sports the admin shows).
+// Home: first the ZoneSpot intro (logo video + name), then "What do you play?" (⚽ Football, 🏓 Ping-pong … only the sports the admin shows).
 // Then that sport's page: Book (places with their next free times; a time opens the place with it chosen),
 // its tournaments, and open games. No search box on the way in: the sport is the first choice.
 interface Filters {
@@ -53,6 +53,9 @@ const isFootball = computed(() => sport.value === 'football');
 useSportTheme(() => (props.pick ? null : sport.value));
 const f = reactive({ district: props.filters.district ?? '', time: props.filters.time ?? '' });
 const loading = ref(false);
+// the intro video plays once; with "reduce motion" it only shows its first frame. Shown once a frame is ready (no empty square).
+const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const introReady = ref(false);
 
 function go(change: Partial<Filters>) {
     const next = { ...props.filters, ...change };
@@ -99,7 +102,13 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 
         <!-- 1. what do you play? -->
         <section v-if="pick" class="pick">
-            <h1>{{ $t('player.home.pick_title') }}</h1>
+            <div class="intro">
+                <div :class="['intro-art', { ready: introReady }]" aria-hidden="true">
+                    <video src="/media/zonespot-intro.mp4" :autoplay="!reduceMotion" muted playsinline preload="auto" @loadeddata="introReady = true" />
+                </div>
+                <h1 class="intro-name">{{ $t('brand') }}</h1>
+            </div>
+            <h2>{{ $t('player.home.pick_title') }}</h2>
             <p class="muted">{{ $t('player.home.pick_sub') }}</p>
             <div class="ptiles">
                 <Link v-for="sp in sports" :key="sp.key" :href="sportUrl(sp.key)" :class="['ptile', sp.key]" :data-test="'sport-' + sp.key">
@@ -246,7 +255,14 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 
 <style scoped>
 .pick { max-width: 720px; margin: 28px auto 0; text-align: center; }
-.pick h1 { font-size: clamp(30px, 6vw, 46px); margin: 0 0 6px; }
+.pick h2 { font-size: clamp(26px, 5vw, 38px); margin: 0 0 6px; }
+.intro { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 28px; }
+/* the video is black ink on white: inverted (white on black), the ink takes the theme gradient (multiply),
+   and the black drops into the page (screen), so the mark looks lit on the page itself */
+.intro-art { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; background: var(--grad); mix-blend-mode: screen; opacity: 0; transition: opacity .6s; }
+.intro-art.ready { opacity: 1; }
+.intro-art video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.15); filter: invert(1) grayscale(1) contrast(1.15); mix-blend-mode: multiply; }
+.intro-name { margin: 0; font-size: clamp(40px, 9vw, 68px); letter-spacing: -0.03em; line-height: 1; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ptiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; text-align: left; }
 .ptile { position: relative; overflow: hidden; display: flex; align-items: flex-end; gap: 12px; min-height: 190px; padding: 18px; border-radius: 24px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); transition: transform .18s, border-color .18s; }
 .ptile:hover { transform: translateY(-2px); border-color: var(--accent); }

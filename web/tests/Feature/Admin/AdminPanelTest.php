@@ -44,7 +44,7 @@ it('works with the session from the phone login', function () {
     $this->post('/login/code', ['phone' => '099 000 000'])->assertSessionHasNoErrors();
     $this->post('/login/verify', ['code' => Cache::get('dev-otp:+37499000000')]);
     $this->assertAuthenticatedAs($this->admin);
-    $this->get('/admin')->assertOk()->assertSee('Bookball Admin');
+    $this->get('/admin')->assertOk()->assertSee('ZoneSpot Admin');
 });
 
 it('creates an owner account for a new phone', function () {

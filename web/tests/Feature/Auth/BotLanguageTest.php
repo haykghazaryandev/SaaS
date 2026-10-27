@@ -14,7 +14,7 @@ beforeEach(function () {
 it('has no language menu in the bot any more: /language just points to the app', function () {
     User::factory()->create(['telegram_chat_id' => 777001, 'locale' => 'hy']);
     app(TelegramUpdateHandler::class)->handle(['update_id' => 1, 'message' => ['from' => ['id' => 777001], 'chat' => ['id' => 777001, 'type' => 'private'], 'text' => '/language']]);
-    Http::assertSent(fn ($r) => str_contains($r->url(), 'sendMessage') && ! isset($r['reply_markup']) && str_contains($r['text'], 'Bookball'));
+    Http::assertSent(fn ($r) => str_contains($r->url(), 'sendMessage') && ! isset($r['reply_markup']) && str_contains($r['text'], 'ZoneSpot'));
 });
 
 it('still understands the language buttons of old messages, as the person\'s own choice', function () {

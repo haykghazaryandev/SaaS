@@ -11,7 +11,7 @@ it('translates from the seed file while the table is empty', function () {
     expect(Translation::count())->toBe(0)
         ->and(__('player.size.small', [], 'hy'))->toBe('Փոքր')
         ->and(__('common.fields', [], 'ru'))->toBe('Поля')
-        ->and(__('brand'))->toBe('Bookball');
+        ->and(__('brand'))->toBe('ZoneSpot');
     expect($this->getJson('/lang/hy.json')->assertOk()->json()['player.size.small'])->toBe('Փոքր');
 });
 
@@ -47,11 +47,11 @@ it('renames, merges and removes keys of an existing table as database/seeders/da
 it('uses the table in PHP: a group key, a shared key, and the rest untouched', function () {
     $this->seed(TranslationSeeder::class);
     Translation::where('key', 'player.size.small')->firstOrFail()->update(['hy' => 'Մինի']);
-    Translation::where('key', 'brand')->firstOrFail()->update(['en' => 'Bookball ⚽']);
+    Translation::where('key', 'brand')->firstOrFail()->update(['en' => 'ZoneSpot ⚽']);
 
     expect(__('player.size.small', [], 'hy'))->toBe('Մինի')
         ->and(__('player.size.big', [], 'hy'))->toBe('Մեծ')
-        ->and(__('brand', [], 'en'))->toBe('Bookball ⚽')
+        ->and(__('brand', [], 'en'))->toBe('ZoneSpot ⚽')
         ->and(__('player.size.small', [], 'ru'))->toBe('Малое')
         ->and(trans_choice('games.card.spots_left', 3, ['n' => 3], 'en'))->toBe('3 spots left');
 });

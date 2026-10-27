@@ -37,7 +37,7 @@ class TelegramSetup extends Command
         // Telegram has one label for all languages: the brand name.
         $url = rtrim((string) config('app.url'), '/');
         if (str_starts_with($url, 'https://')) {
-            $bot->call('setChatMenuButton', ['menu_button' => ['type' => 'web_app', 'text' => '⚽ Bookball', 'web_app' => ['url' => $url.'/']]]);
+            $bot->call('setChatMenuButton', ['menu_button' => ['type' => 'web_app', 'text' => '⚽ ZoneSpot', 'web_app' => ['url' => $url.'/']]]);
             $this->line('✓ menu button opens '.$url);
         }
 

@@ -126,10 +126,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
         </aside>
         <header class="otop">
             <Link class="logo-mark" :href="route('owner.today')" :aria-label="$t('owner.brand')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-                    <circle cx="12" cy="12" r="8.5" />
-                    <path d="M12 3.5v17M3.5 12h17" />
-                </svg>
+                <i class="logo-glyph" aria-hidden="true" />
             </Link>
             <select v-if="owner.venues.length > 1" class="input vsel" :value="owner.venue.id" :aria-label="$t('owner.place')" @change="switchVenue">
                 <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>

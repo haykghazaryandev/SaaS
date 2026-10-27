@@ -38,7 +38,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 createInertiaApp({
-    title: (title) => (title ? `${title} · Bookball` : 'Bookball'),
+    title: (title) => (title ? `${title} · ZoneSpot` : 'ZoneSpot'),
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
         const locale = (props.initialPage.props.locale as string) || 'hy';

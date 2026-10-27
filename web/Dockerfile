@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Vite bakes these into the JS bundle. Railway passes service variables to the
 # build as build args, but only when declared with ARG in the stage that uses them.
-ARG VITE_APP_NAME=Bookball
+ARG VITE_APP_NAME=ZoneSpot
 ARG VITE_REVERB_APP_KEY
 ARG VITE_REVERB_HOST
 ARG VITE_REVERB_PORT=443

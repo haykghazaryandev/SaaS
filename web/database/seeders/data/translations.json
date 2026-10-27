@@ -45,9 +45,9 @@
         "ru": "Wi-Fi"
     },
     "admin.booking.cancel_help": {
-        "en": "The booking is cancelled by Bookball (system). The player gets a Telegram message.",
-        "hy": "Ամրագրումը չեղարկում է Bookball-ը (համակարգը)։ Խաղացողը կստանա հաղորդագրություն Telegram-ում։",
-        "ru": "Бронь отменяет Bookball (система). Игрок получит сообщение в Telegram."
+        "en": "The booking is cancelled by ZoneSpot (system). The player gets a Telegram message.",
+        "hy": "Ամրագրումը չեղարկում է ZoneSpot-ը (համակարգը)։ Խաղացողը կստանա հաղորդագրություն Telegram-ում։",
+        "ru": "Бронь отменяет ZoneSpot (система). Игрок получит сообщение в Telegram."
     },
     "admin.booking.cancel_reason": {
         "en": "Cancel reason",
@@ -905,9 +905,9 @@
         "ru": "Срок кода истёк. Отправьте новый."
     },
     "auth.code.no_telegram": {
-        "en": "This number has no Telegram. Install Telegram to use Bookball.",
-        "hy": "Այս համարով Telegram չկա։ Տեղադրեք Telegram՝ Bookball-ն օգտագործելու համար։",
-        "ru": "На этом номере нет Telegram. Установите Telegram, чтобы пользоваться Bookball."
+        "en": "This number has no Telegram. Install Telegram to use ZoneSpot.",
+        "hy": "Այս համարով Telegram չկա։ Տեղադրեք Telegram՝ ZoneSpot-ն օգտագործելու համար։",
+        "ru": "На этом номере нет Telegram. Установите Telegram, чтобы пользоваться ZoneSpot."
     },
     "auth.code.provider_error": {
         "en": "We could not send the code. Try again in a minute.",
@@ -935,9 +935,9 @@
         "ru": "Разработка: код :code"
     },
     "auth.email.body": {
-        "en": "Your Bookball login code is :code. It works for 10 minutes.",
-        "hy": "Ձեր Bookball մուտքի կոդն է :code։ Այն գործում է 10 րոպե։",
-        "ru": "Ваш код входа Bookball: :code. Он действует 10 минут."
+        "en": "Your ZoneSpot login code is :code. It works for 10 minutes.",
+        "hy": "Ձեր ZoneSpot մուտքի կոդն է :code։ Այն գործում է 10 րոպե։",
+        "ru": "Ваш код входа ZoneSpot: :code. Он действует 10 минут."
     },
     "auth.email.enter": {
         "en": "Enter the code we sent to :email",
@@ -960,9 +960,9 @@
         "ru": "Для тех, у кого нет Telegram. Потом попросим ваш номер."
     },
     "auth.email.subject": {
-        "en": "Bookball login code: :code",
-        "hy": "Bookball մուտքի կոդ՝ :code",
-        "ru": "Код входа Bookball: :code"
+        "en": "ZoneSpot login code: :code",
+        "hy": "ZoneSpot մուտքի կոդ՝ :code",
+        "ru": "Код входа ZoneSpot: :code"
     },
     "auth.enter": {
         "en": "Enter the code we sent to Telegram for :phone",
@@ -1010,9 +1010,9 @@
         "ru": "Бесплатно и быстро: Telegram подтверждает ваш номер, коды вводить не нужно."
     },
     "auth.telegram.app_bad": {
-        "en": "Telegram could not confirm who you are. Close Bookball and open it again from the bot.",
-        "hy": "Telegram-ը չկարողացավ հաստատել, թե ով եք։ Փակեք Bookball-ը և կրկին բացեք բոտից։",
-        "ru": "Telegram не смог подтвердить, кто вы. Закройте Bookball и откройте его снова из бота."
+        "en": "Telegram could not confirm who you are. Close ZoneSpot and open it again from the bot.",
+        "hy": "Telegram-ը չկարողացավ հաստատել, թե ով եք։ Փակեք ZoneSpot-ը և կրկին բացեք բոտից։",
+        "ru": "Telegram не смог подтвердить, кто вы. Закройте ZoneSpot и откройте его снова из бота."
     },
     "auth.telegram.button": {
         "en": "Log in with Telegram",
@@ -1085,9 +1085,9 @@
         "ru": "Имя пользователя (по нему вас найдут друзья)"
     },
     "auth.welcome_done": {
-        "en": "You're in! Welcome to Bookball.",
+        "en": "You're in! Welcome to ZoneSpot.",
         "hy": "Դուք գրանցված եք։ Բարի գալուստ։",
-        "ru": "Готово! Добро пожаловать в Bookball."
+        "ru": "Готово! Добро пожаловать в ZoneSpot."
     },
     "auth.with_email": {
         "en": "Log in with email",
@@ -1275,9 +1275,9 @@
         "ru": "На эту тренировку сегодня мест нет."
     },
     "brand": {
-        "en": "Bookball",
-        "hy": "Bookball",
-        "ru": "Bookball"
+        "en": "ZoneSpot",
+        "hy": "ZoneSpot",
+        "ru": "ZoneSpot"
     },
     "chat.sys.archived": {
         "en": "No messages for 7 days, so this chat is now read-only. It will be deleted in :days days. Tap \"Play again\" to start a new game with the same people.",
@@ -2135,9 +2135,9 @@
         "ru": "Сб"
     },
     "common.welcome_to_bookball": {
-        "en": "Welcome to Bookball!",
-        "hy": "Բարի գալուստ Bookball",
-        "ru": "Добро пожаловать в Bookball!"
+        "en": "Welcome to ZoneSpot!",
+        "hy": "Բարի գալուստ ZoneSpot",
+        "ru": "Добро пожаловать в ZoneSpot!"
     },
     "common.when": {
         "en": "When",
@@ -2340,9 +2340,9 @@
         "ru": "Отправить жалобу"
     },
     "friends.report_sheet.sub": {
-        "en": "Tell us what is wrong. Only the Bookball team sees the report.",
-        "hy": "Պատմիր, թե ինչն է սխալ։ Բողոքը տեսնում է միայն Bookball-ի թիմը։",
-        "ru": "Расскажите, что не так. Жалобу видит только команда Bookball."
+        "en": "Tell us what is wrong. Only the ZoneSpot team sees the report.",
+        "hy": "Պատմիր, թե ինչն է սխալ։ Բողոքը տեսնում է միայն ZoneSpot-ի թիմը։",
+        "ru": "Расскажите, что не так. Жалобу видит только команда ZoneSpot."
     },
     "friends.report_sheet.title": {
         "en": "Report",
@@ -2440,9 +2440,9 @@
         "ru": "Ваша игра"
     },
     "games.create.after": {
-        "en": "Your friends get an invite in Bookball and in Telegram.",
-        "hy": "Ընկերներդ հրավերը կստանան Bookball-ում և Telegram-ում։",
-        "ru": "Друзья получат приглашение в Bookball и в Telegram."
+        "en": "Your friends get an invite in ZoneSpot and in Telegram.",
+        "hy": "Ընկերներդ հրավերը կստանան ZoneSpot-ում և Telegram-ում։",
+        "ru": "Друзья получат приглашение в ZoneSpot и в Telegram."
     },
     "games.create.all": {
         "en": "Select all",
@@ -2500,9 +2500,9 @@
         "ru": "Без конца"
     },
     "games.create.no_friends": {
-        "en": "You have no friends on Bookball yet",
-        "hy": "Դեռ ընկերներ չունես Bookball-ում",
-        "ru": "У вас пока нет друзей в Bookball"
+        "en": "You have no friends on ZoneSpot yet",
+        "hy": "Դեռ ընկերներ չունես ZoneSpot-ում",
+        "ru": "У вас пока нет друзей в ZoneSpot"
     },
     "games.create.no_friends_text": {
         "en": "Add the people you play with, then invite them to your games.",
@@ -3680,9 +3680,9 @@
         "ru": "Комментарий игрока"
     },
     "owner.booking.player": {
-        "en": "Bookball player",
-        "hy": "Bookball խաղացող",
-        "ru": "Игрок Bookball"
+        "en": "ZoneSpot player",
+        "hy": "ZoneSpot խաղացող",
+        "ru": "Игрок ZoneSpot"
     },
     "owner.booking.telegram_hint": {
         "en": "The player gets every change in Telegram",
@@ -3700,9 +3700,9 @@
         "ru": "Каждую неделю"
     },
     "owner.brand": {
-        "en": "Bookball for fields",
-        "hy": "Bookball դաշտերի համար",
-        "ru": "Bookball для полей"
+        "en": "ZoneSpot for fields",
+        "hy": "ZoneSpot դաշտերի համար",
+        "ru": "ZoneSpot для полей"
     },
     "owner.brand_short": {
         "en": "Fields",
@@ -3715,9 +3715,9 @@
         "ru": "Добавить одну"
     },
     "owner.club.add_sub": {
-        "en": "The player has no QR with them: find them by their Bookball phone.",
-        "hy": "Խաղացողի մոտ QR չկա․ գտեք նրան Bookball-ի հեռախոսահամարով։",
-        "ru": "У игрока нет QR с собой: найдите его по телефону в Bookball."
+        "en": "The player has no QR with them: find them by their ZoneSpot phone.",
+        "hy": "Խաղացողի մոտ QR չկա․ գտեք նրան ZoneSpot-ի հեռախոսահամարով։",
+        "ru": "У игрока нет QR с собой: найдите его по телефону в ZoneSpot."
     },
     "owner.club.add_title": {
         "en": "Card by phone",
@@ -3995,9 +3995,9 @@
         "ru": "Платежей за этот период нет."
     },
     "owner.club.no_player": {
-        "en": "No Bookball player with this phone.",
-        "hy": "Այս հեռախոսով Bookball խաղացող չկա։",
-        "ru": "Игрока Bookball с этим телефоном нет."
+        "en": "No ZoneSpot player with this phone.",
+        "hy": "Այս հեռախոսով ZoneSpot խաղացող չկա։",
+        "ru": "Игрока ZoneSpot с этим телефоном нет."
     },
     "owner.club.no_products": {
         "en": "No products yet.",
@@ -4530,9 +4530,9 @@
         "ru": "Ещё :n позже"
     },
     "owner.dashboard.no_requests": {
-        "en": "No requests waiting. New ones from Bookball show up here.",
-        "hy": "Սպասող հայտեր չկան։ Bookball-ի նոր հայտերը կերևան այստեղ։",
-        "ru": "Нет заявок. Новые из Bookball появятся здесь."
+        "en": "No requests waiting. New ones from ZoneSpot show up here.",
+        "hy": "Սպասող հայտեր չկան։ ZoneSpot-ի նոր հայտերը կերևան այստեղ։",
+        "ru": "Нет заявок. Новые из ZoneSpot появятся здесь."
     },
     "owner.dashboard.requests": {
         "en": "Requests waiting",
@@ -4705,9 +4705,9 @@
         "ru": "Это время свободно"
     },
     "owner.form.is_player": {
-        "en": "Bookball player: :name",
-        "hy": "Bookball խաղացող՝ :name",
-        "ru": "Игрок Bookball: :name"
+        "en": "ZoneSpot player: :name",
+        "hy": "ZoneSpot խաղացող՝ :name",
+        "ru": "Игрок ZoneSpot: :name"
     },
     "owner.form.need_name": {
         "en": "Enter a name or a phone number",
@@ -4865,9 +4865,9 @@
         "ru": "Заявка отправлена"
     },
     "owner.history.system": {
-        "en": "Bookball",
-        "hy": "Bookball",
-        "ru": "Bookball"
+        "en": "ZoneSpot",
+        "hy": "ZoneSpot",
+        "ru": "ZoneSpot"
     },
     "owner.nav.cards": {
         "en": "Cards",
@@ -4915,9 +4915,9 @@
         "ru": "Турниры"
     },
     "owner.no_access": {
-        "en": "You don't have access to any place. Ask Bookball to add you.",
-        "hy": "Դուք որևէ ակումբի հասանելիություն չունեք։ Դիմեք Bookball-ին։",
-        "ru": "У вас нет доступа ни к одному клубу. Обратитесь в Bookball."
+        "en": "You don't have access to any place. Ask ZoneSpot to add you.",
+        "hy": "Դուք որևէ ակումբի հասանելիություն չունեք։ Դիմեք ZoneSpot-ին։",
+        "ru": "У вас нет доступа ни к одному клубу. Обратитесь в ZoneSpot."
     },
     "owner.place": {
         "en": "Your place",
@@ -5415,9 +5415,9 @@
         "ru": "Профиль клуба"
     },
     "owner.settings.profile_note": {
-        "en": "This is what players see. The name, address and fields are changed by the Bookball admin: write to support.",
-        "hy": "Սա է, ինչ տեսնում են խաղացողները։ Անվանումը, հասցեն և դաշտերը փոխում է Bookball-ի ադմինը․ գրեք աջակցությանը։",
-        "ru": "Это видят игроки. Название, адрес и поля меняет администратор Bookball: напишите в поддержку."
+        "en": "This is what players see. The name, address and fields are changed by the ZoneSpot admin: write to support.",
+        "hy": "Սա է, ինչ տեսնում են խաղացողները։ Անվանումը, հասցեն և դաշտերը փոխում է ZoneSpot-ի ադմինը․ գրեք աջակցությանը։",
+        "ru": "Это видят игроки. Название, адрес и поля меняет администратор ZoneSpot: напишите в поддержку."
     },
     "owner.settings.readonly": {
         "en": "You can see the settings. Only the owner of the place can change them.",
@@ -5490,9 +5490,9 @@
         "ru": "Добавлено клубом"
     },
     "owner.source.player": {
-        "en": "Request from the Bookball app",
-        "hy": "Հայտ Bookball հավելվածից",
-        "ru": "Заявка из приложения Bookball"
+        "en": "Request from the ZoneSpot app",
+        "hy": "Հայտ ZoneSpot հավելվածից",
+        "ru": "Заявка из приложения ZoneSpot"
     },
     "owner.source.recurring": {
         "en": "Regular booking (weekly)",
@@ -6000,9 +6000,9 @@
         "ru": "Отменено местом"
     },
     "player.my_bookings.cancelled_by_system": {
-        "en": "Cancelled by Bookball",
-        "hy": "Չեղարկել է Bookball-ը",
-        "ru": "Отменено Bookball"
+        "en": "Cancelled by ZoneSpot",
+        "hy": "Չեղարկել է ZoneSpot-ը",
+        "ru": "Отменено ZoneSpot"
     },
     "player.my_bookings.empty_upcoming": {
         "en": "No upcoming bookings. Tonight's fields are waiting.",
@@ -6065,9 +6065,9 @@
         "ru": "Команда :n"
     },
     "player.my_bookings.telegram_ask": {
-        "en": "Allow the Bookball bot to send you confirmations",
-        "hy": "Թույլ տվեք Bookball բոտին ուղարկել հաստատումները",
-        "ru": "Разрешите боту Bookball присылать подтверждения"
+        "en": "Allow the ZoneSpot bot to send you confirmations",
+        "hy": "Թույլ տվեք ZoneSpot բոտին ուղարկել հաստատումները",
+        "ru": "Разрешите боту ZoneSpot присылать подтверждения"
     },
     "player.my_bookings.telegram_error": {
         "en": "Could not open the bot. Try again.",
@@ -6080,9 +6080,9 @@
         "ru": "Открыть бота"
     },
     "player.my_bookings.telegram_waiting": {
-        "en": "Press «Start» in the Bookball bot…",
-        "hy": "Սեղմեք «Start» Bookball բոտում…",
-        "ru": "Нажмите «Start» в боте Bookball…"
+        "en": "Press «Start» in the ZoneSpot bot…",
+        "hy": "Սեղմեք «Start» ZoneSpot բոտում…",
+        "ru": "Нажмите «Start» в боте ZoneSpot…"
     },
     "player.my_bookings.waiting": {
         "en": "Waiting for the field · usually < 1 h",
@@ -6410,9 +6410,9 @@
         "ru": "Место её подтвердит. Ответ придёт в Telegram."
     },
     "player.request_sent.telegram_hint": {
-        "en": "Connect Telegram to get the answer from the Bookball bot.",
-        "hy": "Միացրեք Telegram-ը, որ պատասխանը ստանաք Bookball բոտից։",
-        "ru": "Подключите Telegram, чтобы получить ответ от бота Bookball."
+        "en": "Connect Telegram to get the answer from the ZoneSpot bot.",
+        "hy": "Միացրեք Telegram-ը, որ պատասխանը ստանաք ZoneSpot բոտից։",
+        "ru": "Подключите Telegram, чтобы получить ответ от бота ZoneSpot."
     },
     "player.request_sent.title": {
         "en": "Request sent",
@@ -6530,9 +6530,9 @@
         "ru": "отказался(-ась)"
     },
     "player.team.friends_hint": {
-        "en": "They get an invite in Telegram and in Bookball, and join when they accept.",
-        "hy": "Նրանք հրավեր կստանան Telegram-ում և Bookball-ում և կմիանան՝ ընդունելով։",
-        "ru": "Они получат приглашение в Telegram и в Bookball и присоединятся, когда примут его."
+        "en": "They get an invite in Telegram and in ZoneSpot, and join when they accept.",
+        "hy": "Նրանք հրավեր կստանան Telegram-ում և ZoneSpot-ում և կմիանան՝ ընդունելով։",
+        "ru": "Они получат приглашение в Telegram и в ZoneSpot и присоединятся, когда примут его."
     },
     "player.team.in_team": {
         "en": ":n in the team",
@@ -6595,9 +6595,9 @@
         "ru": "Ещё"
     },
     "player.team.no_friends": {
-        "en": "No friends on Bookball yet. Invite by phone or share the link.",
-        "hy": "Bookball-ում դեռ ընկերներ չունեք։ Հրավիրեք հեռախոսով կամ կիսվեք հղումով։",
-        "ru": "Друзей в Bookball пока нет. Пригласите по телефону или поделитесь ссылкой."
+        "en": "No friends on ZoneSpot yet. Invite by phone or share the link.",
+        "hy": "ZoneSpot-ում դեռ ընկերներ չունեք։ Հրավիրեք հեռախոսով կամ կիսվեք հղումով։",
+        "ru": "Друзей в ZoneSpot пока нет. Пригласите по телефону или поделитесь ссылкой."
     },
     "player.team.nudge": {
         "en": "Tip: invite your friends, they will get the reminders too.",
@@ -6815,9 +6815,9 @@
         "ru": "Короткий звук для новых уведомлений и сообщений"
     },
     "profile.notifications.sub": {
-        "en": "What the Bookball bot sends you in Telegram. In the app you always see everything under the bell.",
-        "hy": "Ինչ է ձեզ ուղարկում Bookball բոտը Telegram-ում։ Հավելվածում ամեն ինչ միշտ երևում է զանգակի տակ։",
-        "ru": "Что бот Bookball присылает вам в Telegram. В приложении всё всегда видно под колокольчиком."
+        "en": "What the ZoneSpot bot sends you in Telegram. In the app you always see everything under the bell.",
+        "hy": "Ինչ է ձեզ ուղարկում ZoneSpot բոտը Telegram-ում։ Հավելվածում ամեն ինչ միշտ երևում է զանգակի տակ։",
+        "ru": "Что бот ZoneSpot присылает вам в Telegram. В приложении всё всегда видно под колокольчиком."
     },
     "profile.notifications.title": {
         "en": "Notifications",
@@ -7105,29 +7105,29 @@
         "ru": "Спасибо!"
     },
     "telegram.after.waiting": {
-        "en": "OK, waiting. Mark it later in Bookball.",
-        "hy": "Լավ, սպասում ենք։ Նշեք հետո Bookball-ում։",
-        "ru": "Хорошо, ждём. Отметьте позже в Bookball."
+        "en": "OK, waiting. Mark it later in ZoneSpot.",
+        "hy": "Լավ, սպասում ենք։ Նշեք հետո ZoneSpot-ում։",
+        "ru": "Хорошо, ждём. Отметьте позже в ZoneSpot."
     },
     "telegram.bot.already": {
-        "en": "👋 You're connected. Open Bookball with the «⚽ Bookball» button below; booking updates and reminders come here.",
-        "hy": "👋 Դուք միացված եք։ Բացեք Bookball-ը ներքևի «⚽ Bookball» կոճակով․ ամրագրման լուրերն ու հիշեցումները կգան այստեղ։",
-        "ru": "👋 Вы подключены. Откройте Bookball кнопкой «⚽ Bookball» внизу; новости о бронях и напоминания придут сюда."
+        "en": "👋 You're connected. Open ZoneSpot with the «⚽ ZoneSpot» button below; booking updates and reminders come here.",
+        "hy": "👋 Դուք միացված եք։ Բացեք ZoneSpot-ը ներքևի «⚽ ZoneSpot» կոճակով․ ամրագրման լուրերն ու հիշեցումները կգան այստեղ։",
+        "ru": "👋 Вы подключены. Откройте ZoneSpot кнопкой «⚽ ZoneSpot» внизу; новости о бронях и напоминания придут сюда."
     },
     "telegram.bot.hello": {
-        "en": "👋 Hi! This is Bookball.\n\nOpen it with the «⚽ Bookball» button below: book a field, find players, chat with your team. Booking updates and reminders come here.",
-        "hy": "👋 Բարև։ Սա Bookball-ն է։\n\nԲացեք այն ներքևի «⚽ Bookball» կոճակով՝ ամրագրեք դաշտ, գտեք խաղացողներ, գրեք ձեր թիմին։ Ամրագրման լուրերն ու հիշեցումները կգան այստեղ։",
-        "ru": "👋 Привет! Это Bookball.\n\nОткройте его кнопкой «⚽ Bookball» внизу: бронируйте поле, ищите игроков, пишите команде. Новости о бронях и напоминания придут сюда."
+        "en": "👋 Hi! This is ZoneSpot.\n\nOpen it with the «⚽ ZoneSpot» button below: book a field, find players, chat with your team. Booking updates and reminders come here.",
+        "hy": "👋 Բարև։ Սա ZoneSpot-ն է։\n\nԲացեք այն ներքևի «⚽ ZoneSpot» կոճակով՝ ամրագրեք դաշտ, գտեք խաղացողներ, գրեք ձեր թիմին։ Ամրագրման լուրերն ու հիշեցումները կգան այստեղ։",
+        "ru": "👋 Привет! Это ZoneSpot.\n\nОткройте его кнопкой «⚽ ZoneSpot» внизу: бронируйте поле, ищите игроков, пишите команде. Новости о бронях и напоминания придут сюда."
     },
     "telegram.bot.help": {
-        "en": "Open Bookball with the «⚽ Bookball» button below. Here I send your booking updates and reminders.",
-        "hy": "Բացեք Bookball-ը ներքևի «⚽ Bookball» կոճակով։ Այստեղ ես ուղարկում եմ ձեր ամրագրման լուրերն ու հիշեցումները։",
-        "ru": "Откройте Bookball кнопкой «⚽ Bookball» внизу. Здесь я присылаю новости о ваших бронях и напоминания."
+        "en": "Open ZoneSpot with the «⚽ ZoneSpot» button below. Here I send your booking updates and reminders.",
+        "hy": "Բացեք ZoneSpot-ը ներքևի «⚽ ZoneSpot» կոճակով։ Այստեղ ես ուղարկում եմ ձեր ամրագրման լուրերն ու հիշեցումները։",
+        "ru": "Откройте ZoneSpot кнопкой «⚽ ZoneSpot» внизу. Здесь я присылаю новости о ваших бронях и напоминания."
     },
     "telegram.bot.link_ask": {
-        "en": "To connect Telegram to your Bookball account, press «📱 Log in with my number» below (it must be the number of your Bookball account).\n\n🔒 Only your number is sent, to confirm it's you.",
-        "hy": "Telegram-ը ձեր Bookball հաշվին միացնելու համար սեղմեք ներքևի «📱 Մուտք իմ համարով» կոճակը (համարը պետք է լինի ձեր Bookball հաշվինը)։\n\n🔒 Ուղարկվում է միայն ձեր համարը՝ հաստատելու, որ դուք եք։",
-        "ru": "Чтобы подключить Telegram к аккаунту Bookball, нажмите «📱 Войти по моему номеру» ниже (номер должен совпадать с номером аккаунта Bookball).\n\n🔒 Передаётся только ваш номер, чтобы подтвердить, что это вы."
+        "en": "To connect Telegram to your ZoneSpot account, press «📱 Log in with my number» below (it must be the number of your ZoneSpot account).\n\n🔒 Only your number is sent, to confirm it's you.",
+        "hy": "Telegram-ը ձեր ZoneSpot հաշվին միացնելու համար սեղմեք ներքևի «📱 Մուտք իմ համարով» կոճակը (համարը պետք է լինի ձեր ZoneSpot հաշվինը)։\n\n🔒 Ուղարկվում է միայն ձեր համարը՝ հաստատելու, որ դուք եք։",
+        "ru": "Чтобы подключить Telegram к аккаунту ZoneSpot, нажмите «📱 Войти по моему номеру» ниже (номер должен совпадать с номером аккаунта ZoneSpot).\n\n🔒 Передаётся только ваш номер, чтобы подтвердить, что это вы."
     },
     "telegram.bot.link_expired": {
         "en": "⚠️ This link has expired or was already used. Tap «Connect Telegram» on the site again.",
@@ -7135,9 +7135,9 @@
         "ru": "⚠️ Ссылка устарела или уже использована. Нажмите «Подключить Telegram» на сайте ещё раз."
     },
     "telegram.bot.link_mismatch": {
-        "en": "⚠️ This Telegram account has a different phone number than your Bookball account (:phone), so it was not connected. Use the Telegram account with that number, or log in with Telegram to use this one.",
-        "hy": "⚠️ Այս Telegram հաշվի հեռախոսահամարը տարբերվում է ձեր Bookball հաշվի համարից (:phone), ուստի այն չմիացվեց։ Օգտագործեք այդ համարով Telegram հաշիվը կամ մուտք գործեք Telegram-ով՝ այս հաշիվն օգտագործելու համար։",
-        "ru": "⚠️ У этого аккаунта Telegram другой номер, чем у вашего аккаунта Bookball (:phone), поэтому он не подключён. Используйте Telegram с этим номером или войдите через Telegram, чтобы пользоваться этим."
+        "en": "⚠️ This Telegram account has a different phone number than your ZoneSpot account (:phone), so it was not connected. Use the Telegram account with that number, or log in with Telegram to use this one.",
+        "hy": "⚠️ Այս Telegram հաշվի հեռախոսահամարը տարբերվում է ձեր ZoneSpot հաշվի համարից (:phone), ուստի այն չմիացվեց։ Օգտագործեք այդ համարով Telegram հաշիվը կամ մուտք գործեք Telegram-ով՝ այս հաշիվն օգտագործելու համար։",
+        "ru": "⚠️ У этого аккаунта Telegram другой номер, чем у вашего аккаунта ZoneSpot (:phone), поэтому он не подключён. Используйте Telegram с этим номером или войдите через Telegram, чтобы пользоваться этим."
     },
     "telegram.bot.linked": {
         "en": "✅ Telegram is connected:name. Booking updates and reminders will come here.",
@@ -7175,9 +7175,9 @@
         "ru": "✖ Не пришли"
     },
     "telegram.button.open": {
-        "en": "↗ Open in Bookball",
-        "hy": "↗ Բացել Bookball-ում",
-        "ru": "↗ Открыть в Bookball"
+        "en": "↗ Open in ZoneSpot",
+        "hy": "↗ Բացել ZoneSpot-ում",
+        "ru": "↗ Открыть в ZoneSpot"
     },
     "telegram.button.open_chat": {
         "en": "💬 Open chat",
@@ -7250,9 +7250,9 @@
         "ru": "Уведомления в Telegram"
     },
     "telegram.connect.waiting": {
-        "en": "Waiting… Press «Start» in the Bookball bot.",
-        "hy": "Սպասում ենք… Սեղմեք «Start» Bookball բոտում։",
-        "ru": "Ждём… Нажмите «Start» в боте Bookball."
+        "en": "Waiting… Press «Start» in the ZoneSpot bot.",
+        "hy": "Սպասում ենք… Սեղմեք «Start» ZoneSpot բոտում։",
+        "ru": "Ждём… Нажмите «Start» в боте ZoneSpot."
     },
     "telegram.field.big": {
         "en": "Big field 11×11",
@@ -7270,14 +7270,14 @@
         "ru": "Стол для пинг-понга"
     },
     "telegram.lang.choose": {
-        "en": "🌐 Choose your language for Bookball (the bot and the website):",
-        "hy": "🌐 Ընտրեք Bookball-ի լեզուն (բոտ և կայք)․",
-        "ru": "🌐 Выберите язык Bookball (бот и сайт):"
+        "en": "🌐 Choose your language for ZoneSpot (the bot and the website):",
+        "hy": "🌐 Ընտրեք ZoneSpot-ի լեզուն (բոտ և կայք)․",
+        "ru": "🌐 Выберите язык ZoneSpot (бот и сайт):"
     },
     "telegram.lang.need_login": {
-        "en": "Log in to Bookball with Telegram first.",
-        "hy": "Նախ մուտք գործեք Bookball Telegram-ով։",
-        "ru": "Сначала войдите в Bookball через Telegram."
+        "en": "Log in to ZoneSpot with Telegram first.",
+        "hy": "Նախ մուտք գործեք ZoneSpot Telegram-ով։",
+        "ru": "Сначала войдите в ZoneSpot через Telegram."
     },
     "telegram.lang.set": {
         "en": "✅ Language: English. The bot and the website now speak English.",
@@ -7290,19 +7290,19 @@
         "ru": "Язык сохранён"
     },
     "telegram.login.ask": {
-        "en": "👋 Log in to Bookball with one tap: press «📱 Log in with my number» below. New here? It creates your account too.\n\n🔒 Telegram sends us only your phone number, to confirm it's you. Other players never see it: only the place you book can call you about your booking.",
-        "hy": "👋 Մուտք գործեք Bookball մեկ սեղմումով՝ սեղմեք ներքևի «📱 Մուտք իմ համարով» կոճակը։ Նոր եք այստեղ՝ հաշիվը կստեղծվի ինքնաշխատ։\n\n🔒 Telegram-ը մեզ ուղարկում է միայն ձեր հեռախոսահամարը՝ հաստատելու, որ դուք եք։ Այլ խաղացողներն այն չեն տեսնում․ միայն ձեր ամրագրած դաշտը կարող է զանգել ամրագրման հարցով։",
-        "ru": "👋 Войдите в Bookball одним нажатием: нажмите «📱 Войти по моему номеру» ниже. Впервые здесь? Аккаунт создастся сам.\n\n🔒 Telegram передаёт нам только ваш номер, чтобы подтвердить, что это вы. Другие игроки его не видят: позвонить по поводу брони может только площадка, которую вы бронируете."
+        "en": "👋 Log in to ZoneSpot with one tap: press «📱 Log in with my number» below. New here? It creates your account too.\n\n🔒 Telegram sends us only your phone number, to confirm it's you. Other players never see it: only the place you book can call you about your booking.",
+        "hy": "👋 Մուտք գործեք ZoneSpot մեկ սեղմումով՝ սեղմեք ներքևի «📱 Մուտք իմ համարով» կոճակը։ Նոր եք այստեղ՝ հաշիվը կստեղծվի ինքնաշխատ։\n\n🔒 Telegram-ը մեզ ուղարկում է միայն ձեր հեռախոսահամարը՝ հաստատելու, որ դուք եք։ Այլ խաղացողներն այն չեն տեսնում․ միայն ձեր ամրագրած դաշտը կարող է զանգել ամրագրման հարցով։",
+        "ru": "👋 Войдите в ZoneSpot одним нажатием: нажмите «📱 Войти по моему номеру» ниже. Впервые здесь? Аккаунт создастся сам.\n\n🔒 Telegram передаёт нам только ваш номер, чтобы подтвердить, что это вы. Другие игроки его не видят: позвонить по поводу брони может только площадка, которую вы бронируете."
     },
     "telegram.login.bad_phone": {
-        "en": "Bookball works with Armenian mobile numbers (+374) for now. Use «Log in with email» on the website instead.",
-        "hy": "Bookball-ը առայժմ աշխատում է հայկական բջջային համարներով (+374)։ Կայքում օգտագործեք «Մուտք էլ. փոստով»։",
-        "ru": "Пока Bookball работает с армянскими номерами (+374). Используйте на сайте «Войти по почте»."
+        "en": "ZoneSpot works with Armenian mobile numbers (+374) for now. Use «Log in with email» on the website instead.",
+        "hy": "ZoneSpot-ը առայժմ աշխատում է հայկական բջջային համարներով (+374)։ Կայքում օգտագործեք «Մուտք էլ. փոստով»։",
+        "ru": "Пока ZoneSpot работает с армянскими номерами (+374). Используйте на сайте «Войти по почте»."
     },
     "telegram.login.blocked": {
-        "en": "This account is blocked. Write to Bookball support.",
-        "hy": "Այս հաշիվը արգելափակված է։ Գրեք Bookball-ի աջակցությանը։",
-        "ru": "Этот аккаунт заблокирован. Напишите в поддержку Bookball."
+        "en": "This account is blocked. Write to ZoneSpot support.",
+        "hy": "Այս հաշիվը արգելափակված է։ Գրեք ZoneSpot-ի աջակցությանը։",
+        "ru": "Этот аккаунт заблокирован. Напишите в поддержку ZoneSpot."
     },
     "telegram.login.button": {
         "en": "📱 Log in with my number",
@@ -7320,9 +7320,9 @@
         "ru": "👥 Найти игроков"
     },
     "telegram.login.done": {
-        "en": "✅ You're logged in:name! Go back to Bookball.\n\nBooking updates and reminders will come here.",
-        "hy": "✅ Դուք մուտք եք գործել:name։ Վերադարձեք Bookball։\n\nԱմրագրման լուրերն ու հիշեցումները կգան այստեղ։",
-        "ru": "✅ Вы вошли:name! Вернитесь в Bookball.\n\nНовости о бронях и напоминания будут приходить сюда."
+        "en": "✅ You're logged in:name! Go back to ZoneSpot.\n\nBooking updates and reminders will come here.",
+        "hy": "✅ Դուք մուտք եք գործել:name։ Վերադարձեք ZoneSpot։\n\nԱմրագրման լուրերն ու հիշեցումները կգան այստեղ։",
+        "ru": "✅ Вы вошли:name! Вернитесь в ZoneSpot.\n\nНовости о бронях и напоминания будут приходить сюда."
     },
     "telegram.login.expired": {
         "en": "⌛ This login link has expired. Go back to the website and tap «Log in with Telegram» again.",
@@ -7330,9 +7330,9 @@
         "ru": "⌛ Срок этой ссылки истёк. Вернитесь на сайт и снова нажмите «Войти через Telegram»."
     },
     "telegram.login.linked": {
-        "en": "✅ Your number is confirmed and Telegram is connected:name. Open Bookball with the «⚽ Bookball» button below.",
-        "hy": "✅ Ձեր համարը հաստատված է, Telegram-ը միացված է:name։ Բացեք Bookball-ը ներքևի «⚽ Bookball» կոճակով։",
-        "ru": "✅ Ваш номер подтверждён, Telegram подключён:name. Откройте Bookball кнопкой «⚽ Bookball» внизу."
+        "en": "✅ Your number is confirmed and Telegram is connected:name. Open ZoneSpot with the «⚽ ZoneSpot» button below.",
+        "hy": "✅ Ձեր համարը հաստատված է, Telegram-ը միացված է:name։ Բացեք ZoneSpot-ը ներքևի «⚽ ZoneSpot» կոճակով։",
+        "ru": "✅ Ваш номер подтверждён, Telegram подключён:name. Откройте ZoneSpot кнопкой «⚽ ZoneSpot» внизу."
     },
     "telegram.login.not_own": {
         "en": "Please use the button below: it shares the number of your own Telegram account.",
@@ -7340,9 +7340,9 @@
         "ru": "Пожалуйста, используйте кнопку ниже: она передаёт номер вашего собственного аккаунта."
     },
     "telegram.menu.about": {
-        "en": "Bookball: book a football field in Yerevan, find players for a game and get every booking update here.",
-        "hy": "Bookball․ ամրագրեք ֆուտբոլային դաշտ Երևանում, գտեք խաղացողներ և ստացեք ամրագրման մասին բոլոր տեղեկությունները այստեղ։",
-        "ru": "Bookball: бронируйте футбольное поле в Ереване, находите игроков и получайте здесь все новости о бронях."
+        "en": "ZoneSpot: book a football field in Yerevan, find players for a game and get every booking update here.",
+        "hy": "ZoneSpot․ ամրագրեք ֆուտբոլային դաշտ Երևանում, գտեք խաղացողներ և ստացեք ամրագրման մասին բոլոր տեղեկությունները այստեղ։",
+        "ru": "ZoneSpot: бронируйте футбольное поле в Ереване, находите игроков и получайте здесь все новости о бронях."
     },
     "telegram.menu.language": {
         "en": "Change language",

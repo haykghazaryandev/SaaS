@@ -115,7 +115,7 @@ watch(() => page.url, () => (menu.value = false));
     <div :class="['papp', { 'with-tabbar': showTabbar, fs: fullscreen, guest: !user }]">
         <header class="top">
             <div class="wrap">
-                <Link :href="route('home')" class="brand" :prefetch="PREFETCH" :aria-label="'Bookball'"><Logo /></Link>
+                <Link :href="route('home')" class="brand" :prefetch="PREFETCH" :aria-label="'ZoneSpot'"><Logo /></Link>
                 <nav class="nav" :aria-label="$t('nav.main')">
                     <Link v-for="n in nav" :key="n.key" :href="n.href" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
                         <Icon :name="n.icon" /><span class="nl">{{ $t(n.label) }}</span><span class="ns">{{ $t(n.short) }}</span
@@ -157,7 +157,7 @@ watch(() => page.url, () => (menu.value = false));
         <main class="wrap app-main"><slot /></main>
         <footer v-if="!user" class="foot">
             <div class="wrap">
-                <span>© 2026 Bookball · {{ $t('common.city') }}</span>
+                <span>© 2026 ZoneSpot · {{ $t('common.city') }}</span>
             </div>
         </footer>
         <nav v-if="showTabbar" :class="['tabbar', { 'tab-hide': tabHidden }]" :aria-label="$t('nav.main')">

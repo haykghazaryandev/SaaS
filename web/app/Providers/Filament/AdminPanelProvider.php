@@ -35,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->authGuard('web')
-            ->brandName('Bookball Admin')
+            ->brandName('ZoneSpot Admin')
             ->favicon('/favicon.ico')   // a path: asset() runs before the https setting and would give http:// behind Railway's proxy
             ->font('Manrope')
             ->darkMode(true, isForced: true)

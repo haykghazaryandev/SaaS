@@ -64,7 +64,7 @@ const telegramShare = computed(() =>
 const whatsappShare = computed(() => (props.booking.inviteUrl ? `https://wa.me/?text=${encodeURIComponent(`${shareText.value} ${props.booking.inviteUrl}`)}` : null));
 const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
 function nativeShare() {
-    navigator.share?.({ title: 'Bookball', text: shareText.value, url: props.booking.inviteUrl ?? undefined }).catch(() => {});
+    navigator.share?.({ title: 'ZoneSpot', text: shareText.value, url: props.booking.inviteUrl ?? undefined }).catch(() => {});
 }
 
 // errors about the booking itself (team full, not yours…) come back under "team"

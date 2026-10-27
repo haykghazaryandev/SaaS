@@ -2,4 +2,4 @@
 
 {{ __('auth.email.ignore') }}
 
-Bookball · {{ config('app.url') }}
+ZoneSpot · {{ config('app.url') }}

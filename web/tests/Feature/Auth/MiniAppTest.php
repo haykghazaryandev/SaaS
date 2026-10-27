@@ -80,7 +80,7 @@ it('asks a new Telegram account for its phone once, then logs it in', function (
     expect(auth()->user()->phone)->toBe('+37493888777');
 });
 
-it('sets the bot menu button to open Bookball', function () {
+it('sets the bot menu button to open ZoneSpot', function () {
     $this->artisan('telegram:setup')->assertSuccessful();
     Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/setChatMenuButton') && $r['menu_button']['web_app']['url'] === 'https://bookball.am/');
 });
