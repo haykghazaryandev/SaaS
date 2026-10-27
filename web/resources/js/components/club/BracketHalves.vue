@@ -4,8 +4,9 @@ import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Match, Round, Side } from './Bracket.vue';
 
-// Phones (design "half by half"): a Top half / Bottom half switch (or a swipe); each half is a small tree
-// (1/8 → 1/4 → 1/2) that fits the screen without sideways scrolling, and the Grand Final card below it shows
+// Phones (design "half by half"): a Left side / Right side switch (or a swipe); each side is a small tree that fits
+// the screen without sideways scrolling, like that side of the big tree: the left side runs 1/8 → 1/4 → 1/2 to the right,
+// the right side is mirrored (its first round on the right, the winners moving left towards the Final), and the Grand Final card below it shows
 // whoever is in the Final already ("Ani") and where the other side comes from ("Winner of SF2").
 const props = defineProps<{ rounds: Round[]; total: number; editable?: boolean; when?: string }>();
 const emit = defineEmits<{ pick: [m: Match] }>();
@@ -67,9 +68,10 @@ function wire() {
                 if (!a || !b) continue;
                 const ra = a.getBoundingClientRect();
                 const rb = b.getBoundingClientRect();
-                const x1 = ra.right - tb.left;
+                // the right side is mirrored: from a match's left edge to the next one's right edge
+                const x1 = (h === 1 ? ra.left : ra.right) - tb.left;
                 const y1 = ra.top + ra.height / 2 - tb.top;
-                const x2 = rb.left - tb.left;
+                const x2 = (h === 1 ? rb.right : rb.left) - tb.left;
                 const y2 = rb.top + rb.height / 2 - tb.top;
                 const mx = (x1 + x2) / 2;
                 next.push({ d: `M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`, cls: !m.winner ? 'off' : out.value.has(m.winner) ? 'on' : 'on alive' });
@@ -104,14 +106,21 @@ watch(() => props.rounds, () => nextTick(later));
             <div class="bk-seg" role="tablist">
                 <span class="bk-segbg" :style="{ transform: `translateX(${shown * 100}%)` }" />
                 <button v-for="h in [0, 1] as const" :key="h" type="button" role="tab" :aria-selected="shown === h" :class="{ on: shown === h }" :data-test="`half-${h}`" @click="go(h)">
-                    {{ h === 0 ? $t('club.bracket.top_half') : $t('club.bracket.bottom_half') }}<i v-if="mine(h)" class="medot" />
+                    <!-- a tiny bracket: this side lit, the other dim, the trophy in the middle -->
+                    <svg class="mini" viewBox="0 0 44 18" aria-hidden="true">
+                        <g :class="h === 0 ? 'lit' : 'dim'"><path d="M1 3h5v4H1M1 11h5v4H1M6 5h3v8H6M9 9h4" /></g>
+                        <circle cx="22" cy="9" r="3" class="cup" />
+                        <g :class="h === 1 ? 'lit' : 'dim'"><path d="M43 3h-5v4h5M43 11h-5v4h5M38 5h-3v8h3M35 9h-4" /></g>
+                    </svg>
+                    {{ h === 0 ? $t('club.bracket.left_side') : $t('club.bracket.right_side') }}<i v-if="mine(h)" class="medot" />
                 </button>
             </div>
+            <div class="swipe"><i :class="{ on: shown === 0 }" /><i :class="{ on: shown === 1 }" /><span>{{ $t('club.bracket.swipe_sides') }}</span></div>
             <div ref="panes" class="panes" @scroll.passive="onScroll">
                 <div v-for="(cols, h) in halves" :key="h" class="pane">
-                    <div ref="trees" class="htree" :style="{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }">
+                    <div ref="trees" :class="['htree', { mirror: h === 1 }]" :style="{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }">
                         <svg class="wires" aria-hidden="true"><path v-for="(p, i) in paths[h]" :key="i" :class="p.cls" :d="p.d" /></svg>
-                        <div v-for="c in cols" :key="c.round" class="bk-col">
+                        <div v-for="c in h === 1 ? [...cols].reverse() : cols" :key="c.round" class="bk-col">
                             <div class="bk-ch">{{ head(c.round) }}</div>
                             <div class="bk-cb">
                                 <div v-for="m in c.matches" :key="m.id" class="bk-slot">
@@ -141,7 +150,7 @@ watch(() => props.rounds, () => nextTick(later));
                             </div>
                         </div>
                     </div>
-                    <div class="tofinal">{{ $t('club.bracket.to_final') }}</div>
+                    <div :class="['tofinal', { mirror: h === 1 }]">{{ h === 1 ? $t('club.bracket.to_final_left') : $t('club.bracket.to_final') }}</div>
                 </div>
             </div>
             <div class="fh">{{ $t('club.bracket.halves_meet') }}</div>
@@ -190,6 +199,20 @@ watch(() => props.rounds, () => nextTick(later));
 .livetag { position: absolute; top: -8px; right: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 1px 5px; border-radius: 99px; background: #2a1213; color: var(--live); font: 700 7.5px var(--mono); border: 1px solid rgba(255, 107, 107, 0.5); }
 .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--live); animation: pulse 1.4s infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
+.htree.mirror .pr { flex-direction: row-reverse; padding: 0 7px 0 6px; }
+.htree.mirror .sn { text-align: right; }
+.htree.mirror .sc { text-align: left; }
+.htree.mirror .livetag { right: auto; left: 6px; }
+.tofinal.mirror { text-align: left; }
+.mini { width: 30px; height: 13px; flex: none; }
+.mini path { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.mini .lit path { stroke: currentColor; }
+.mini .dim path { stroke: currentColor; opacity: 0.25; }
+.mini .cup { fill: currentColor; opacity: 0.6; }
+.swipe { display: flex; align-items: center; justify-content: center; gap: 6px; margin: -2px 0 10px; font: 500 10.5px var(--mono); color: var(--faint); }
+.swipe i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 209, 102, 0.25); transition: all 0.2s; }
+.swipe i.on { width: 16px; border-radius: 3px; background: #ffd166; }
+.swipe span { margin-left: 6px; }
 .tofinal { text-align: right; font: 10px var(--mono); color: #ffd166; opacity: 0.8; margin: 4px 0 0; }
 .fh { text-align: center; font-size: 11px; color: var(--muted); margin: 12px 0 10px; }
 </style>

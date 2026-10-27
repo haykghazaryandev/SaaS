@@ -90,6 +90,8 @@
     "auth.withEmail": "auth.with_email",
     "auth.withPhoneDev": "auth.with_phone_dev",
     "auth.withTestAccount": "auth.with_test_account",
+    "club.bracket.bottom_half": null,
+    "club.bracket.top_half": null,
     "club.your_discount": null,
     "foot.city": "common.city",
     "friends.accept": "common.accept",
