@@ -52,7 +52,11 @@ const groups = computed(() => {
     });
     return out;
 });
-const isGame = props.chat.type === 'game';
+// a group chat (a game or a tournament): names and avatars on others' messages, "n online"
+const isGame = props.chat.type !== 'direct';
+// a tournament: the organiser's messages stand out
+const hosts = new Set(props.chat.tournament?.hostIds ?? []);
+const isHost = (m: ChatMessage) => !!m.user && hosts.has(m.user.id);
 
 // ---------- pinned game bar: "Thu 21:00 · Zangak · field not booked → Book" ----------
 const bar = computed(() => {
@@ -469,7 +473,7 @@ onBeforeUnmount(() => {
         <div class="chat">
             <header class="chead">
                 <Link class="back" :href="route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
-                <span v-if="isGame" class="cav game"><Icon name="ball" /></span>
+                <span v-if="isGame" class="cav game"><Icon :name="chat.type === 'tournament' ? 'trophy' : 'ball'" /></span>
                 <Avatar v-else :id="chat.other?.id ?? null" :name="chat.other?.name" :src="chat.other?.avatar" size="md" />
                 <div class="ht">
                     <b>{{ chatTitle(chat) }}</b>
@@ -481,6 +485,9 @@ onBeforeUnmount(() => {
                     <span v-else-if="seenText" :class="['hs', { on: otherOnline }]"><i v-if="otherOnline" class="on-dot" aria-hidden="true" />{{ seenText }}</span>
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
+                <Link v-if="chat.tournament" class="btn outline sm" :href="chat.tournament.url" :aria-label="$t('messages.open_bracket')"
+                    ><Icon name="trophy" size="sm" /><span class="hide-sm">{{ $t('messages.open_bracket') }}</span></Link
+                >
                 <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.open_game')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.open_game') }}</span></Link>
             </header>
 
@@ -510,10 +517,12 @@ onBeforeUnmount(() => {
                         <div v-if="r.m.type === 'system'" :id="`m${r.m.id}`" class="sys">
                             <span>{{ sysText(r.m.body, r.m.meta) }}</span>
                         </div>
-                        <div v-else :id="`m${r.m.id}`" :class="['mrow', { mine: r.mine, head: r.head, tail: r.tail }]">
+                        <div v-else :id="`m${r.m.id}`" :class="['mrow', { mine: r.mine, head: r.head, tail: r.tail, host: isHost(r.m) }]">
                             <span v-if="!r.mine && isGame" class="mav" :aria-hidden="true"><Avatar v-if="r.tail" :id="r.m.user?.id ?? null" :name="userName(r.m.user)" :src="r.m.user?.avatar" size="sm" /></span>
                             <div class="mcol">
-                                <span v-if="!r.mine && isGame && r.head" class="mname">{{ userName(r.m.user) }}</span>
+                                <span v-if="!r.mine && isGame && r.head" class="mname"
+                                    >{{ userName(r.m.user) }}<b v-if="isHost(r.m)" class="htag">{{ $t('messages.organiser') }}</b></span
+                                >
                                 <div
                                     :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id, drag: drag?.id === r.m.id }]"
                                     :style="drag?.id === r.m.id ? { transform: `translateX(${drag.dx}px)` } : undefined"
@@ -653,6 +662,9 @@ onBeforeUnmount(() => {
 .swipe-ico { position: absolute; left: -32px; top: 50%; width: 22px; height: 22px; padding: 3px; border-radius: 50%; background: var(--surface-2); color: var(--accent-2); transition: transform 0.15s; pointer-events: none; }
 .mrow:not(.tail) .bubble { border-bottom-left-radius: 6px; }
 .mrow:not(.head) .bubble { border-top-left-radius: 6px; }
+/* tournament: the organiser's messages */
+.host .bubble { background: rgba(255, 159, 67, 0.16); border: 1px solid rgba(255, 159, 67, 0.45); font-weight: 600; }
+.htag { margin-left: 6px; padding: 1px 7px; border-radius: 99px; background: #ff9f43; color: #1d0f00; font-size: 10.5px; font-weight: 800; }
 .mine .bubble { background: rgba(200, 255, 61, 0.14); border: 1px solid rgba(200, 255, 61, 0.22); }
 .mine.mrow:not(.tail) .bubble { border-bottom-left-radius: 16px; border-bottom-right-radius: 6px; }
 .mine.mrow:not(.head) .bubble { border-top-left-radius: 16px; border-top-right-radius: 6px; }

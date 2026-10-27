@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,7 +37,7 @@ class ChatController extends Controller
         $unread = $this->chat->unread($me);
         $chats = Conversation::query()
             ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at'))
-            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'latestMessage.user', 'participants.user'])
+            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'latestMessage.user', 'participants.user'])
             ->orderByDesc('last_message_at')->orderByDesc('id')
             ->get()
             ->map(fn (Conversation $c) => $this->item($c, $me, $unread[$c->id] ?? 0));
@@ -54,7 +55,7 @@ class ChatController extends Controller
     {
         $me = $request->user();
         $this->authorizeMember($conversation, $me);
-        $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'participants.user']);
+        $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'participants.user']);
         $msgs = $this->query($conversation)->limit(self::PAGE + 1)->get();
         $mine = $conversation->participants->firstWhere('user_id', $me->id);
 
@@ -222,6 +223,11 @@ class ChatController extends Controller
                 'district' => $g->district ?? $g->venue?->district,
                 'booking' => $g->relationLoaded('booking') && $g->booking && $g->booking->status->holdsTime() ? $this->games->booking($g->booking) : null,
             ] : null,
+            // a tournament chat: its title, its page, and who is the organiser (the place's staff: their messages stand out)
+            'tournament' => $c->type === 'tournament' && $c->tournament ? [
+                'title' => $c->tournament->title, 'url' => route('tournament.show', $c->tournament->code),
+                'hostIds' => DB::table('venue_users')->where('venue_id', $c->tournament->venue_id)->pluck('user_id')->map(fn ($id) => (int) $id)->all(),
+            ] : null,
             'last' => $last ? ChatPresenter::message($last) : null,
             'unread' => $unread,
             'at' => $c->last_message_at?->toIso8601String(),
@@ -237,7 +243,7 @@ class ChatController extends Controller
     /** game chats: members (not me) online now; the participants with their users are loaded already */
     private function onlineCount(Conversation $c, User $me): ?int
     {
-        if ($c->type !== 'game') {
+        if ($c->type === 'direct') {
             return null;
         }
 

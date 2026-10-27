@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import Bracket, { type BracketData, type Match } from '@/components/club/Bracket.vue';
 import Icon from '@/components/Icon.vue';
+import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-// Tournaments: open one (title, date, up to 3 prices), put its link in the Instagram bio; people register with
-// name, surname, phone, level and a price option. Here: accept / decline, take the fee, write the places.
+// Tournaments: open one (title, date, up to 3 prices, who may register: rating range, how many players), put its link
+// in the Instagram bio; people register with name, surname, phone, level and a price option. Here: accept / decline
+// (they hear about it), take the fee, make the draw (players see who they play), mark the winners on the bracket
+// (live for everybody), send news to the players, talk to them in the tournament chat.
 interface Opt {
     label: string;
     price: number;
@@ -22,6 +26,10 @@ interface T {
     status: 'open' | 'closed' | 'done';
     link: string;
     entries?: number;
+    min_rating: number | null;
+    max_rating: number | null;
+    max_players: number | null;
+    drawn: boolean;
 }
 interface Entry {
     id: number;
@@ -35,12 +43,22 @@ interface Entry {
     place: number | null;
     paid: { amount: number; method: string } | null;
 }
-const props = defineProps<{ tournaments: T[]; current: (T & { list: Entry[] }) | null; sport: string }>();
+const props = defineProps<{ tournaments: T[]; current: (T & { list: Entry[]; bracket: BracketData | null; chat: number | null }) | null; sport: string }>();
 const owner = useOwner();
 const canEdit = owner.value.role === 'owner';
 const has = (f: string) => (owner.value.features ?? []).includes(f);
 const editing = ref<'new' | 'current' | null>(null);
-const blank = () => ({ title: '', date: '', time: '11:00', description: '', status: 'open', options: [{ label: '', price: 0 }, { label: '', price: 0 }, { label: '', price: 0 }] as Opt[] });
+const blank = () => ({
+    title: '',
+    date: '',
+    time: '11:00',
+    description: '',
+    status: 'open',
+    min_rating: '' as number | '',
+    max_rating: '' as number | '',
+    max_players: '' as number | '',
+    options: [{ label: '', price: 0 }, { label: '', price: 0 }, { label: '', price: 0 }] as Opt[],
+});
 const form = useForm(blank());
 function edit(which: 'new' | 'current') {
     form.clearErrors();
@@ -48,7 +66,17 @@ function edit(which: 'new' | 'current') {
     if (which === 'current' && c) {
         const opts = [...c.options.map((o) => ({ ...o }))];
         while (opts.length < 3) opts.push({ label: '', price: 0 });
-        Object.assign(form, { title: c.title, date: c.date, time: c.time, description: c.description ?? '', status: c.status, options: opts });
+        Object.assign(form, {
+            title: c.title,
+            date: c.date,
+            time: c.time,
+            description: c.description ?? '',
+            status: c.status,
+            min_rating: c.min_rating ?? '',
+            max_rating: c.max_rating ?? '',
+            max_players: c.max_players ?? '',
+            options: opts,
+        });
     } else Object.assign(form, blank());
     editing.value = which;
 }
@@ -59,6 +87,23 @@ function save() {
 }
 const open = (id: number) => router.get(route('owner.tournaments'), { t: id }, { preserveScroll: true, replace: true });
 const entry = (id: number, data: Record<string, string | number | null>) => router.patch(route('owner.tournaments.entry', id), data, { preserveScroll: true });
+// the draw, the bracket: tap a match → who won, the score, or "playing now"
+const draw = () => props.current && router.post(route('owner.tournaments.draw', props.current.id), {}, { preserveScroll: true });
+const picked = ref<Match | null>(null);
+const score = ref('');
+function pick(m: Match) {
+    picked.value = m;
+    score.value = m.score ?? '';
+}
+function setMatch(data: Record<string, string | number | boolean | null>) {
+    if (!picked.value) return;
+    router.patch(route('owner.tournaments.match', picked.value.id), data, { preserveScroll: true, onSuccess: () => (picked.value = null) });
+}
+// news to the players: everybody registered, or only the accepted ones
+const news = useForm({ text: '', to: 'all' as 'all' | 'accepted' });
+const sendNews = () => props.current && news.post(route('owner.tournaments.announce', props.current.id), { preserveScroll: true, onSuccess: () => news.reset('text') });
+const openChat = () => props.current && router.post(route('owner.tournaments.chat', props.current.id));
+const accepted = computed(() => props.current?.list.filter((e) => e.status === 'accepted').length ?? 0);
 const copied = ref(false);
 async function copy(link: string) {
     try {
@@ -103,6 +148,19 @@ async function copy(link: string) {
                         <span class="money" style="width: 140px"><input v-model.number="o.price" class="input" type="number" min="0" step="500" /><span>֏</span></span>
                     </div>
                 </div>
+                <!-- who may register: a rating range (empty = any) and how many players -->
+                <div class="field">
+                    <label>{{ $t('owner.tournament.min_rating') }}</label
+                    ><input v-model="form.min_rating" class="input" type="number" min="0" max="4000" :placeholder="$t('owner.tournament.any')" data-test="t-min" />
+                </div>
+                <div class="field">
+                    <label>{{ $t('owner.tournament.max_rating') }}</label
+                    ><input v-model="form.max_rating" class="input" type="number" min="0" max="4000" :placeholder="$t('owner.tournament.any')" data-test="t-max" />
+                </div>
+                <div class="field">
+                    <label>{{ $t('owner.tournament.max_players') }}</label
+                    ><input v-model="form.max_players" class="input" type="number" min="2" max="256" :placeholder="$t('owner.tournament.any')" data-test="t-players" />
+                </div>
                 <div v-if="editing === 'current'" class="field">
                     <label>{{ $t('common.status') }}</label>
                     <select v-model="form.status" class="input">
@@ -124,6 +182,11 @@ async function copy(link: string) {
                     <p class="muted" style="margin: 2px 0 0; font-size: 13.5px">
                         {{ current.date.slice(8) }}.{{ current.date.slice(5, 7) }} · {{ current.time }} · {{ $t('owner.club.t_status_' + current.status) }}
                         · {{ current.options.map((o) => `${o.label} ${amd(o.price)}`).join(' / ') }}
+                    </p>
+                    <p v-if="current.min_rating != null || current.max_rating != null || current.max_players" class="muted" style="margin: 2px 0 0; font-size: 13px">
+                        <template v-if="current.min_rating != null || current.max_rating != null"
+                            >{{ $t('club.tournament.rating', { range: `${current.min_rating ?? '…'}–${current.max_rating ?? '…'}` }) }}</template
+                        ><template v-if="current.max_players"> · {{ $t('club.tournament.players', { n: accepted, max: current.max_players }) }}</template>
                     </p>
                 </div>
                 <button v-if="canEdit" type="button" class="btn ghost sm" @click="edit('current')"><Icon name="edit" size="sm" /></button>
@@ -163,6 +226,60 @@ async function copy(link: string) {
             </div>
             <p v-if="!current.list.length" class="faint" style="margin: 4px 0">{{ $t('owner.club.no_entries') }}</p>
         </section>
+
+        <!-- the draw and the bracket -->
+        <section v-if="current" class="card panel" style="margin-top: 14px">
+            <div class="sec-h">
+                <h2>{{ $t('owner.tournament.bracket') }}</h2>
+                <button v-if="canEdit && current.status !== 'done'" type="button" :class="['btn', 'sm', { ghost: current.drawn }]" :disabled="accepted < 2" data-test="draw" @click="draw">
+                    <Icon name="trophy" size="sm" />{{ current.drawn ? $t('owner.tournament.redraw') : $t('owner.tournament.draw') }}
+                </button>
+            </div>
+            <template v-if="current.bracket">
+                <p class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
+                <Bracket :bracket="current.bracket" :editable="canEdit" @pick="pick" />
+            </template>
+            <p v-else class="faint" style="font-size: 13px; margin: 0">{{ $t('owner.tournament.draw_hint') }}</p>
+        </section>
+
+        <!-- news to the players (app + Telegram, and in the chat), and the chat itself -->
+        <section v-if="current && canEdit" class="card panel" style="margin-top: 14px">
+            <div class="sec-h">
+                <h2>{{ $t('owner.tournament.announce') }}</h2>
+                <button type="button" class="btn ghost sm" data-test="t-chat" @click="openChat"><Icon name="chat" size="sm" />{{ $t('owner.tournament.open_chat') }}</button>
+            </div>
+            <form class="news" @submit.prevent="sendNews">
+                <textarea v-model="news.text" class="input" rows="3" maxlength="1000" :placeholder="$t('owner.tournament.announce_ph')" data-test="t-news" />
+                <div class="row" style="gap: 8px; flex-wrap: wrap">
+                    <div class="seg" role="group">
+                        <button type="button" :aria-pressed="news.to === 'all'" @click="news.to = 'all'">{{ $t('owner.tournament.to_all') }}</button>
+                        <button type="button" :aria-pressed="news.to === 'accepted'" @click="news.to = 'accepted'">{{ $t('owner.tournament.to_accepted') }}</button>
+                    </div>
+                    <button class="btn" :disabled="news.processing || !news.text.trim()" data-test="t-send"><Icon name="send" size="sm" />{{ $t('owner.tournament.send') }}</button>
+                </div>
+                <small class="faint">{{ $t('owner.tournament.announce_hint') }}</small>
+            </form>
+        </section>
+
+        <!-- a match: who won (and the score), or playing now -->
+        <OwnerSheet v-if="picked" :title="$t('owner.tournament.who_won')" @close="picked = null">
+            <div class="who">
+                <button
+                    v-for="s in [picked.a, picked.b]"
+                    :key="s!.id"
+                    type="button"
+                    :class="['btn', 'block', { ghost: picked.winner !== s!.id }]"
+                    :data-test="`winner-${s!.id}`"
+                    @click="setMatch({ winner: s!.id, score: score })"
+                >
+                    {{ s!.name }}
+                </button>
+                <input v-model="score" class="input" maxlength="20" :placeholder="$t('owner.tournament.score_ph')" data-test="t-score" />
+                <button v-if="!picked.winner" type="button" class="btn ghost block" @click="setMatch({ live: !picked.live })">
+                    <i class="ldot" />{{ picked.live ? $t('owner.tournament.live_off') : $t('owner.tournament.live_on') }}
+                </button>
+            </div>
+        </OwnerSheet>
         <p v-else-if="!editing" class="faint">{{ $t('owner.club.no_tournaments') }}</p>
     </OwnerLayout>
 </template>
@@ -175,4 +292,9 @@ async function copy(link: string) {
 .erow .w { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
 .erow small { color: var(--muted); font-size: 12.5px; }
 .erow .place { width: 74px; padding: 6px 8px; }
+.news { display: grid; gap: 8px; min-width: 0; }
+.news textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.news small { font-size: 12px; }
+.who { display: grid; gap: 10px; }
+.ldot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff6b6b; margin-right: 6px; }
 </style>

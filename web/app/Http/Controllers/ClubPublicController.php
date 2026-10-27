@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Booking\BookingException;
+use App\Domain\Chat\Chat;
+use App\Domain\Club\Cards;
 use App\Domain\Club\Tournaments;
+use App\Http\Presenters\TournamentBracket;
 use App\Models\Product;
 use App\Models\Tournament;
 use App\Models\VenueCard;
@@ -27,7 +30,7 @@ class ClubPublicController extends Controller
         if ($user && $user->venues()->whereKey($card->venue_id)->exists()) {
             $request->session()->put('venue_id', $card->venue_id);
             // scanned at the desk: the staff may change this card's money for a while
-            \App\Domain\Club\Cards::markScanned($card);
+            Cards::markScanned($card);
 
             return redirect()->route('owner.cards.show', $card->code);
         }
@@ -50,14 +53,22 @@ class ClubPublicController extends Controller
         $t = Tournament::where('code', $code)->with('venue:id,slug,name')->firstOrFail();
         $user = $request->user();
         $at = $t->starts_at->setTimezone(LocalTime::tz());
+        $mine = $user?->phone ? $t->entries()->where('phone', $user->phone)->first() : null;
+        $chat = $t->conversation()->first();
 
         return Inertia::render('player/Tournament', [
             'tournament' => ['code' => $t->code, 'title' => $t->title, 'sport' => $t->sport, 'date' => $at->toDateString(), 'time' => $at->format('H:i'),
                 'description' => $t->description, 'options' => $t->options, 'open' => $t->status === 'open' && $at->isFuture(),
-                'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $t->entries()->where('status', '!=', 'declined')->count()],
+                'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $t->entries()->where('status', '!=', 'declined')->count(),
+                'min_rating' => $t->min_rating, 'max_rating' => $t->max_rating, 'max_players' => $t->max_players, 'status' => $t->status],
+            // who plays whom (after the draw), live: the public channel tournament.{code}
+            'bracket' => TournamentBracket::of($t, $mine?->id),
+            // my registration: its answer, and the chat once accepted
+            'entry' => $mine ? ['status' => $mine->status, 'place' => $mine->place] : null,
+            'chat' => $chat && $user && app(Chat::class)->isMember($chat, $user) ? $chat->id : null,
             'me' => $user ? ['first_name' => explode(' ', (string) $user->name)[0] ?? '', 'last_name' => explode(' ', (string) $user->name, 2)[1] ?? '',
                 'phone' => $user->phone ? substr($user->phone, -8) : '',
-                'registered' => $user->phone ? $t->entries()->where('phone', $user->phone)->exists() : false] : null,
+                'registered' => $mine !== null] : null,
         ]);
     }
 

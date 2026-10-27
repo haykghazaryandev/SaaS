@@ -25,7 +25,7 @@ export interface ChatMessage {
 }
 export interface ChatItem {
     id: number;
-    type: 'direct' | 'game';
+    type: 'direct' | 'game' | 'tournament';
     archived: boolean;
     // direct chats; online = seen in the last 2 minutes (User::isActiveNow), lastSeen an ISO time
     other: { id: number; name: string; username: string | null; avatar?: string | null; online?: boolean; lastSeen?: string | null } | null;
@@ -42,6 +42,8 @@ export interface ChatItem {
         district?: string | null;
         booking?: { status: string; date: string; start: string; venue: { name: string } } | null;
     } | null;
+    /** a tournament chat: the organiser's (place staff) messages stand out */
+    tournament?: { title: string; url: string; hostIds: number[] } | null;
     last: ChatMessage | null;
     unread: number;
     at: string | null;
@@ -69,6 +71,7 @@ export const initials = (n: string | null | undefined) =>
 
 export function chatTitle(c: ChatItem): string {
     if (c.type === 'game' && c.game) return trans('messages.game', { f: c.game.format });
+    if (c.type === 'tournament' && c.tournament) return c.tournament.title;
     return c.other?.name ?? trans('messages.direct');
 }
 
