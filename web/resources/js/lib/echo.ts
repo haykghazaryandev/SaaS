@@ -4,7 +4,8 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Live updates over Laravel Reverb (see README "Real time").
 // One connection per logged-in user, shared by window.Echo and the @laravel/echo-vue hooks (useEcho, useEchoNotification).
-// Guests get no connection. Started / stopped from app.ts whenever the logged-in user changes.
+// Started / stopped from app.ts whenever the logged-in user changes. Guests get a connection only when a page listens to
+// a public channel (a tournament's live bracket): startGuestEcho, replaced by the user's own once they log in.
 
 declare global {
     interface Window {
@@ -15,7 +16,9 @@ declare global {
 /** the connection state: 'connected', 'connecting', 'unavailable', 'disconnected', … */
 export const echoState = ref<string>('disconnected');
 
+/** the connected user; GUEST: a guest connection (public channels only) */
 let userId: number | null = null;
+const GUEST = -1;
 
 /** the XSRF cookie Laravel sets on every response (the session's CSRF token, encrypted) */
 export function xsrf(): string {
@@ -25,8 +28,20 @@ export function xsrf(): string {
 
 export function startEcho(id: number | null | undefined): void {
     if ((id ?? null) === userId) return;
+    // logged out: a guest connection a page started stays (public channels need no user)
+    if (!id && userId === GUEST) return;
     stopEcho();
     if (!id || !import.meta.env.VITE_REVERB_APP_KEY) return;
+    connect(id);
+}
+
+/** A guest on a page with a public channel: a connection without a user (no private channels). */
+export function startGuestEcho(): void {
+    if (window.Echo || !import.meta.env.VITE_REVERB_APP_KEY) return;
+    connect(GUEST);
+}
+
+function connect(id: number): void {
     userId = id;
     // Opened through a tunnel or another host (e.g. ngrok on a phone): reach Reverb on the same address
     // as the page (a proxy forwards /app and /apps to Reverb). Otherwise use the VITE_REVERB_* settings.
@@ -102,6 +117,8 @@ export function useLive(channel: () => string | null, event: string, cb: (data: 
         joined = null;
     };
     const join = () => {
+        // a public channel works for guests too: start their connection
+        if (!isPrivate && !window.Echo) startGuestEcho();
         const e = window.Echo;
         const name = channel();
         if (!e || !name || echoState.value !== 'connected') return;

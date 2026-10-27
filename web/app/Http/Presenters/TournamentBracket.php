@@ -38,6 +38,8 @@ class TournamentBracket
                     'winner' => $m->winner_id, 'score' => $m->score, 'live' => $m->live,
                     // a player went on without playing (fewer players than places)
                     'bye' => $m->round === 1 && (! $m->a_id || ! $m->b_id),
+                    // when the result came (the newest results first in the preview)
+                    'at' => $m->winner_id ? $m->updated_at?->getTimestamp() : null,
                 ])->values()->all(),
             ])->values()->all(),
         ];

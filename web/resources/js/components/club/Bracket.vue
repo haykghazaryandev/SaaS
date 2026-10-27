@@ -26,6 +26,8 @@ export interface Match {
     score: string | null;
     live: boolean;
     bye: boolean;
+    /** when the result came (seconds) */
+    at?: number | null;
 }
 export interface Round {
     round: number;
@@ -36,7 +38,8 @@ export interface BracketData {
     total: number;
     rounds: Round[];
 }
-const props = defineProps<{ bracket: BracketData; editable?: boolean; title?: string; when?: string; players?: number }>();
+// embedded: already inside a full-screen layer (the tournament page): no own "Full screen"
+const props = defineProps<{ bracket: BracketData; editable?: boolean; title?: string; when?: string; players?: number; embedded?: boolean }>();
 const emit = defineEmits<{ pick: [m: Match] }>();
 
 /** the tree: at most the last 4 rounds (16 players) */
@@ -109,7 +112,7 @@ const pick = (m: Match) => emit('pick', m);
 // the owner edits a match in full screen: it stays open (the sheet comes over it)
 const pickLarge = (m: Match) => pick(m);
 // players tap the tree to see it large; the owner taps a match (and has the full screen chip)
-const tapTree = () => !props.editable && openLarge();
+const tapTree = () => !props.editable && !props.embedded && openLarge();
 </script>
 
 <template>
@@ -119,7 +122,7 @@ const tapTree = () => !props.editable && openLarge();
             <div class="chips">
                 <span v-if="players" class="chip">{{ $t('club.bracket.players_n', { n: players }) }}</span>
                 <span v-if="when" class="chip">{{ when }}</span>
-                <button type="button" class="chip big" data-test="bracket-large" @click="openLarge"><Icon name="grid" size="sm" />{{ $t('club.bracket.open_large') }}</button>
+                <button v-if="!embedded" type="button" class="chip big" data-test="bracket-large" @click="openLarge"><Icon name="grid" size="sm" />{{ $t('club.bracket.open_large') }}</button>
             </div>
         </div>
 

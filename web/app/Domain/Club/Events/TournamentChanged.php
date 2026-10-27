@@ -9,7 +9,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Live: a tournament's bracket changed (the draw, a result, a match being played): its public page reloads.
- * Public channel tournament.{code}: the bracket is public anyway (the link is in the club's Instagram).
+ * Public channels tournament.{code} (its page) and tournaments (the lists): the bracket is public anyway.
  */
 class TournamentChanged implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
@@ -19,7 +19,8 @@ class TournamentChanged implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     public function broadcastOn(): array
     {
-        return [new Channel('tournament.'.$this->code)];
+        // the tournament's page, and the Tournaments tab (Live / Open / Finished)
+        return [new Channel('tournament.'.$this->code), new Channel('tournaments')];
     }
 
     public function broadcastAs(): string

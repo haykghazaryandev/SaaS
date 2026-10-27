@@ -67,6 +67,9 @@ class ClubPublicController extends Controller
                 'open' => $phase === 'registration' && (! $t->max_players || $count < $t->max_players),
                 'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $count,
                 'accepted' => $t->entries()->where('status', 'accepted')->count(),
+                // before the draw: who is in (avatars on the page)
+                'players' => $phase === 'registration' || $phase === 'closed' ? $t->entries()->where('status', 'accepted')->orderBy('id')->limit(32)->get()
+                    ->map(fn ($e) => ['id' => $e->id, 'first' => $e->first_name, 'last' => $e->last_name, 'me' => $e->id === $mine?->id])->values() : [],
                 // the end: 1st, 2nd and the 3rd places
                 'podium' => $phase === 'done' ? $t->entries()->whereNotNull('place')->where('place', '<=', 3)->orderBy('place')->get()
                     ->map(fn ($e) => ['place' => $e->place, 'name' => Tournaments::name($e)])->values() : [],

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Bracket, { type BracketData } from '@/components/club/Bracket.vue';
+import BracketPreview, { type Player } from '@/components/club/BracketPreview.vue';
 import TournamentPhase from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
 import { SPORT_ICON, dateLong } from '@/composables/usePlayer';
@@ -33,6 +34,7 @@ const props = defineProps<{
         count: number;
         accepted: number;
         podium: { place: number; name: string }[];
+        players: Player[];
         min_rating: number | null;
         max_rating: number | null;
         max_players: number | null;
@@ -44,6 +46,17 @@ const props = defineProps<{
     chat: number | null;
 }>();
 const t = computed(() => props.tournament);
+const whenText = computed(() => `${dateLong(t.value.date)} · ${t.value.time}`);
+// the whole bracket, full screen (the tree on computers, half by half on phones)
+const bigView = ref(false);
+function openFull() {
+    bigView.value = true;
+    document.body.style.overflow = 'hidden';
+}
+function closeFull() {
+    bigView.value = false;
+    document.body.style.overflow = '';
+}
 const ranged = computed(() => t.value.min_rating != null || t.value.max_rating != null);
 const full = computed(() => !!t.value.max_players && t.value.count >= t.value.max_players);
 // live: the draw, a result, a match being played
@@ -53,7 +66,10 @@ let poll: number | undefined;
 onMounted(() => {
     if (!window.Echo && props.bracket && t.value.phase !== 'done') poll = window.setInterval(reload, 30000);
 });
-onBeforeUnmount(() => clearInterval(poll));
+onBeforeUnmount(() => {
+    clearInterval(poll);
+    document.body.style.overflow = '';
+});
 useSportTheme(() => props.tournament.sport);
 const done = ref(!!props.me?.registered);
 const form = useForm({ first_name: props.me?.first_name ?? '', last_name: props.me?.last_name ?? '', phone: props.me?.phone ?? '', level: '' as string | number, option: 0 });
@@ -131,18 +147,39 @@ function send() {
                 <Link class="btn ghost sm" style="margin-top: 14px" :href="route('places.show', tournament.venue.slug)">{{ tournament.venue.name }}</Link>
             </div>
         </div>
-        <!-- who plays whom, live -->
-        <section v-if="bracket" class="pg wide card pad" style="margin-top: 14px" data-test="bracket">
-            <Bracket :bracket="bracket" :players="tournament.accepted" :title="tournament.title" :when="`${tournament.date.slice(8)}.${tournament.date.slice(5, 7)} · ${tournament.time}`" />
+        <!-- the bracket: one spotlight that follows the tournament live (Option A); the whole bracket full screen -->
+        <section v-if="tournament.phase !== 'registration' || tournament.players.length" class="pg wide spot" data-test="bracket">
+            <BracketPreview
+                :bracket="bracket"
+                :count="tournament.count"
+                :max-players="tournament.max_players"
+                :players="tournament.players"
+                :podium="tournament.podium"
+                :when="whenText"
+                @open="openFull"
+            />
         </section>
+        <Teleport to="body">
+            <div v-if="bigView && bracket" class="tfull" role="dialog" aria-modal="true">
+                <div class="tfull-h">
+                    <b>{{ tournament.title }}</b>
+                    <button type="button" class="tfull-x" :aria-label="$t('common.close')" data-test="bracket-close" @click="closeFull"><Icon name="x" /></button>
+                </div>
+                <div class="tfull-b">
+                    <Bracket :bracket="bracket" :players="tournament.accepted" :title="tournament.title" :when="whenText" embedded />
+                </div>
+            </div>
+        </Teleport>
     </PlayerLayout>
 </template>
 
 <style scoped>
 .pg { max-width: 560px; margin: 0 auto; padding-top: 18px; }
-.pg.wide { max-width: none; }
-/* the bracket uses the whole screen width on computers (the page column is narrower) */
-@media (min-width: 1200px) { .pg.wide { width: min(1600px, calc(100vw - 48px)); position: relative; left: 50%; transform: translateX(-50%); } }
+.pg.wide { max-width: 980px; margin-top: 14px; }
+.tfull { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; background: #070908; color: #eef5ec; }
+.tfull-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); border-bottom: 1px solid rgba(255, 159, 67, 0.15); font: 700 15px var(--display); text-transform: uppercase; }
+.tfull-x { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 159, 67, 0.3); background: rgba(18, 23, 19, 0.9); color: #eef5ec; display: grid; place-items: center; cursor: pointer; }
+.tfull-b { flex: 1; overflow: auto; padding: 14px; -webkit-overflow-scrolling: touch; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .chip.hot { color: var(--hot); border-color: var(--hot); }
 .phase { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; font-weight: 800; background: var(--surface-2); color: var(--muted); }

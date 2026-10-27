@@ -228,7 +228,12 @@ it('shows players and guests where the tournament is, and closes registration on
     $this->post("/t/$code", $form)->assertSessionHasNoErrors();
     $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('entry.status', 'applied'));
 
+    // before the draw the page shows who is in (the accepted players)
     $e = ($this->players)(3);
+    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->has('tournament.players', 3)->where('tournament.players.0.first', 'P1'));
+    // the lists and the page hear about changes
+    expect(collect((new TournamentChanged($code))->broadcastOn())->map->name->all())->toBe(["tournament.$code", 'tournaments']);
+
     $this->tt->draw($this->t->fresh());
     // drawn: no more registrations (also not by posting the form), no accepting new players
     auth()->logout();

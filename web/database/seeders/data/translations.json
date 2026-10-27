@@ -1659,6 +1659,96 @@
         "hy": "Խաղ",
         "ru": "Игра"
     },
+    "club.preview.first_matches": {
+        "en": "First matches",
+        "hy": "Առաջին խաղերը",
+        "ru": "Первые матчи"
+    },
+    "club.preview.latest": {
+        "en": "Latest results",
+        "hy": "Վերջին արդյունքները",
+        "ru": "Последние результаты"
+    },
+    "club.preview.live_now": {
+        "en": "Live now",
+        "hy": "Հիմա ուղիղ",
+        "ru": "Сейчас идёт"
+    },
+    "club.preview.more_live": {
+        "en": "and :n more live →",
+        "hy": "և ևս :n ուղիղ →",
+        "ru": "и ещё :n в игре →"
+    },
+    "club.preview.more_matches": {
+        "en": "+ :n more matches →",
+        "hy": "+ ևս :n խաղ →",
+        "ru": "+ ещё :n матчей →"
+    },
+    "club.preview.n_matches": {
+        "en": "Matches: :n",
+        "hy": "Խաղեր՝ :n",
+        "ru": "Матчей: :n"
+    },
+    "club.preview.next_matches": {
+        "en": "Next matches",
+        "hy": "Հաջորդ խաղերը",
+        "ru": "Следующие матчи"
+    },
+    "club.preview.no_draw": {
+        "en": "The draw is not made yet",
+        "hy": "Վիճակահանությունը դեռ արված չէ",
+        "ru": "Жеребьёвки ещё не было"
+    },
+    "club.preview.no_draw_note": {
+        "en": "The bracket appears here after the draw",
+        "hy": "Սխեման կհայտնվի այստեղ վիճակահանությունից հետո",
+        "ru": "Сетка появится здесь после жеребьёвки"
+    },
+    "club.preview.of": {
+        "en": "of :max",
+        "hy": "/ :max",
+        "ru": "из :max"
+    },
+    "club.preview.open": {
+        "en": "Open the bracket",
+        "hy": "Բացել սխեման",
+        "ru": "Открыть сетку"
+    },
+    "club.preview.places_left": {
+        "en": ":n places left",
+        "hy": ":n ազատ տեղ",
+        "ru": "Осталось мест: :n"
+    },
+    "club.preview.registered": {
+        "en": "Players registered",
+        "hy": "Գրանցված խաղացողներ",
+        "ru": "Записались игроков"
+    },
+    "club.preview.runner_up": {
+        "en": "runner-up",
+        "hy": "երկրորդ տեղ",
+        "ru": "второе место"
+    },
+    "club.preview.sf_live": {
+        "en": ":sf live",
+        "hy": ":sf ուղիղ",
+        "ru": ":sf идёт"
+    },
+    "club.preview.to_be_decided": {
+        "en": "to be decided",
+        "hy": "կորոշվի",
+        "ru": "определится"
+    },
+    "club.preview.won": {
+        "en": "won :sf :score",
+        "hy": "հաղթեց :sf :score",
+        "ru": "выиграл(а) :sf :score"
+    },
+    "club.preview.you": {
+        "en": "you",
+        "hy": "դուք",
+        "ru": "вы"
+    },
     "club.qr_hint": {
         "en": "Show this code at :venue. It works only there.",
         "hy": "Ցույց տվեք այս կոդը :venue-ում։ Այն գործում է միայն այնտեղ։",
@@ -6413,6 +6503,36 @@
         "en": "Get it confirmed",
         "hy": "Ստացեք հաստատում",
         "ru": "Получите подтверждение"
+    },
+    "player.home.t_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершены"
+    },
+    "player.home.t_live": {
+        "en": "Live",
+        "hy": "Ուղիղ",
+        "ru": "Идут"
+    },
+    "player.home.t_none_done": {
+        "en": "No finished tournaments this week.",
+        "hy": "Այս շաբաթ ավարտված մրցաշարեր չկան։",
+        "ru": "На этой неделе завершённых турниров нет."
+    },
+    "player.home.t_none_live": {
+        "en": "No tournament is on right now.",
+        "hy": "Հիմա մրցաշար չկա։",
+        "ru": "Сейчас турниров нет."
+    },
+    "player.home.t_none_open": {
+        "en": "No upcoming tournaments yet.",
+        "hy": "Մոտակա մրցաշարեր դեռ չկան։",
+        "ru": "Ближайших турниров пока нет."
+    },
+    "player.home.t_open": {
+        "en": "Open",
+        "hy": "Բաց",
+        "ru": "Скоро"
     },
     "player.home.tab_book": {
         "en": "Book",
