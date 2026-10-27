@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\Booking\Actions\OwnerBooking;
+use App\Domain\Booking\Events\ScheduleChanged;
 use App\Domain\Club\Cards;
 use App\Models\Booking;
 use App\Models\Product;
@@ -9,6 +11,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -159,4 +162,29 @@ it('opens every club page for an owner of two places (the place is not lazy load
     foreach (['/owner/now', '/owner/players', '/owner/players/'.$this->player->id, '/owner/cards', '/owner/cards/'.$this->card->code, '/owner/shop', '/owner/tournaments', '/owner/money', '/owner/settings', '/owner/schedule'] as $url) {
         $this->get($url)->assertOk();
     }
+});
+
+it('attaches a card to a phone booking from the scanned card (a phone) or by name at the desk; the desk updates live', function () {
+    Event::fake([ScheduleChanged::class]);
+    $small = $this->club->fields->firstWhere('size.value', 'small');
+    $start = at(12);
+    $other = makeVenue();
+    $b = app(OwnerBooking::class)->create($this->owner, $small, $start, 60, ['name' => 'Walk-in']);
+    $b2 = app(OwnerBooking::class)->create($this->owner, $this->club->fields->firstWhere('size.value', 'big'), $start, 90, ['name' => 'Walk-in 2']);
+    $ob = app(OwnerBooking::class)->create($this->owner, $other->fields->first(), $start, 60, ['name' => 'X']);
+    $this->travelTo($start->addMinutes(30));   // they play
+    // the card page (a scan on the phone) lists the bill; attaching opens it
+    $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p
+        ->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id) == [...collect($bills)->firstWhere('id', $b->id), 'mine' => false, 'total' => 15000]));
+    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/scan", ['code' => $this->card->code, 'open' => 1])
+        ->assertRedirect(route('owner.bookings.checkout', $b->id));
+    expect($b->fresh()->user_id)->toBe($this->player->id);
+    Event::assertDispatched(ScheduleChanged::class);
+    $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id)['mine'] === true));
+
+    // no camera: find the card by name or phone on another phone booking's bill
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$b2->id}/cards?q=gor")->assertOk()->assertJsonPath('0.code', $this->card->code);
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$b2->id}/cards?q=nobody")->assertExactJson([]);
+    // another place's booking: not here
+    $this->actingAs($this->owner)->getJson("/owner/bookings/{$ob->id}/cards?q=gor")->assertForbidden();
 });

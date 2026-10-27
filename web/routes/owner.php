@@ -41,6 +41,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::post('bookings/{booking}/items', [CheckoutController::class, 'addItem'])->whereNumber('booking')->name('bookings.items.store');
     Route::delete('booking-items/{item}', [CheckoutController::class, 'removeItem'])->whereNumber('item')->name('bookings.items.destroy');
     Route::post('bookings/{booking}/scan', [CheckoutController::class, 'scan'])->whereNumber('booking')->name('bookings.scan');
+    Route::get('bookings/{booking}/cards', [CheckoutController::class, 'cards'])->whereNumber('booking')->name('bookings.cards');
     Route::post('bookings/{booking}/pay', [CheckoutController::class, 'pay'])->whereNumber('booking')->name('bookings.pay');
     Route::post('bookings/{booking}/stop', [CheckoutController::class, 'stop'])->whereNumber('booking')->name('bookings.stop');
     // the desk: every table now (the booked games playing, their check: time + items = what to pay)

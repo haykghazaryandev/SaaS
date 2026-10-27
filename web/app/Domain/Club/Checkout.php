@@ -13,6 +13,7 @@ use App\Models\VenueCard;
 use App\Support\LocalTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -119,6 +120,21 @@ class Checkout
     {
         return $booking->user_id && $booking->venue?->hasFeature('wallet')
             ? VenueCard::where('venue_id', $booking->venue_id)->where('user_id', $booking->user_id)->first() : null;
+    }
+
+    /**
+     * Bills a scanned card can pay: games of the place that started (within 12 h) and are not paid yet, with no
+     * player (a phone booking) or with this card's player. Newest first. The phone scans, the desk screen updates live.
+     *
+     * @return Collection<int, Booking>
+     */
+    public function openBillsFor(VenueCard $card)
+    {
+        return Booking::where('venue_id', $card->venue_id)->whereNull('paid_at')
+            ->whereIn('status', ['accepted', 'completed'])
+            ->where('starts_at', '<=', now())->where('starts_at', '>', now()->subHours(12))
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $card->user_id))
+            ->with('field', 'user')->latest('starts_at')->latest('id')->limit(10)->get();
     }
 
     /** A card scanned for a booking made by phone without an account: the booking gets the card's player. */

@@ -57,6 +57,23 @@ const tooMuch = computed(() => how.value !== 'cash' && (fromCard.value > props.b
 
 const shopOpen = ref(false);
 const onCode = (code: string) => router.post(route('owner.bookings.scan', props.booking.id), { code }, opts);
+// no camera at the desk: find the card by the player's name or phone
+const find = ref('');
+const found = ref<{ code: string; name: string | null; phone: string | null; balance: number }[]>([]);
+let findT: number | undefined;
+watch(find, (q) => {
+    clearTimeout(findT);
+    if (q.trim().length < 2) return (found.value = []);
+    findT = window.setTimeout(async () => {
+        const r = await fetch(route('owner.bookings.cards', { booking: props.booking.id, q: q.trim() }), { headers: { Accept: 'application/json' } });
+        found.value = r.ok ? await r.json() : [];
+    }, 250);
+});
+function pickCard(code: string) {
+    find.value = '';
+    found.value = [];
+    onCode(code);
+}
 const stop = () => router.post(route('owner.bookings.stop', props.booking.id));
 function pay() {
     router.post(route('owner.bookings.pay', props.booking.id), { card: how.value === 'cash' ? 0 : fromCard.value || 0, cash: how.value === 'cash' ? props.bill.total : cash.value });
@@ -116,6 +133,14 @@ function pay() {
                         </span>
                         <button v-if="!bill.card && !booking.player" type="button" class="btn sm" data-test="scan-bill" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
                     </div>
+                    <!-- no card on this bill yet: scan it (a phone or a desk camera) or find it by name / phone -->
+                    <div v-if="wallet && !bill.card && !booking.player" class="findcard">
+                        <input v-model="find" class="input" type="search" :placeholder="$t('owner.club.find_card_search')" data-test="find-card" />
+                        <button v-for="c in found" :key="c.code" type="button" class="frow" :data-test="`found-${c.code}`" @click="pickCard(c.code)">
+                            <span class="w"><b>{{ c.name || '—' }}</b><small>{{ c.phone }}</small></span><b>{{ amd(c.balance) }}</b>
+                        </button>
+                        <small v-if="find.trim().length >= 2 && !found.length" class="faint">{{ $t('owner.club.no_cards_found') }}</small>
+                    </div>
                     <div v-if="canCard" class="seg how" role="group" :aria-label="$t('owner.club.payment')">
                         <button type="button" :aria-pressed="how === 'cash'" data-test="how-cash" @click="pick('cash')">{{ $t('owner.club.cash') }}</button>
                         <button type="button" :aria-pressed="how === 'card'" :disabled="!cardCovers" data-test="how-card" @click="pick('card')">
@@ -165,6 +190,10 @@ function pay() {
 .cardrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); margin-bottom: 12px; }
 .cardrow .w { flex: 1; display: flex; flex-direction: column; }
 .cardrow small { color: var(--muted); font-size: 12.5px; }
+.findcard { display: grid; gap: 6px; margin-bottom: 12px; }
+.frow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); text-align: left; font: inherit; }
+.frow .w { flex: 1; display: flex; flex-direction: column; }
+.frow small { color: var(--muted); font-size: 12.5px; }
 .how { display: flex; width: 100%; margin-bottom: 12px; }
 .how button { flex: 1; justify-content: center; }
 .how button:disabled { opacity: 0.45; }

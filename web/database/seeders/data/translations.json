@@ -3724,6 +3724,11 @@
         "hy": "Քարտ ըստ հեռախոսի",
         "ru": "Карта по телефону"
     },
+    "owner.club.attach_card": {
+        "en": "Attach to this bill",
+        "hy": "Կցել այս հաշվին",
+        "ru": "Привязать к счёту"
+    },
     "owner.club.bad_code": {
         "en": "This is not a card code.",
         "hy": "Սա քարտի կոդ չէ։",
@@ -3869,6 +3874,11 @@
         "hy": "Ամրագրված է առանց հաշվի․ սկանավորեք խաղացողի քարտը՝ դրանից վճարելու համար",
         "ru": "Бронь без аккаунта: отсканируйте карту игрока, чтобы оплатить с неё"
     },
+    "owner.club.find_card_search": {
+        "en": "Or find the card: name or phone",
+        "hy": "Կամ գտեք քարտը՝ անուն կամ հեռախոս",
+        "ru": "Или найдите карту: имя или телефон"
+    },
     "owner.club.free_now": {
         "en": "Free",
         "hy": "Ազատ",
@@ -3979,6 +3989,11 @@
         "hy": "Քարտեր դեռ չկան։ Սկանավորեք խաղացողի QR-ը կամ բացեք ըստ հեռախոսի ստորև։",
         "ru": "Карт пока нет. Отсканируйте QR игрока или откройте по телефону ниже."
     },
+    "owner.club.no_cards_found": {
+        "en": "No card found",
+        "hy": "Քարտ չի գտնվել",
+        "ru": "Карта не найдена"
+    },
     "owner.club.no_entries": {
         "en": "No registrations yet.",
         "hy": "Գրանցումներ դեռ չկան։",
@@ -4018,6 +4033,16 @@
         "en": "Nothing booked later today.",
         "hy": "Այսօր ավելի ուշ ամրագրում չկա։",
         "ru": "Позже сегодня броней нет."
+    },
+    "owner.club.open_bill": {
+        "en": "Open the bill",
+        "hy": "Բացել հաշիվը",
+        "ru": "Открыть счёт"
+    },
+    "owner.club.open_bills": {
+        "en": "Bills waiting for payment",
+        "hy": "Վճարման սպասող հաշիվներ",
+        "ru": "Счета, ожидающие оплаты"
     },
     "owner.club.open_card": {
         "en": "Open the card",
