@@ -17,22 +17,46 @@ use Inertia\Inertia;
 /** Owner → Tournaments: open one (title, date, up to 3 prices), share its link, accept people, take fees, write results. */
 class TournamentController extends OwnerController
 {
+    /** The list: every tournament of the place with how many registered / accepted / paid; "New tournament". */
     public function index(Request $request)
     {
         $venue = $this->venue($request);
         $this->ensureAny($venue, ['tournaments']);
-        $list = Tournament::where('venue_id', $venue->id)->withCount('entries')->orderByDesc('starts_at')->get();
-        $open = $request->query('t') ? $list->firstWhere('id', (int) $request->query('t')) : $list->first();
+        // old links (?t=5) open the tournament's own page
+        if ($request->query('t') && ($t = Tournament::where('venue_id', $venue->id)->find((int) $request->query('t')))) {
+            return redirect()->route('owner.tournaments.show', $t->id);
+        }
+        $list = Tournament::where('venue_id', $venue->id)->with('entries:id,tournament_id,status,option,payment_id')->orderByDesc('starts_at')->get();
 
         return Inertia::render('owner/Tournaments', [
-            'tournaments' => $list->map(fn (Tournament $t) => $this->present($t) + ['entries' => $t->entries_count])->values(),
-            'current' => $open ? $this->present($open) + ['list' => $open->entries()->with('payment:id,amount,method')->orderBy('id')->get()
-                ->map(fn (TournamentEntry $e) => [
-                    'id' => $e->id, 'name' => $e->first_name.' '.$e->last_name, 'phone' => Phone::format($e->phone), 'tel' => $e->phone, 'level' => $e->level,
-                    'option' => $open->options[$e->option]['label'] ?? '—', 'price' => (int) ($open->options[$e->option]['price'] ?? 0),
-                    'status' => $e->status, 'place' => $e->place, 'paid' => $e->payment ? ['amount' => $e->payment->amount, 'method' => $e->payment->method] : null,
-                ])->values(), 'bracket' => TournamentBracket::of($open), 'chat' => $open->conversation()->value('id')] : null,
+            'tournaments' => $list->map(fn (Tournament $t) => $this->present($t) + [
+                'entries' => $t->entries->where('status', '!=', 'declined')->count(),
+                'waiting' => $t->entries->where('status', 'applied')->count(),
+                'accepted' => $t->entries->where('status', 'accepted')->count(),
+                'unpaid' => $t->entries->where('status', 'accepted')->filter(fn ($e) => ! $e->payment_id && Tournaments::fee($t, $e) > 0)->count(),
+            ])->values(),
             'sport' => ($venue->sports()[0] ?? Sport::Football)->value,
+        ]);
+    }
+
+    /** One tournament: its settings, the players (filters: waiting / accepted / paid …), the bracket, news, chat. */
+    public function show(Request $request, Tournament $tournament)
+    {
+        $this->own($request, $tournament);
+        $t = $tournament;
+
+        return Inertia::render('owner/Tournament', [
+            'tournament' => $this->present($t) + [
+                'list' => $t->entries()->with('payment:id,amount,method')->orderBy('id')->get()->map(fn (TournamentEntry $e) => [
+                    'id' => $e->id, 'name' => $e->first_name.' '.$e->last_name, 'phone' => Phone::format($e->phone), 'tel' => $e->phone,
+                    'level' => Tournaments::ratingOf($t, $e->user_id, $e->level),
+                    'option' => $t->options[$e->option]['label'] ?? '—', 'price' => Tournaments::fee($t, $e),
+                    'status' => $e->status, 'place' => $e->place, 'account' => $e->user_id !== null,
+                    'paid' => $e->payment ? ['amount' => $e->payment->amount, 'method' => $e->payment->method] : null,
+                ])->values(),
+                'bracket' => TournamentBracket::of($t),
+                'chat' => $t->conversation()->value('id'),
+            ],
         ]);
     }
 
@@ -46,7 +70,7 @@ class TournamentController extends OwnerController
         $data = $this->data($request);
         $t = $this->attempt(fn () => $tournaments->save($t, $data));
 
-        return redirect()->route('owner.tournaments', ['t' => $t->id])->with('success', __('owner.flash.saved'));
+        return redirect()->route('owner.tournaments.show', $t->id)->with('success', __('owner.flash.saved'));
     }
 
     public function update(Request $request, Tournament $tournament, Tournaments $tournaments)
@@ -62,13 +86,10 @@ class TournamentController extends OwnerController
     public function entry(Request $request, TournamentEntry $entry, Tournaments $tournaments)
     {
         abort_unless($entry->tournament->venue_id === $this->venue($request)->id, 404);
-        $data = $request->validate(['status' => 'nullable|in:applied,accepted,declined', 'place' => 'nullable|integer|min:0|max:999', 'pay' => 'nullable|in:card,cash']);
+        $data = $request->validate(['status' => 'nullable|in:applied,accepted,declined', 'pay' => 'nullable|in:card,cash']);
         $this->attempt(function () use ($data, $entry, $tournaments, $request) {
             if (! empty($data['status'])) {
                 $tournaments->decide($entry, $data['status']);
-            }
-            if (array_key_exists('place', $data)) {
-                $tournaments->place($entry, $data['place']);
             }
             if (! empty($data['pay'])) {
                 $tournaments->pay($entry, $data['pay'], $request->user());
@@ -107,8 +128,27 @@ class TournamentController extends OwnerController
     public function announce(Request $request, Tournament $tournament, Tournaments $tournaments)
     {
         $this->own($request, $tournament);
-        $data = $request->validate(['text' => 'required|string|max:1000', 'to' => 'nullable|in:all,accepted']);
-        $n = $this->attempt(fn () => $tournaments->announce($tournament, $request->user(), $data['text'], ($data['to'] ?? 'all') === 'accepted'));
+        $data = $request->validate(['text' => 'required|string|max:1000', 'to' => 'nullable|in:'.implode(',', Tournaments::AUDIENCES)]);
+        $n = $this->attempt(fn () => $tournaments->announce($tournament, $request->user(), $data['text'], $data['to'] ?? 'all'));
+
+        return back()->with('success', __('owner.tournament.sent', ['n' => $n]));
+    }
+
+    /** A message to one registered player (app + Telegram). */
+    public function message(Request $request, TournamentEntry $entry, Tournaments $tournaments)
+    {
+        $this->own($request, $entry->tournament);
+        $data = $request->validate(['text' => 'required|string|max:1000']);
+        $this->attempt(fn () => $tournaments->message($entry, $data['text']));
+
+        return back()->with('success', __('owner.tournament.sent', ['n' => 1]));
+    }
+
+    /** "You haven't paid yet" to the accepted players with an unpaid fee. */
+    public function remind(Request $request, Tournament $tournament, Tournaments $tournaments)
+    {
+        $this->own($request, $tournament);
+        $n = $tournaments->remindUnpaid($tournament);
 
         return back()->with('success', __('owner.tournament.sent', ['n' => $n]));
     }

@@ -35,7 +35,7 @@ const props = defineProps<{
     };
     me: { first_name: string; last_name: string; phone: string; registered: boolean } | null;
     bracket: BracketData | null;
-    entry: { status: 'applied' | 'accepted' | 'declined'; place: number | null } | null;
+    entry: { status: 'applied' | 'accepted' | 'declined'; place: number | null; unpaid: number } | null;
     chat: number | null;
 }>();
 const t = computed(() => props.tournament);
@@ -84,6 +84,7 @@ function send() {
                     }}
                 </div>
                 <div v-else-if="done" class="ok"><Icon name="check" />{{ $t('player.tournament.registered') }}</div>
+                <div v-if="entry?.unpaid" class="ok unpaid" data-test="unpaid"><Icon name="wallet" />{{ $t('club.tournament.unpaid', { amount: amd(entry.unpaid) }) }}</div>
                 <Link v-if="chat" class="btn" :href="route('messages.show', chat)" data-test="t-chat"><Icon name="chat" size="sm" />{{ $t('club.tournament.chat') }}</Link>
                 <template v-if="entry || done" />
                 <p v-else-if="!tournament.open" class="muted">{{ $t('club.t_closed') }}</p>
@@ -118,18 +119,20 @@ function send() {
         </div>
         <!-- who plays whom, live -->
         <section v-if="bracket" class="pg wide card pad" style="margin-top: 14px" data-test="bracket">
-            <h2 class="sec-title" style="margin: 0 0 12px">{{ $t('owner.tournament.bracket') }}</h2>
-            <Bracket :bracket="bracket" />
+            <Bracket :bracket="bracket" :title="tournament.title" :when="`${tournament.date.slice(8)}.${tournament.date.slice(5, 7)} · ${tournament.time}`" />
         </section>
     </PlayerLayout>
 </template>
 
 <style scoped>
 .pg { max-width: 560px; margin: 0 auto; padding-top: 18px; }
-.pg.wide { max-width: 1180px; }
+.pg.wide { max-width: none; }
+/* the bracket uses the whole screen width on computers (the page column is narrower) */
+@media (min-width: 1200px) { .pg.wide { width: min(1600px, calc(100vw - 48px)); position: relative; left: 50%; transform: translateX(-50%); } }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .chip.hot { color: var(--hot); border-color: var(--hot); }
 .ok.applied { background: var(--warn-soft); color: var(--warn); }
+.ok.unpaid { background: var(--hot-soft); color: var(--hot); font-weight: 700; }
 .ok.declined { background: var(--hot-soft); color: var(--hot); }
 .tour { display: flex; flex-direction: column; gap: 8px; }
 .tf { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }

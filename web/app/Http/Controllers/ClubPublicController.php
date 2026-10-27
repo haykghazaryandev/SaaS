@@ -64,7 +64,9 @@ class ClubPublicController extends Controller
             // who plays whom (after the draw), live: the public channel tournament.{code}
             'bracket' => TournamentBracket::of($t, $mine?->id),
             // my registration: its answer, and the chat once accepted
-            'entry' => $mine ? ['status' => $mine->status, 'place' => $mine->place] : null,
+            'entry' => $mine ? ['status' => $mine->status, 'place' => $mine->place,
+                // accepted with a fee not paid yet: "pay at the club, card or cash"
+                'unpaid' => $mine->status === 'accepted' && ! $mine->payment_id ? Tournaments::fee($t, $mine) : 0] : null,
             'chat' => $chat && $user && app(Chat::class)->isMember($chat, $user) ? $chat->id : null,
             'me' => $user ? ['first_name' => explode(' ', (string) $user->name)[0] ?? '', 'last_name' => explode(' ', (string) $user->name, 2)[1] ?? '',
                 'phone' => $user->phone ? substr($user->phone, -8) : '',

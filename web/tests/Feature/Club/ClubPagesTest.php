@@ -136,7 +136,7 @@ it('registers for a tournament by its link, without an account', function () {
     $this->get('/t/abcd1234')->assertOk()->assertInertia(fn (Assert $p) => $p->component('player/Tournament')->where('tournament.open', true)->has('tournament.options', 2));
     $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'level' => 1200, 'option' => 1])->assertRedirect();
     $this->post('/t/abcd1234', ['first_name' => 'Arman', 'last_name' => 'Sargsyan', 'phone' => '+37491234567', 'option' => 1])->assertSessionHasErrors('register');
-    $this->actingAs($this->owner)->get('/owner/tournaments')->assertInertia(fn (Assert $p) => $p->has('current.list', 1)->where('current.list.0.price', 5000));
+    $this->actingAs($this->owner)->get("/owner/tournaments/{$t->id}")->assertInertia(fn (Assert $p) => $p->has('tournament.list', 1)->where('tournament.list.0.price', 5000));
 });
 
 it('lets the owner add test games from the Now page outside production', function () {

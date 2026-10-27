@@ -1189,6 +1189,11 @@
         "hy": "Քարտում բավարար գումար չկա։",
         "ru": "На карте недостаточно денег."
     },
+    "booking.error.no_account": {
+        "en": "This player has no account in the app: call them.",
+        "hy": "Այս խաղացողը հավելվածում հաշիվ չունի․ զանգահարեք նրան։",
+        "ru": "У этого игрока нет аккаунта в приложении: позвоните ему."
+    },
     "booking.error.no_card": {
         "en": "The player has no card at this club.",
         "hy": "Խաղացողը այս ակումբում քարտ չունի։",
@@ -1389,10 +1394,20 @@
         "hy": "«:title» մրցաշարի չատը բաց է",
         "ru": "Чат турнира «:title» открыт"
     },
+    "club.bracket.by_round": {
+        "en": "By round",
+        "hy": "Ըստ փուլերի",
+        "ru": "По раундам"
+    },
     "club.bracket.bye": {
         "en": "goes on",
         "hy": "անցնում է",
         "ru": "проходит"
+    },
+    "club.bracket.byes": {
+        "en": ":n players go on without a match",
+        "hy": ":n խաղացող անցնում է առանց խաղի",
+        "ru": ":n игроков проходят без матча"
     },
     "club.bracket.champion": {
         "en": "Champion",
@@ -1401,6 +1416,11 @@
     },
     "club.bracket.final": {
         "en": "Final",
+        "hy": "Եզրափակիչ",
+        "ru": "Финал"
+    },
+    "club.bracket.grand_final": {
+        "en": "Grand Final",
         "hy": "Եզրափակիչ",
         "ru": "Финал"
     },
@@ -1428,6 +1448,11 @@
         "en": "Semi-final",
         "hy": "Կիսաեզրափակիչ",
         "ru": "Полуфинал"
+    },
+    "club.bracket.show_tree": {
+        "en": "Show the whole bracket",
+        "hy": "Ցույց տալ ամբողջ սխեման",
+        "ru": "Показать всю сетку"
     },
     "club.bracket.swipe": {
         "en": "Swipe to see all rounds →",
@@ -1688,6 +1713,11 @@
         "en": "Your registration was not accepted.",
         "hy": "Ձեր գրանցումը չի ընդունվել։",
         "ru": "Ваша заявка не принята."
+    },
+    "club.tournament.unpaid": {
+        "en": "Your fee of :amount isn't paid yet: pay at the club, by card or cash.",
+        "hy": "Ձեր :amount վճարը դեռ վճարված չէ․ վճարեք ակումբում՝ քարտով կամ կանխիկ։",
+        "ru": "Ваш взнос :amount ещё не оплачен: оплатите в клубе картой или наличными."
     },
     "club.tournaments": {
         "en": "Tournaments",
@@ -3779,6 +3809,11 @@
         "hy": "🏆 Դուք ընդունված եք :title մրցաշարին :venue-ում (:when)։ Մրցաշարի չատը բաց է ձեզ համար։",
         "ru": "🏆 Вы приняты на :title в :venue (:when). Чат турнира открыт для вас."
     },
+    "notice.tournament_accepted_fee": {
+        "en": "🏆 You're in :title at :venue (:when). Fee to pay: :amount, at the club by card or cash.",
+        "hy": "🏆 Դուք ընդունված եք :title մրցաշարին :venue-ում (:when)։ Վճարը՝ :amount, ակումբում՝ քարտով կամ կանխիկ։",
+        "ru": "🏆 Вы приняты на :title в :venue (:when). Взнос: :amount, в клубе картой или наличными."
+    },
     "notice.tournament_bye": {
         "en": "🎾 :title draw: you go straight to the next round (:when).",
         "hy": "🎾 :title վիճակահանություն․ դուք անմիջապես անցնում եք հաջորդ փուլ (:when)։",
@@ -3799,6 +3834,11 @@
         "hy": "🎾 :title վիճակահանություն․ ձեր առաջին խաղը :vs-ի հետ է (:when)։",
         "ru": "🎾 Жеребьёвка :title: ваш первый матч против :vs (:when)."
     },
+    "notice.tournament_message": {
+        "en": "✉️ :title: :text",
+        "hy": "✉️ :title․ :text",
+        "ru": "✉️ :title: :text"
+    },
     "notice.tournament_news": {
         "en": "📣 :title: :text",
         "hy": "📣 :title․ :text",
@@ -3808,6 +3848,11 @@
         "en": ":title: :winner beat :loser :score.",
         "hy": ":title․ :winner-ը հաղթեց :loser-ին :score։",
         "ru": ":title: :winner победил(а) :loser :score."
+    },
+    "notice.tournament_unpaid": {
+        "en": "💳 :title (:when): your fee of :amount isn't paid yet. Pay at the club by card or cash.",
+        "hy": "💳 :title (:when)․ ձեր :amount վճարը դեռ վճարված չէ։ Վճարեք ակումբում՝ քարտով կամ կանխիկ։",
+        "ru": "💳 :title (:when): ваш взнос :amount ещё не оплачен. Оплатите в клубе картой или наличными."
     },
     "owner.action.create": {
         "en": "Create booking",
@@ -5764,6 +5809,11 @@
         "hy": "Բոլոր գրանցվածները կստանան այն հավելվածում և Telegram-ում․ այն կգրվի նաև չատում։",
         "ru": "Все зарегистрированные получат это в приложении и в Telegram; текст также появится в чате."
     },
+    "owner.tournament.announce_hint_applied": {
+        "en": "Players still waiting for your answer get it in the app and on Telegram. They are not in the chat.",
+        "hy": "Ձեր պատասխանին սպասող խաղացողները կստանան այն հավելվածում և Telegram-ում։ Նրանք չատում չեն։",
+        "ru": "Игроки, ждущие вашего ответа, получат это в приложении и в Telegram. В чате их нет."
+    },
     "owner.tournament.announce_ph": {
         "en": "e.g. We start at 11:00, come 15 min earlier",
         "hy": "օր․՝ Սկսում ենք 11:00-ին, եկեք 15 րոպե շուտ",
@@ -5794,6 +5844,36 @@
         "hy": "Վիճակահանությունն արված է․ խաղացողներին տեղեկացվել է, թե ում հետ են խաղում։",
         "ru": "Жеребьёвка проведена: игрокам сообщили, с кем они играют."
     },
+    "owner.tournament.f_accepted": {
+        "en": "Accepted",
+        "hy": "Ընդունված",
+        "ru": "Приняты"
+    },
+    "owner.tournament.f_all": {
+        "en": "All",
+        "hy": "Բոլորը",
+        "ru": "Все"
+    },
+    "owner.tournament.f_applied": {
+        "en": "Waiting",
+        "hy": "Սպասում են",
+        "ru": "Ожидают"
+    },
+    "owner.tournament.f_declined": {
+        "en": "Declined",
+        "hy": "Մերժված",
+        "ru": "Отклонены"
+    },
+    "owner.tournament.f_paid": {
+        "en": "Paid",
+        "hy": "Վճարած",
+        "ru": "Оплатили"
+    },
+    "owner.tournament.f_unpaid": {
+        "en": "Not paid",
+        "hy": "Չվճարած",
+        "ru": "Не оплатили"
+    },
     "owner.tournament.live_off": {
         "en": "Not playing",
         "hy": "Չեն խաղում",
@@ -5814,20 +5894,80 @@
         "hy": "Ռեյթինգ՝ մինչև",
         "ru": "Рейтинг до"
     },
+    "owner.tournament.message": {
+        "en": "Message",
+        "hy": "Հաղորդագրություն",
+        "ru": "Сообщение"
+    },
+    "owner.tournament.message_hint": {
+        "en": "Only this player gets it, in the app and on Telegram.",
+        "hy": "Միայն այս խաղացողը կստանա այն՝ հավելվածում և Telegram-ում։",
+        "ru": "Получит только этот игрок, в приложении и в Telegram."
+    },
+    "owner.tournament.message_ph": {
+        "en": "e.g. Your match is at 12:30 on table 2",
+        "hy": "օր․՝ Ձեր խաղը 12:30-ին է, սեղան 2",
+        "ru": "напр. Ваш матч в 12:30 за столом 2"
+    },
+    "owner.tournament.message_to": {
+        "en": "Message to :name",
+        "hy": "Հաղորդագրություն՝ :name",
+        "ru": "Сообщение для :name"
+    },
     "owner.tournament.min_rating": {
         "en": "Rating from",
         "hy": "Ռեյթինգ՝ սկսած",
         "ru": "Рейтинг от"
+    },
+    "owner.tournament.n_accepted": {
+        "en": ":n accepted",
+        "hy": ":n ընդունված",
+        "ru": ":n принято"
+    },
+    "owner.tournament.n_registered": {
+        "en": ":n registered",
+        "hy": ":n գրանցված",
+        "ru": ":n заявок"
+    },
+    "owner.tournament.n_unpaid": {
+        "en": ":n not paid",
+        "hy": ":n չվճարած",
+        "ru": ":n не оплатили"
+    },
+    "owner.tournament.n_waiting": {
+        "en": ":n waiting",
+        "hy": ":n սպասում",
+        "ru": ":n ждут"
+    },
+    "owner.tournament.no_account": {
+        "en": "No account in the app: call them",
+        "hy": "Հավելվածում հաշիվ չունի․ զանգահարեք",
+        "ru": "Нет аккаунта в приложении: позвоните"
+    },
+    "owner.tournament.not_paid": {
+        "en": "Not paid",
+        "hy": "Չի վճարել",
+        "ru": "Не оплачено"
     },
     "owner.tournament.open_chat": {
         "en": "Tournament chat",
         "hy": "Մրցաշարի չատ",
         "ru": "Чат турнира"
     },
+    "owner.tournament.players": {
+        "en": "Players",
+        "hy": "Խաղացողներ",
+        "ru": "Игроки"
+    },
     "owner.tournament.redraw": {
         "en": "Redo the draw",
         "hy": "Կրկնել վիճակահանությունը",
         "ru": "Провести жеребьёвку заново"
+    },
+    "owner.tournament.remind_unpaid": {
+        "en": "Remind unpaid (:n)",
+        "hy": "Հիշեցնել չվճարածներին (:n)",
+        "ru": "Напомнить неоплатившим (:n)"
     },
     "owner.tournament.score_ph": {
         "en": "Score, e.g. 3:1",
@@ -5858,6 +5998,11 @@
         "en": "Everybody registered",
         "hy": "Բոլոր գրանցվածներին",
         "ru": "Всем зарегистрированным"
+    },
+    "owner.tournament.to_applied": {
+        "en": "Only waiting",
+        "hy": "Միայն սպասողներին",
+        "ru": "Только ожидающим"
     },
     "owner.tournament.who_won": {
         "en": "Who won?",

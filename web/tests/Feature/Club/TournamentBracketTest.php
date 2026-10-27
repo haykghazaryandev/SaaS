@@ -4,6 +4,7 @@ use App\Domain\Booking\BookingException;
 use App\Domain\Chat\Chat;
 use App\Domain\Club\Events\TournamentChanged;
 use App\Domain\Club\Tournaments;
+use App\Http\Presenters\TournamentBracket;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\SportRating;
@@ -137,10 +138,75 @@ it('shows the bracket on the public page with my match, and on the owner page', 
         ->where('bracket.rounds.0.matches', fn ($ms) => collect($ms)->contains(fn ($m) => ($m['a']['me'] ?? false) || ($m['b']['me'] ?? false))));
     auth()->logout();
     $this->get('/t/'.$this->t->code)->assertInertia(fn (Assert $p) => $p->where('chat', null)->has('bracket.rounds', 2));
-    $this->actingAs($this->owner)->get('/owner/tournaments')->assertInertia(fn (Assert $p) => $p->where('current.bracket.total', 2)
-        ->where('current.drawn', true)->where('current.max_players', 6));
+    $this->actingAs($this->owner)->get("/owner/tournaments/{$this->t->id}")->assertInertia(fn (Assert $p) => $p->component('owner/Tournament')
+        ->where('tournament.bracket.total', 2)->where('tournament.drawn', true)->where('tournament.max_players', 6));
+    $this->actingAs($this->owner)->get('/owner/tournaments')->assertInertia(fn (Assert $p) => $p->component('owner/Tournaments')
+        ->where('tournaments.0.accepted', 4)->where('tournaments.0.drawn', true));
+    $this->actingAs($this->owner)->get("/owner/tournaments?t={$this->t->id}")->assertRedirect("/owner/tournaments/{$this->t->id}");
     // another place's owner: no
     $other = User::factory()->create();
     makeClub(1, ['features' => ['tournaments']])->staff()->attach($other->id, ['role' => 'owner']);
     $this->actingAs($other)->post("/owner/tournaments/{$this->t->id}/draw")->assertNotFound();
+});
+
+it('messages one player, sends news to the waiting ones only (no chat) and reminds the unpaid', function () {
+    Notification::fake();
+    $this->t->update(['options' => [['label' => 'Standard', 'price' => 5000]]]);
+    [$a, $b] = ($this->players)(2)->all();
+    $waiting = ($this->players)(1, false)->first();
+    $ua = User::find($a->user_id);
+    // accepted with a fee: the message says how much
+    Notification::assertSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_accepted_fee' && $n->params['amount'] === '5 000 ֏');
+
+    $this->actingAs($this->owner)->post("/owner/tournament-entries/{$a->id}/message", ['text' => 'Table 2 at 12:30'])->assertSessionHasNoErrors();
+    Notification::assertSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_message' && $n->params['text'] === 'Table 2 at 12:30');
+    Notification::assertNotSentTo(User::find($b->user_id), Notice::class, fn ($n) => $n->type === 'tournament_message');
+    // no account: refused with a hint
+    $phoneOnly = $this->tt->register($this->t, ['first_name' => 'No', 'last_name' => 'App', 'phone' => '+37491777777', 'option' => 0, 'level' => 1200]);
+    $this->actingAs($this->owner)->post("/owner/tournament-entries/{$phoneOnly->id}/message", ['text' => 'Hi'])->assertSessionHasErrors('booking');
+
+    // news to the waiting ones: a notification, nothing in the chat
+    $before = Message::count();
+    $this->actingAs($this->owner)->post("/owner/tournaments/{$this->t->id}/announce", ['text' => 'We answer tomorrow', 'to' => 'applied'])->assertSessionHasNoErrors();
+    Notification::assertSentTo(User::find($waiting->user_id), Notice::class, fn ($n) => $n->type === 'tournament_news' && $n->params['text'] === 'We answer tomorrow');
+    Notification::assertNotSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_news' && $n->params['text'] === 'We answer tomorrow');
+    expect(Message::count())->toBe($before);
+
+    // the unpaid: a reminder (the paid one doesn't get it); the public page shows it too
+    $this->tt->pay($b->fresh(), 'cash', $this->owner);
+    $this->actingAs($this->owner)->post("/owner/tournaments/{$this->t->id}/remind")->assertSessionHasNoErrors();
+    Notification::assertSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_unpaid');
+    Notification::assertNotSentTo(User::find($b->user_id), Notice::class, fn ($n) => $n->type === 'tournament_unpaid');
+    $this->actingAs($ua)->get('/t/'.$this->t->code)->assertInertia(fn (Assert $p) => $p->where('entry.unpaid', 5000));
+    $this->actingAs(User::find($b->user_id))->get('/t/'.$this->t->code)->assertInertia(fn (Assert $p) => $p->where('entry.unpaid', 0));
+
+    // by itself the day before
+    $this->travelTo($this->t->starts_at->subDay()->setTime(10, 0));
+    expect(app(Tournaments::class)->remindTomorrow())->toBe(1);
+});
+
+it('draws and shows brackets of any size: 2, 3, 11 and 100 players', function () {
+    foreach ([2 => [1, 2], 3 => [2, 4], 11 => [4, 16], 100 => [7, 128]] as $n => [$rounds, $size]) {
+        $t = $this->tt->save(new Tournament(['venue_id' => $this->club->id]), ['title' => "Cup $n", 'sport' => 'pingpong', 'starts_at' => now()->addDays(3),
+            'options' => [['label' => 'Free', 'price' => 0]]]);
+        foreach (range(1, $n) as $i) {
+            TournamentEntry::create(['tournament_id' => $t->id, 'first_name' => "N$i", 'last_name' => 'X', 'phone' => '+3749'.(1000000 + 1000 * $n + $i), 'level' => 2000 - $i, 'option' => 0, 'status' => 'accepted']);
+        }
+        $this->tt->draw($t);
+        $b = TournamentBracket::of($t->fresh());
+        expect($b['total'])->toBe($rounds)->and($b['rounds'][0]['matches'])->toHaveCount($size / 2)
+            // every player is in the first round once; byes = places left over, the best seeds get them
+            ->and(collect($b['rounds'][0]['matches'])->flatMap(fn ($m) => [$m['a']['id'] ?? null, $m['b']['id'] ?? null])->filter()->unique())->toHaveCount($n)
+            ->and(collect($b['rounds'][0]['matches'])->where('bye', true))->toHaveCount($size - $n);
+        // play it to the end: the a side always wins
+        foreach (range(1, $rounds) as $r) {
+            foreach (TournamentMatch::where('tournament_id', $t->id)->where('round', $r)->orderBy('slot')->get() as $m) {
+                if ($m->a_id && $m->b_id && ! $m->winner_id) {
+                    $this->tt->result($m, $m->a_id, '3:0');
+                }
+            }
+        }
+        $top = TournamentEntry::where('tournament_id', $t->id)->orderByDesc('level')->first();
+        expect($t->fresh()->status)->toBe('done')->and($top->fresh()->place)->toBe(1);
+    }
 });

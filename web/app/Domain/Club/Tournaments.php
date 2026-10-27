@@ -118,8 +118,11 @@ class Tournaments
                 }
                 if ($status !== 'applied') {
                     $user = User::find($e->user_id);
-                    DB::afterCommit(fn () => $user?->notify(new Notice('tournament_'.$status, ['title' => $t->title, 'venue' => $t->venue->name,
-                        'when' => self::when($t)], '/t/'.$t->code)));
+                    // accepted with a fee still to pay: the message says how much
+                    $fee = $status === 'accepted' && ! $e->payment_id ? self::fee($t, $e) : 0;
+                    $type = 'tournament_'.$status.($fee ? '_fee' : '');
+                    DB::afterCommit(fn () => $user?->notify(new Notice($type, ['title' => $t->title, 'venue' => $t->venue->name,
+                        'when' => self::when($t)] + ($fee ? ['amount' => Cards::amd($fee)] : []), '/t/'.$t->code)));
                 }
             }
         });
@@ -156,25 +159,87 @@ class Tournaments
         return $c;
     }
 
+    public const AUDIENCES = ['all', 'accepted', 'applied'];
+
     /**
-     * News from the organiser to the registered players with an account: everybody not declined ($onlyAccepted: only
-     * the accepted ones). A notification (app + Telegram) and the same text in the tournament chat. Returns how many.
+     * News from the organiser to the registered players with an account: 'all' (not declined), 'accepted' or 'applied'
+     * (still waiting for the answer). A notification (app + Telegram); for the accepted ones the same text goes into the
+     * tournament chat too — the waiting ones are not in the chat and never see it. Returns how many were told.
      */
-    public function announce(Tournament $t, User $by, string $text, bool $onlyAccepted = false): int
+    public function announce(Tournament $t, User $by, string $text, string $to = 'all'): int
     {
         $text = trim($text);
-        if ($text === '' || mb_strlen($text) > 1000) {
+        if ($text === '' || mb_strlen($text) > 1000 || ! in_array($to, self::AUDIENCES, true)) {
             throw new BookingException('bad_options');
         }
-        $this->chat->send($this->openChat($t, $by), $by, $text);
-        $to = $t->entries()->whereNotNull('user_id');
-        $onlyAccepted ? $to->where('status', 'accepted') : $to->where('status', '!=', 'declined');
-        $users = User::whereIn('id', $to->pluck('user_id'))->get();
+        if ($to !== 'applied') {
+            $this->chat->send($this->openChat($t, $by), $by, $text);
+        }
+        $q = $t->entries()->whereNotNull('user_id');
+        match ($to) {
+            'accepted' => $q->where('status', 'accepted'),
+            'applied' => $q->where('status', 'applied'),
+            default => $q->where('status', '!=', 'declined'),
+        };
+        $users = User::whereIn('id', $q->pluck('user_id'))->get();
         foreach ($users as $u) {
             $u->notify(new Notice('tournament_news', ['title' => $t->title, 'text' => mb_substr($text, 0, 300)], '/t/'.$t->code));
         }
 
         return $users->count();
+    }
+
+    /** A message from the organiser to one registered player (app + Telegram). They need an account (a phone call otherwise). */
+    public function message(TournamentEntry $e, string $text): void
+    {
+        $text = trim($text);
+        if ($text === '' || mb_strlen($text) > 1000) {
+            throw new BookingException('bad_options');
+        }
+        $user = $e->user_id ? User::find($e->user_id) : null;
+        if (! $user) {
+            throw new BookingException('no_account');
+        }
+        $e->loadMissing('tournament');
+        $user->notify(new Notice('tournament_message', ['title' => $e->tournament->title, 'text' => mb_substr($text, 0, 500)], '/t/'.$e->tournament->code));
+    }
+
+    // ---------- the fee ----------
+
+    /** The fee of the entry's option (0: free). */
+    public static function fee(Tournament $t, TournamentEntry $e): int
+    {
+        return (int) ($t->options[$e->option]['price'] ?? 0);
+    }
+
+    /**
+     * "You haven't paid for the tournament yet": to the accepted players with a fee and no payment (with an account).
+     * The owner's button, and by itself the day before (scheduler). Returns how many were told.
+     */
+    public function remindUnpaid(Tournament $t): int
+    {
+        $n = 0;
+        foreach ($t->entries()->where('status', 'accepted')->whereNull('payment_id')->whereNotNull('user_id')->get() as $e) {
+            $fee = self::fee($t, $e);
+            if ($fee > 0 && ($user = User::find($e->user_id))) {
+                $user->notify(new Notice('tournament_unpaid', ['title' => $t->title, 'amount' => Cards::amd($fee), 'when' => self::when($t)], '/t/'.$t->code));
+                $n++;
+            }
+        }
+
+        return $n;
+    }
+
+    /** Scheduler, daily: the tournaments starting tomorrow remind their unpaid players. */
+    public function remindTomorrow(): int
+    {
+        $from = LocalTime::now()->startOfDay()->addDay();
+        $n = 0;
+        foreach (Tournament::whereIn('status', ['open', 'closed'])->whereBetween('starts_at', [$from->utc(), $from->addDay()->utc()])->get() as $t) {
+            $n += $this->remindUnpaid($t);
+        }
+
+        return $n;
     }
 
     // ---------- the draw and the bracket ----------
