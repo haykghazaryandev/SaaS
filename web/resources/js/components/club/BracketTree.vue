@@ -108,10 +108,10 @@ watch(() => props.rounds, () => nextTick(later));
         <svg class="wires" aria-hidden="true"><path v-for="(p, i) in paths" :key="i" :class="p.cls" :d="p.d" /></svg>
 
         <template v-for="side in ['L', 'C', 'R'] as const" :key="side">
-            <div v-for="c in side === 'L' ? cols.left : side === 'R' ? cols.right : []" :key="`${side}${c.round}`" :class="['col', `col-${side}`]">
-                <div class="ch">{{ roundName(sizeOf(c.round)) }}</div>
-                <div class="cb">
-                    <div v-for="m in c.matches" :key="m.id" class="slot">
+            <div v-for="c in side === 'L' ? cols.left : side === 'R' ? cols.right : []" :key="`${side}${c.round}`" :class="['bk-col', `bk-col-${side}`]">
+                <div class="bk-ch">{{ roundName(sizeOf(c.round)) }}</div>
+                <div class="bk-cb">
+                    <div v-for="m in c.matches" :key="m.id" class="bk-slot">
                         <!-- a bye: one player going on -->
                         <div v-if="m.bye" class="mb bye" :data-m="`${c.round}-${m.slot}`">
                             <div class="anc">
@@ -147,10 +147,10 @@ watch(() => props.rounds, () => nextTick(later));
             </div>
 
             <!-- the Grand Final -->
-            <div v-if="side === 'C'" class="col col-C">
-                <div class="ch">{{ roundName(2) }}</div>
-                <div class="cb">
-                    <div class="slot">
+            <div v-if="side === 'C'" class="bk-col col-C">
+                <div class="bk-ch">{{ roundName(2) }}</div>
+                <div class="bk-cb">
+                    <div class="bk-slot">
                         <BracketFinal v-if="fin" :match="fin" :total="total" :editable="editable" :when="when" :large="large" @pick="(m) => emit('pick', m)" />
                     </div>
                 </div>
@@ -162,11 +162,11 @@ watch(() => props.rounds, () => nextTick(later));
 <style scoped>
 /* design B, "arena": the same sizes and colours as the chosen mock-up */
 .tree { --win: #5ef0a8; --live: #ff6b6b; --muted: #9aa69b; --faint: #657066; position: relative; display: grid; column-gap: 16px; width: 100%; }
-.col { display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 1; }
-.ch { text-align: center; font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); text-shadow: 0 0 10px rgba(255, 159, 67, 0.35); padding: 2px 0 8px; white-space: nowrap; }
-.cb { flex: 1; display: flex; flex-direction: column; }
-.slot { flex: 1; display: flex; align-items: center; padding: 8px 0; }
-.slot > * { width: 100%; }
+.bk-col { display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 1; }
+.bk-ch { text-align: center; font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); text-shadow: 0 0 10px rgba(255, 159, 67, 0.35); padding: 2px 0 8px; white-space: nowrap; }
+.bk-cb { flex: 1; display: flex; flex-direction: column; }
+.bk-slot { flex: 1; display: flex; align-items: center; padding: 8px 0; }
+.bk-slot > * { width: 100%; }
 
 .wires { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: visible; }
 .wires path { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -194,8 +194,8 @@ watch(() => props.rounds, () => nextTick(later));
 .pl.lose { opacity: 0.36; filter: grayscale(1); }
 .pl.tbd .nm { color: var(--faint); font-style: italic; font-weight: 600; }
 .pl.me .nm::after, .fp.me .nm::after { content: ' ●'; color: var(--win); font-size: 9px; vertical-align: middle; }
-.col-R .pl { flex-direction: row-reverse; }
-.col-R .who { text-align: right; }
+.bk-col-R .pl { flex-direction: row-reverse; }
+.bk-col-R .who { text-align: right; }
 .lv { font: 500 10px var(--mono); padding: 3px 6px 2px; }
 .livetag { color: var(--live); display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live); display: inline-block; flex: none; animation: pulse 1.4s infinite; }
@@ -207,5 +207,5 @@ watch(() => props.rounds, () => nextTick(later));
 .tree.large .rt { font-size: 11.5px; }
 .tree.large .av { width: 30px; height: 30px; font-size: 11px; }
 .tree.large .sc { font-size: 16px; width: 22px; }
-.tree.large .slot { padding: 12px 0; }
+.tree.large .bk-slot { padding: 12px 0; }
 </style>

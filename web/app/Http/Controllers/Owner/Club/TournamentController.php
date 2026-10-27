@@ -147,7 +147,7 @@ class TournamentController extends OwnerController
         $this->own($request, $tournament);
         $n = $tournaments->remindUnpaid($tournament);
 
-        return back()->with('success', __('owner.tournament.sent', ['n' => $n]));
+        return back()->with('success', __('owner.tournament.reminded', ['n' => $n]));
     }
 
     /** The tournament chat: staff join it as the organiser and go to it. */

@@ -6094,6 +6094,21 @@
         "hy": "ցանկացած",
         "ru": "любой"
     },
+    "owner.tournament.aud_accepted": {
+        "en": "Accepted",
+        "hy": "Ընդունվածներին",
+        "ru": "Принятым"
+    },
+    "owner.tournament.aud_all": {
+        "en": "Everyone",
+        "hy": "Բոլորին",
+        "ru": "Всем"
+    },
+    "owner.tournament.aud_applied": {
+        "en": "Not accepted yet",
+        "hy": "Դեռ չընդունվածներին",
+        "ru": "Ещё не принятым"
+    },
     "owner.tournament.bracket": {
         "en": "Bracket",
         "hy": "Սխեմա",
@@ -6214,6 +6229,11 @@
         "hy": "Հիշեցնել չվճարածներին (:n)",
         "ru": "Напомнить неоплатившим (:n)"
     },
+    "owner.tournament.reminded": {
+        "en": "Reminder sent to :n players who haven't paid (those who paid don't get it).",
+        "hy": "Հիշեցումն ուղարկվեց :n չվճարած խաղացողի (վճարածները չեն ստանում)։",
+        "ru": "Напоминание отправлено :n неоплатившим игрокам (оплатившие его не получают)."
+    },
     "owner.tournament.score_hint": {
         "en": "Type each player's score (e.g. 3 and 1): the higher one wins and goes on.",
         "hy": "Գրեք յուրաքանչյուր խաղացողի հաշիվը (օր․՝ 3 և 1)․ ավելի մեծը հաղթում է և անցնում առաջ։",
@@ -6233,21 +6253,6 @@
         "en": "Tap a match to mark the winner: the bracket updates for everybody and both players are told.",
         "hy": "Սեղմեք խաղի վրա՝ հաղթողին նշելու համար․ սխեման կթարմանա բոլորի համար, և երկու խաղացողներին կտեղեկացվի։",
         "ru": "Нажмите на матч, чтобы отметить победителя: сетка обновится у всех, игрокам придёт уведомление."
-    },
-    "owner.tournament.to_accepted": {
-        "en": "Only accepted players",
-        "hy": "Միայն ընդունվածներին",
-        "ru": "Только принятым"
-    },
-    "owner.tournament.to_all": {
-        "en": "Everyone",
-        "hy": "Բոլորին",
-        "ru": "Всем"
-    },
-    "owner.tournament.to_applied": {
-        "en": "Only registered (not accepted yet)",
-        "hy": "Միայն գրանցվածներին (դեռ չընդունված)",
-        "ru": "Только записавшимся (ещё не принятым)"
     },
     "owner.tournament.who_won": {
         "en": "The score",

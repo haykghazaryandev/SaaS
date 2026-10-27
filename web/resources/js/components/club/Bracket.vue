@@ -128,7 +128,7 @@ const tapTree = () => !props.editable && !props.embedded && openLarge();
 
         <!-- 17+ players: the early rounds, one round at a time, 10 matches a page -->
         <section v-if="early.length && round" class="early">
-            <div class="ch">{{ $t('club.bracket.early') }}</div>
+            <div class="bk-ch">{{ $t('club.bracket.early') }}</div>
             <div class="rtabs" role="tablist">
                 <button v-for="r in early" :key="r.round" type="button" role="tab" :aria-selected="r.round === round.round" :class="{ done: done(r) }" @click="shown = r.round">
                     {{ tabName(r.size) }}<i v-if="live(r)" class="dot" />
@@ -161,7 +161,7 @@ const tapTree = () => !props.editable && !props.embedded && openLarge();
                 <button type="button" :disabled="page === pages - 1" aria-label="›" @click="page++">›</button>
             </div>
             <p v-if="byes" class="byes">{{ $t('club.bracket.byes', { n: byes }) }}</p>
-            <div class="ch" style="margin-top: 18px">{{ $t('club.bracket.final_stage') }}</div>
+            <div class="bk-ch" style="margin-top: 18px">{{ $t('club.bracket.final_stage') }}</div>
         </section>
 
         <BracketHalves v-if="narrow" :rounds="tree" :total="bracket.total" :editable="editable" :when="when" @pick="pick" />
@@ -231,7 +231,7 @@ const tapTree = () => !props.editable && !props.embedded && openLarge();
 @keyframes nudge { 50% { transform: translateX(5px); } }
 
 /* early rounds: light cards (no glow), paged */
-.ch { font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); margin: 0 0 8px; }
+.bk-ch { font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); margin: 0 0 8px; }
 .rtabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
 .rtabs button { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 159, 67, 0.25); background: rgba(18, 23, 19, 0.88); color: #9aa69b; font: 700 12px var(--display); padding: 7px 13px; border-radius: 999px; cursor: pointer; }
 .rtabs button.done { color: #5ef0a8; border-color: rgba(94, 240, 168, 0.35); }

@@ -202,9 +202,9 @@ async function copy() {
                 <button type="button" class="btn ghost sm" data-test="t-chat" @click="openChat"><Icon name="chat" size="sm" />{{ $t('owner.tournament.open_chat') }}</button>
             </div>
             <form class="news" @submit.prevent="sendNews">
-                <div class="seg aud" role="group">
-                    <button v-for="a in ['all', 'accepted', 'applied'] as const" :key="a" type="button" :aria-pressed="news.to === a" :data-test="`to-${a}`" @click="news.to = a">
-                        {{ $t('owner.tournament.to_' + a) }}
+                <div class="chips aud" role="group">
+                    <button v-for="a in ['all', 'accepted', 'applied'] as const" :key="a" type="button" class="chip" :aria-pressed="news.to === a" :data-test="`to-${a}`" @click="news.to = a">
+                        {{ $t('owner.tournament.aud_' + a) }}
                     </button>
                 </div>
                 <textarea v-model="news.text" class="input" rows="3" maxlength="1000" :placeholder="$t('owner.tournament.announce_ph')" data-test="t-news" />
@@ -256,8 +256,7 @@ async function copy() {
 .news { display: grid; gap: 8px; min-width: 0; }
 .news textarea { width: 100%; box-sizing: border-box; resize: vertical; }
 .news small { font-size: 12px; }
-.aud { display: flex; width: 100%; }
-.aud button { flex: 1; justify-content: center; white-space: normal; text-align: center; }
+.aud { display: flex; flex-wrap: wrap; gap: 6px; }
 .who { display: grid; gap: 10px; }
 .srow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); }
 .srow.won { border-color: color-mix(in srgb, var(--free) 55%, transparent); }

@@ -101,8 +101,8 @@ watch(() => props.rounds, () => nextTick(later));
 <template>
     <div class="halves">
         <template v-if="inner.length">
-            <div class="seg" role="tablist">
-                <span class="segbg" :style="{ transform: `translateX(${shown * 100}%)` }" />
+            <div class="bk-seg" role="tablist">
+                <span class="bk-segbg" :style="{ transform: `translateX(${shown * 100}%)` }" />
                 <button v-for="h in [0, 1] as const" :key="h" type="button" role="tab" :aria-selected="shown === h" :class="{ on: shown === h }" :data-test="`half-${h}`" @click="go(h)">
                     {{ h === 0 ? $t('club.bracket.top_half') : $t('club.bracket.bottom_half') }}<i v-if="mine(h)" class="medot" />
                 </button>
@@ -111,10 +111,10 @@ watch(() => props.rounds, () => nextTick(later));
                 <div v-for="(cols, h) in halves" :key="h" class="pane">
                     <div ref="trees" class="htree" :style="{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }">
                         <svg class="wires" aria-hidden="true"><path v-for="(p, i) in paths[h]" :key="i" :class="p.cls" :d="p.d" /></svg>
-                        <div v-for="c in cols" :key="c.round" class="col">
-                            <div class="ch">{{ head(c.round) }}</div>
-                            <div class="cb">
-                                <div v-for="m in c.matches" :key="m.id" class="slot">
+                        <div v-for="c in cols" :key="c.round" class="bk-col">
+                            <div class="bk-ch">{{ head(c.round) }}</div>
+                            <div class="bk-cb">
+                                <div v-for="m in c.matches" :key="m.id" class="bk-slot">
                                     <component
                                         :is="canPick(m) ? 'button' : 'div'"
                                         :type="canPick(m) ? 'button' : undefined"
@@ -152,12 +152,12 @@ watch(() => props.rounds, () => nextTick(later));
 
 <style scoped>
 .halves { --win: #5ef0a8; --live: #ff6b6b; --muted: #9aa69b; --faint: #657066; color: #eef5ec; }
-.seg { position: relative; display: flex; padding: 4px; border-radius: 14px; background: rgba(18, 23, 19, 0.92); border: 1px solid rgba(255, 159, 67, 0.16); margin-bottom: 10px; }
-.seg button { flex: 1; position: relative; z-index: 1; height: 38px; border: 0; background: none; color: var(--muted); font: 700 13px var(--body); display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: color 0.2s; }
-.seg button.on { color: #1a1205; }
-.segbg { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 10px; background: linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%); transition: transform 0.25s; box-shadow: 0 0 18px rgba(255, 159, 67, 0.35); }
+.bk-seg { position: relative; display: flex; padding: 4px; border-radius: 14px; background: rgba(18, 23, 19, 0.92); border: 1px solid rgba(255, 159, 67, 0.16); margin-bottom: 10px; }
+.bk-seg button { flex: 1; position: relative; z-index: 1; height: 38px; border: 0; background: none; color: var(--muted); font: 700 13px var(--body); display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; transition: color 0.2s; }
+.bk-seg button.on { color: #1a1205; }
+.bk-segbg { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 10px; background: linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%); transition: transform 0.25s; box-shadow: 0 0 18px rgba(255, 159, 67, 0.35); }
 .medot { width: 7px; height: 7px; border-radius: 50%; background: var(--win); box-shadow: 0 0 8px rgba(94, 240, 168, 0.8); display: inline-block; flex: none; }
-.seg button.on .medot { background: #0d5a37; box-shadow: none; }
+.bk-seg button.on .medot { background: #0d5a37; box-shadow: none; }
 .panes { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .panes::-webkit-scrollbar { display: none; }
 .pane { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }
@@ -167,11 +167,11 @@ watch(() => props.rounds, () => nextTick(later));
 .wires .off { stroke: rgba(255, 159, 67, 0.14); stroke-dasharray: 3 5; }
 .wires .on { stroke: rgba(94, 240, 168, 0.38); }
 .wires .alive { stroke: #ffb36b; stroke-width: 2.5; filter: drop-shadow(0 0 3px #ff9f43); }
-.col { display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 1; }
-.ch { text-align: center; font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); padding: 2px 0 6px; }
-.cb { flex: 1; display: flex; flex-direction: column; }
-.slot { flex: 1; display: flex; align-items: center; padding: 5px 0; }
-.slot > * { width: 100%; }
+.bk-col { display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 1; }
+.bk-ch { text-align: center; font: 600 10px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 209, 102, 0.55); padding: 2px 0 6px; }
+.bk-cb { flex: 1; display: flex; flex-direction: column; }
+.bk-slot { flex: 1; display: flex; align-items: center; padding: 5px 0; }
+.bk-slot > * { width: 100%; }
 /* compact cards: surname and score */
 .mb { position: relative; display: block; width: 100%; font: inherit; color: inherit; text-align: left; background: rgba(18, 23, 19, 0.88); border: 1px solid rgba(255, 159, 67, 0.16); border-radius: 12px; padding: 3px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
 .mb.pick { cursor: pointer; }
