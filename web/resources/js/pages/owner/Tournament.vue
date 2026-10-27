@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Bracket, { type BracketData, type Match } from '@/components/club/Bracket.vue';
+import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import TournamentForm, { type TournamentSettings } from '@/components/owner/TournamentForm.vue';
@@ -7,7 +8,7 @@ import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 // One tournament: its link and settings; the registered players (filters: waiting / accepted / declined / paid /
 // not paid) with accept / decline, the fee (card or cash); "remind the unpaid"; the draw and
@@ -26,7 +27,7 @@ interface Entry {
     account: boolean;
     paid: { amount: number; method: string } | null;
 }
-const props = defineProps<{ tournament: TournamentSettings & { link: string; drawn: boolean; list: Entry[]; bracket: BracketData | null; chat: number | null } }>();
+const props = defineProps<{ tournament: TournamentSettings & { phase: Phase; link: string; drawn: boolean; list: Entry[]; bracket: BracketData | null; chat: number | null } }>();
 const owner = useOwner();
 const canEdit = owner.value.role === 'owner';
 const has = (f: string) => (owner.value.features ?? []).includes(f);
@@ -46,24 +47,44 @@ const test: Record<Filter, (e: Entry) => boolean> = {
     paid: (e) => !!e.paid,
     unpaid: owes,
 };
-const shown = computed(() => t.value.list.filter(test[filter.value]));
+const filtered = computed(() => t.value.list.filter(test[filter.value]));
+// 10 players a page
+const PER = 10;
+const page = ref(0);
+const pages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER)));
+const shown = computed(() => filtered.value.slice(page.value * PER, (page.value + 1) * PER));
+watch(filter, () => (page.value = 0));
+watch(pages, (n) => page.value >= n && (page.value = n - 1));
 const count = (f: Filter) => t.value.list.filter(test[f]).length;
 const accepted = computed(() => count('accepted'));
-const entry = (id: number, data: Record<string, string>) => router.patch(route('owner.tournaments.entry', id), data, opts);
+const entry = (id: number, data: Record<string, string>) => router.patch(route('owner.tournaments.entry', id), data, { preserveScroll: true, preserveState: true });
 const remind = () => router.post(route('owner.tournaments.remind', t.value.id), {}, opts);
 const placeName = (n: number) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : `#${n}`);
 
 // ---------- the draw and the bracket ----------
-const draw = () => router.post(route('owner.tournaments.draw', t.value.id), {}, opts);
+const draw = () => router.post(route('owner.tournaments.draw', t.value.id), {}, { preserveScroll: true, preserveState: true });
+// a match: a number next to each name, the higher one wins. The page keeps its place (round tab, page, scroll,
+// full screen): preserveState.
 const picked = ref<Match | null>(null);
-const score = ref('');
+const sc = ref<{ a: number | ''; b: number | '' }>({ a: '', b: '' });
+const scoreErr = ref('');
 function pick(m: Match) {
     picked.value = m;
-    score.value = m.score ?? '';
+    scoreErr.value = '';
+    const p = /^\s*(\d+)\s*\D+\s*(\d+)\s*$/.exec(m.score ?? '');
+    sc.value = p ? { a: +p[1], b: +p[2] } : { a: '', b: '' };
 }
+const keep = { preserveScroll: true, preserveState: true };
 function setMatch(data: Record<string, string | number | boolean | null>) {
-    if (picked.value) router.patch(route('owner.tournaments.match', picked.value.id), data, { ...opts, onSuccess: () => (picked.value = null) });
+    if (!picked.value) return;
+    router.patch(route('owner.tournaments.match', picked.value.id), data, {
+        ...keep,
+        onSuccess: () => (picked.value = null),
+        onError: (e) => (scoreErr.value = Object.values(e)[0] ?? ''),
+    });
 }
+const canSave = computed(() => sc.value.a !== '' && sc.value.b !== '' && sc.value.a !== sc.value.b);
+const saveScore = () => canSave.value && setMatch({ score_a: Number(sc.value.a), score_b: Number(sc.value.b) });
 const when = computed(() => `${t.value.date.slice(8)}.${t.value.date.slice(5, 7)} · ${t.value.time}`);
 
 // ---------- news, chat ----------
@@ -90,8 +111,9 @@ async function copy() {
             <div class="sec-h" style="align-items: flex-start">
                 <div style="min-width: 0">
                     <h1 style="margin: 0; font-size: 22px">{{ tournament.title }}</h1>
+                    <TournamentPhase :phase="tournament.phase" style="margin-top: 6px" />
                     <p class="muted" style="margin: 4px 0 0; font-size: 13.5px">
-                        {{ when }} · {{ $t('owner.club.t_status_' + tournament.status) }} ·
+                        {{ when }} ·
                         {{ tournament.options.map((o) => `${o.label} ${amd(o.price)}`).join(' / ') }}
                     </p>
                     <p v-if="tournament.min_rating != null || tournament.max_rating != null || tournament.max_players" class="muted" style="margin: 2px 0 0; font-size: 13px">
@@ -151,6 +173,11 @@ async function copy() {
                 </template>
             </div>
             <p v-if="!shown.length" class="faint" style="margin: 8px 0 0">{{ $t('owner.club.no_entries') }}</p>
+            <div v-if="pages > 1" class="pager">
+                <button type="button" class="btn ghost sm" :disabled="page === 0" @click="page--">‹</button>
+                <button v-for="i in pages" :key="i" type="button" :class="['btn', 'sm', { ghost: page !== i - 1 }]" @click="page = i - 1">{{ i }}</button>
+                <button type="button" class="btn ghost sm" :disabled="page === pages - 1" @click="page++">›</button>
+            </div>
         </section>
 
         <!-- the draw and the bracket -->
@@ -188,22 +215,29 @@ async function copy() {
 
         <!-- a match: who won (and the score), or playing now -->
         <OwnerSheet v-if="picked" :title="$t('owner.tournament.who_won')" @close="picked = null">
-            <div class="who">
-                <button
-                    v-for="s in [picked.a, picked.b]"
-                    :key="s!.id"
-                    type="button"
-                    :class="['btn', 'block', { ghost: picked.winner !== s!.id }]"
-                    :data-test="`winner-${s!.id}`"
-                    @click="setMatch({ winner: s!.id, score: score })"
-                >
-                    {{ s!.name }}
-                </button>
-                <input v-model="score" class="input" maxlength="20" :placeholder="$t('owner.tournament.score_ph')" data-test="t-score" />
+            <!-- a number next to each name; the higher one wins -->
+            <form class="who" @submit.prevent="saveScore">
+                <label v-for="(s, k) in [picked.a, picked.b]" :key="s!.id" :class="['srow', { won: picked.winner === s!.id }]">
+                    <span class="sname">{{ s!.name }}<small v-if="s!.rating">{{ s!.rating }}</small></span>
+                    <input
+                        v-model.number="sc[k === 0 ? 'a' : 'b']"
+                        class="input snum"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        max="99"
+                        placeholder="0"
+                        :aria-label="s!.name"
+                        :data-test="`score-${k === 0 ? 'a' : 'b'}`"
+                    />
+                </label>
+                <div v-if="scoreErr" class="err">{{ scoreErr }}</div>
+                <button class="btn block" :disabled="!canSave" data-test="score-save"><Icon name="check" size="sm" />{{ $t('common.save') }}</button>
                 <button v-if="!picked.winner" type="button" class="btn ghost block" @click="setMatch({ live: !picked.live })">
                     <i class="ldot" />{{ picked.live ? $t('owner.tournament.live_off') : $t('owner.tournament.live_on') }}
                 </button>
-            </div>
+                <small class="faint">{{ $t('owner.tournament.score_hint') }}</small>
+            </form>
         </OwnerSheet>
 
     </OwnerLayout>
@@ -225,5 +259,12 @@ async function copy() {
 .aud { display: flex; width: 100%; }
 .aud button { flex: 1; justify-content: center; white-space: normal; text-align: center; }
 .who { display: grid; gap: 10px; }
+.srow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); }
+.srow.won { border-color: color-mix(in srgb, var(--free) 55%, transparent); }
+.sname { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: 800; }
+.sname small { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 500; }
+.snum::-webkit-outer-spin-button, .snum::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.snum { -moz-appearance: textfield; appearance: textfield; width: 76px; text-align: center; font: 700 22px var(--mono); padding: 8px; }
+.pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 12px; }
 .ldot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff6b6b; margin-right: 6px; }
 </style>

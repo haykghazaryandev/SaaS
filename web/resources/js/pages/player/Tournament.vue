@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Bracket, { type BracketData } from '@/components/club/Bracket.vue';
+import TournamentPhase from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
 import { SPORT_ICON, dateLong } from '@/composables/usePlayer';
 import { amd } from '@/composables/useShared';
@@ -26,8 +27,12 @@ const props = defineProps<{
         description: string | null;
         options: Opt[];
         open: boolean;
+        /** registration | closed (by the club) | drawn (the pairs are known) | live | done */
+        phase: 'registration' | 'closed' | 'drawn' | 'live' | 'done';
         venue: { slug: string; name: string };
         count: number;
+        accepted: number;
+        podium: { place: number; name: string }[];
         min_rating: number | null;
         max_rating: number | null;
         max_players: number | null;
@@ -46,7 +51,7 @@ const reload = () => router.reload({ only: ['bracket', 'entry', 'tournament', 'c
 useLive(() => `tournament.${props.tournament.code}`, 'tournament.changed', reload);
 let poll: number | undefined;
 onMounted(() => {
-    if (!window.Echo && props.bracket && t.value.status !== 'done') poll = window.setInterval(reload, 30000);
+    if (!window.Echo && props.bracket && t.value.phase !== 'done') poll = window.setInterval(reload, 30000);
 });
 onBeforeUnmount(() => clearInterval(poll));
 useSportTheme(() => props.tournament.sport);
@@ -68,6 +73,7 @@ function send() {
             <div class="card pad tour">
                 <span class="kicker">{{ SPORT_ICON[tournament.sport] }} {{ tournament.venue.name }}</span>
                 <h1 class="page-title" style="margin: 6px 0">{{ tournament.title }}</h1>
+                <TournamentPhase :phase="tournament.phase" style="align-self: flex-start" />
                 <p class="muted" style="margin: 0"><Icon name="calendar" size="sm" /> {{ dateLong(tournament.date) }} · {{ tournament.time }} · {{ $t('club.t_registered', { n: tournament.count }) }}</p>
                 <p v-if="ranged || tournament.max_players" class="chips">
                     <span v-if="ranged" class="chip">{{ $t('club.tournament.rating', { range: `${tournament.min_rating ?? '…'}–${tournament.max_rating ?? '…'}` }) }}</span>
@@ -86,10 +92,18 @@ function send() {
                 <div v-else-if="done" class="ok"><Icon name="check" />{{ $t('player.tournament.registered') }}</div>
                 <div v-if="entry?.unpaid" class="ok unpaid" data-test="unpaid"><Icon name="wallet" />{{ $t('club.tournament.unpaid', { amount: amd(entry.unpaid) }) }}</div>
                 <Link v-if="chat" class="btn" :href="route('messages.show', chat)" data-test="t-chat"><Icon name="chat" size="sm" />{{ $t('club.tournament.chat') }}</Link>
-                <template v-if="entry || done" />
-                <p v-else-if="!tournament.open" class="muted">{{ $t('club.t_closed') }}</p>
+                <!-- where the tournament is: no form once the draw is made, it started or it is over -->
+                <div v-if="tournament.phase !== 'registration'" :class="['phase', tournament.phase]" data-test="phase">
+                    <i v-if="tournament.phase === 'live'" class="pdot" />{{ $t('club.tournament.phase_' + tournament.phase) }}
+                </div>
+                <ol v-if="tournament.podium.length" class="podium" data-test="podium">
+                    <li v-for="p in tournament.podium" :key="p.place + p.name" :class="'p' + p.place">
+                        <span>{{ p.place === 1 ? '🥇' : p.place === 2 ? '🥈' : '🥉' }}</span><b>{{ p.name }}</b>
+                    </li>
+                </ol>
+                <template v-if="entry || done || tournament.phase !== 'registration'" />
                 <p v-else-if="full" class="muted">{{ $t('club.tournament.full') }}</p>
-                <form v-else class="tf" @submit.prevent="send">
+                <form v-else-if="tournament.open" class="tf" data-test="register-form" @submit.prevent="send">
                     <div class="two">
                         <label class="field"><span>{{ $t('club.first_name') }}</span><input v-model="form.first_name" class="input" required minlength="2" maxlength="60" autocomplete="given-name" /></label>
                         <label class="field"><span>{{ $t('club.last_name') }}</span><input v-model="form.last_name" class="input" required minlength="2" maxlength="60" autocomplete="family-name" /></label>
@@ -119,7 +133,7 @@ function send() {
         </div>
         <!-- who plays whom, live -->
         <section v-if="bracket" class="pg wide card pad" style="margin-top: 14px" data-test="bracket">
-            <Bracket :bracket="bracket" :players="tournament.count" :title="tournament.title" :when="`${tournament.date.slice(8)}.${tournament.date.slice(5, 7)} · ${tournament.time}`" />
+            <Bracket :bracket="bracket" :players="tournament.accepted" :title="tournament.title" :when="`${tournament.date.slice(8)}.${tournament.date.slice(5, 7)} · ${tournament.time}`" />
         </section>
     </PlayerLayout>
 </template>
@@ -131,6 +145,16 @@ function send() {
 @media (min-width: 1200px) { .pg.wide { width: min(1600px, calc(100vw - 48px)); position: relative; left: 50%; transform: translateX(-50%); } }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .chip.hot { color: var(--hot); border-color: var(--hot); }
+.phase { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; font-weight: 800; background: var(--surface-2); color: var(--muted); }
+.phase.drawn { background: rgba(255, 159, 67, 0.12); color: #ff9f43; }
+.phase.live { background: var(--hot-soft); color: var(--hot); }
+.phase.done { background: var(--free-soft); color: var(--free); }
+.pdot { width: 9px; height: 9px; border-radius: 50%; background: var(--hot); animation: pd 1.4s infinite; }
+@keyframes pd { 50% { opacity: 0.3; } }
+.podium { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.podium li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.podium li span { font-size: 22px; }
+.podium .p1 { background: rgba(255, 209, 102, 0.12); }
 .ok.applied { background: var(--warn-soft); color: var(--warn); }
 .ok.unpaid { background: var(--hot-soft); color: var(--hot); font-weight: 700; }
 .ok.declined { background: var(--hot-soft); color: var(--hot); }

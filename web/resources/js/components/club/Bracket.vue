@@ -6,7 +6,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 // A tournament bracket, "arena" style (design B). The last 16 players (1/8 → the Grand Final) are the glowing tree:
 // two halves meeting at the final; a tap opens it full screen. A bigger tournament (17–128 players) shows its early
-// rounds above it as round tabs with 16 match cards per page, so a 100-player bracket stays light.
+// rounds above it as round tabs with 10 match cards per page, so a 100-player bracket stays light.
 // editable: the owner taps a match to mark the winner (the page opens its sheet). Players only look.
 export interface Side {
     id: number;
@@ -43,8 +43,8 @@ const TREE_ROUNDS = 4;
 const tree = computed(() => props.bracket.rounds.slice(-TREE_ROUNDS));
 const early = computed(() => props.bracket.rounds.slice(0, -TREE_ROUNDS));
 
-// ---------- early rounds: tabs, 16 cards a page ----------
-const PAGE = 16;
+// ---------- early rounds: tabs, 10 cards a page ----------
+const PAGE = 10;
 const current = computed(() => early.value.find((r) => r.matches.some((m) => m.a && m.b && !m.winner))?.round ?? early.value[0]?.round ?? 0);
 const shown = ref<number | null>(null);
 const round = computed(() => early.value.find((r) => r.round === (shown.value ?? current.value)) ?? early.value[0]);
@@ -53,7 +53,9 @@ const real = computed(() => round.value?.matches.filter((m) => !m.bye) ?? []);
 const pages = computed(() => Math.max(1, Math.ceil(real.value.length / PAGE)));
 const onPage = computed(() => real.value.slice(page.value * PAGE, (page.value + 1) * PAGE));
 const byes = computed(() => round.value?.matches.filter((m) => m.bye).length ?? 0);
-watch(round, () => (page.value = 0));
+// a new round tab: its first page (not when the same round only got a new result)
+watch(() => round.value?.round, () => (page.value = 0));
+watch(pages, (n) => page.value >= n && (page.value = n - 1));
 const tabName = (size: number) => `1/${size / 2}`;
 const done = (r: Round) => r.matches.every((m) => m.winner || m.bye);
 const live = (r: Round) => r.matches.some((m) => m.live);
@@ -97,10 +99,8 @@ onBeforeUnmount(() => {
     if (large.value) document.body.style.overflow = '';
 });
 const pick = (m: Match) => emit('pick', m);
-function pickLarge(m: Match) {
-    closeLarge();
-    pick(m);
-}
+// the owner edits a match in full screen: it stays open (the sheet comes over it)
+const pickLarge = (m: Match) => pick(m);
 // players tap the tree to see it large; the owner taps a match (and has the full screen chip)
 const tapTree = () => !props.editable && openLarge();
 </script>
@@ -116,7 +116,7 @@ const tapTree = () => !props.editable && openLarge();
             </div>
         </div>
 
-        <!-- 17+ players: the early rounds, one round at a time, 16 matches a page -->
+        <!-- 17+ players: the early rounds, one round at a time, 10 matches a page -->
         <section v-if="early.length && round" class="early">
             <div class="ch">{{ $t('club.bracket.early') }}</div>
             <div class="rtabs" role="tablist">
@@ -249,7 +249,7 @@ const tapTree = () => !props.editable && openLarge();
 .byes { font-size: 12px; color: #657066; margin: 8px 0 0; }
 
 /* full screen */
-.bk-full { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; color: #eef5ec;
+.bk-full { position: fixed; inset: 0; z-index: 70; /* over the tab bar, under the owner's sheet (80) */ display: flex; flex-direction: column; color: #eef5ec;
     background: radial-gradient(ellipse 45% 55% at 50% 50%, rgba(255, 159, 67, 0.14), transparent 70%), #070908; }
 .bk-full-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); border-bottom: 1px solid rgba(255, 159, 67, 0.15); font: 700 15px var(--display); text-transform: uppercase; }
 .bk-x { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 159, 67, 0.3); background: rgba(18, 23, 19, 0.9); color: #eef5ec; display: grid; place-items: center; cursor: pointer; }

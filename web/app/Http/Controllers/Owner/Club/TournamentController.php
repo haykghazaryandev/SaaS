@@ -30,6 +30,7 @@ class TournamentController extends OwnerController
 
         return Inertia::render('owner/Tournaments', [
             'tournaments' => $list->map(fn (Tournament $t) => $this->present($t) + [
+                'phase' => Tournaments::phase($t),
                 'entries' => $t->entries->where('status', '!=', 'declined')->count(),
                 'waiting' => $t->entries->where('status', 'applied')->count(),
                 'accepted' => $t->entries->where('status', 'accepted')->count(),
@@ -47,6 +48,7 @@ class TournamentController extends OwnerController
 
         return Inertia::render('owner/Tournament', [
             'tournament' => $this->present($t) + [
+                'phase' => Tournaments::phase($t),
                 'list' => $t->entries()->with('payment:id,amount,method')->orderBy('id')->get()->map(fn (TournamentEntry $e) => [
                     'id' => $e->id, 'name' => $e->first_name.' '.$e->last_name, 'phone' => Phone::format($e->phone), 'tel' => $e->phone,
                     'level' => Tournaments::ratingOf($t, $e->user_id, $e->level),
@@ -112,9 +114,14 @@ class TournamentController extends OwnerController
     public function match(Request $request, TournamentMatch $match, Tournaments $tournaments)
     {
         $this->own($request, $match->tournament);
-        $data = $request->validate(['winner' => 'nullable|integer', 'score' => 'nullable|string|max:20', 'live' => 'nullable|boolean']);
+        $data = $request->validate(['winner' => 'nullable|integer', 'score' => 'nullable|string|max:20', 'live' => 'nullable|boolean',
+            // the score of each side: the higher one wins ("3" and "1" → a wins 3:1)
+            'score_a' => 'nullable|integer|min:0|max:99|required_with:score_b', 'score_b' => 'nullable|integer|min:0|max:99|required_with:score_a|different:score_a']);
         $this->attempt(function () use ($data, $match, $tournaments) {
-            if (! empty($data['winner'])) {
+            if (isset($data['score_a'], $data['score_b'])) {
+                [$a, $b] = [(int) $data['score_a'], (int) $data['score_b']];
+                $tournaments->result($match, (int) ($a > $b ? $match->a_id : $match->b_id), "$a:$b");
+            } elseif (! empty($data['winner'])) {
                 $tournaments->result($match, (int) $data['winner'], $data['score'] ?? null);
             } elseif (array_key_exists('live', $data)) {
                 $tournaments->setLive($match, (bool) $data['live']);

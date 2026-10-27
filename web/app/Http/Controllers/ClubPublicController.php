@@ -53,13 +53,23 @@ class ClubPublicController extends Controller
         $t = Tournament::where('code', $code)->with('venue:id,slug,name')->firstOrFail();
         $user = $request->user();
         $at = $t->starts_at->setTimezone(LocalTime::tz());
-        $mine = $user?->phone ? $t->entries()->where('phone', $user->phone)->first() : null;
+        // my registration: by my phone, or (a guest) the one made from this browser
+        $mine = ($user?->phone ? $t->entries()->where('phone', $user->phone)->first() : null)
+            ?? (($id = $request->session()->get('tournament.'.$t->code)) ? $t->entries()->find($id) : null);
         $chat = $t->conversation()->first();
+        $phase = Tournaments::phase($t);
+        $count = $t->entries()->where('status', '!=', 'declined')->count();
 
         return Inertia::render('player/Tournament', [
             'tournament' => ['code' => $t->code, 'title' => $t->title, 'sport' => $t->sport, 'date' => $at->toDateString(), 'time' => $at->format('H:i'),
-                'description' => $t->description, 'options' => $t->options, 'open' => $t->status === 'open' && $at->isFuture(),
-                'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $t->entries()->where('status', '!=', 'declined')->count(),
+                'description' => $t->description, 'options' => $t->options, 'phase' => $phase,
+                // the form: only while registration is open and there is a place
+                'open' => $phase === 'registration' && (! $t->max_players || $count < $t->max_players),
+                'venue' => ['slug' => $t->venue->slug, 'name' => $t->venue->name], 'count' => $count,
+                'accepted' => $t->entries()->where('status', 'accepted')->count(),
+                // the end: 1st, 2nd and the 3rd places
+                'podium' => $phase === 'done' ? $t->entries()->whereNotNull('place')->where('place', '<=', 3)->orderBy('place')->get()
+                    ->map(fn ($e) => ['place' => $e->place, 'name' => Tournaments::name($e)])->values() : [],
                 'min_rating' => $t->min_rating, 'max_rating' => $t->max_rating, 'max_players' => $t->max_players, 'status' => $t->status],
             // who plays whom (after the draw), live: the public channel tournament.{code}
             'bracket' => TournamentBracket::of($t, $mine?->id),
@@ -82,7 +92,9 @@ class ClubPublicController extends Controller
             'level' => 'nullable|integer|min:0|max:4000', 'option' => 'required|integer|min:0|max:2',
         ]);
         try {
-            $tournaments->register($t, $data, $request->user());
+            $e = $tournaments->register($t, $data, $request->user());
+            // a guest sees their registration on this page afterwards
+            $request->session()->put('tournament.'.$t->code, $e->id);
         } catch (BookingException $e) {
             throw ValidationException::withMessages(['register' => $e->getMessage()]);
         }

@@ -141,7 +141,10 @@ it('shows the bracket on the public page with my match, and on the owner page', 
     $this->actingAs($this->owner)->get("/owner/tournaments/{$this->t->id}")->assertInertia(fn (Assert $p) => $p->component('owner/Tournament')
         ->where('tournament.bracket.total', 2)->where('tournament.drawn', true)->where('tournament.max_players', 6));
     $this->actingAs($this->owner)->get('/owner/tournaments')->assertInertia(fn (Assert $p) => $p->component('owner/Tournaments')
-        ->where('tournaments.0.accepted', 4)->where('tournaments.0.drawn', true));
+        ->where('tournaments.0.accepted', 4)->where('tournaments.0.drawn', true)->where('tournaments.0.phase', 'drawn'));
+    // players see it in the sport's Tournaments tab with where it is
+    auth()->logout();
+    $this->get('/?sport=pingpong&tab=tournaments')->assertInertia(fn (Assert $p) => $p->where('tournaments.0.phase', 'drawn'));
     $this->actingAs($this->owner)->get("/owner/tournaments?t={$this->t->id}")->assertRedirect("/owner/tournaments/{$this->t->id}");
     // another place's owner: no
     $other = User::factory()->create();
@@ -205,4 +208,50 @@ it('draws and shows brackets of any size: 2, 3, 11 and 100 players', function ()
         $top = TournamentEntry::where('tournament_id', $t->id)->orderByDesc('level')->first();
         expect($t->fresh()->status)->toBe('done')->and($top->fresh()->place)->toBe(1);
     }
+});
+
+it('takes a score for each side: the higher one wins', function () {
+    ($this->players)(4);
+    $this->tt->draw($this->t->fresh());
+    $m = TournamentMatch::where('tournament_id', $this->t->id)->where('round', 1)->orderBy('slot')->first();
+    $this->actingAs($this->owner)->patch("/owner/tournament-matches/{$m->id}", ['score_a' => 2, 'score_b' => 2])->assertSessionHasErrors('score_b');
+    $this->actingAs($this->owner)->patch("/owner/tournament-matches/{$m->id}", ['score_a' => 1, 'score_b' => 3])->assertSessionHasNoErrors();
+    expect($m->fresh()->winner_id)->toBe($m->b_id)->and($m->fresh()->score)->toBe('1:3')
+        ->and(TournamentMatch::where('tournament_id', $this->t->id)->where('round', 2)->value('a_id'))->toBe($m->b_id);
+});
+
+it('shows players and guests where the tournament is, and closes registration once the draw is made', function () {
+    $code = $this->t->code;
+    $form = ['first_name' => 'Guest', 'last_name' => 'One', 'phone' => '+37491888001', 'option' => 0, 'level' => 1200];
+    // registration: the form; a guest who registers sees their status after a reload
+    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'registration')->where('tournament.open', true)->where('entry', null));
+    $this->post("/t/$code", $form)->assertSessionHasNoErrors();
+    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('entry.status', 'applied'));
+
+    $e = ($this->players)(3);
+    $this->tt->draw($this->t->fresh());
+    // drawn: no more registrations (also not by posting the form), no accepting new players
+    auth()->logout();
+    $this->flushSession();
+    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'drawn')->where('tournament.open', false)->where('tournament.accepted', 3));
+    $this->post("/t/$code", ['phone' => '+37491888002'] + $form)->assertSessionHasErrors('register');
+    expect(TournamentEntry::where('phone', '+37491888002')->exists())->toBeFalse()
+        ->and(fn () => $this->tt->decide(TournamentEntry::where('phone', '+37491888001')->first(), 'accepted'))->toThrow(BookingException::class, __('booking.error.already_drawn'));
+
+    // a match is played: live
+    $m = TournamentMatch::where('tournament_id', $this->t->id)->where('round', 1)->whereNotNull('a_id')->whereNotNull('b_id')->first();
+    $this->tt->setLive($m, true);
+    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'live'));
+    // the end: the podium
+    $this->tt->result($m->fresh(), $m->a_id, '3:0');
+    $final = TournamentMatch::where('tournament_id', $this->t->id)->where('round', 2)->first();
+    $this->tt->result($final->fresh(), $final->fresh()->a_id, '3:1');
+    $this->get("/t/$code")->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'done')->has('tournament.podium', 3)
+        ->where('tournament.podium.0.place', 1)->where('tournament.open', false));
+
+    // the club closes registration before any draw
+    $t2 = $this->tt->save(new Tournament(['venue_id' => $this->club->id]), ['title' => 'Closed', 'sport' => 'pingpong', 'starts_at' => now()->addDays(3),
+        'options' => [['label' => 'Free', 'price' => 0]], 'status' => 'closed']);
+    $this->get('/t/'.$t2->code)->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'closed')->where('tournament.open', false));
+    $this->post('/t/'.$t2->code, ['phone' => '+37491888003'] + $form)->assertSessionHasErrors('register');
 });

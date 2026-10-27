@@ -3,6 +3,7 @@ import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
 import { amd, hhmm } from '@/composables/useShared';
 import { SIZE_COLOR, courtShort, dateLong, dur, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
+import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
 import GameCard from '@/components/games/GameCard.vue';
@@ -33,7 +34,7 @@ const props = defineProps<{
     days?: DayInfo[];
     districts?: string[];
     venues?: VenueCard[];
-    tournaments?: { code: string; title: string; venue: string; when: string; from: number }[];
+    tournaments?: { code: string; title: string; venue: string; when: string; from: number; phase: Phase }[];
     openGames?: number | null;
     games?: GameCardT[];
     tab?: 'book' | 'tournaments' | 'games';
@@ -138,8 +139,10 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                 <div v-if="tournaments?.length" class="tlist">
                     <Link v-for="t in tournaments" :key="t.code" class="card trow" :href="route('tournament.show', t.code)">
                         <Icon name="trophy" />
-                        <span class="w"><b>{{ t.title }}</b><small>{{ t.venue }} · {{ whenOf(t.when) }}</small></span>
-                        <span class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
+                        <span class="w"
+                            ><b>{{ t.title }}</b><small>{{ t.venue }} · {{ whenOf(t.when) }}</small><span class="tph"><TournamentPhase :phase="t.phase" /></span
+                        ></span>
+                        <span v-if="t.phase === 'registration'" class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
                     </Link>
                 </div>
                 <div v-else class="empty">{{ $t('player.home.no_tournaments') }}</div>
@@ -245,6 +248,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 </template>
 
 <style scoped>
+.tph { display: block; margin-top: 4px; }
 .pick { max-width: 720px; margin: 28px auto 0; text-align: center; }
 .pick h1 { font-size: clamp(30px, 6vw, 46px); margin: 0 0 6px; }
 .ptiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; text-align: left; }

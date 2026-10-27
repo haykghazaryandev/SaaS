@@ -59,8 +59,8 @@ class Tournaments
 
     public function register(Tournament $t, array $data, ?User $user = null): TournamentEntry
     {
-        if ($t->status !== 'open' || $t->starts_at->isPast()) {
-            throw new BookingException('tournament_closed');
+        if (! self::registrationOpen($t)) {
+            throw new BookingException($t->drawn_at ? 'already_drawn_closed' : 'tournament_closed');
         }
         $phone = Phone::normalize($data['phone'] ?? null);
         if (! $phone) {
@@ -103,8 +103,9 @@ class Tournaments
             && $t->entries()->where('status', 'accepted')->count() >= $t->max_players) {
             throw new BookingException('tournament_full');
         }
-        if ($status !== 'accepted' && $e->status === 'accepted' && $t->drawn_at) {
-            throw new BookingException('already_drawn');   // redo the draw first
+        // after the draw the players are fixed: redo the draw first (an accepted one would not be in the bracket)
+        if ($t->drawn_at && ($status === 'accepted') !== ($e->status === 'accepted')) {
+            throw new BookingException('already_drawn');
         }
         $was = $e->status;
         DB::transaction(function () use ($e, $t, $status, $was) {
@@ -126,8 +127,35 @@ class Tournaments
                 }
             }
         });
+        // the player's page shows the answer at once
+        TournamentChanged::dispatch($t->code);
 
         return $e;
+    }
+
+    /** Registration: open, not started, not drawn yet (after the draw the bracket is fixed). */
+    public static function registrationOpen(Tournament $t): bool
+    {
+        return $t->status === 'open' && $t->starts_at->isFuture() && ! $t->drawn_at;
+    }
+
+    /**
+     * Where the tournament is, for its page: registration | closed (by the club) | drawn (pairs known, not started) |
+     * live (a match played or being played) | done.
+     */
+    public static function phase(Tournament $t): string
+    {
+        if ($t->status === 'done') {
+            return 'done';
+        }
+        if ($t->drawn_at) {
+            $started = TournamentMatch::where('tournament_id', $t->id)->where(fn ($q) => $q->where('live', true)
+                ->orWhere(fn ($w) => $w->whereNotNull('winner_id')->whereNotNull('a_id')->whereNotNull('b_id')))->exists();
+
+            return $started || $t->starts_at->isPast() ? 'live' : 'drawn';
+        }
+
+        return self::registrationOpen($t) ? 'registration' : 'closed';
     }
 
     // ---------- chat and news ----------
@@ -413,6 +441,7 @@ class Tournaments
             $player = $e->user_id ? User::find($e->user_id) : null;
             $payment = $this->money->charge($t->venue, $by, 'tournament', (int) ($t->options[$e->option]['price'] ?? 0), $method, $player, $e->id, $t->title);
             $e->update(['payment_id' => $payment->id]);
+            TournamentChanged::dispatch($t->code);   // "not paid yet" goes away on their page
 
             return $payment;
         });

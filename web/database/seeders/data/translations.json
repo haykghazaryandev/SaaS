@@ -1109,6 +1109,11 @@
         "hy": "Վիճակահանությունն արված է․ նախ կրկնեք այն։",
         "ru": "Жеребьёвка уже проведена: сначала проведите её заново."
     },
+    "booking.error.already_drawn_closed": {
+        "en": "Registration is closed: the draw is made.",
+        "hy": "Գրանցումը փակ է․ վիճակահանությունն արված է։",
+        "ru": "Регистрация закрыта: жеребьёвка уже проведена."
+    },
     "booking.error.already_paid": {
         "en": "This is paid already.",
         "hy": "Սա արդեն վճարված է։",
@@ -1694,6 +1699,31 @@
         "hy": "Սեղմեք փակելու համար",
         "ru": "Нажмите, чтобы закрыть"
     },
+    "club.tournament.badge_closed": {
+        "en": "Registration closed",
+        "hy": "Գրանցումը փակ է",
+        "ru": "Регистрация закрыта"
+    },
+    "club.tournament.badge_done": {
+        "en": "Finished",
+        "hy": "Ավարտված է",
+        "ru": "Завершён"
+    },
+    "club.tournament.badge_drawn": {
+        "en": "Draw made",
+        "hy": "Վիճակահանությունն արված է",
+        "ru": "Жеребьёвка проведена"
+    },
+    "club.tournament.badge_live": {
+        "en": "On now",
+        "hy": "Ընթացքի մեջ է",
+        "ru": "Идёт сейчас"
+    },
+    "club.tournament.badge_registration": {
+        "en": "Registration open",
+        "hy": "Գրանցումը բաց է",
+        "ru": "Регистрация открыта"
+    },
     "club.tournament.chat": {
         "en": "Tournament chat",
         "hy": "Մրցաշարի չատ",
@@ -1708,6 +1738,26 @@
         "en": "Your place: :n",
         "hy": "Ձեր տեղը՝ :n",
         "ru": "Ваше место: :n"
+    },
+    "club.tournament.phase_closed": {
+        "en": "Registration is closed.",
+        "hy": "Գրանցումը փակ է։",
+        "ru": "Регистрация закрыта."
+    },
+    "club.tournament.phase_done": {
+        "en": "The tournament is over.",
+        "hy": "Մրցաշարն ավարտվել է։",
+        "ru": "Турнир завершён."
+    },
+    "club.tournament.phase_drawn": {
+        "en": "Registration is closed: the draw is made, see who plays whom below.",
+        "hy": "Գրանցումը փակ է․ վիճակահանությունն արված է, ներքևում տեսեք՝ ով ում հետ է խաղում։",
+        "ru": "Регистрация закрыта: жеребьёвка проведена, ниже — кто с кем играет."
+    },
+    "club.tournament.phase_live": {
+        "en": "The tournament is on now: results update live below.",
+        "hy": "Մրցաշարն ընթացքի մեջ է․ արդյունքները թարմանում են ներքևում։",
+        "ru": "Турнир идёт: результаты обновляются ниже."
     },
     "club.tournament.players": {
         "en": ":n of :max players",
@@ -5959,10 +6009,10 @@
         "hy": "Հիշեցնել չվճարածներին (:n)",
         "ru": "Напомнить неоплатившим (:n)"
     },
-    "owner.tournament.score_ph": {
-        "en": "Score, e.g. 3:1",
-        "hy": "Հաշիվ, օր․՝ 3:1",
-        "ru": "Счёт, напр. 3:1"
+    "owner.tournament.score_hint": {
+        "en": "Type each player's score (e.g. 3 and 1): the higher one wins and goes on.",
+        "hy": "Գրեք յուրաքանչյուր խաղացողի հաշիվը (օր․՝ 3 և 1)․ ավելի մեծը հաղթում է և անցնում առաջ։",
+        "ru": "Введите счёт каждого игрока (напр. 3 и 1): у кого больше — побеждает и проходит дальше."
     },
     "owner.tournament.send": {
         "en": "Send",
@@ -5995,9 +6045,9 @@
         "ru": "Только записавшимся (ещё не принятым)"
     },
     "owner.tournament.who_won": {
-        "en": "Who won?",
-        "hy": "Ո՞վ հաղթեց",
-        "ru": "Кто победил?"
+        "en": "The score",
+        "hy": "Հաշիվը",
+        "ru": "Счёт"
     },
     "owner.undo": {
         "en": "Undo",

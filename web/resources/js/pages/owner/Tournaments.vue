@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
 import TournamentForm from '@/components/owner/TournamentForm.vue';
 import { useOwner } from '@/composables/useOwner';
@@ -13,6 +14,7 @@ interface Row {
     date: string;
     time: string;
     status: 'open' | 'closed' | 'done';
+    phase: Phase;
     drawn: boolean;
     entries: number;
     waiting: number;
@@ -45,17 +47,17 @@ const creating = ref(false);
         </section>
 
         <div class="tlist">
-            <Link v-for="t in tournaments" :key="t.id" :href="route('owner.tournaments.show', t.id)" :class="['card', 'trow', t.status]" :data-test="`tournament-${t.id}`">
+            <Link v-for="t in tournaments" :key="t.id" :href="route('owner.tournaments.show', t.id)" :class="['card', 'trow', t.status, 'ph-' + t.phase]" :data-test="`tournament-${t.id}`">
                 <span class="ico"><Icon name="trophy" /></span>
                 <span class="w">
                     <b>{{ t.title }}</b>
-                    <small>{{ t.date.slice(8) }}.{{ t.date.slice(5, 7) }} · {{ t.time }} · {{ $t('owner.club.t_status_' + t.status) }}</small>
+                    <small>{{ t.date.slice(8) }}.{{ t.date.slice(5, 7) }} · {{ t.time }}</small>
                     <span class="tags">
+                        <TournamentPhase :phase="t.phase" />
                         <span class="pill">{{ $t('owner.tournament.n_registered', { n: t.entries }) }}</span>
                         <span v-if="t.waiting" class="pill warn">{{ $t('owner.tournament.n_waiting', { n: t.waiting }) }}</span>
                         <span v-if="t.accepted" class="pill green">{{ $t('owner.tournament.n_accepted', { n: t.accepted }) }}</span>
                         <span v-if="t.unpaid" class="pill hot">{{ $t('owner.tournament.n_unpaid', { n: t.unpaid }) }}</span>
-                        <span v-if="t.drawn" class="pill">{{ $t('owner.tournament.bracket') }}</span>
                     </span>
                 </span>
                 <Icon name="arrow" size="sm" class="faint" />
@@ -67,6 +69,11 @@ const creating = ref(false);
 
 <style scoped>
 .tlist { display: grid; gap: 10px; }
+.trow { border-left: 4px solid transparent; }
+.trow.ph-live { border-left-color: #ff6b6b; }
+.trow.ph-drawn { border-left-color: #ff9f43; }
+.trow.ph-registration { border-left-color: #5ef0a8; }
+.trow.ph-done { border-left-color: #ffd166; }
 .trow { display: flex; align-items: center; gap: 12px; padding: 14px; color: inherit; text-decoration: none; }
 .trow.done { opacity: 0.7; }
 .trow .ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 159, 67, 0.12); color: #ff9f43; flex: none; }
