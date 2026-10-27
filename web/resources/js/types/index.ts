@@ -32,4 +32,6 @@ export interface SocialCounts {
     invites: number;
     /** my booking requests waiting for the place */
     pendingBookings: number;
+    /** tournaments I registered for */
+    tournaments?: number;
 }

@@ -1619,6 +1619,86 @@
         "hy": "օր․՝ 1200, կամ թողեք դատարկ",
         "ru": "например, 1200, или оставьте пустым"
     },
+    "club.mine.find": {
+        "en": "Find a tournament",
+        "hy": "Գտնել մրցաշար",
+        "ru": "Найти турнир"
+    },
+    "club.mine.g_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершены"
+    },
+    "club.mine.g_live": {
+        "en": "Live",
+        "hy": "Ուղիղ",
+        "ru": "Идут"
+    },
+    "club.mine.g_upcoming": {
+        "en": "Upcoming",
+        "hy": "Առաջիկա",
+        "ru": "Предстоящие"
+    },
+    "club.mine.none": {
+        "en": "You haven't registered for a tournament yet.",
+        "hy": "Դուք դեռ ոչ մի մրցաշարի չեք գրանցվել։",
+        "ru": "Вы ещё не записывались на турниры."
+    },
+    "club.mine.none_done": {
+        "en": "No finished tournaments yet.",
+        "hy": "Ավարտված մրցաշարեր դեռ չկան։",
+        "ru": "Завершённых турниров пока нет."
+    },
+    "club.mine.none_live": {
+        "en": "None of your tournaments is on now.",
+        "hy": "Ձեր մրցաշարերից ոչ մեկը հիմա չի ընթանում։",
+        "ru": "Сейчас ни один из ваших турниров не идёт."
+    },
+    "club.mine.none_upcoming": {
+        "en": "No upcoming tournaments.",
+        "hy": "Առաջիկա մրցաշարեր չկան։",
+        "ru": "Предстоящих турниров нет."
+    },
+    "club.mine.open": {
+        "en": "Open my tournaments",
+        "hy": "Բացել իմ մրցաշարերը",
+        "ru": "Открыть мои турниры"
+    },
+    "club.mine.paid": {
+        "en": "Paid :amount",
+        "hy": "Վճարված՝ :amount",
+        "ru": "Оплачено :amount"
+    },
+    "club.mine.s_accepted": {
+        "en": "Accepted",
+        "hy": "Ընդունված",
+        "ru": "Принят(а)"
+    },
+    "club.mine.s_applied": {
+        "en": "Waiting for the club",
+        "hy": "Սպասում է ակումբին",
+        "ru": "Ждёт ответа клуба"
+    },
+    "club.mine.s_declined": {
+        "en": "Not accepted",
+        "hy": "Չի ընդունվել",
+        "ru": "Не принят(а)"
+    },
+    "club.mine.sub": {
+        "en": "Tournaments you registered for: the club's answer, the fee and your results.",
+        "hy": "Մրցաշարեր, որոնց գրանցվել եք․ ակումբի պատասխանը, վճարը և ձեր արդյունքները։",
+        "ru": "Турниры, на которые вы записались: ответ клуба, взнос и ваши результаты."
+    },
+    "club.mine.title": {
+        "en": "My tournaments",
+        "hy": "Իմ մրցաշարերը",
+        "ru": "Мои турниры"
+    },
+    "club.mine.to_pay": {
+        "en": "Not paid: :amount",
+        "hy": "Չվճարված՝ :amount",
+        "ru": "Не оплачено: :amount"
+    },
     "club.my_card_here": {
         "en": "My card at this club",
         "hy": "Իմ քարտն այս ակումբում",

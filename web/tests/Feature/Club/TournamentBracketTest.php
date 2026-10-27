@@ -263,3 +263,22 @@ it('shows players and guests where the tournament is, and closes registration on
     $this->get('/t/'.$t2->code)->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'closed')->where('tournament.open', false));
     $this->actingAs(User::factory()->create(['phone' => '+37491888003']))->post('/t/'.$t2->code, $form)->assertSessionHasErrors('register');
 });
+
+it('lists my tournaments: where each is, the answer, the fee and my place; finished ones stay', function () {
+    $this->t->update(['options' => [['label' => 'Standard', 'price' => 5000]]]);
+    [$a, $b] = ($this->players)(2)->all();
+    $me = User::find($a->user_id);
+    $this->actingAs($me)->get('/me/tournaments')->assertOk()->assertInertia(fn (Assert $p) => $p->component('player/MyTournaments')
+        ->has('items', 1)->where('items.0.phase', 'registration')->where('items.0.status', 'accepted')->where('items.0.fee', 5000)->where('items.0.paid', null));
+    $this->tt->pay($a->fresh(), 'cash', $this->owner);
+    $this->tt->draw($this->t->fresh());
+    $final = TournamentMatch::where('tournament_id', $this->t->id)->first();
+    $this->tt->result($final, $a->id, '3:0');
+    $this->actingAs($me)->get('/me/tournaments')->assertInertia(fn (Assert $p) => $p->where('items.0.phase', 'done')->where('items.0.place', 1)
+        ->where('items.0.paid.method', 'cash'));
+    // the menus know there is something to show
+    $this->actingAs($me)->get('/')->assertInertia(fn (Assert $p) => $p->where('counts.tournaments', 1));
+    $this->actingAs(User::factory()->create())->get('/me/tournaments')->assertInertia(fn (Assert $p) => $p->has('items', 0));
+    auth()->logout();
+    $this->get('/me/tournaments')->assertRedirect();
+});

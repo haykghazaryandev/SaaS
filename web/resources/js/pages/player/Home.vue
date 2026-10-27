@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
-import { amd, hhmm } from '@/composables/useShared';
+import { social } from '@/composables/useSocial';
+import { amd, hhmm, useShared } from '@/composables/useShared';
 import { SIZE_COLOR, courtShort, dateLong, dur, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
@@ -42,6 +43,7 @@ const props = defineProps<{
 }>();
 // the sport page's sections: fixed tabs under the title; one shows below (the tab is kept in the address)
 const tab = ref<'book' | 'tournaments' | 'games'>(props.tab ?? 'book');
+const { user } = useShared();
 // tournaments: Live · Open · Finished — on Live when something is on, else Open, else Finished
 type TGroup = 'live' | 'open' | 'done';
 const groupOf = (p: Phase): TGroup => (p === 'live' ? 'live' : p === 'done' ? 'done' : 'open');
@@ -153,6 +155,9 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
             </nav>
 
             <section v-if="tab === 'tournaments'" class="section tabsec">
+                <Link v-if="user && social.counts.tournaments" class="mylink" :href="route('me.tournaments')" data-test="my-tournaments"
+                    ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }} <span class="faint">{{ social.counts.tournaments }}</span><Icon name="arrow" size="sm"
+                /></Link>
                 <div v-if="tournaments?.length" class="chips tfilter" role="tablist">
                     <button
                         v-for="g in ['live', 'open', 'done'] as const"
@@ -280,6 +285,8 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 
 <style scoped>
 .tph { display: block; margin-top: 4px; }
+.mylink { display: flex; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 12px; border-radius: 14px; background: rgba(255, 159, 67, 0.08); border: 1px solid rgba(255, 159, 67, 0.25); color: #ffd166; font-weight: 800; text-decoration: none; }
+.mylink .faint { flex: 1; }
 .tfilter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .tfilter .chip { display: inline-flex; align-items: center; gap: 6px; }
 .tf-live[aria-pressed='true'] { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
