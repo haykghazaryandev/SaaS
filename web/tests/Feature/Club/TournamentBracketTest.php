@@ -4,6 +4,7 @@ use App\Domain\Booking\BookingException;
 use App\Domain\Chat\Chat;
 use App\Domain\Club\Events\TournamentChanged;
 use App\Domain\Club\Tournaments;
+use App\Domain\Social\SocialException;
 use App\Http\Presenters\TournamentBracket;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -124,6 +125,11 @@ it('draws a bracket by rating with byes for the best, moves winners on and ends 
         ->and(TournamentEntry::find($final->a_id)->place)->toBe(2)
         ->and(TournamentEntry::find($e[4]->id)->place)->toBe(3);
     Notification::assertSentTo(User::find(TournamentEntry::find($final->b_id)->user_id), Notice::class, fn ($n) => $n->type === 'tournament_champion');
+    // the tournament chat: read-only now, the history kept
+    $c = Conversation::where('tournament_id', $t->id)->first();
+    expect($c->status)->toBe('archived')->and($c->delete_after)->toBeNull()
+        ->and(Message::where('conversation_id', $c->id)->latest('id')->value('body'))->toBe('chat.sys.tournament_over')
+        ->and(fn () => app(Chat::class)->send($c->fresh(), User::find($e[0]->user_id), 'hi'))->toThrow(SocialException::class);
     // the semi-final can't change any more: its winner played the final
     expect(fn () => $this->tt->result($semi(0), $semi(0)->b_id))->toThrow(BookingException::class);
 });

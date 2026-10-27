@@ -359,6 +359,12 @@ class Tournaments
                 $winner->update(['place' => 1]);
                 $loser->update(['place' => 2]);
                 $t->update(['status' => 'done']);
+                // the chat stays readable (the history), nobody writes any more; it is not deleted
+                if ($c = $t->conversation()->first()) {
+                    $this->chat->system($c, 'chat.sys.match_result', ['title' => $t->title, 'winner' => self::name($winner), 'loser' => self::name($loser), 'score' => $score ?: '—']);
+                    $this->chat->system($c, 'chat.sys.tournament_over', ['title' => $t->title, 'winner' => self::name($winner)]);
+                    $c->update(['status' => 'archived', 'archived_at' => now(), 'delete_after' => null]);
+                }
             } elseif ($m->round === $rounds - 1) {
                 $loser->update(['place' => 3]);
             }
@@ -370,7 +376,7 @@ class Tournaments
                     DB::afterCommit(fn () => $user?->notify(new Notice($type, $params, '/t/'.$t->code)));
                 }
             }
-            if ($t->conversation()->exists()) {
+            if ($m->round !== $rounds && $t->conversation()->exists()) {
                 $this->chat->system($this->chatOf($t), 'chat.sys.match_result', $params);
             }
         });

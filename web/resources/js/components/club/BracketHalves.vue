@@ -20,6 +20,8 @@ const half = (h: 0 | 1) => inner.value.map((r) => ({ round: r.round, matches: r.
 const halves = computed(() => [half(0), half(1)]);
 // the half with my matches gets a green dot
 const mine = (h: 0 | 1) => halves.value[h].some((c) => c.matches.some((m) => m.a?.me || m.b?.me));
+// a match being played on that side: a red pulsing dot on its switch
+const liveOn = (h: 0 | 1) => halves.value[h].some((c) => c.matches.some((m) => m.live));
 
 const shown = ref<0 | 1>(0);
 const panes = ref<HTMLElement>();
@@ -112,7 +114,10 @@ watch(() => props.rounds, () => nextTick(later));
                         <circle cx="22" cy="9" r="3" class="cup" />
                         <g :class="h === 1 ? 'lit' : 'dim'"><path d="M43 3h-5v4h5M43 11h-5v4h5M38 5h-3v8h3M35 9h-4" /></g>
                     </svg>
-                    {{ h === 0 ? $t('club.bracket.left_side') : $t('club.bracket.right_side') }}<i v-if="mine(h)" class="medot" />
+                    {{ h === 0 ? $t('club.bracket.left_side') : $t('club.bracket.right_side') }}<i v-if="liveOn(h)" class="livedot" :title="$t('club.bracket.live')" /><i
+                        v-if="mine(h)"
+                        class="medot"
+                    />
                 </button>
             </div>
             <div class="swipe"><i :class="{ on: shown === 0 }" /><i :class="{ on: shown === 1 }" /><span>{{ $t('club.bracket.swipe_sides') }}</span></div>
@@ -167,6 +172,9 @@ watch(() => props.rounds, () => nextTick(later));
 .bk-segbg { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 10px; background: linear-gradient(135deg, #ffd166 0%, #ff8a3d 100%); transition: transform 0.25s; box-shadow: 0 0 18px rgba(255, 159, 67, 0.35); }
 .medot { width: 7px; height: 7px; border-radius: 50%; background: var(--win); box-shadow: 0 0 8px rgba(94, 240, 168, 0.8); display: inline-block; flex: none; }
 .bk-seg button.on .medot { background: #0d5a37; box-shadow: none; }
+.livedot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); flex: none; animation: ldp 1.4s infinite; }
+@keyframes ldp { 0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.75); } 70% { box-shadow: 0 0 0 7px rgba(255, 107, 107, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); } }
+.bk-seg button.on .livedot { background: #b3261e; }
 .panes { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .panes::-webkit-scrollbar { display: none; }
 .pane { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }

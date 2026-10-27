@@ -503,7 +503,7 @@ onBeforeUnmount(() => {
 
             <div v-if="archived" class="banner">
                 <Icon name="clock" size="sm" />
-                <span>{{ $t('messages.archived') }}</span>
+                <span>{{ chat.tournament ? $t('messages.tournament_over') : $t('messages.archived') }}</span>
                 <Link v-if="chat.game?.url" class="btn sm" :href="chat.game.url">{{ $t('messages.play_again') }}</Link>
             </div>
 

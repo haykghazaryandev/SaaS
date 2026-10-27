@@ -1394,6 +1394,11 @@
         "hy": "«:title» մրցաշարի չատը բաց է",
         "ru": "Чат турнира «:title» открыт"
     },
+    "chat.sys.tournament_over": {
+        "en": ":title is over: :winner is the champion 🏆",
+        "hy": ":title-ն ավարտվեց․ չեմպիոնը՝ :winner 🏆",
+        "ru": ":title завершён: чемпион — :winner 🏆"
+    },
     "club.bracket.bye": {
         "en": "goes on",
         "hy": "անցնում է",
@@ -3858,6 +3863,11 @@
         "en": "Chats",
         "hy": "Զրույցներ",
         "ru": "Чаты"
+    },
+    "messages.tournament_over": {
+        "en": "The tournament is over: the chat stays here to read, nobody can write.",
+        "hy": "Մրցաշարն ավարտվել է․ չատը մնում է կարդալու համար, գրել այլևս հնարավոր չէ։",
+        "ru": "Турнир завершён: чат остаётся для чтения, писать больше нельзя."
     },
     "messages.typing_many": {
         "en": "Several people are typing…",
