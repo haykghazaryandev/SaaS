@@ -316,25 +316,26 @@ async function copy() {
                     <span v-if="e.paid" class="pill green"
                         ><Icon name="check" size="sm" />{{ amd(e.paid.amount) }} · {{ $t('owner.club.m_' + e.paid.method) }}</span
                     >
-                    <!-- the fee: from the player's card (only when they have one here) or in cash; not after the end -->
-                    <span v-else-if="e.price && !over" class="row" style="gap: 6px">
-                        <span class="pill hot">{{ $t('owner.tournament.not_paid') }}</span>
+                    <!-- the fee: what is owed, then the player's card (only when they have one here; not enough money: off) or cash -->
+                    <span v-else-if="e.price && !over" class="payrow">
+                        <span class="owe"><small>{{ $t('owner.tournament.not_paid') }}</small><b>{{ amd(e.price) }}</b></span>
                         <button
                             v-if="has('wallet') && e.card !== null"
                             type="button"
-                            class="btn sm"
+                            :class="['paybtn', 'card', { short: e.card < e.price }]"
+                            :disabled="e.card < e.price"
                             :data-test="`pay-card-${e.id}`"
                             @click="pay(e, 'card')"
                         >
-                            {{ $t('owner.club.from_card') }} <small class="bal">{{ amd(e.card) }}</small>
+                            <Icon name="wallet" size="sm" /><span
+                                ><b>{{ $t('owner.club.from_card') }}</b
+                                ><small>{{ e.card < e.price ? $t('owner.tournament.card_short', { a: amd(e.card) }) : $t('owner.tournament.card_balance', { a: amd(e.card) }) }}</small></span
+                            >
                         </button>
-                        <button
-                            type="button"
-                            :class="['btn', 'sm', { ghost: e.card !== null }]"
-                            :data-test="`pay-cash-${e.id}`"
-                            @click="pay(e, 'cash')"
-                        >
-                            {{ $t('owner.club.cash') }}
+                        <button type="button" class="paybtn cash" :data-test="`pay-cash-${e.id}`" @click="pay(e, 'cash')">
+                            <span
+                                ><b>{{ $t('owner.club.cash') }}</b><small>{{ amd(e.price) }}</small></span
+                            >
                         </button>
                     </span>
                 </template>
@@ -471,8 +472,23 @@ async function copy() {
 .drow:last-child { border-bottom: 0; }
 .drow .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .drow small { color: var(--muted); font-size: 12.5px; }
-.rm { margin-left: auto; padding-inline: 8px; }
-.bal { opacity: 0.75; font-weight: 600; margin-left: 2px; }
+.rm { order: 1; margin-left: auto; padding-inline: 8px; }
+.payrow { order: 2; display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: stretch; width: 100%; }
+.payrow:has(.paybtn:only-of-type) { grid-template-columns: auto 1fr; }
+.owe { display: flex; flex-direction: column; justify-content: center; padding: 6px 10px; border-radius: 12px; background: var(--hot-soft); color: var(--hot); line-height: 1.2; }
+.owe small { font-size: 11px; font-weight: 700; color: var(--hot); opacity: 0.85; }
+.owe b { font: 700 15px var(--mono); }
+.paybtn { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); cursor: pointer; text-align: left; line-height: 1.2; }
+.paybtn span { display: flex; flex-direction: column; min-width: 0; }
+.paybtn .ico { flex: none; }
+.paybtn b { font-size: 14px; }
+.paybtn small { font: 600 11.5px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.paybtn.card { border-color: rgba(92, 200, 255, 0.45); color: #8fd9ff; }
+.paybtn.card small { color: #d7f0ff; }
+.paybtn.card.short { opacity: 0.6; cursor: not-allowed; border-color: var(--line-2); color: var(--muted); }
+.paybtn.card.short small { color: var(--hot); }
+.paybtn.cash { border-color: rgba(94, 240, 168, 0.45); background: var(--free-soft); color: var(--free); }
+.paybtn.cash small { color: var(--ink); }
 .paywarn { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 107, 107, 0.3); background: var(--hot-soft); color: var(--hot); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .wo { align-self: flex-start; margin-top: 4px; border: 0; background: none; padding: 0; color: var(--hot); font: 600 12px var(--font, inherit); text-decoration: underline; cursor: pointer; }
 .pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 12px; }

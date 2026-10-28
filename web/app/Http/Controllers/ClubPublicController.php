@@ -9,6 +9,7 @@ use App\Domain\Club\Tournaments;
 use App\Http\Presenters\TournamentBracket;
 use App\Models\Product;
 use App\Models\Tournament;
+use App\Models\TournamentMatch;
 use App\Models\VenueCard;
 use App\Support\LocalTime;
 use App\Support\Phone;
@@ -57,13 +58,7 @@ class ClubPublicController extends Controller
         // divisions by rating: the tournament's page lists them (pick yours), each division is a tournament of its own
         $divisions = $t->divisions->isNotEmpty() ? $t->divisions : ($t->parent_id ? Tournament::where('parent_id', $t->parent_id)->orderByRaw('min_rating asc nulls first')->orderBy('id')->get() : collect());
         $myRating = $user ? Tournaments::ratingOf($t, $user->id, null) : null;
-        $divisionList = $divisions->map(fn (Tournament $d) => ['code' => $d->code, 'division' => $d->division, 'min_rating' => $d->min_rating, 'max_rating' => $d->max_rating,
-            'max_players' => $d->max_players, 'phase' => Tournaments::phase($d), 'current' => $d->id === $t->id,
-            'count' => $d->entries()->where('status', '!=', 'declined')->count(),
-            // my rating fits this division
-            'fits' => $myRating !== null && ($d->min_rating === null || $myRating >= $d->min_rating) && ($d->max_rating === null || $myRating <= $d->max_rating),
-            'mine' => $user && $d->entries()->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($w) => $w->orWhere('phone', $user->phone)))->exists(),
-        ])->values();
+        $divisionList = $divisions->map(fn (Tournament $d) => $this->division($d, $t, $user, $myRating))->values();
         // my registration: mine (my account, or my phone registered by the club)
         $mine = $user ? $t->entries()->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($w) => $w->orWhere('phone', $user->phone)))->first() : null;
         $chat = $t->conversation()->first();
@@ -98,6 +93,57 @@ class ClubPublicController extends Controller
                 'phone' => $user->phone ? Phone::format($user->phone) : null,
                 'registered' => $mine !== null] : null,
         ]);
+    }
+
+    /**
+     * A division's card on the tournament page: where it is and what matters there — registration (places, my rating
+     * fits, my answer), the draw made (my first opponent), live (matches on now, the stage, one live score, how far),
+     * over (the champion and the runner-up, my place).
+     */
+    private function division(Tournament $d, Tournament $current, $user, ?int $myRating): array
+    {
+        $phase = Tournaments::phase($d);
+        $mine = $user ? $d->entries()->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($w) => $w->orWhere('phone', $user->phone)))->first() : null;
+        $out = ['code' => $d->code, 'division' => $d->division, 'min_rating' => $d->min_rating, 'max_rating' => $d->max_rating,
+            'max_players' => $d->max_players, 'phase' => $phase, 'current' => $d->id === $current->id,
+            'count' => $d->entries()->where('status', '!=', 'declined')->count(),
+            'accepted' => $d->entries()->where('status', 'accepted')->count(),
+            // my rating fits this division
+            'fits' => $myRating !== null && ($d->min_rating === null || $myRating >= $d->min_rating) && ($d->max_rating === null || $myRating <= $d->max_rating),
+            'mine' => $mine !== null,
+            'my' => $mine ? ['status' => $mine->status, 'place' => $mine->place] : null,
+            'live' => 0, 'stage' => null, 'liveMatch' => null, 'played' => 0, 'total' => 0, 'opponent' => null, 'podium' => []];
+        if (! $d->drawn_at) {
+            return $out;
+        }
+        $matches = TournamentMatch::where('tournament_id', $d->id)->with(['a:id,first_name,last_name', 'b:id,first_name,last_name'])->orderBy('round')->orderBy('slot')->get();
+        $rounds = (int) $matches->max('round');
+        $real = $matches->filter(fn ($m) => $m->round > 1 || ($m->a_id && $m->b_id));     // byes are not matches
+        $out['total'] = $real->count();
+        $out['played'] = $real->filter(fn ($m) => $m->winner_id && $m->a_id && $m->b_id)->count();
+        $live = $matches->where('live', true);
+        $out['live'] = $live->count();
+        if ($m = $live->first()) {
+            $out['liveMatch'] = ['a' => Tournaments::name($m->a), 'b' => Tournaments::name($m->b), 'score' => $m->score];
+        }
+        // the stage: the first round with a match still to play
+        $r = $real->first(fn ($m) => ! $m->winner_id)?->round;
+        if ($r) {
+            $left = $rounds - $r;
+            $out['stage'] = $left === 0 ? ['key' => 'final'] : ($left === 1 ? ['key' => 'semi'] : ($left === 2 ? ['key' => 'quarter'] : ['key' => 'round_of', 'n' => 2 ** ($left + 1)]));
+        }
+        // after the draw, before my match: who I play
+        if ($mine && $mine->status === 'accepted' && $phase !== 'done') {
+            $my = $matches->first(fn ($m) => ! $m->winner_id && ($m->a_id === $mine->id || $m->b_id === $mine->id));
+            $vs = $my ? ($my->a_id === $mine->id ? $my->b : $my->a) : null;
+            $out['opponent'] = $vs ? Tournaments::name($vs) : null;
+        }
+        if ($phase === 'done') {
+            $out['podium'] = $d->entries()->whereNotNull('place')->where('place', '<=', 2)->orderBy('place')->get()
+                ->map(fn ($e) => ['place' => $e->place, 'name' => Tournaments::name($e)])->values()->all();
+        }
+
+        return $out;
     }
 
     public function register(Request $request, string $code, Tournaments $tournaments)

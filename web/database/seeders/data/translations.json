@@ -1964,6 +1964,71 @@
         "hy": "Մրցաշարի չատ",
         "ru": "Чат турнира"
     },
+    "club.tournament.d_bracket_ready": {
+        "en": "The draw is made: see who plays whom",
+        "hy": "Վիճակահանությունն արված է․ տեսեք՝ ով ում հետ է խաղում",
+        "ru": "Жеребьёвка проведена: смотрите, кто с кем играет"
+    },
+    "club.tournament.d_cta_closed": {
+        "en": "Open",
+        "hy": "Բացել",
+        "ru": "Открыть"
+    },
+    "club.tournament.d_cta_done": {
+        "en": "Results",
+        "hy": "Արդյունքներ",
+        "ru": "Результаты"
+    },
+    "club.tournament.d_cta_drawn": {
+        "en": "See the bracket",
+        "hy": "Տեսնել սխեման",
+        "ru": "Смотреть сетку"
+    },
+    "club.tournament.d_cta_live": {
+        "en": "Watch live",
+        "hy": "Դիտել ուղիղ",
+        "ru": "Смотреть онлайн"
+    },
+    "club.tournament.d_cta_registration": {
+        "en": "Register",
+        "hy": "Գրանցվել",
+        "ru": "Регистрация"
+    },
+    "club.tournament.d_live_now": {
+        "en": ":n on now",
+        "hy": "Հիմա ընթանում է՝ :n",
+        "ru": "Сейчас идёт: :n"
+    },
+    "club.tournament.d_my_accepted": {
+        "en": "You're in",
+        "hy": "Դուք մասնակցում եք",
+        "ru": "Вы участвуете"
+    },
+    "club.tournament.d_my_applied": {
+        "en": "Waiting for the club's answer",
+        "hy": "Սպասում է ակումբի պատասխանին",
+        "ru": "Ждёт ответа клуба"
+    },
+    "club.tournament.d_my_declined": {
+        "en": "Not accepted",
+        "hy": "Չի ընդունվել",
+        "ru": "Не принята"
+    },
+    "club.tournament.d_on": {
+        "en": "On now",
+        "hy": "Ընթանում է",
+        "ru": "Идёт сейчас"
+    },
+    "club.tournament.d_played": {
+        "en": ":n of :t matches played",
+        "hy": "Անցկացված է :n խաղ :t-ից",
+        "ru": "Сыграно :n из :t матчей"
+    },
+    "club.tournament.d_you_play": {
+        "en": "You play :name",
+        "hy": "Դուք խաղում եք :name-ի հետ",
+        "ru": "Вы играете с :name"
+    },
     "club.tournament.divisions": {
         "en": "Divisions",
         "hy": "Խմբեր",
@@ -6368,6 +6433,16 @@
         "en": "Bracket",
         "hy": "Սխեմա",
         "ru": "Сетка"
+    },
+    "owner.tournament.card_balance": {
+        "en": ":a on it",
+        "hy": "քարտում՝ :a",
+        "ru": "на карте :a"
+    },
+    "owner.tournament.card_short": {
+        "en": ":a · not enough",
+        "hy": ":a · բավարար չէ",
+        "ru": ":a · не хватает"
     },
     "owner.tournament.division_add": {
         "en": "Add a division",

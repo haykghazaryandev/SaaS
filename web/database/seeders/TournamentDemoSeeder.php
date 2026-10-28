@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Notification;
  * - December Open: registration open, the admin accepted and paid
  * - Club Championship: registration open, a rating range and 16 places, the admin waiting for the answer
  * - October Cup: finished 3 days ago, the admin runner-up
- * - Winter Cup: 3 divisions by rating (Amateur / Middle / Pro), registration open, the admin accepted in Pro
+ * - Winter Cup: 3 divisions by rating — Amateur on now (a match live), Middle drawn, Pro registration open (the admin accepted)
  * Made once; made again when older than 2 days (so the dates stay right on staging). Nobody is notified while seeding.
  */
 class TournamentDemoSeeder extends Seeder
@@ -174,6 +174,17 @@ class TournamentDemoSeeder extends Seeder
             })->take(6);
             $this->fill($d, $d->division === 'Pro' ? $admin : null, $in, accepted: true);
         }
+        // every state on one page: Amateur is being played (a result, a match live), Middle has its draw
+        [$amateur, $middle] = [$cup->divisions[0]->fresh(), $cup->divisions[1]->fresh()];
+        $this->payAll($amateur, $admin);
+        $this->tt()->draw($amateur);
+        $first = TournamentMatch::where('tournament_id', $amateur->id)->where('round', 1)->whereNotNull('a_id')->whereNotNull('b_id')->orderBy('slot')->get();
+        if ($first->count() >= 2) {
+            $this->tt()->result($first[0], $first[0]->a_id, '3:1');
+            $first[1]->update(['score' => '2:1']);
+            $this->tt()->setLive($first[1]->fresh(), true);
+        }
+        $this->tt()->draw($middle);
     }
 
     // ---------- helpers ----------

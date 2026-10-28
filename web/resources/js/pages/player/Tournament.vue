@@ -9,6 +9,7 @@ import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
 import { useLive } from '@/lib/echo';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { trans } from '@/lib/i18n';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // A tournament's page: the link the club puts in its Instagram bio. Registration (name, surname, phone, level, a price
@@ -31,6 +32,17 @@ interface Division {
     fits: boolean;
     /** I registered there */
     mine: boolean;
+    accepted: number;
+    /** my registration there: the club's answer, my place */
+    my: { status: 'applied' | 'accepted' | 'declined'; place: number | null } | null;
+    /** after the draw: matches on now, the stage, one live score, how far, my next opponent; over: 1st and 2nd */
+    live: number;
+    stage: { key: string; n?: number } | null;
+    liveMatch: { a: string; b: string; score: string | null } | null;
+    played: number;
+    total: number;
+    opponent: string | null;
+    podium: { place: number; name: string }[];
 }
 const props = defineProps<{
     tournament: {
@@ -78,6 +90,9 @@ function closeFull() {
     bigView.value = false;
     document.body.style.overflow = '';
 }
+// "Choose your division" while one is open; afterwards just "Divisions"
+const anyOpen = computed(() => props.tournament.divisions.some((d) => d.phase === 'registration'));
+const stageText = (st: { key: string; n?: number } | null) => (st ? trans('club.bracket.' + st.key, st.n ? { n: st.n, half: st.n / 2 } : {}) : '');
 const rangeOf = (d: { min_rating: number | null; max_rating: number | null }) =>
     d.min_rating == null && d.max_rating == null
         ? ''
@@ -146,30 +161,60 @@ function send() {
 
                 <!-- a tournament with divisions: pick the one of your rating (each has its own players and bracket) -->
                 <div v-if="tournament.isParent" class="divs" data-test="divisions">
-                    <b class="divs-h">{{ $t('club.tournament.pick_division') }}</b>
-                    <small v-if="tournament.myRating != null" class="muted">{{ $t('club.tournament.my_rating', { n: tournament.myRating }) }}</small>
+                    <b class="divs-h">{{ anyOpen ? $t('club.tournament.pick_division') : $t('club.tournament.divisions') }}</b>
+                    <small v-if="tournament.myRating != null && anyOpen" class="muted">{{ $t('club.tournament.my_rating', { n: tournament.myRating }) }}</small>
                     <Link
                         v-for="d in tournament.divisions"
                         :key="d.code"
                         :href="`/t/${d.code}`"
-                        :class="['dcard', { fits: d.fits, mine: d.mine }]"
+                        :class="['dcard', 'ph-' + d.phase, { fits: d.fits && d.phase === 'registration', mine: d.mine }]"
                         :data-test="`division-${d.code}`"
                     >
-                        <span class="w">
+                        <span class="dtop">
                             <b>{{ d.division }}</b>
-                            <small
-                                >{{ rangeOf(d) ? $t('club.tournament.rating', { range: rangeOf(d) }) : $t('club.tournament.any_rating') }} ·
-                                {{
-                                    d.max_players
-                                        ? $t('club.tournament.players', { n: d.count, max: d.max_players })
-                                        : $t('club.t_registered', { n: d.count })
-                                }}</small
-                            >
-                            <span v-if="d.mine" class="tag mine"><Icon name="check" size="sm" />{{ $t('club.tournament.you_are_in') }}</span>
-                            <span v-else-if="d.fits" class="tag"><Icon name="star" size="sm" />{{ $t('club.tournament.fits_you') }}</span>
+                            <TournamentPhase :phase="d.phase" />
                         </span>
-                        <TournamentPhase :phase="d.phase" />
-                        <Icon name="arrow" size="sm" class="faint" />
+                        <small class="dmeta"
+                            >{{ rangeOf(d) ? $t('club.tournament.rating', { range: rangeOf(d) }) : $t('club.tournament.any_rating') }} ·
+                            {{
+                                d.phase === 'registration' && d.max_players
+                                    ? $t('club.tournament.players', { n: d.count, max: d.max_players })
+                                    : d.phase === 'registration'
+                                      ? $t('club.t_registered', { n: d.count })
+                                      : $t('club.bracket.players_n', { n: d.accepted })
+                            }}</small
+                        >
+                        <!-- live: matches on now, the stage, one score, how far it is -->
+                        <template v-if="d.phase === 'live'">
+                            <span class="dlive"
+                                ><i class="pdot" />{{ d.live ? $t('club.tournament.d_live_now', { n: d.live }) : $t('club.tournament.d_on') }}<template v-if="d.stage">
+                                    · {{ stageText(d.stage) }}</template
+                                ></span
+                            >
+                            <span v-if="d.liveMatch" class="dscore"
+                                ><span>{{ d.liveMatch.a }}</span><b>{{ d.liveMatch.score || 'vs' }}</b><span>{{ d.liveMatch.b }}</span></span
+                            >
+                            <span class="dprog"><i :style="{ width: (d.total ? (100 * d.played) / d.total : 0) + '%' }" /></span>
+                            <small class="dmeta">{{ $t('club.tournament.d_played', { n: d.played, t: d.total }) }}</small>
+                        </template>
+                        <!-- the draw is made: the bracket is ready (my first opponent) -->
+                        <span v-else-if="d.phase === 'drawn'" class="dnote drawn"><Icon name="trophy" size="sm" />{{ $t('club.tournament.d_bracket_ready') }}</span>
+                        <!-- over: the champion and the runner-up -->
+                        <span v-else-if="d.phase === 'done' && d.podium.length" class="dpod">
+                            <span v-for="p in d.podium" :key="p.place">{{ p.place === 1 ? '🏆' : '🥈' }} {{ p.name }}</span>
+                        </span>
+                        <!-- me there -->
+                        <span v-if="d.my?.place" class="tag mine">{{ $t('club.tournament.my_place', { n: d.my.place }) }}</span>
+                        <span v-else-if="d.opponent" class="tag mine"><Icon name="users" size="sm" />{{ $t('club.tournament.d_you_play', { name: d.opponent }) }}</span>
+                        <span v-else-if="d.my" :class="['tag', d.my.status === 'accepted' ? 'mine' : d.my.status]"
+                            ><Icon :name="d.my.status === 'declined' ? 'x' : d.my.status === 'applied' ? 'clock' : 'check'" size="sm" />{{
+                                $t('club.tournament.d_my_' + d.my.status)
+                            }}</span
+                        >
+                        <span v-else-if="d.fits && d.phase === 'registration'" class="tag"><Icon name="star" size="sm" />{{ $t('club.tournament.fits_you') }}</span>
+                        <span class="dcta"
+                            >{{ $t('club.tournament.d_cta_' + d.phase) }} <Icon name="arrow" size="sm"
+                        /></span>
                     </Link>
                 </div>
 
@@ -303,11 +348,30 @@ function send() {
 .dtab.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .divs { display: grid; gap: 8px; margin-top: 4px; }
 .divs-h { font-size: 15px; }
-.dcard { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: inherit; text-decoration: none; min-width: 0; }
-.dcard .w { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.dcard small { color: var(--muted); font-size: 12.5px; }
-.dcard.fits { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
-.dcard.mine { border-color: var(--free); }
+.dcard { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); border-left-width: 4px; background: var(--surface-2); color: inherit; text-decoration: none; min-width: 0; }
+.dcard.ph-registration { border-left-color: #5ef0a8; }
+.dcard.ph-drawn { border-left-color: #ff9f43; }
+.dcard.ph-live { border-left-color: #ff6b6b; background: linear-gradient(90deg, rgba(255, 107, 107, 0.08), transparent 60%), var(--surface-2); }
+.dcard.ph-done { border-left-color: #ffd166; }
+.dcard.ph-closed { border-left-color: #6f7a70; }
+.dtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dtop b { font-size: 16px; }
+.dmeta { color: var(--muted); font-size: 12.5px; }
+.dlive { display: flex; align-items: center; gap: 7px; color: var(--hot); font-weight: 800; font-size: 13px; }
+.dscore { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.25); font-size: 13px; font-weight: 700; }
+.dscore span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dscore span:last-child { text-align: right; }
+.dscore b { font: 700 15px var(--mono); color: var(--hot); }
+.dprog { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.dprog i { display: block; height: 100%; background: linear-gradient(90deg, #ff9f43, #ff6b6b); }
+.dnote { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.dnote.drawn { color: #ff9f43; }
+.dpod { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; font-weight: 800; }
+.dcta { align-self: flex-end; display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 800; color: var(--accent); }
+.tag.applied { color: var(--warn); }
+.tag.declined { color: var(--hot); }
+.dcard.fits { border-top-color: color-mix(in srgb, var(--accent) 55%, transparent); border-right-color: color-mix(in srgb, var(--accent) 55%, transparent); border-bottom-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.dcard.mine { border-top-color: var(--free); border-right-color: var(--free); border-bottom-color: var(--free); }
 .tag { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin-top: 3px; font-size: 11.5px; font-weight: 800; color: var(--accent); }
 .tag.mine { color: var(--free); }
 </style>
