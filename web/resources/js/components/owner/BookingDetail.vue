@@ -75,6 +75,7 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
                 <span :class="['pill', pill?.cls]">{{ pill?.label }}</span>
                 <span class="pill mono">{{ b.code }}</span>
                 <span v-if="b.weekly" class="pill">{{ $t('owner.booking.weekly') }}</span>
+                <span v-if="b.purpose === 'training'" class="tchip">🎓 {{ $t('club.training') }}</span>
                 <span v-if="b.arrived" class="pill green">{{ $t('common.arrived') }}</span>
                 <span v-else-if="b.late_minutes && !b.past" class="pill warn">{{ $t('owner.booking.late', { min: String(b.late_minutes) }) }}</span>
                 <span v-else-if="b.status === 'accepted' && b.started && !b.past" class="pill warn">{{ $t('owner.booking.waiting') }}</span>

@@ -219,6 +219,9 @@ final class BookingPresenter
         if (isset($c['reason'])) {
             $out[] = __('common.reason').': '.$c['reason'];
         }
+        if ($e->type === 'extended' && isset($c['minutes'])) {
+            $out[] = __('owner.history.extra_min', ['n' => (int) $c['minutes']]);
+        }
         if ($e->type !== 'changed') {
             return $out;
         }

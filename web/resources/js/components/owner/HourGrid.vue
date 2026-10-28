@@ -207,6 +207,7 @@ defineExpose({ scrollToNow });
                         <div
                             v-else
                             :class="['hg-b', p.cell, { tall: p.h > 44, split: (p.lanes ?? 1) > 1 }]"
+                            :title="`${label(p.b!)} · ${hhmm(p.start)}–${hhmm(p.end)}`"
                             :style="{ top: p.top + 1 + 'px', height: p.h - 2 + 'px', ...side(p) }"
                             role="button"
                             tabindex="0"
@@ -217,9 +218,13 @@ defineExpose({ scrollToNow });
                             <b
                                 ><i v-if="p.cell === 'live'" class="ld" /><span v-if="p.b!.no_shows_here" class="nsw" :title="$t('owner.booking.no_shows_here', { n: p.b!.no_shows_here })"
                                     >⚠{{ p.b!.no_shows_here }}</span
-                                >{{ p.b!.purpose === 'training' ? '🎓 ' : '' }}{{ p.b!.weekly ? '↻ ' : '' }}{{ compact ? label(p.b!).split(' ')[0] : label(p.b!) }}</b
+                                >{{ p.b!.weekly ? '↻ ' : '' }}{{ compact || (p.lanes ?? 1) > 1 ? label(p.b!).split(' ')[0] : label(p.b!) }}</b
                             >
                             <small v-if="p.h > 28 && !compact">{{ hhmm(p.start) }}–{{ hhmm(p.end) }}</small>
+                            <!-- a training: the word (or just the icon when the block is small) -->
+                            <span v-if="p.b!.purpose === 'training'" :class="['hg-tr', { mini: compact || p.h <= 44 }]" data-test="training"
+                                >🎓<template v-if="!compact && p.h > 44"> {{ $t('club.training') }}</template></span
+                            >
                             <em v-if="p.h > 44 && !compact && (p.cell === 'req' || p.cell === 'live')">{{
                                 p.cell === 'req' ? $t('owner.schedule.request') : $t('owner.schedule.playing')
                             }}</em>
@@ -267,6 +272,8 @@ defineExpose({ scrollToNow });
 .hg-b.live { background: color-mix(in srgb, var(--c-live) 20%, transparent); border-color: var(--c-live); color: color-mix(in srgb, var(--c-live) 25%, #fff); }
 .hg-b.req { background: color-mix(in srgb, var(--c-req) 18%, transparent); border-color: var(--c-req); color: color-mix(in srgb, var(--c-req) 25%, #fff); }
 .hg-b.reg { background: color-mix(in srgb, var(--c-reg) 20%, transparent); border-color: var(--c-reg); color: color-mix(in srgb, var(--c-reg) 25%, #fff); }
+.hg-tr { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c-train) 30%, transparent); color: #fff; font-size: 12px; font-weight: 800; line-height: 1.5; }
+.hg-tr.mini { position: absolute; right: 4px; top: 3px; margin: 0; padding: 0 4px; font-size: 14px; }
 .hg-b.train { background: color-mix(in srgb, var(--c-train) 20%, transparent); border-color: var(--c-train); color: color-mix(in srgb, var(--c-train) 25%, #fff); }
 .hg-b.done { background: color-mix(in srgb, var(--c-done) 18%, transparent); border-color: var(--c-done); color: color-mix(in srgb, var(--c-done) 45%, #fff); }
 .hg-b.off { background: transparent; border: 1px dashed var(--line-2); color: var(--faint); text-decoration: line-through; }
@@ -284,7 +291,7 @@ defineExpose({ scrollToNow });
 .hg-past { position: absolute; top: 0; background: rgba(0, 0, 0, 0.35); z-index: 4; pointer-events: none; border-bottom: 1px dashed rgba(255, 107, 107, 0.45); }
 .hg-nowt { position: absolute; left: calc(-1 * var(--gut)); transform: translateY(-50%); z-index: 6; background: #ff6b6b; color: #fff; font: 700 10px var(--mono); padding: 2px 4px; border-radius: 5px; pointer-events: none; }
 .hg-b.split { padding: 2px 4px; }
-.hg-b.split em { display: none; }
+.hg-b.split em, .hg-b.split small { display: none; }
 .compact .hg-b { padding: 2px 3px; border-left-width: 2px; border-radius: 5px; }
 .compact .hg-b b { font-size: 10.5px; }
 .compact .hg-free b { font-size: 11px; opacity: 0.7; }

@@ -426,7 +426,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                         >{{ hhmm(b.start) }}–{{ hhmm(b.end) }}
                     </div>
                     <div class="n">
-                        <b><span v-if="b.purpose === 'training'" class="tchip sm">🎓</span>{{ b.name }}</b
+                        <b><span v-if="b.purpose === 'training'" class="tchip sm">🎓 {{ $t('club.training') }}</span>{{ b.name }}</b
                         ><small>{{ b.team ? b.team + ' · ' : '' }}{{ b.phone || '' }}</small>
                     </div>
                     <div class="f">

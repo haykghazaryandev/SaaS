@@ -441,5 +441,5 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 .sport-pick a[aria-current="true"] small { color: var(--on-accent); opacity: .75; }
 
 /* a training (not a plain game): its own colour everywhere a booking shows */
-.tchip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(255, 122, 217, 0.16); color: #ff9be3; white-space: nowrap; }
-.tchip.sm { padding: 0 5px; margin-right: 5px; font-size: 11px; }
+.tchip { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(255, 122, 217, 0.16); color: #ff9be3; white-space: nowrap; }
+.tchip.sm { padding: 1px 8px; margin-right: 6px; font-size: 12px; }

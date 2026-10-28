@@ -1224,6 +1224,11 @@
         "hy": "Գրանցումը փակ է․ վիճակահանությունն արված է։",
         "ru": "Регистрация закрыта: жеребьёвка уже проведена."
     },
+    "booking.error.already_free": {
+        "en": "This time is free already — you can book it now.",
+        "hy": "Այս ժամն արդեն ազատ է․ կարող եք հիմա ամրագրել։",
+        "ru": "Это время уже свободно — можно забронировать сейчас."
+    },
     "booking.error.already_paid": {
         "en": "This is paid already.",
         "hy": "Սա արդեն վճարված է։",
@@ -1248,6 +1253,11 @@
         "en": "The game is already started.",
         "hy": "Խաղն արդեն սկսված է։",
         "ru": "Игра уже начата."
+    },
+    "booking.error.already_stopped": {
+        "en": "This game is already stopped.",
+        "hy": "Այս խաղն արդեն կանգնեցված է։",
+        "ru": "Эта игра уже остановлена."
     },
     "booking.error.already_visited": {
         "en": "This visit is marked already today.",
@@ -1423,6 +1433,11 @@
         "en": "Accept at least 2 players first.",
         "hy": "Նախ ընդունեք առնվազն 2 խաղացող։",
         "ru": "Сначала примите хотя бы 2 игроков."
+    },
+    "booking.error.too_many_alerts": {
+        "en": "You are waiting for too many times already. Remove one first.",
+        "hy": "Դուք արդեն շատ ժամերի եք սպասում։ Նախ հեռացրեք մեկը։",
+        "ru": "Вы уже ждёте слишком много времён. Сначала уберите одно."
     },
     "booking.error.too_many_pending": {
         "en": "You already have 2 requests waiting. Wait for an answer first.",
@@ -6024,6 +6039,16 @@
         "hy": "Ժամկետն անցել է (պատասխան չկար)",
         "ru": "Истекла (нет ответа)"
     },
+    "owner.history.extended": {
+        "en": "Game extended",
+        "hy": "Խաղը երկարացվեց",
+        "ru": "Игра продлена"
+    },
+    "owner.history.extra_min": {
+        "en": "+:n min",
+        "hy": "+:n րոպե",
+        "ru": "+:n мин"
+    },
     "owner.history.fields.contact_name": {
         "en": "Name",
         "hy": "Անուն",
@@ -6083,6 +6108,11 @@
         "en": "Request sent",
         "hy": "Հայտն ուղարկվել է",
         "ru": "Заявка отправлена"
+    },
+    "owner.history.started": {
+        "en": "Game started",
+        "hy": "Խաղը սկսվեց",
+        "ru": "Игра началась"
     },
     "owner.history.system": {
         "en": "ZoneSpot",

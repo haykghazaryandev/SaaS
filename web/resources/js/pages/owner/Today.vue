@@ -192,7 +192,7 @@ const chartDays = computed(() =>
                             <span class="li-t"
                                 ><b>{{ $t('common.now') }}</b> · {{ $t('owner.dashboard.ends', { t: hhmm(l.current.end) }) }}</span
                             >
-                            <span class="li-n"><span v-if="l.current.purpose === 'training'" class="tchip sm">🎓</span>{{ l.current.team || l.current.name }}</span>
+                            <span class="li-n"><span v-if="l.current.purpose === 'training'" class="tchip sm">🎓 {{ $t('club.training') }}</span>{{ l.current.team || l.current.name }}</span>
                             <span v-if="l.current.arrived" class="li-at ok"><Icon name="check" size="sm" />{{ $t('common.arrived') }}</span>
                             <span v-else-if="l.current.status === 'accepted'" class="li-at warn"
                                 ><Icon name="clock" size="sm" />{{
@@ -215,7 +215,7 @@ const chartDays = computed(() =>
                             <span class="li-t"
                                 >{{ hhmm(b.start) }}–{{ hhmm(b.end) }}<em v-if="statusLabel(kindOf(b))"> · {{ statusLabel(kindOf(b)) }}</em></span
                             >
-                            <span class="li-n"><span v-if="b.purpose === 'training'" class="tchip sm">🎓</span>{{ b.team || b.name }}</span>
+                            <span class="li-n"><span v-if="b.purpose === 'training'" class="tchip sm">🎓 {{ $t('club.training') }}</span>{{ b.team || b.name }}</span>
                             <span v-if="b.late_minutes" class="li-at warn"><Icon name="clock" size="sm" />{{ $t('owner.booking.late', { min: String(b.late_minutes) }) }}</span>
                         </button>
                         <Link v-if="l.more" class="li-more" :href="route('owner.schedule')">{{

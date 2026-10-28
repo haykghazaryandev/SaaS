@@ -63,3 +63,22 @@ it('has well-formed keys, none a prefix of another, sorted', function () {
     }
     expect($conflicts)->toBe([]);
 });
+
+it('has a text for every booking history entry and every error reason the code uses', function () {
+    $src = '';
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/app')) as $f) {
+        if (str_ends_with($f->getFilename(), '.php')) {
+            $src .= file_get_contents($f->getPathname());
+        }
+    }
+    preg_match_all("/BookingEvent::create\(\[[^]]*'type' => '([a-z_]+)'|->log\(\\$[a-z]+, '([a-z_]+)'/", $src, $ev);
+    preg_match_all("/BookingException\('([a-z_]+)'/", $src, $be);
+    preg_match_all("/SocialException\('([a-z_]+)'/", $src, $se);
+    $keys = array_merge(
+        array_map(fn ($t) => "owner.history.$t", array_filter([...$ev[1], ...$ev[2]])),
+        array_map(fn ($r) => "booking.error.$r", $be[1]),
+        array_map(fn ($r) => "social.error.$r", $se[1]),
+    );
+    $missing = array_values(array_diff(array_unique($keys), array_keys(seedTexts())));
+    expect($missing)->toBe([]);
+});
