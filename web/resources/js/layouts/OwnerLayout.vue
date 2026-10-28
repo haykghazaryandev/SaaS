@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ChatDock from '@/components/owner/ChatDock.vue';
 import '../../css/owner.css';
 
 import Avatar from '@/components/Avatar.vue';
@@ -182,5 +183,7 @@ onBeforeUnmount(() => clearTimeout(reloadT));
         <OwnerSheets />
         <Flash />
         <ConfirmDialog />
+        <!-- computers: the mini chat at the bottom right (answer players while booking) -->
+        <ChatDock />
     </div>
 </template>

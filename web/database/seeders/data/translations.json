@@ -5544,6 +5544,11 @@
         "hy": "Մերժված է՝ :who",
         "ru": "Отклонено: :who"
     },
+    "owner.dock.full": {
+        "en": "Open in Messages",
+        "hy": "Բացել Զրույցներում",
+        "ru": "Открыть в Сообщениях"
+    },
     "owner.duration_hours": {
         "en": ":h h",
         "hy": ":h ժ",

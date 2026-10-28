@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 // chat pages of the player web (see README): the chat list, a chat screen and its JSON actions
 Route::middleware('auth')->prefix('messages')->name('messages.')->group(function () {
     Route::get('/', [ChatController::class, 'index'])->name('index');
+    Route::get('list', [ChatController::class, 'list'])->middleware('throttle:60,1')->name('list');
     Route::post('direct/{user}', [ChatController::class, 'direct'])->whereNumber('user')->middleware('throttle:30,1')->name('direct');
     Route::post('place/{venue:slug}', [ChatController::class, 'venue'])->middleware('throttle:30,1')->name('venue');
     Route::patch('message/{message}', [ChatController::class, 'update'])->whereNumber('message')->middleware('throttle:60,1')->name('update');

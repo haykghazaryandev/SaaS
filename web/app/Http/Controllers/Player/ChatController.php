@@ -57,6 +57,22 @@ class ChatController extends Controller
         ]);
     }
 
+    /** JSON: my open chats with their unread numbers (the owner panel's mini chat). */
+    public function list(Request $request): JsonResponse
+    {
+        $me = $request->user();
+        $unread = $this->chat->unread($me);
+        $chats = Conversation::query()
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at')
+                ->where(fn ($w) => $w->whereNull('hidden_at')->orWhereColumn('conversation_participants.hidden_at', '<', 'conversations.last_message_at')))
+            ->where('status', '!=', 'archived')
+            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'latestMessage.user', 'participants.user'])
+            ->orderByDesc('last_message_at')->orderByDesc('id')->limit(40)->get()
+            ->map(fn (Conversation $c) => $this->item($c, $me, $unread[$c->id] ?? 0))->values();
+
+        return response()->json(['chats' => $chats, 'me' => $me->id]);
+    }
+
     public function show(Request $request, Conversation $conversation): Response
     {
         $me = $request->user();
