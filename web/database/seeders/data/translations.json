@@ -284,6 +284,111 @@
         "hy": "Քարտ յուրաքանչյուր խաղացողի համար՝ QR-ով․ լիցքավորում, վճարումներ, քեշբեք, որն աճում է քարտով վճարածի հետ",
         "ru": "Карта на игрока с QR: пополнения, оплата, кэшбэк, который растёт с суммой оплат картой"
     },
+    "admin.fee.all_sports": {
+        "en": "All sports",
+        "hy": "Բոլոր մարզաձևերը",
+        "ru": "Все виды спорта"
+    },
+    "admin.fee.base": {
+        "en": "Counted",
+        "hy": "Հաշվարկված",
+        "ru": "Учтено"
+    },
+    "admin.fee.day": {
+        "en": "Day",
+        "hy": "Օր",
+        "ru": "День"
+    },
+    "admin.fee.fee": {
+        "en": "Fee",
+        "hy": "Վճար",
+        "ru": "Комиссия"
+    },
+    "admin.fee.kind_booking": {
+        "en": "Bookings",
+        "hy": "Ամրագրումներ",
+        "ru": "Брони"
+    },
+    "admin.fee.kind_tournament": {
+        "en": "Tournaments",
+        "hy": "Մրցաշարեր",
+        "ru": "Турниры"
+    },
+    "admin.fee.kind_training": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
+    },
+    "admin.fee.kind_unpaid": {
+        "en": "Played, unpaid",
+        "hy": "Խաղացված, չվճարված",
+        "ru": "Сыграно, без оплаты"
+    },
+    "admin.fee.month": {
+        "en": "Month",
+        "hy": "Ամիս",
+        "ru": "Месяц"
+    },
+    "admin.fee.next": {
+        "en": "Later",
+        "hy": "Ավելի ուշ",
+        "ru": "Позже"
+    },
+    "admin.fee.none": {
+        "en": "No places.",
+        "hy": "Վայրեր չկան։",
+        "ru": "Нет заведений."
+    },
+    "admin.fee.note": {
+        "en": "Counted: bookings, trainings and tournament fees (card or cash, refunds taken off). Not counted: shop sales and card top-ups. Games played but not paid at the desk count with their booking price, on the day played. The % is set on each place.",
+        "hy": "Հաշվվում են՝ ամրագրումները, մարզումները և մրցաշարային վճարները (քարտով կամ կանխիկ, վերադարձները հանված)։ Չեն հաշվվում՝ խանութի վաճառքները և քարտի լիցքավորումները։ Խաղացված, բայց չվճարված խաղերը հաշվվում են ամրագրման գնով՝ խաղի օրը։ Տոկոսը սահմանվում է յուրաքանչյուր վայրում։",
+        "ru": "Учитываются: брони, тренировки и турнирные взносы (карта или наличные, возвраты вычтены). Не учитываются: продажи магазина и пополнения карт. Сыгранные, но не оплаченные на кассе игры — по цене брони, в день игры. Процент задаётся у каждого заведения."
+    },
+    "admin.fee.pct": {
+        "en": "ZoneSpot fee, %",
+        "hy": "ZoneSpot-ի վճար, %",
+        "ru": "Комиссия ZoneSpot, %"
+    },
+    "admin.fee.pct_help": {
+        "en": "Of bookings, trainings and tournament fees (not the shop). 5% by default.",
+        "hy": "Ամրագրումներից, մարզումներից և մրցաշարային վճարներից (ոչ խանութից)։ Լռությամբ՝ 5%։",
+        "ru": "От броней, тренировок и турнирных взносов (не магазин). По умолчанию 5%."
+    },
+    "admin.fee.pct_short": {
+        "en": "Fee",
+        "hy": "Վճար",
+        "ru": "Комиссия"
+    },
+    "admin.fee.prev": {
+        "en": "Earlier",
+        "hy": "Ավելի վաղ",
+        "ru": "Раньше"
+    },
+    "admin.fee.title": {
+        "en": "ZoneSpot fee",
+        "hy": "ZoneSpot-ի վճար",
+        "ru": "Комиссия ZoneSpot"
+    },
+    "admin.fee.total": {
+        "en": "Total",
+        "hy": "Ընդամենը",
+        "ru": "Итого"
+    },
+    "admin.fee.total_base": {
+        "en": "Counted turnover",
+        "hy": "Հաշվարկված շրջանառություն",
+        "ru": "Учтённый оборот"
+    },
+    "admin.fee.total_fee": {
+        "en": "Fee to receive",
+        "hy": "Ստանալիք վճար",
+        "ru": "Комиссия к получению"
+    },
+    "admin.fee.week": {
+        "en": "Week",
+        "hy": "Շաբաթ",
+        "ru": "Неделя"
+    },
     "admin.field.active": {
         "en": "Active",
         "hy": "Ակտիվ",
@@ -5319,6 +5424,51 @@
         "hy": "Սա կարող է փոխել միայն ակումբի սեփականատերը։",
         "ru": "Это может изменить только владелец клуба."
     },
+    "owner.fee.base": {
+        "en": "counted",
+        "hy": "հաշվարկված",
+        "ru": "учтено"
+    },
+    "owner.fee.kind_booking": {
+        "en": "Bookings",
+        "hy": "Ամրագրումներ",
+        "ru": "Бронирования"
+    },
+    "owner.fee.kind_tournament": {
+        "en": "Tournaments",
+        "hy": "Մրցաշարեր",
+        "ru": "Турниры"
+    },
+    "owner.fee.kind_training": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
+    },
+    "owner.fee.kind_unpaid": {
+        "en": "Played, not paid at the desk",
+        "hy": "Խաղացված, բայց չվճարված դրամարկղում",
+        "ru": "Сыграно, не оплачено на кассе"
+    },
+    "owner.fee.note": {
+        "en": "Counted: bookings, trainings and tournament fees, from cards or in cash. Not counted: the shop and card top-ups (top-up money counts when the card pays for a game). A game played but not paid at the desk counts with its booking price.",
+        "hy": "Հաշվվում են՝ ամրագրումները, մարզումները և մրցաշարային վճարները՝ քարտով կամ կանխիկ։ Չեն հաշվվում՝ խանութը և քարտի լիցքավորումները (լիցքավորված գումարը հաշվվում է, երբ քարտով վճարվում է խաղի համար)։ Խաղացված, բայց դրամարկղում չվճարված խաղը հաշվվում է ամրագրման գնով։",
+        "ru": "Учитываются: бронирования, тренировки и турнирные взносы — с карты или наличными. Не учитываются: магазин и пополнения карт (деньги пополнения учитываются, когда картой платят за игру). Сыгранная, но не оплаченная на кассе игра учитывается по цене брони."
+    },
+    "owner.fee.of": {
+        "en": "of :a",
+        "hy": ":a-ից",
+        "ru": "от :a"
+    },
+    "owner.fee.prev_month": {
+        "en": "Last month",
+        "hy": "Անցյալ ամիս",
+        "ru": "Прошлый месяц"
+    },
+    "owner.fee.title": {
+        "en": "ZoneSpot fee :p%",
+        "hy": "ZoneSpot-ի վճար :p%",
+        "ru": "Комиссия ZoneSpot :p%"
+    },
     "owner.field.big": {
         "en": "Big field",
         "hy": "Մեծ դաշտ",
@@ -5809,6 +5959,16 @@
         "hy": "Հպեք ազատ ժամին՝ ամրագրում ավելացնելու համար",
         "ru": "Нажмите на свободное время, чтобы добавить бронь"
     },
+    "owner.schedule.legend_booked": {
+        "en": "Booked",
+        "hy": "Ամրագրված",
+        "ru": "Забронировано"
+    },
+    "owner.schedule.legend_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершено"
+    },
     "owner.schedule.legend_inactive": {
         "en": "Expired, declined or cancelled",
         "hy": "Ժամկետանց, մերժված կամ չեղարկված",
@@ -5863,6 +6023,11 @@
         "en": "Past week and the next 30 days",
         "hy": "Անցած շաբաթը և հաջորդ 30 օրը",
         "ru": "Прошедшая неделя и ближайшие 30 дней"
+    },
+    "owner.schedule.request": {
+        "en": "Request",
+        "hy": "Հայտ",
+        "ru": "Заявка"
     },
     "owner.schedule.search": {
         "en": "Search name, phone, team or code",

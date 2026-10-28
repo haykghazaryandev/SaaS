@@ -29,9 +29,11 @@ it('opens every club page for the owner, and none where the feature is off', fun
         $this->actingAs($this->owner)->get($url)->assertOk();
     }
     $this->club->update(['features' => ['booking']]);
-    foreach (['/owner/players', '/owner/cards', '/owner/shop', '/owner/tournaments', '/owner/money'] as $url) {
+    foreach (['/owner/players', '/owner/cards', '/owner/shop', '/owner/tournaments'] as $url) {
         $this->actingAs($this->owner)->get($url)->assertNotFound();
     }
+    // Money stays: ZoneSpot's fee (without the club report)
+    $this->actingAs($this->owner)->get('/owner/money')->assertOk()->assertInertia(fn ($p) => $p->where('report', null)->has('fee'));
 });
 
 it('opens a card only for the staff of its own club', function () {

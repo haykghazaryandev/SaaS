@@ -49,6 +49,8 @@ const nav = computed(() => [
         icon: 'chat',
         badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0),
     },
+    // every owner sees ZoneSpot's fee (Money: the whole report where the money feature is on)
+    ...(owner.value.role === 'owner' && !has('money') ? [{ name: 'owner.money', label: 'owner.nav.money', icon: 'chart', badge: 0 }] : []),
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
 // phones: a club: Now · Schedule · Scan · More (Today and the rest); others: the three tabs as before

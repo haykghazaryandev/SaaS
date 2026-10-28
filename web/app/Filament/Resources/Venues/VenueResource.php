@@ -79,6 +79,8 @@ class VenueResource extends Resource
                 TextInput::make('lng')->label(__('admin.venue.lng'))->numeric()->minValue(43)->maxValue(47),
             ]),
             Section::make(__('admin.venue.show_features'))->description(__('admin.venue.show_features_help'))->schema([
+                // ZoneSpot's fee for this place: % of bookings, trainings and tournament fees (Admin → ZoneSpot fee)
+                TextInput::make('commission_pct')->label(__('admin.fee.pct'))->helperText(__('admin.fee.pct_help'))->numeric()->minValue(0)->maxValue(50)->step(0.5)->suffix('%')->default(5)->required(),
                 Toggle::make('listed')->label(__('admin.venue.listed'))->helperText(__('admin.venue.listed_help'))->default(true),
                 CheckboxList::make('features')->label(__('admin.venue.features'))->options(Options::features())->descriptions(Options::featureHelp())
                     ->columns(2)->bulkToggleable()->default(Venue::DEFAULT_FEATURES)
@@ -145,6 +147,7 @@ class VenueResource extends Resource
                 ToggleColumn::make('listed')->label(__('admin.venue.listed_short')),
                 TextColumn::make('sports_list')->label(__('admin.sport.many'))
                     ->getStateUsing(fn (Venue $v) => collect($v->sports())->map(fn ($s) => $s->icon())->implode(' ')),
+                TextColumn::make('commission_pct')->label(__('admin.fee.pct_short'))->suffix('%')->alignCenter()->sortable(),
                 TextColumn::make('fields_count')->label(__('common.fields'))->alignCenter(),
                 TextColumn::make('staff_count')->label(__('admin.venue.staff_count'))->alignCenter(),
                 TextColumn::make('pending_count')->label(__('admin.venue.pending_count'))->alignCenter()->badge()

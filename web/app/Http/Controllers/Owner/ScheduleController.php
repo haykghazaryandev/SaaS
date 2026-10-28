@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Domain\Venues\Availability;
+use App\Enums\FieldSize;
 use App\Models\Booking;
 use App\Models\Closure;
 use App\Support\LocalTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 /** Schedule: day (two fields side by side), week (7 days × 2 fields) or list (search + status filter). */
@@ -71,13 +73,7 @@ class ScheduleController extends OwnerController
                 $close = max($close, min(24, ceil($r['end'])));
             }
         }
-        $closures = Closure::query()->where('venue_id', $venue->id)
-            ->where('starts_at', '<', $date->addDay()->utc())->where('ends_at', '>', $date->utc())->get()
-            ->map(fn (Closure $c) => [
-                'id' => $c->id, 'field_id' => $c->field_id, 'reason' => $c->reason,
-                'start' => max(0, round(LocalTime::hourOf($c->starts_at->toImmutable(), $date), 2)),
-                'end' => min(24, round(LocalTime::hourOf($c->ends_at->toImmutable(), $date), 2)),
-            ])->values();
+        $closures = self::closures($venue, $date, 1);
 
         // per lane (a field, or all tables together) how busy it is through the day: "Free · + Book" and "2/3" rows
         $lanes = self::lanes($venue);
@@ -93,7 +89,28 @@ class ScheduleController extends OwnerController
             'hours' => $hours,
             'bookings' => $rows,
             'closures' => $closures,
+            'step' => max(1, (int) $venue->rule('step_min')) / 60,
         ];
+    }
+
+    /** Closed times of $days days from $date, cut per day: {id, field_id, reason, date, start, end} (hours of that day). */
+    private static function closures($venue, CarbonImmutable $date, int $days): Collection
+    {
+        $list = Closure::query()->where('venue_id', $venue->id)
+            ->where('starts_at', '<', $date->addDays($days)->utc())->where('ends_at', '>', $date->utc())->get();
+        $out = collect();
+        for ($i = 0; $i < $days; $i++) {
+            $day = $date->addDays($i);
+            foreach ($list as $c) {
+                if ($c->starts_at->lt($day->addDay()) && $c->ends_at->gt($day)) {
+                    $out->push(['id' => $c->id, 'field_id' => $c->field_id, 'reason' => $c->reason, 'date' => $day->toDateString(),
+                        'start' => max(0, round(LocalTime::hourOf($c->starts_at->toImmutable(), $day), 2)),
+                        'end' => min(24, round(LocalTime::hourOf($c->ends_at->toImmutable(), $day), 2))]);
+                }
+            }
+        }
+
+        return $out->values();
     }
 
     private function week($venue, CarbonImmutable $date, Availability $availability, VenueStats $stats): array
@@ -129,26 +146,29 @@ class ScheduleController extends OwnerController
                 $fields[$l['id']] = [
                     'count' => $holding->count(),
                     'pending' => $holding->filter(fn (Booking $b) => BookingPresenter::kind($b) === 'pending')->count(),
-                    'free' => array_values(array_filter($gaps, fn ($g) => $g[1] - $g[0] >= $step - 1e-9)),
+                    'free' => array_values(array_filter($gaps, fn ($g) => $step - 1e-9 <= $g[1] - $g[0])),
                 ];
             }
             $days[] = ['date' => $key, 'hours' => $availability->hours($venue, $day), 'fields' => $fields];
         }
 
-        return ['days' => $days, 'lanes' => $lanes->map(fn ($l) => collect($l)->except('models')->all())->values()];
+        // the hour grid of the week: every booking and closed time of the 7 days
+        return ['days' => $days, 'lanes' => $lanes->map(fn ($l) => collect($l)->except('models')->all())->values(),
+            'bookings' => $bookings->map(fn ($b) => BookingPresenter::row($b))->values(),
+            'closures' => self::closures($venue, $date, 7), 'step' => $step];
     }
 
     /**
      * The columns of the schedule: one per football field, one for all the tables of a ping-pong place ("Tables · 3").
      * models: the courts (server side only).
      */
-    public static function lanes($venue): \Illuminate\Support\Collection
+    public static function lanes($venue): Collection
     {
         return $venue->fields->where('active', true)->sortBy(fn ($f) => [$f->sort, $f->id])
             ->groupBy(fn ($f) => $f->size->value)->values()
             ->flatMap(function ($group) {
                 // football: every field is its own lane; tables: one lane for all of them
-                $parts = $group->first()->size === \App\Enums\FieldSize::Table ? [$group->values()] : $group->map(fn ($f) => collect([$f]))->all();
+                $parts = $group->first()->size === FieldSize::Table ? [$group->values()] : $group->map(fn ($f) => collect([$f]))->all();
 
                 return collect($parts)->map(function ($courts) {
                     $f = $courts->first();
