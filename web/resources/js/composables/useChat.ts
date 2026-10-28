@@ -54,6 +54,8 @@ export interface ChatItem {
     } | null;
     last: ChatMessage | null;
     unread: number;
+    /** I muted it: no sound, not in the Chats badge */
+    muted?: boolean;
     at: string | null;
 }
 

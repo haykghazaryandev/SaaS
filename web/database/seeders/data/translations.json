@@ -1499,6 +1499,11 @@
         "hy": ":name-ն լքեց խաղը",
         "ru": ":name покинул(а) игру"
     },
+    "chat.sys.left_chat": {
+        "en": ":name left the chat",
+        "hy": ":name-ը լքեց զրույցը",
+        "ru": ":name вышел из чата"
+    },
     "chat.sys.match_result": {
         "en": ":winner beat :loser :score",
         "hy": ":winner-ը հաղթեց :loser-ին :score",
@@ -3839,6 +3844,31 @@
         "hy": "Փակված զրույցներ (միայն կարդալու)",
         "ru": "Закрытые чаты (только чтение)"
     },
+    "messages.ask_leave": {
+        "en": "Leave this chat?",
+        "hy": "Լքե՞լ այս զրույցը",
+        "ru": "Выйти из этого чата?"
+    },
+    "messages.ask_leave_text": {
+        "en": "You won't get its messages any more and it leaves your list; the others see that you left.",
+        "hy": "Այլևս չեք ստանա նրա հաղորդագրությունները, և այն կհեռանա ձեր ցանկից․ մյուսները կտեսնեն, որ դուք լքել եք։",
+        "ru": "Сообщения больше не будут приходить, чат исчезнет из списка; остальные увидят, что вы вышли."
+    },
+    "messages.ask_remove": {
+        "en": "Delete this chat?",
+        "hy": "Ջնջե՞լ այս զրույցը",
+        "ru": "Удалить этот чат?"
+    },
+    "messages.ask_remove_closed": {
+        "en": "It is closed: it just leaves your list.",
+        "hy": "Այն փակ է․ պարզապես կհեռանա ձեր ցանկից։",
+        "ru": "Он закрыт: просто исчезнет из списка."
+    },
+    "messages.ask_remove_text": {
+        "en": "Only for you: the chat and its messages leave your list. If they write again, it comes back with the new messages only.",
+        "hy": "Միայն ձեզ համար․ զրույցը և հաղորդագրությունները կհեռանան ձեր ցանկից։ Եթե նորից գրեն, այն կվերադառնա միայն նոր հաղորդագրություններով։",
+        "ru": "Только для вас: чат и сообщения исчезнут из списка. Если вам снова напишут, чат вернётся только с новыми сообщениями."
+    },
     "messages.back": {
         "en": "All chats",
         "hy": "Բոլոր զրույցները",
@@ -3863,6 +3893,11 @@
         "en": "field requested",
         "hy": "դաշտի հայտն ուղարկված է",
         "ru": "заявка на поле отправлена"
+    },
+    "messages.chat_menu": {
+        "en": "Chat settings",
+        "hy": "Զրույցի կարգավորումներ",
+        "ru": "Настройки чата"
     },
     "messages.delete": {
         "en": "Delete",
@@ -3934,10 +3969,35 @@
         "hy": "Enter՝ ուղարկել, Shift+Enter՝ նոր տող",
         "ru": "Enter — отправить, Shift+Enter — новая строка"
     },
+    "messages.is_muted": {
+        "en": "Muted",
+        "hy": "Ծանուցումներն անջատված են",
+        "ru": "Без звука"
+    },
+    "messages.leave": {
+        "en": "Leave the chat",
+        "hy": "Լքել զրույցը",
+        "ru": "Выйти из чата"
+    },
+    "messages.left": {
+        "en": "You left the chat.",
+        "hy": "Դուք լքեցիք զրույցը։",
+        "ru": "Вы вышли из чата."
+    },
     "messages.members": {
         "en": ":n in chat",
         "hy": "զրույցում՝ :n",
         "ru": "в чате: :n"
+    },
+    "messages.mute": {
+        "en": "Mute",
+        "hy": "Անջատել ծանուցումները",
+        "ru": "Без звука"
+    },
+    "messages.muted": {
+        "en": "Muted: no sound and no Telegram for this chat.",
+        "hy": "Անջատված է․ այս զրույցի համար ձայն և Telegram չի լինի։",
+        "ru": "Без звука: ни звука, ни Telegram по этому чату."
     },
     "messages.new_below": {
         "en": "New messages",
@@ -4033,6 +4093,16 @@
         "en": "Profile",
         "hy": "Պրոֆիլ",
         "ru": "Профиль"
+    },
+    "messages.remove": {
+        "en": "Delete the chat",
+        "hy": "Ջնջել զրույցը",
+        "ru": "Удалить чат"
+    },
+    "messages.removed": {
+        "en": "The chat is deleted.",
+        "hy": "Զրույցը ջնջված է։",
+        "ru": "Чат удалён."
     },
     "messages.reply": {
         "en": "Reply",
@@ -4138,6 +4208,16 @@
         "en": ":a and :b are typing…",
         "hy": ":a-ն և :b-ն գրում են…",
         "ru": ":a и :b печатают…"
+    },
+    "messages.unmute": {
+        "en": "Unmute",
+        "hy": "Միացնել ծանուցումները",
+        "ru": "Включить уведомления"
+    },
+    "messages.unmuted": {
+        "en": "Notifications are on again.",
+        "hy": "Ծանուցումները կրկին միացված են։",
+        "ru": "Уведомления снова включены."
     },
     "messages.unread": {
         "en": "Unread messages",
@@ -8388,6 +8468,11 @@
         "en": "Invite at least :n friends: the game opens when ~30% of players are in.",
         "hy": "Հրավիրեք առնվազն :n ընկեր․ խաղը բացվում է, երբ խաղացողների ~30%-ը միացած է։",
         "ru": "Пригласите минимум :n друзей: игра откроется, когда наберётся ~30% игроков."
+    },
+    "social.error.leave_first": {
+        "en": "This group chat is on: leave it instead.",
+        "hy": "Այս խմբային զրույցը ակտիվ է․ լքեք այն։",
+        "ru": "Этот групповой чат активен: выйдите из него."
     },
     "social.error.not_allowed": {
         "en": "Only the creator of the game can do this.",

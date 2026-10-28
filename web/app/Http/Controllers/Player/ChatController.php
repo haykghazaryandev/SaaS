@@ -8,6 +8,7 @@ use App\Domain\Social\SocialException;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerGames;
 use App\Models\Conversation;
+use App\Models\ConversationParticipant;
 use App\Models\Friendship;
 use App\Models\Message;
 use App\Models\User;
@@ -39,7 +40,9 @@ class ChatController extends Controller
         $me = $request->user();
         $unread = $this->chat->unread($me);
         $chats = Conversation::query()
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at'))
+            // my chats; one I deleted comes back only when somebody writes after that
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at')
+                ->where(fn ($w) => $w->whereNull('hidden_at')->orWhereColumn('conversation_participants.hidden_at', '<', 'conversations.last_message_at')))
             ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'latestMessage.user', 'participants.user'])
             ->orderByDesc('last_message_at')->orderByDesc('id')
             ->get()
@@ -59,8 +62,8 @@ class ChatController extends Controller
         $me = $request->user();
         $this->authorizeMember($conversation, $me);
         $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'participants.user']);
-        $msgs = $this->query($conversation)->limit(self::PAGE + 1)->get();
         $mine = $conversation->participants->firstWhere('user_id', $me->id);
+        $msgs = $this->query($conversation, $mine?->hidden_at)->limit(self::PAGE + 1)->get();
 
         return Inertia::render('messages/Show', [
             'chat' => $this->item($conversation, $me, 0) + [
@@ -68,6 +71,9 @@ class ChatController extends Controller
                 // game chats: how many other members are online now (direct chats have other.online / other.lastSeen)
                 'online' => $this->onlineCount($conversation, $me),
                 'lastReadId' => $mine?->last_read_message_id,
+                // my settings: muted; a group chat on now can be left, a direct / place / finished chat deleted (for me)
+                'muted' => (bool) ($mine?->muted_until?->isFuture()),
+                'canLeave' => Chat::groupChat($conversation) && ! $conversation->isArchived(),
                 // "seen" ticks on my messages: how far each other member has read
                 'reads' => $conversation->participants->whereNull('left_at')->where('user_id', '!=', $me->id)
                     ->mapWithKeys(fn ($p) => [$p->user_id => (int) $p->last_read_message_id])->all(),
@@ -89,12 +95,13 @@ class ChatController extends Controller
     {
         $this->authorizeMember($conversation, $request->user());
         $data = $request->validate(['before' => ['nullable', 'integer', 'min:1'], 'after' => ['nullable', 'integer', 'min:0']]);
+        $hidden = $conversation->participants()->where('user_id', $request->user()->id)->value('hidden_at');
         if (isset($data['after'])) {
-            $msgs = $this->query($conversation)->reorder('id')->where('id', '>', $data['after'])->limit(200)->get();
+            $msgs = $this->query($conversation, $hidden)->reorder('id')->where('id', '>', $data['after'])->limit(200)->get();
 
             return response()->json(['messages' => $msgs->map(fn ($m) => ChatPresenter::message($m))->all(), 'hasMore' => false]);
         }
-        $q = $this->query($conversation);
+        $q = $this->query($conversation, $hidden);
         if (isset($data['before'])) {
             $q->where('id', '<', $data['before']);
         }
@@ -195,10 +202,48 @@ class ChatController extends Controller
         abort_unless($this->chat->isMember($c, $u), 403);
     }
 
-    /** messages of a chat, newest first, deleted ones included (shown as "deleted") */
-    private function query(Conversation $c)
+    /** messages of a chat, newest first, deleted ones included (shown as "deleted"); after I deleted the chat: only newer ones */
+    private function query(Conversation $c, $hiddenAt = null)
     {
-        return Message::withTrashed()->where('conversation_id', $c->id)->with(['user', 'replyTo.user'])->orderByDesc('id');
+        return Message::withTrashed()->where('conversation_id', $c->id)->when($hiddenAt, fn ($q) => $q->where('created_at', '>', $hiddenAt))
+            ->with(['user', 'replyTo.user'])->orderByDesc('id');
+    }
+
+    // ---------- my settings of a chat ----------
+
+    public function mute(Request $request, Conversation $conversation)
+    {
+        $this->authorizeMember($conversation, $request->user());
+        $on = $request->boolean('on');
+        $this->chat->mute($conversation, $request->user(), $on);
+
+        return back()->with('success', __($on ? 'messages.muted' : 'messages.unmuted'));
+    }
+
+    /** Delete for me (a direct, place or finished chat): back to the list. */
+    public function remove(Request $request, Conversation $conversation)
+    {
+        abort_unless(ConversationParticipant::where('conversation_id', $conversation->id)->where('user_id', $request->user()->id)->exists(), 403);
+        try {
+            $this->chat->hide($conversation, $request->user());
+        } catch (SocialException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('messages.index')->with('success', __('messages.removed'));
+    }
+
+    /** Leave a group chat (game / tournament): back to the list. */
+    public function leave(Request $request, Conversation $conversation)
+    {
+        $this->authorizeMember($conversation, $request->user());
+        try {
+            $this->chat->leaveGroup($conversation, $request->user());
+        } catch (SocialException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('messages.index')->with('success', __('messages.left'));
     }
 
     private function attempt(callable $fn, int $status = 200): JsonResponse
@@ -255,6 +300,7 @@ class ChatController extends Controller
             })() : null,
             'last' => $last ? ChatPresenter::message($last) : null,
             'unread' => $unread,
+            'muted' => (bool) $c->participants->firstWhere('user_id', $me->id)?->muted_until?->isFuture(),
             'at' => $c->last_message_at?->toIso8601String(),
         ];
     }

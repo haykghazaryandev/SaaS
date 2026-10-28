@@ -122,6 +122,58 @@ class Chat
         DB::afterCommit(fn () => ChatUpdated::dispatch($userId, $c->id));
     }
 
+    // ---------- my settings of a chat: mute, delete for me, leave ----------
+
+    /** Mute: no sound, not in the Chats badge, nothing on Telegram (the unread number stays in the list). */
+    public function mute(Conversation $c, User $u, bool $on): void
+    {
+        ConversationParticipant::where('conversation_id', $c->id)->where('user_id', $u->id)
+            ->update(['muted_until' => $on ? now()->addYears(50) : null]);
+        DB::afterCommit(fn () => ChatUpdated::dispatch($u->id, $c->id));
+    }
+
+    public static function groupChat(Conversation $c): bool
+    {
+        return in_array($c->type, ['game', 'tournament'], true);
+    }
+
+    /**
+     * Delete the chat for me: gone from my list with its messages so far; a direct or place chat comes back (with only
+     * the new messages) when somebody writes. A group chat that is still on can't be deleted, only left (else the next
+     * message brings it back): leave() first.
+     */
+    public function hide(Conversation $c, User $u): void
+    {
+        if (self::groupChat($c) && ! $c->isArchived() && $this->isMember($c, $u)) {
+            throw new SocialException('leave_first');
+        }
+        ConversationParticipant::where('conversation_id', $c->id)->where('user_id', $u->id)->update(['hidden_at' => now()]);
+        DB::afterCommit(fn () => ChatUpdated::dispatch($u->id, $c->id));
+    }
+
+    /** Leave a group chat (game / tournament): "Aram left", no more messages, gone from my list. */
+    public function leaveGroup(Conversation $c, User $u): void
+    {
+        if (! self::groupChat($c)) {
+            throw new SocialException('not_member');
+        }
+        DB::transaction(function () use ($c, $u) {
+            if ($this->isMember($c, $u) && ! $c->isArchived()) {
+                $this->system($c, 'chat.sys.left_chat', ['name' => $u->name ?: '—']);
+            }
+            $this->leave($c, $u->id);
+            ConversationParticipant::where('conversation_id', $c->id)->where('user_id', $u->id)->update(['hidden_at' => now()]);
+        });
+    }
+
+    /** Unread messages that count for the Chats badge and the sound: not in muted chats. */
+    public function unreadLoud(User $u): int
+    {
+        $muted = ConversationParticipant::where('user_id', $u->id)->whereNotNull('muted_until')->where('muted_until', '>', now())->pluck('conversation_id')->all();
+
+        return array_sum(array_diff_key($this->unread($u), array_flip($muted)));
+    }
+
     // ---------- messages ----------
 
     public function isMember(Conversation $c, User $u): bool
@@ -209,6 +261,7 @@ class Chat
             ->where('p.user_id', $u->id)->whereNull('p.left_at')->whereNull('m.deleted_at')
             ->where(fn ($q) => $q->whereNull('m.user_id')->orWhere('m.user_id', '!=', $u->id))
             ->whereRaw('m.id > COALESCE(p.last_read_message_id, 0)')
+            ->where(fn ($q) => $q->whereNull('p.hidden_at')->orWhereColumn('m.created_at', '>', 'p.hidden_at'))
             ->groupBy('p.conversation_id')->selectRaw('p.conversation_id, count(*) as n')->pluck('n', 'conversation_id')->map(fn ($n) => (int) $n)->all();
     }
 

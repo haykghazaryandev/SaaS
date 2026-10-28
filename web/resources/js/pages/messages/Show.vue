@@ -3,6 +3,7 @@ import Avatar from '@/components/Avatar.vue';
 import EmojiPicker from '@/components/EmojiPicker.vue';
 import Icon from '@/components/Icon.vue';
 import FriendActions from '@/components/social/FriendActions.vue';
+import { ask } from '@/composables/useConfirm';
 import { whenShort } from '@/composables/useGames';
 import { api, type ChatItem, type ChatMessage, chatIcon, chatTitle, clock, dayKey, dayLabel, lastSeenText, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
@@ -20,6 +21,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // The header shows "online" / "last seen …" (direct) or "N online" (game), refreshed from /presence every minute.
 const props = defineProps<{
     chat: ChatItem & {
+        muted?: boolean;
+        canLeave?: boolean;
         members: number;
         lastReadId: number | null;
         online: number | null;
@@ -65,6 +68,22 @@ const isGame = props.chat.type !== 'direct';
 // a tournament: the organiser's messages stand out
 const hosts = new Set(props.chat.tournament?.hostIds ?? props.chat.venue?.hostIds ?? []);
 const isHost = (m: ChatMessage) => !!m.user && hosts.has(m.user.id);
+// ⋯ in the header: mute, leave a group chat that is on, delete a direct / place / finished chat (for me)
+const menuOpen = ref(false);
+const setMute = (on: boolean) => {
+    menuOpen.value = false;
+    router.post(route('messages.mute', cid), { on: on ? 1 : 0 }, { preserveScroll: true, preserveState: true });
+};
+async function leaveChat() {
+    menuOpen.value = false;
+    if (await ask({ title: trans('messages.ask_leave'), text: trans('messages.ask_leave_text'), ok: trans('messages.leave'), danger: true }))
+        router.post(route('messages.leave', cid));
+}
+async function removeChat() {
+    menuOpen.value = false;
+    if (await ask({ title: trans('messages.ask_remove'), text: trans(props.chat.archived ? 'messages.ask_remove_closed' : 'messages.ask_remove_text'), ok: trans('messages.remove'), danger: true }))
+        router.post(route('messages.remove', cid));
+}
 // tap a name or an avatar in a group chat: who it is, their profile, "Add friend"
 const person = ref<{ id: number; name: string; username: string | null; avatar?: string | null } | null>(null);
 const personRel = computed<Relation>(() => (person.value ? (props.chat.people?.[person.value.id] ?? 'none') : 'none'));
@@ -496,6 +515,9 @@ onBeforeUnmount(() => {
                         <!-- "N online" before the member count: on phones the end of this line is cut -->
                         <template v-if="onlineN"><span class="on">{{ $t('messages.online_count', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}
                     </span>
+                    <span v-else-if="chat.tournament" class="hs"
+                        ><template v-if="onlineN"><span class="on">{{ $t('messages.online_count', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}</span
+                    >
                     <span v-else-if="chat.venue" class="hs">{{
                         chat.venue.staff ? $t('messages.place_chat_staff') : $t('messages.place_chat')
                     }}</span>
@@ -513,7 +535,25 @@ onBeforeUnmount(() => {
                 <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.open_game')"
                     ><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.open_game') }}</span></Link
                 >
+                <Icon v-if="chat.muted" name="bellOff" size="sm" class="mutedi" :title="$t('messages.is_muted')" />
+                <div class="cmenu">
+                    <button type="button" class="btn outline sm icon-only" :aria-label="$t('messages.chat_menu')" :aria-expanded="menuOpen" data-test="chat-menu" @click="menuOpen = !menuOpen">
+                        <Icon name="more" size="sm" />
+                    </button>
+                    <div v-if="menuOpen" class="cmdrop" role="menu">
+                        <button type="button" role="menuitem" data-test="chat-mute" @click="setMute(!chat.muted)">
+                            <Icon :name="chat.muted ? 'bell' : 'bellOff'" size="sm" />{{ chat.muted ? $t('messages.unmute') : $t('messages.mute') }}
+                        </button>
+                        <button v-if="chat.canLeave" type="button" role="menuitem" class="danger" data-test="chat-leave" @click="leaveChat">
+                            <Icon name="exit" size="sm" />{{ $t('messages.leave') }}
+                        </button>
+                        <button v-else type="button" role="menuitem" class="danger" data-test="chat-remove" @click="removeChat">
+                            <Icon name="trash" size="sm" />{{ $t('messages.remove') }}
+                        </button>
+                    </div>
+                </div>
             </header>
+            <div v-if="menuOpen" class="cmscrim" @click="menuOpen = false" />
 
             <div v-if="bar" class="gbar">
                 <Link :href="bar.url ?? '#'" class="gb-main">
@@ -719,12 +759,26 @@ onBeforeUnmount(() => {
 .mrow.mine { justify-content: flex-end; }
 .mav { width: 30px; height: 30px; flex: none; display: grid; padding: 0; border: 0; background: none; cursor: pointer; }
 .mname { border: 0; background: none; padding: 0; cursor: pointer; text-align: left; font-family: inherit; }
+.cmenu { position: relative; flex: none; }
+.cmdrop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 210px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px; padding: 6px; box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9); display: grid; }
+.cmdrop button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; background: none; border-radius: 10px; color: var(--ink); font: 600 14px var(--body); text-align: left; cursor: pointer; }
+.cmdrop button:hover { background: var(--surface-2); }
+.cmdrop .danger { color: var(--hot); }
+.cmscrim { position: fixed; inset: 0; z-index: 30; }
+.mutedi { color: var(--muted); flex: none; }
 .pscrim { position: fixed; inset: 0; z-index: 300; background: rgba(4, 8, 6, 0.55); display: flex; align-items: flex-end; justify-content: center; }
 .psheet { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 22px 22px 0 0; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .psheet h3 { margin: 0; font-size: 18px; }
 .psheet .faint { margin: -6px 0 0; font-size: 13px; }
 .psheet .facts-row { justify-content: center; }
-@media (min-width: 640px) { .pscrim { align-items: center; } .psheet { border-radius: 22px; } }
+@media (min-width: 640px) { .cmenu { position: relative; flex: none; }
+.cmdrop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 210px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px; padding: 6px; box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9); display: grid; }
+.cmdrop button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; background: none; border-radius: 10px; color: var(--ink); font: 600 14px var(--body); text-align: left; cursor: pointer; }
+.cmdrop button:hover { background: var(--surface-2); }
+.cmdrop .danger { color: var(--hot); }
+.cmscrim { position: fixed; inset: 0; z-index: 30; }
+.mutedi { color: var(--muted); flex: none; }
+.pscrim { align-items: center; } .psheet { border-radius: 22px; } }
 .mcol { display: flex; flex-direction: column; max-width: min(78%, 560px); min-width: 0; }
 .mine .mcol { align-items: flex-end; }
 .mname { font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 3px 10px; }

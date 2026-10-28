@@ -27,7 +27,7 @@ class SocialCounts
     {
         return [
             'notifications' => $u->unreadNotifications()->count(),
-            'messages' => array_sum($this->chat->unread($u)),
+            'messages' => $this->chat->unreadLoud($u),   // muted chats: no badge, no sound
             'friendRequests' => Friendship::where('friend_id', $u->id)->where('status', 'pending')->count(),
             'invites' => GamePlayer::where('user_id', $u->id)->where('status', GamePlayerStatus::Invited)
                 ->whereHas('game', fn ($q) => $q->whereIn('status', ['forming', 'open']))->count(),

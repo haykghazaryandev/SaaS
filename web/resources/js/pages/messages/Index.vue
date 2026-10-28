@@ -3,6 +3,7 @@ import { presence } from '@/composables/useSocial';
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import { type ChatItem, chatIcon, chatTitle, shortWhen, sysText, userName } from '@/composables/useChat';
+import { ask } from '@/composables/useConfirm';
 import { useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -45,6 +46,11 @@ const shownFriends = computed(() => {
     const all = props.friends ?? [];
     return s ? all.filter((f) => f.name.toLowerCase().includes(s) || (f.username ?? '').includes(s)) : all;
 });
+// a finished chat (game / tournament over): off my list
+async function removeClosed(c: ChatItem) {
+    if (await ask({ title: trans('messages.ask_remove'), text: trans('messages.ask_remove_closed'), ok: trans('messages.remove'), danger: true }))
+        router.post(route('messages.remove', c.id), {}, { preserveScroll: true });
+}
 function start(id: number) {
     busyId.value = id;
     router.post(route('messages.direct', id), {}, { onFinish: () => (busyId.value = null) });
@@ -101,12 +107,12 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                     </span>
                     <span class="cmain">
                         <span class="crow">
-                            <b class="ctitle">{{ chatTitle(c) }}</b>
+                            <b class="ctitle">{{ chatTitle(c) }}<Icon v-if="c.muted" name="bellOff" size="sm" class="mut" :aria-label="$t('messages.is_muted')" /></b>
                             <span class="ctime">{{ shortWhen(c.last?.created_at ?? c.at) }}</span>
                         </span>
                         <span class="crow">
                             <span :class="['cprev', { sys: c.last?.type === 'system' }]">{{ preview(c) }}</span>
-                            <span v-if="c.unread" class="badge-dot" :aria-label="$t('messages.unread_count', { n: String(c.unread) })">{{ c.unread > 99 ? '99+' : c.unread }}</span>
+                            <span v-if="c.unread" :class="['badge-dot', { mutedb: c.muted }]" :aria-label="$t('messages.unread_count', { n: String(c.unread) })">{{ c.unread > 99 ? '99+' : c.unread }}</span>
                         </span>
                     </span>
                 </Link>
@@ -121,7 +127,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
             <template v-if="archived.length">
                 <h2 class="sec">{{ $t('messages.archived_title') }}</h2>
                 <section class="clist off">
-                    <Link v-for="c in archived" :key="c.id" :href="route('messages.show', c.id)" class="list-row citem">
+                    <Link v-for="c in archived" :key="c.id" :href="route('messages.show', c.id)" class="list-row citem" :data-test="`closed-${c.id}`">
                         <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                         <Avatar v-else :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <span class="cmain">
@@ -131,6 +137,10 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                             </span>
                             <span class="crow"><span class="cprev">{{ preview(c) }}</span></span>
                         </span>
+                        <!-- a finished chat: off my list -->
+                        <button type="button" class="rmx" :aria-label="$t('messages.remove')" :data-test="`remove-${c.id}`" @click.prevent.stop="removeClosed(c)">
+                            <Icon name="x" size="sm" />
+                        </button>
                     </Link>
                 </section>
             </template>
@@ -165,6 +175,10 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
 </template>
 
 <style scoped>
+.ctitle .mut { color: var(--muted); margin-left: 6px; vertical-align: -2px; }
+.badge-dot.mutedb { background: var(--surface-3); color: var(--muted); }
+.rmx { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--muted); display: grid; place-items: center; cursor: pointer; }
+.rmx:hover { color: var(--hot); border-color: var(--hot); }
 /* the other person has Bookball open (the live list; before it answered: seen in the last 2 minutes) */
 .avw { position: relative; display: inline-grid; flex: none; }
 .on-dot { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--free); border: 2px solid var(--surface); }
