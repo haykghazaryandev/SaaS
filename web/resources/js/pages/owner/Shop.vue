@@ -101,17 +101,20 @@ async function sell(id: number) {
 
         <div class="pgrid">
             <article v-for="p in products" :key="p.id" :class="['card', 'prod', { off: !p.active }]">
-                <div class="img"><img v-if="p.photo" :src="p.photo" alt="" /><Icon v-else name="cube" size="lg" /></div>
+                <div class="img">
+                    <img v-if="p.photo" :src="p.photo" alt="" /><Icon v-else name="cube" size="lg" />
+                    <!-- edit: a round button on the photo (the row below keeps quantity + sell, whatever the language) -->
+                    <button v-if="canEdit" type="button" class="pedit" :aria-label="$t('common.edit')" :title="$t('common.edit')" @click="edit(p)"><Icon name="edit" size="sm" /></button>
+                </div>
                 <div class="body">
                     <b>{{ p.name }}</b>
                     <span class="pr"
                         ><s v-if="p.discount_pct">{{ amd(p.price) }}</s> {{ amd(p.final) }}<span v-if="p.discount_pct" class="pill warn">−{{ p.discount_pct }}%</span></span
                     >
                     <span v-if="!p.in_stock" class="pill">{{ $t('owner.club.out_of_stock') }}</span>
-                    <div class="row" style="gap: 6px; margin-top: 8px">
+                    <div class="pact">
                         <input v-model.number="qty[p.id]" class="input qty" type="number" min="1" placeholder="1" :aria-label="$t('owner.club.qty')" />
-                        <button type="button" class="btn sm" :disabled="!p.in_stock" @click="sell(p.id)">{{ $t('owner.club.sell_cash') }}</button>
-                        <button v-if="canEdit" type="button" class="btn ghost sm" :aria-label="$t('common.edit')" @click="edit(p)"><Icon name="edit" size="sm" /></button>
+                        <button type="button" class="btn sm" :disabled="!p.in_stock" :title="$t('owner.club.sell_cash')" @click="sell(p.id)">{{ $t('owner.club.sell_cash') }}</button>
                     </div>
                 </div>
             </article>
@@ -136,6 +139,12 @@ async function sell(id: number) {
 .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 14px; }
 .prod { padding: 0; overflow: hidden; }
 .prod.off { opacity: .5; }
+.prod .img { position: relative; }
+.pedit { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(10, 13, 11, 0.7); color: #fff; display: grid; place-items: center; cursor: pointer; backdrop-filter: blur(6px); }
+.pedit:hover { border-color: var(--accent); color: var(--accent); }
+.pact { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px; margin-top: 8px; }
+.pact .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: 10px; }
+.pact .qty { width: 100%; min-width: 0; }
 .prod .img { aspect-ratio: 4 / 3; background: var(--surface-2); display: grid; place-items: center; color: var(--faint); }
 .prod .img img { width: 100%; height: 100%; object-fit: cover; }
 .prod .body { padding: 12px; display: flex; flex-direction: column; gap: 4px; }

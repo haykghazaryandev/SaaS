@@ -5,6 +5,8 @@ use App\Http\Presenters\SocialCounts;
 use App\Models\Conversation;
 use App\Models\Friendship;
 use App\Models\User;
+use App\Notifications\Notice;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -77,4 +79,20 @@ it('mutes a chat (no badge), deletes a direct / place chat for me until someone 
     $g->update(['status' => 'archived']);
     $this->actingAs($this->owner)->post(route('messages.remove', $g->id))->assertRedirect(route('messages.index'));
     $this->actingAs($this->owner)->get(route('messages.index'))->assertInertia(fn (Assert $p) => $p->where('archived', []));
+});
+
+it('lists the members of a group chat and tells the ones picked with "@"', function () {
+    Notification::fake();
+    $g = Conversation::create(['type' => 'tournament', 'last_message_at' => now()]);
+    $mate = User::factory()->create(['name' => 'Davit']);
+    foreach ([$this->player, $mate] as $u) {
+        $g->participants()->create(['user_id' => $u->id, 'joined_at' => now()]);
+    }
+    $this->actingAs($this->player)->get(route('messages.show', $g->id))->assertInertia(fn (Assert $p) => $p->has('chat.memberList', 2));
+    $outsider = User::factory()->create();
+    $this->actingAs($this->player)->postJson(route('messages.send', $g->id), ['body' => '@Davit see you at 7', 'mentions' => [$mate->id, $outsider->id, $this->player->id]])
+        ->assertCreated()->assertJsonPath('message.meta.mentions', [$mate->id]);
+    // even in a muted chat
+    Notification::assertSentTo($mate, Notice::class, fn ($n) => $n->type === 'chat_mention');
+    Notification::assertNotSentTo($outsider, Notice::class);
 });

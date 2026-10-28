@@ -30,7 +30,7 @@ class Notice extends Notification implements ShouldQueue
         'booking_late', 'booking_not_here', 'booking_no_show', 'booking_ban', 'booking_rate',
         // club cards: money matters, so these go to Telegram too
         'card_created', 'card_topup', 'card_paid', 'card_level',
-        'tournament_accepted', 'tournament_accepted_fee', 'tournament_declined', 'tournament_news', 'tournament_unpaid', 'tournament_draw', 'tournament_bye', 'tournament_result', 'tournament_champion', 'tournament_removed', 'tournament_cancelled'];
+        'tournament_accepted', 'tournament_accepted_fee', 'tournament_declined', 'tournament_news', 'tournament_unpaid', 'tournament_draw', 'tournament_bye', 'tournament_result', 'tournament_champion', 'tournament_removed', 'tournament_cancelled', 'chat_mention'];
 
     /** Categories that always go by Telegram (if switched on), even while the person uses the app: they matter. */
     private const ALWAYS = ['bookings', 'requests', 'alerts'];
@@ -55,7 +55,7 @@ class Notice extends Notification implements ShouldQueue
         return $via;
     }
 
-    /** bookings | requests (for the place's staff) | games | friends | alerts */
+    /** bookings | requests (for the place's staff) | games | friends | chats | alerts */
     public function category(): string
     {
         return match (true) {
@@ -63,6 +63,8 @@ class Notice extends Notification implements ShouldQueue
             str_starts_with($this->type, 'booking_') => 'bookings',
             str_starts_with($this->type, 'game_') => 'games',
             str_starts_with($this->type, 'friend_') => 'friends',
+            // "@you" in a chat: like the chat messages (Telegram while the app is not open)
+            str_starts_with($this->type, 'chat_') => 'chats',
             default => 'alerts',
         };
     }

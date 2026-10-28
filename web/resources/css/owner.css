@@ -9,7 +9,10 @@
 .oapp .vbox { gap: 6px; }
 .oapp .vsel { padding: 9px 30px 9px 11px; font-weight: 700; font-size: 13.5px; }
 .oapp .onav { display: flex; flex-direction: column; gap: 2px; }
-.oapp .onav a { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 12px; color: var(--muted); font-weight: 700; font-size: 14.5px; }
+.oapp .onav a { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 12px; color: var(--muted); font-weight: 700; font-size: 14.5px; min-width: 0; }
+/* a long name (Armenian, Russian) is cut with "…", the badge stays in the box */
+.oapp .onav a > span:not(.nbadge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oapp .onav a > .ico, .oapp .nbadge { flex: none; }
 .oapp .onav a:hover { background: var(--surface-2); color: var(--ink); }
 .oapp .onav a[aria-current="page"] { background: var(--surface-2); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
 .oapp .nbadge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--warn); color: #1d1300; font-size: 11.5px; font-weight: 800; display: inline-grid; place-items: center; }

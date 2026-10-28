@@ -3929,6 +3929,11 @@
         "hy": "Զրույցի կարգավորումներ",
         "ru": "Настройки чата"
     },
+    "messages.creator": {
+        "en": "Creator",
+        "hy": "Ստեղծող",
+        "ru": "Создатель"
+    },
     "messages.delete": {
         "en": "Delete",
         "hy": "Ջնջել",
@@ -4018,6 +4023,11 @@
         "en": ":n in chat",
         "hy": "զրույցում՝ :n",
         "ru": "в чате: :n"
+    },
+    "messages.members_title": {
+        "en": "Members · :n",
+        "hy": "Մասնակիցներ · :n",
+        "ru": "Участники · :n"
     },
     "messages.mute": {
         "en": "Mute",
@@ -4403,6 +4413,11 @@
         "en": "💳 +:amount on your :venue card. Balance: :balance.",
         "hy": "💳 +:amount ձեր :venue քարտին։ Հաշիվ՝ :balance։",
         "ru": "💳 +:amount на вашу карту :venue. Баланс: :balance."
+    },
+    "notice.chat_mention": {
+        "en": "💬 :name mentioned you: :text",
+        "hy": "💬 :name-ը նշել է ձեզ․ :text",
+        "ru": "💬 :name упомянул вас: :text"
     },
     "notice.friend_accepted": {
         "en": ":name accepted your friend request",
@@ -5880,9 +5895,9 @@
         "ru": "Карты"
     },
     "owner.nav.messages": {
-        "en": "Messages",
-        "hy": "Հաղորդագրություններ",
-        "ru": "Сообщения"
+        "en": "Chats",
+        "hy": "Զրույցներ",
+        "ru": "Чаты"
     },
     "owner.nav.money": {
         "en": "Money",

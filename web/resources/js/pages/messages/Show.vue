@@ -19,10 +19,19 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // A chat screen (direct or game chat). Live over Reverb: private-conversation.{id} ".message" {action, message}
 // and the "typing" whisper; when the socket is down it polls /history?after=<last id> every 5 s.
 // The header shows "online" / "last seen …" (direct) or "N online" (game), refreshed from /presence every minute.
+interface Member {
+    id: number;
+    name: string;
+    username: string | null;
+    avatar?: string | null;
+    host: boolean;
+    online: boolean;
+}
 const props = defineProps<{
     chat: ChatItem & {
         muted?: boolean;
         canLeave?: boolean;
+        memberList?: Member[];
         members: number;
         lastReadId: number | null;
         online: number | null;
@@ -84,6 +93,66 @@ async function removeChat() {
     if (await ask({ title: trans('messages.ask_remove'), text: trans(props.chat.archived ? 'messages.ask_remove_closed' : 'messages.ask_remove_text'), ok: trans('messages.remove'), danger: true }))
         router.post(route('messages.remove', cid));
 }
+// ---------- members (group chats) ----------
+const membersOpen = ref(false);
+const memberList = computed(() => props.chat.memberList ?? []);
+const memberName = (id: number) => memberList.value.find((m) => m.id === id)?.name;
+function openMember(m: Member) {
+    membersOpen.value = false;
+    if (m.id !== me.value) openPerson({ id: m.id, name: m.name, username: m.username, avatar: m.avatar } as ChatMessage['user']);
+}
+
+// ---------- "@" mentions: type @ and a member's name, pick from the list ----------
+const mentioned = ref<Map<number, string>>(new Map());
+const mentionQ = ref<string | null>(null);
+const mentionList = computed(() => {
+    if (mentionQ.value === null || !isGame) return [];
+    const q = mentionQ.value.toLowerCase();
+    // a word of the name (or the username) starting with what was typed first, then the name containing it
+    const rank = (m: Member) =>
+        m.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)) || (m.username ?? '').toLowerCase().startsWith(q) ? 0 : m.name.toLowerCase().includes(q) ? 1 : 2;
+    return memberList.value
+        .filter((m) => m.id !== me.value && rank(m) < 2)
+        .sort((a, b) => rank(a) - rank(b))
+        .slice(0, 6);
+});
+function findMention() {
+    const el = input.value;
+    const before = text.value.slice(0, el?.selectionStart ?? text.value.length);
+    const m = /(^|\s)@([^\s@]{0,30})$/.exec(before);
+    mentionQ.value = m ? m[2] : null;
+}
+function pickMention(m: Member) {
+    const el = input.value;
+    const at = el?.selectionStart ?? text.value.length;
+    const before = text.value.slice(0, at).replace(/@([^\s@]{0,30})$/, `@${m.name} `);
+    text.value = before + text.value.slice(at);
+    mentioned.value.set(m.id, m.name);
+    mentionQ.value = null;
+    nextTick(() => {
+        if (!el) return;
+        el.focus();
+        el.selectionStart = el.selectionEnd = before.length;
+        grow();
+    });
+}
+// the members still named in the text when it is sent
+const mentionIds = () => [...mentioned.value].filter(([, name]) => text.value.includes('@' + name)).map(([id]) => id);
+// a message's text with its mentions picked out (mine: stronger)
+function parts(m: ChatMessage): { t: string; at?: boolean; me?: boolean }[] {
+    const body = m.body ?? '';
+    const ids = ((m.meta as { mentions?: number[] } | null)?.mentions ?? []) as number[];
+    const names = ids.map((id) => ({ id, name: memberName(id) })).filter((x): x is { id: number; name: string } => !!x.name);
+    if (!names.length) return [{ t: body }];
+    const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp('(' + names.map((n) => '@' + esc(n.name)).join('|') + ')', 'g');
+    return body.split(rx).filter((x) => x !== '').map((t) => {
+        const n = names.find((x) => '@' + x.name === t);
+        return n ? { t, at: true, me: n.id === me.value } : { t };
+    });
+}
+const mentionsMe = (m: ChatMessage) => (((m.meta as { mentions?: number[] } | null)?.mentions ?? []) as number[]).includes(me.value);
+
 // tap a name or an avatar in a group chat: who it is, their profile, "Add friend"
 const person = ref<{ id: number; name: string; username: string | null; avatar?: string | null } | null>(null);
 const personRel = computed<Relation>(() => (person.value ? (props.chat.people?.[person.value.id] ?? 'none') : 'none'));
@@ -326,10 +395,21 @@ function grow() {
 }
 function onInput() {
     grow();
+    findMention();
     error.value = '';
     if (text.value.trim()) whisperTyping();
 }
 function onKey(e: KeyboardEvent) {
+    // the "@" list open: Enter / Tab pick the first one
+    if (mentionList.value.length && (e.key === 'Enter' || e.key === 'Tab') && !e.isComposing) {
+        e.preventDefault();
+        pickMention(mentionList.value[0]);
+        return;
+    }
+    if (e.key === 'Escape' && mentionQ.value !== null) {
+        mentionQ.value = null;
+        return;
+    }
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
         submit();
@@ -354,7 +434,8 @@ async function submit() {
             upsert([r.message]);
             editing.value = null;
         } else {
-            const r = await api<{ message: ChatMessage }>('POST', route('messages.send', cid), { body, reply_to: replying.value?.id ?? null });
+            const r = await api<{ message: ChatMessage }>('POST', route('messages.send', cid), { body, reply_to: replying.value?.id ?? null, mentions: mentionIds() });
+            mentioned.value = new Map();
             upsert([r.message]);
             replying.value = null;
             toBottom(true);
@@ -511,7 +592,7 @@ onBeforeUnmount(() => {
                 <Link class="back" :href="route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
                 <span v-if="isGame" class="cav game"><Icon :name="chatIcon(chat)" /></span>
                 <Avatar v-else :id="chat.other?.id ?? null" :name="chat.other?.name" :src="chat.other?.avatar" size="md" />
-                <div class="ht">
+                <div :class="['ht', { tap: memberList.length }]" @click="memberList.length && (membersOpen = true)">
                     <b>{{ chatTitle(chat) }}</b>
                     <span v-if="chat.game" class="hs">
                         {{ $t(`messages.status.${chat.game.status}`) }} · {{ $t('messages.players', { n: String(chat.game.players), t: String(chat.game.total) }) }} ·
@@ -544,6 +625,9 @@ onBeforeUnmount(() => {
                         <Icon name="more" size="sm" />
                     </button>
                     <div v-if="menuOpen" class="cmdrop" role="menu">
+                        <button v-if="memberList.length" type="button" role="menuitem" data-test="chat-members" @click="(menuOpen = false), (membersOpen = true)">
+                            <Icon name="users" size="sm" />{{ $t('messages.members_title', { n: String(memberList.length) }) }}
+                        </button>
                         <button type="button" role="menuitem" data-test="chat-mute" @click="setMute(!chat.muted)">
                             <Icon :name="chat.muted ? 'bell' : 'bellOff'" size="sm" />{{ chat.muted ? $t('messages.unmute') : $t('messages.mute') }}
                         </button>
@@ -605,7 +689,7 @@ onBeforeUnmount(() => {
                                     >{{ userName(r.m.user) }}<b v-if="isHost(r.m)" class="htag">{{ chat.venue ? chat.venue.name : $t('messages.organiser') }}</b></button
                                 >
                                 <div
-                                    :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id, drag: drag?.id === r.m.id }]"
+                                    :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id, drag: drag?.id === r.m.id, atme: !r.mine && mentionsMe(r.m) }]"
                                     :style="drag?.id === r.m.id ? { transform: `translateX(${drag.dx}px)` } : undefined"
                                     role="button"
                                     tabindex="0"
@@ -623,7 +707,11 @@ onBeforeUnmount(() => {
                                         <span>{{ quoteText(r.m.reply) }}</span>
                                     </button>
                                     <span v-if="r.m.deleted" class="txt"><Icon name="trash" size="sm" />{{ $t('messages.deleted') }}</span>
-                                    <span v-else class="txt">{{ r.m.body }}</span>
+                                    <span v-else class="txt"
+                                        ><template v-for="(pt, k) in parts(r.m)" :key="k"
+                                            ><b v-if="pt.at" :class="['ment', { me: pt.me }]">{{ pt.t }}</b><template v-else>{{ pt.t }}</template></template
+                                        ></span
+                                    >
                                     <span class="meta">
                                         <template v-if="r.m.edited && !r.m.deleted">{{ $t('messages.edited') }} · </template>{{ clock(r.m.created_at) }}
                                         <span
@@ -664,6 +752,12 @@ onBeforeUnmount(() => {
                     </div>
                     <button type="button" class="x" :aria-label="$t('common.cancel')" @click="cancelMode"><Icon name="x" size="sm" /></button>
                 </div>
+                <!-- "@": the members to pick -->
+                <div v-if="mentionList.length" class="mlist" role="listbox" data-test="mention-list">
+                    <button v-for="m in mentionList" :key="m.id" type="button" role="option" class="mopt" @mousedown.prevent="pickMention(m)">
+                        <Avatar :id="m.id" :name="m.name" :src="m.avatar" size="sm" /><b>{{ m.name }}</b><small v-if="m.username">@{{ m.username }}</small>
+                    </button>
+                </div>
                 <div class="box">
                     <EmojiPicker :label="$t('messages.emoji')" :football-label="$t('messages.emoji_football')" :reactions-label="$t('messages.emoji_reactions')" @pick="insertEmoji" />
                     <textarea
@@ -686,6 +780,23 @@ onBeforeUnmount(() => {
                 </div>
             </form>
         </div>
+        <!-- the members of a group chat -->
+        <Teleport to="body">
+            <div v-if="membersOpen" class="pscrim" @click.self="membersOpen = false">
+                <div class="psheet msheet" role="dialog" aria-modal="true" :aria-label="$t('messages.members_title', { n: String(memberList.length) })" data-test="members-sheet">
+                    <div class="msh"><h3>{{ $t('messages.members_title', { n: String(memberList.length) }) }}</h3><button type="button" class="x" :aria-label="$t('common.close')" @click="membersOpen = false"><Icon name="x" /></button></div>
+                    <div class="mrows">
+                        <button v-for="m in memberList" :key="m.id" type="button" class="mrow" :data-test="`member-${m.id}`" @click="openMember(m)">
+                            <span class="mav2"><Avatar :id="m.id" :name="m.name" :src="m.avatar" size="md" /><i v-if="m.online" class="on-dot" /></span>
+                            <span class="mw"
+                                ><b>{{ m.id === me ? $t('messages.you') : m.name }}</b><small v-if="m.username">@{{ m.username }}</small></span
+                            >
+                            <span v-if="m.host" class="htag2">{{ chat.venue ? chat.venue.name : chat.tournament ? $t('messages.organiser') : $t('messages.creator') }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
         <!-- a member of a group chat: profile and friend buttons -->
         <Teleport to="body">
             <div v-if="person" class="pscrim" @click.self="person = null">
@@ -762,6 +873,24 @@ onBeforeUnmount(() => {
 .mrow.mine { justify-content: flex-end; }
 .mav { width: 30px; height: 30px; flex: none; display: grid; padding: 0; border: 0; background: none; cursor: pointer; }
 .mname { border: 0; background: none; padding: 0; cursor: pointer; text-align: left; font-family: inherit; }
+.ht.tap { cursor: pointer; }
+.ment { font-weight: 800; color: var(--accent-2); }
+.ment.me { color: #0d1404; background: var(--accent); border-radius: 5px; padding: 0 3px; }
+.bubble.atme { box-shadow: 0 0 0 1.5px var(--accent); }
+.mlist { display: grid; gap: 2px; margin: 0 0 6px; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line-2); max-height: 230px; overflow-y: auto; }
+.mopt { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border: 0; background: none; border-radius: 10px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mopt:hover, .mopt:first-child { background: var(--surface-2); }
+.mopt small { color: var(--muted); }
+.psheet.msheet { align-items: stretch; text-align: left; max-height: 80vh; }
+.msh { display: flex; justify-content: space-between; align-items: center; }
+.mrows { display: grid; gap: 2px; overflow-y: auto; margin: 0 -6px; }
+.mrow { display: flex; align-items: center; gap: 12px; padding: 8px 6px; border: 0; background: none; border-radius: 12px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mrow:hover { background: var(--surface-2); }
+.mav2 { position: relative; flex: none; display: grid; }
+.mav2 .on-dot { position: absolute; right: 0; bottom: 0; }
+.mw { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mw small { color: var(--muted); font-size: 12.5px; }
+.htag2 { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(200, 255, 61, 0.14); color: var(--accent); white-space: nowrap; }
 .cmenu { position: relative; flex: none; }
 .cmdrop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 210px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px; padding: 6px; box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9); display: grid; }
 .cmdrop button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; background: none; border-radius: 10px; color: var(--ink); font: 600 14px var(--body); text-align: left; cursor: pointer; }
@@ -774,7 +903,25 @@ onBeforeUnmount(() => {
 .psheet h3 { margin: 0; font-size: 18px; }
 .psheet .faint { margin: -6px 0 0; font-size: 13px; }
 .psheet .facts-row { justify-content: center; }
-@media (min-width: 640px) { .cmenu { position: relative; flex: none; }
+@media (min-width: 640px) { .ht.tap { cursor: pointer; }
+.ment { font-weight: 800; color: var(--accent-2); }
+.ment.me { color: #0d1404; background: var(--accent); border-radius: 5px; padding: 0 3px; }
+.bubble.atme { box-shadow: 0 0 0 1.5px var(--accent); }
+.mlist { display: grid; gap: 2px; margin: 0 0 6px; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line-2); max-height: 230px; overflow-y: auto; }
+.mopt { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border: 0; background: none; border-radius: 10px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mopt:hover, .mopt:first-child { background: var(--surface-2); }
+.mopt small { color: var(--muted); }
+.psheet.msheet { align-items: stretch; text-align: left; max-height: 80vh; }
+.msh { display: flex; justify-content: space-between; align-items: center; }
+.mrows { display: grid; gap: 2px; overflow-y: auto; margin: 0 -6px; }
+.mrow { display: flex; align-items: center; gap: 12px; padding: 8px 6px; border: 0; background: none; border-radius: 12px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mrow:hover { background: var(--surface-2); }
+.mav2 { position: relative; flex: none; display: grid; }
+.mav2 .on-dot { position: absolute; right: 0; bottom: 0; }
+.mw { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mw small { color: var(--muted); font-size: 12.5px; }
+.htag2 { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(200, 255, 61, 0.14); color: var(--accent); white-space: nowrap; }
+.cmenu { position: relative; flex: none; }
 .cmdrop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 210px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px; padding: 6px; box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9); display: grid; }
 .cmdrop button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; background: none; border-radius: 10px; color: var(--ink); font: 600 14px var(--body); text-align: left; cursor: pointer; }
 .cmdrop button:hover { background: var(--surface-2); }

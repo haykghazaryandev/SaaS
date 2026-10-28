@@ -73,6 +73,8 @@ class ChatController extends Controller
                 'lastReadId' => $mine?->last_read_message_id,
                 // my settings: muted; a group chat on now can be left, a direct / place / finished chat deleted (for me)
                 'muted' => (bool) ($mine?->muted_until?->isFuture()),
+                // a group chat: who is in it (the organiser / the place first), for the Members list and "@" mentions
+                'memberList' => $conversation->type === 'direct' ? [] : $this->memberList($conversation),
                 'canLeave' => Chat::groupChat($conversation) && ! $conversation->isArchived(),
                 // "seen" ticks on my messages: how far each other member has read
                 'reads' => $conversation->participants->whereNull('left_at')->where('user_id', '!=', $me->id)
@@ -115,11 +117,12 @@ class ChatController extends Controller
 
     public function send(Request $request, Conversation $conversation): JsonResponse
     {
-        $data = $request->validate(['body' => ['required', 'string', 'max:'.Message::MAX_LENGTH], 'reply_to' => ['nullable', 'integer']]);
+        $data = $request->validate(['body' => ['required', 'string', 'max:'.Message::MAX_LENGTH], 'reply_to' => ['nullable', 'integer'],
+            'mentions' => ['nullable', 'array', 'max:20'], 'mentions.*' => ['integer']]);
         $request->user()->touchLastSeen(10);
 
         return $this->attempt(fn () => ChatPresenter::message(
-            $this->chat->send($conversation, $request->user(), $data['body'], $data['reply_to'] ?? null)->load(['user', 'replyTo.user'])
+            $this->chat->send($conversation, $request->user(), $data['body'], $data['reply_to'] ?? null, $data['mentions'] ?? [])->load(['user', 'replyTo.user'])
         ), 201);
     }
 
@@ -306,6 +309,18 @@ class ChatController extends Controller
             'muted' => (bool) $c->participants->firstWhere('user_id', $me->id)?->muted_until?->isFuture(),
             'at' => $c->last_message_at?->toIso8601String(),
         ];
+    }
+
+    /** The members of a group chat: the organiser / the place's staff first, then by name. */
+    private function memberList(Conversation $c): array
+    {
+        $hosts = $c->tournament_id || $c->venue_id
+            ? DB::table('venue_users')->where('venue_id', $c->venue_id ?? $c->tournament?->venue_id)->pluck('user_id')->map(fn ($id) => (int) $id)->all() : [];
+
+        return $c->participants->whereNull('left_at')->filter(fn ($p) => $p->user)
+            ->map(fn ($p) => ['id' => $p->user->id, 'name' => self::name($p->user), 'username' => $p->user->username, 'avatar' => $p->user->avatarUrl(),
+                'host' => in_array($p->user->id, $hosts, true) || ($c->game && $c->game->creator_id === $p->user->id), 'online' => $p->user->isActiveNow()])
+            ->sortBy(fn ($m) => [$m['host'] ? 0 : 1, mb_strtolower($m['name'])])->values()->all();
     }
 
     /** My relation to each of these people: friends | sent | received | blocked | none (me left out). */

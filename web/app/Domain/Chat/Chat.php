@@ -15,6 +15,7 @@ use App\Models\Message;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\Venue;
+use App\Notifications\Notice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -181,7 +182,10 @@ class Chat
         return ConversationParticipant::where('conversation_id', $c->id)->where('user_id', $u->id)->whereNull('left_at')->exists();
     }
 
-    public function send(Conversation $c, User $from, string $body, ?int $replyTo = null): Message
+    /**
+     * @param  int[]  $mentions  members picked with "@" (group chats): saved on the message (meta.mentions) and told, even in a muted chat
+     */
+    public function send(Conversation $c, User $from, string $body, ?int $replyTo = null, array $mentions = []): Message
     {
         $body = trim($body);
         if ($body === '' || mb_strlen($body) > Message::MAX_LENGTH) {
@@ -207,8 +211,20 @@ class Chat
         if ($replyTo && ! Message::where('id', $replyTo)->where('conversation_id', $c->id)->exists()) {
             $replyTo = null;
         }
+        // "@Aram": only members of this chat, not me, at most 20
+        $mentions = $c->type === 'direct' ? [] : ConversationParticipant::where('conversation_id', $c->id)->whereNull('left_at')
+            ->whereIn('user_id', array_slice(array_map('intval', $mentions), 0, 20))->where('user_id', '!=', $from->id)->pluck('user_id')->all();
+        $m = $this->store($c, $from->id, 'text', $body, $mentions ? ['mentions' => $mentions] : null, $replyTo);
+        if ($mentions) {
+            $text = mb_substr($body, 0, 200);
+            DB::afterCommit(function () use ($mentions, $from, $text, $c) {
+                foreach (User::whereIn('id', $mentions)->get() as $u) {
+                    $u->notify(new Notice('chat_mention', ['name' => $from->name ?: '—', 'text' => $text], '/messages/'.$c->id));
+                }
+            });
+        }
 
-        return $this->store($c, $from->id, 'text', $body, null, $replyTo);
+        return $m;
     }
 
     /** A system line in a chat ("Davit joined"): body is a translation key, meta its parameters. */
