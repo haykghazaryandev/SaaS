@@ -21,6 +21,8 @@ interface Entry {
     at: string;
 }
 const props = defineProps<{
+    /** opened from another page (a tournament's players): the way back there */
+    back?: string | null;
     card: { code: string; balance: number; note: string | null; scanned: boolean };
     player: { id: number; name: string | null; phone: string | null; tel: string | null; avatar: string | null; no_shows: number };
     level: Level;
@@ -51,7 +53,8 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
 
 <template>
     <OwnerLayout :title="player.name || $t('owner.nav.cards')">
-        <Link class="backlink" :href="route('owner.cards')"><Icon name="back" size="sm" />{{ $t('owner.nav.cards') }}</Link>
+        <Link v-if="back" class="backlink" :href="back" data-test="card-back"><Icon name="back" size="sm" />{{ $t('owner.club.back_to_page') }}</Link>
+        <Link v-else class="backlink" :href="route('owner.cards')"><Icon name="back" size="sm" />{{ $t('owner.nav.cards') }}</Link>
         <section class="card panel who">
             <Avatar :id="player.id" :name="player.name" :src="player.avatar" size="lg" />
             <div style="flex: 1; min-width: 160px">

@@ -6,8 +6,10 @@ use App\Domain\Club\Money;
 use App\Enums\BookingStatus;
 use App\Filament\Pages\PlatformFee;
 use App\Models\Booking;
+use App\Models\Conversation;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueCard;
 use Filament\Facades\Filament;
 use Inertia\Testing\AssertableInertia as Assert;
 use Livewire\Livewire;
@@ -55,4 +57,17 @@ it('shows the fee to the owner of a place without the money feature', function (
     $park->staff()->attach($this->owner->id, ['role' => 'owner']);
     $this->actingAs($this->owner)->withSession(['venue_id' => $park->id])->get(route('owner.money'))->assertOk()
         ->assertInertia(fn (Assert $p) => $p->where('report', null)->where('fee.pct', 5));
+});
+
+it('lets the owner message a player and make a card that takes money at once (back to the page it came from)', function () {
+    $this->actingAs($this->owner)->post(route('owner.players.chat', $this->player->id))->assertRedirect();
+    expect(Conversation::where('type', 'venue')->where('venue_id', $this->club->id)->exists())->toBeTrue();
+    $res = $this->actingAs($this->owner)->post(route('owner.cards.store'), ['user_id' => $this->player->id, 'back' => '/owner/tournaments/5']);
+    $card = VenueCard::where('user_id', $this->player->id)->firstOrFail();
+    $res->assertRedirect(route('owner.cards.show', ['code' => $card->code, 'back' => '/owner/tournaments/5']));
+    // made right now at the desk: a top-up without a scan
+    $this->actingAs($this->owner)->post(route('owner.cards.topup', $card->code), ['amount' => 5000])->assertSessionHasNoErrors();
+    expect($card->fresh()->balance)->toBe(5000);
+    $this->actingAs($this->owner)->get(route('owner.cards.show', ['code' => $card->code, 'back' => 'https://evil.example']))
+        ->assertInertia(fn (Assert $p) => $p->where('back', null));
 });

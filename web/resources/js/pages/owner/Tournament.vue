@@ -30,6 +30,9 @@ interface Entry {
     paid: { amount: number; method: string } | null;
     /** the balance of the player's card here; null: no card (no "from the card") */
     card: number | null;
+    cardCode: string | null;
+    /** the player's account (null: registered by phone only) */
+    user: number | null;
 }
 interface Division {
     id: number;
@@ -117,6 +120,11 @@ async function removeEntry(e: Entry) {
     )
         router.delete(route('owner.tournaments.remove', e.id), { preserveScroll: true, preserveState: true });
 }
+// tap a player's name: call, message (the place's chat with them), their page, their card (or make one and top it up)
+const who = ref<Entry | null>(null);
+const here = () => window.location.pathname;
+const message = (e: Entry) => router.post(route('owner.players.chat', e.user!));
+const newCard = (e: Entry) => router.post(route('owner.cards.store'), { user_id: e.user, back: here() });
 async function remind() {
     if (await ask({ title: trans('owner.tournament.ask_remind', { n: count('unpaid') }), ok: trans('owner.tournament.send') }))
         router.post(route('owner.tournaments.remind', t.value.id), {}, opts);
@@ -298,10 +306,9 @@ async function copy() {
             </div>
             <div v-for="e in shown" :key="e.id" :class="['erow', e.status]" :data-test="`entry-${e.id}`">
                 <div class="w">
-                    <b>
-                        <span v-if="e.place" class="place">{{ placeName(e.place) }}</span>
-                        {{ e.name }}
-                    </b>
+                    <button type="button" class="ename" :data-test="`who-${e.id}`" @click="who = e">
+                        <span v-if="e.place" class="place">{{ placeName(e.place) }}</span>{{ e.name }}<Icon name="more" size="sm" class="faint" />
+                    </button>
                     <small
                         ><a :href="`tel:${e.tel}`">{{ e.phone }}</a>{{ e.level != null ? ' · ' + $t('owner.club.level_n', { n: e.level }) : '' }} · {{ e.option }}
                         {{ e.price ? amd(e.price) : $t('club.free') }}</small
@@ -318,25 +325,21 @@ async function copy() {
                     >
                     <!-- the fee: what is owed, then the player's card (only when they have one here; not enough money: off) or cash -->
                     <span v-else-if="e.price && !over" class="payrow">
-                        <span class="owe"><small>{{ $t('owner.tournament.not_paid') }}</small><b>{{ amd(e.price) }}</b></span>
-                        <button
-                            v-if="has('wallet') && e.card !== null"
-                            type="button"
-                            :class="['paybtn', 'card', { short: e.card < e.price }]"
-                            :disabled="e.card < e.price"
-                            :data-test="`pay-card-${e.id}`"
-                            @click="pay(e, 'card')"
-                        >
-                            <Icon name="wallet" size="sm" /><span
-                                ><b>{{ $t('owner.club.from_card') }}</b
-                                ><small>{{ e.card < e.price ? $t('owner.tournament.card_short', { a: amd(e.card) }) : $t('owner.tournament.card_balance', { a: amd(e.card) }) }}</small></span
+                        <span class="owe">{{ $t('owner.tournament.not_paid') }} · <b>{{ amd(e.price) }}</b></span>
+                        <span class="pbtns">
+                            <button
+                                v-if="has('wallet') && e.card !== null"
+                                type="button"
+                                :class="['pb', 'card', { short: e.card < e.price }]"
+                                :disabled="e.card < e.price"
+                                :title="e.card < e.price ? $t('owner.tournament.card_short', { a: amd(e.card) }) : ''"
+                                :data-test="`pay-card-${e.id}`"
+                                @click="pay(e, 'card')"
                             >
-                        </button>
-                        <button type="button" class="paybtn cash" :data-test="`pay-cash-${e.id}`" @click="pay(e, 'cash')">
-                            <span
-                                ><b>{{ $t('owner.club.cash') }}</b><small>{{ amd(e.price) }}</small></span
-                            >
-                        </button>
+                                <Icon name="wallet" size="sm" />{{ amd(e.card) }}
+                            </button>
+                            <button type="button" class="pb cash" :data-test="`pay-cash-${e.id}`" @click="pay(e, 'cash')">{{ $t('owner.club.cash') }}</button>
+                        </span>
                     </span>
                 </template>
                 <!-- take the player off: only before the start -->
@@ -410,6 +413,28 @@ async function copy() {
             </form>
         </section>
 
+        <!-- a player: call, message, their page, their card -->
+        <OwnerSheet v-if="who" :title="who.name" :sub="`${who.option} · ${who.price ? amd(who.price) : $t('club.free')}`" @close="who = null">
+            <div class="who-acts">
+                <a class="wa" :href="`tel:${who.tel}`"><Icon name="phone" /><span><b>{{ $t('common.call') }}</b><small>{{ who.phone }}</small></span></a>
+                <button v-if="who.user" type="button" class="wa" data-test="who-message" @click="message(who)">
+                    <Icon name="chat" /><span><b>{{ $t('owner.tournament.who_message') }}</b><small>{{ $t('owner.tournament.who_message_hint') }}</small></span>
+                </button>
+                <Link v-if="who.user && (has('wallet') || has('rating'))" class="wa" :href="route('owner.players.show', who.user)">
+                    <Icon name="user" /><span><b>{{ $t('owner.tournament.who_page') }}</b><small>{{ $t('owner.tournament.who_page_hint') }}</small></span>
+                </Link>
+                <template v-if="who.user && has('wallet')">
+                    <Link v-if="who.cardCode" class="wa" :href="route('owner.cards.show', { code: who.cardCode, back: here() })" data-test="who-card">
+                        <Icon name="wallet" /><span><b>{{ $t('owner.tournament.who_card', { a: amd(who.card ?? 0) }) }}</b><small>{{ $t('owner.tournament.who_card_hint') }}</small></span>
+                    </Link>
+                    <button v-else type="button" class="wa" data-test="who-new-card" @click="newCard(who)">
+                        <Icon name="plus" /><span><b>{{ $t('owner.tournament.who_new_card') }}</b><small>{{ $t('owner.tournament.who_new_card_hint') }}</small></span>
+                    </button>
+                </template>
+                <p v-if="!who.user" class="faint" style="font-size: 13px; margin: 4px 0 0">{{ $t('owner.tournament.who_no_account') }}</p>
+            </div>
+        </OwnerSheet>
+
         <!-- a match: who won (and the score), or playing now -->
         <OwnerSheet v-if="picked" :title="$t('owner.tournament.who_won')" @close="picked = null">
             <!-- a number next to each name; the higher one wins -->
@@ -470,25 +495,29 @@ async function copy() {
 .sibs .chip { flex: none; text-decoration: none; }
 .drow { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
 .drow:last-child { border-bottom: 0; }
+.drow { margin: 0 -10px; padding-inline: 10px; border-radius: 12px; transition: background 0.15s; }
+.drow:hover { background: var(--surface-2); }
+.drow:hover > .ico:last-child { color: var(--accent); transform: translateX(3px); }
+.drow > .ico:last-child { transition: transform 0.15s; }
 .drow .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .drow small { color: var(--muted); font-size: 12.5px; }
 .rm { order: 1; margin-left: auto; padding-inline: 8px; }
-.payrow { order: 2; display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: stretch; width: 100%; }
-.payrow:has(.paybtn:only-of-type) { grid-template-columns: auto 1fr; }
-.owe { display: flex; flex-direction: column; justify-content: center; padding: 6px 10px; border-radius: 12px; background: var(--hot-soft); color: var(--hot); line-height: 1.2; }
-.owe small { font-size: 11px; font-weight: 700; color: var(--hot); opacity: 0.85; }
-.owe b { font: 700 15px var(--mono); }
-.paybtn { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); cursor: pointer; text-align: left; line-height: 1.2; }
-.paybtn span { display: flex; flex-direction: column; min-width: 0; }
-.paybtn .ico { flex: none; }
-.paybtn b { font-size: 14px; }
-.paybtn small { font: 600 11.5px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
-.paybtn.card { border-color: rgba(92, 200, 255, 0.45); color: #8fd9ff; }
-.paybtn.card small { color: #d7f0ff; }
-.paybtn.card.short { opacity: 0.6; cursor: not-allowed; border-color: var(--line-2); color: var(--muted); }
-.paybtn.card.short small { color: var(--hot); }
-.paybtn.cash { border-color: rgba(94, 240, 168, 0.45); background: var(--free-soft); color: var(--free); }
-.paybtn.cash small { color: var(--ink); }
+.payrow { order: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap; }
+.owe { color: var(--hot); font-size: 13px; font-weight: 700; }
+.owe b { font-family: var(--mono); }
+.pbtns { display: flex; gap: 6px; }
+.pb { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); font: 700 13px var(--body); cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
+.pb.card { font-family: var(--mono); color: #8fd9ff; border-color: rgba(92, 200, 255, 0.4); }
+.pb.card:hover:not(:disabled) { background: rgba(92, 200, 255, 0.12); }
+.pb.card.short { color: var(--faint); border-color: var(--line); cursor: not-allowed; text-decoration: line-through; }
+.pb.cash:hover { border-color: var(--accent); }
+.ename { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; color: var(--ink); font: 800 15px var(--body); cursor: pointer; text-align: left; }
+.ename:hover { color: var(--accent); }
+.who-acts { display: grid; gap: 8px; }
+.wa { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); text-decoration: none; text-align: left; font: inherit; cursor: pointer; }
+.wa:hover { border-color: var(--accent); }
+.wa span { display: flex; flex-direction: column; min-width: 0; }
+.wa small { color: var(--muted); font-size: 12.5px; }
 .paywarn { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 107, 107, 0.3); background: var(--hot-soft); color: var(--hot); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .wo { align-self: flex-start; margin-top: 4px; border: 0; background: none; padding: 0; color: var(--hot); font: 600 12px var(--font, inherit); text-decoration: underline; cursor: pointer; }
 .pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 12px; }

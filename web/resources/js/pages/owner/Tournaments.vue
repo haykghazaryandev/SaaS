@@ -108,6 +108,7 @@ const creating = ref(false);
                             ></span
                         >
                         <TournamentPhase :phase="d.phase" />
+                        <Icon name="arrow" size="sm" class="go" />
                     </Link>
                 </div>
             </div>
@@ -128,6 +129,13 @@ const creating = ref(false);
 .dlist { border-top: 1px solid var(--line); padding: 4px 14px 6px 66px; }
 .drow { display: flex; align-items: center; gap: 10px; padding: 9px 0; color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); min-width: 0; }
 .drow:last-child { border-bottom: 0; }
+.trow, .drow { cursor: pointer; transition: background 0.15s; }
+.trow:hover { background: var(--surface-2); }
+.drow { margin: 0 -8px; padding-inline: 8px; border-radius: 10px; }
+.drow:hover { background: var(--surface-2); }
+.drow .go { color: var(--faint); transition: transform 0.15s, color 0.15s; flex: none; }
+.drow:hover .go, .trow:hover > .ico:last-child { color: var(--accent); transform: translateX(3px); }
+.trow > .ico:last-child { transition: transform 0.15s, color 0.15s; }
 .drow .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .drow small { color: var(--muted); font-size: 12px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }

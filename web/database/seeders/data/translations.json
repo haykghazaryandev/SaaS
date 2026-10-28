@@ -4539,6 +4539,11 @@
         "hy": "Կցել այս հաշվին",
         "ru": "Привязать к счёту"
     },
+    "owner.club.back_to_page": {
+        "en": "Back",
+        "hy": "Վերադառնալ",
+        "ru": "Назад"
+    },
     "owner.club.bad_code": {
         "en": "This is not a card code.",
         "hy": "Սա քարտի կոդ չէ։",
@@ -6843,6 +6848,51 @@
         "en": "Technical loss",
         "hy": "Տեխնիկական պարտություն",
         "ru": "Техническое поражение"
+    },
+    "owner.tournament.who_card": {
+        "en": "Card · :a",
+        "hy": "Քարտ · :a",
+        "ru": "Карта · :a"
+    },
+    "owner.tournament.who_card_hint": {
+        "en": "Open it: top up, then take the fee from it",
+        "hy": "Բացել՝ լիցքավորել, հետո գանձել վճարը",
+        "ru": "Открыть: пополнить, затем списать взнос"
+    },
+    "owner.tournament.who_message": {
+        "en": "Message",
+        "hy": "Գրել",
+        "ru": "Написать"
+    },
+    "owner.tournament.who_message_hint": {
+        "en": "A chat with the player, from your place",
+        "hy": "Զրույց խաղացողի հետ՝ ձեր վայրի անունից",
+        "ru": "Чат с игроком от имени вашего заведения"
+    },
+    "owner.tournament.who_new_card": {
+        "en": "Make a card",
+        "hy": "Ստեղծել քարտ",
+        "ru": "Создать карту"
+    },
+    "owner.tournament.who_new_card_hint": {
+        "en": "Opens it at once: put money on it, then take the fee from it",
+        "hy": "Անմիջապես կբացվի․ լիցքավորեք, հետո գանձեք վճարը",
+        "ru": "Сразу откроется: пополните, затем спишите взнос"
+    },
+    "owner.tournament.who_no_account": {
+        "en": "Registered by phone without an account: only a call.",
+        "hy": "Գրանցված է հեռախոսով՝ առանց հաշվի․ միայն զանգ։",
+        "ru": "Записан по телефону без аккаунта: только звонок."
+    },
+    "owner.tournament.who_page": {
+        "en": "Player's page",
+        "hy": "Խաղացողի էջը",
+        "ru": "Страница игрока"
+    },
+    "owner.tournament.who_page_hint": {
+        "en": "Rating, games, notes",
+        "hy": "Ռեյթինգ, խաղեր, նշումներ",
+        "ru": "Рейтинг, игры, заметки"
     },
     "owner.tournament.who_won": {
         "en": "The score",

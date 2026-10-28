@@ -53,15 +53,19 @@ class CardController extends OwnerController
     public function store(Request $request, Cards $cards)
     {
         $venue = $this->venue($request);
-        $data = $request->validate(['phone' => 'nullable|string|max:20', 'user_id' => 'nullable|integer']);
+        $data = $request->validate(['phone' => 'nullable|string|max:20', 'user_id' => 'nullable|integer', 'back' => 'nullable|string|max:200']);
         $user = ! empty($data['user_id']) ? User::find($data['user_id'])
             : (($phone = Phone::normalize($data['phone'] ?? null)) ? User::where('phone', $phone)->first() : null);
         if (! $user) {
             throw ValidationException::withMessages(['phone' => __('owner.club.no_player')]);
         }
         $card = $this->attempt(fn () => $cards->forPlayer($venue, $user));
+        // made right now at the desk with the player: money can go on at once (like after a scan)
+        if ($card->wasRecentlyCreated) {
+            Cards::markScanned($card);
+        }
 
-        return redirect()->route('owner.cards.show', $card->code);
+        return redirect()->route('owner.cards.show', array_filter(['code' => $card->code, 'back' => self::back($data['back'] ?? null)]));
     }
 
     public function show(Request $request, string $code)
@@ -71,6 +75,8 @@ class CardController extends OwnerController
         $user = $card->user;
 
         return Inertia::render('owner/Card', [
+            // opened from a page (a tournament's players): a way back there
+            'back' => self::back($request->query('back')),
             'card' => ['code' => $card->code, 'balance' => $card->balance, 'note' => $card->note,
                 // a top-up only right after a scan (Cards::SCAN_MINUTES)
                 'scanned' => Cards::scanned($card)],
@@ -98,6 +104,12 @@ class CardController extends OwnerController
         $this->attempt(fn () => $cards->topUp($card, (int) $data['amount'], $request->user(), $data['note'] ?? null));
 
         return back()->with('success', __('owner.club.topped_up'));
+    }
+
+    /** A way back inside the owner web only (/owner/…). */
+    private static function back(?string $path): ?string
+    {
+        return $path && preg_match('#^/owner/[A-Za-z0-9/_?=&.-]*$#', $path) ? $path : null;
     }
 
     private function card(Request $request, string $code): VenueCard

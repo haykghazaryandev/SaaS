@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Owner\Club;
 
+use App\Domain\Chat\Chat;
 use App\Domain\Club\Cards;
 use App\Domain\Club\Ratings;
+use App\Domain\Social\SocialException;
 use App\Enums\Sport;
 use App\Http\Controllers\Owner\BookingPresenter;
 use App\Http\Controllers\Owner\OwnerController;
@@ -117,5 +119,18 @@ class PlayerController extends OwnerController
     private function sport(Venue $venue): Sport
     {
         return $venue->sports()[0] ?? Sport::Football;
+    }
+
+    /** "Message": the place's chat with this player (the staff answer for the place). */
+    public function chat(Request $request, User $user, Chat $chat)
+    {
+        $venue = $this->venue($request);
+        try {
+            $c = $chat->withVenue($user, $venue);
+        } catch (SocialException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('messages.show', $c->id);
     }
 }

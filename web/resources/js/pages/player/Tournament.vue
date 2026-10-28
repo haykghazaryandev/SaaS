@@ -367,6 +367,11 @@ function send() {
 .dnote { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
 .dnote.drawn { color: #ff9f43; }
 .dpod { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; font-weight: 800; }
+.dcard { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s; }
+.dcard:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.9), 0 0 0 1px var(--accent); background-color: var(--surface-3); }
+.dcard:active { transform: scale(0.99); }
+.dcard:hover .dcta .ico { transform: translateX(3px); }
+.dcta .ico { transition: transform 0.15s; }
 .dcta { align-self: flex-end; display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 800; color: var(--accent); }
 .tag.applied { color: var(--warn); }
 .tag.declined { color: var(--hot); }

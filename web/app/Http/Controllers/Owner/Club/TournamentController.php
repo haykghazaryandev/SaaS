@@ -60,7 +60,7 @@ class TournamentController extends OwnerController
         }
         // the players' cards here: "from the card" only for those who have one (and its balance)
         $cards = VenueCard::where('venue_id', $t->venue_id)->whereIn('user_id', $t->entries()->whereNotNull('user_id')->select('user_id'))
-            ->pluck('balance', 'user_id');
+            ->get(['user_id', 'balance', 'code'])->keyBy('user_id');
 
         return Inertia::render('owner/Tournament', [
             'tournament' => $this->present($t) + [
@@ -71,7 +71,9 @@ class TournamentController extends OwnerController
                 'siblings' => $t->parent_id ? Tournament::where('parent_id', $t->parent_id)->orderByRaw('min_rating asc nulls first')->orderBy('id')->get(['id', 'division'])
                     ->map(fn ($d) => ['id' => $d->id, 'division' => $d->division])->values() : [],
                 'list' => $t->entries()->with('payment:id,amount,method')->orderBy('id')->get()->map(fn (TournamentEntry $e) => [
-                    'card' => $e->user_id && $cards->has($e->user_id) ? (int) $cards[$e->user_id] : null,
+                    'card' => $e->user_id && $cards->has($e->user_id) ? (int) $cards[$e->user_id]->balance : null,
+                    'cardCode' => $e->user_id && $cards->has($e->user_id) ? $cards[$e->user_id]->code : null,
+                    'user' => $e->user_id,
                     'id' => $e->id, 'name' => $e->first_name.' '.$e->last_name, 'phone' => Phone::format($e->phone), 'tel' => $e->phone,
                     'level' => Tournaments::ratingOf($t, $e->user_id, $e->level),
                     'option' => $t->options[$e->option]['label'] ?? '—', 'price' => Tournaments::fee($t, $e),
