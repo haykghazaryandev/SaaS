@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ChatDock from '@/components/owner/ChatDock.vue';
+import RequestsBell from '@/components/owner/RequestsBell.vue';
+import { ping } from '@/lib/sound';
 import '../../css/owner.css';
 
 import Avatar from '@/components/Avatar.vue';
@@ -14,7 +16,7 @@ import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import QrScanner from '@/components/owner/QrScanner.vue';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 // Owner web: sidebar on desktop; top bar + bottom tabs on phones. Hosts the booking sheets for every owner page.
 // newBooking: the page offers "+ New booking" (its header button on desktop, this floating button on phones).
@@ -99,6 +101,13 @@ useLive(
     true,
 );
 onBeforeUnmount(() => clearTimeout(reloadT));
+// a new request (live): a sound, unless switched off in Profile
+watch(
+    () => owner.value.pending,
+    (n, old) => {
+        if (old !== undefined && n > old && (user.value as { sound?: boolean } | null)?.sound !== false) ping();
+    },
+);
 </script>
 
 <template>
@@ -145,11 +154,15 @@ onBeforeUnmount(() => clearTimeout(reloadT));
                 <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>
             </select>
             <div v-else class="vname">{{ owner.venue.name }}</div>
-            <LangSwitch />
+            <RequestsBell compact />
             <Link class="x" :href="route('me.profile')" :title="$t('profile.title')" :aria-label="$t('profile.title')"><Icon name="user" size="sm" /></Link>
             <a v-if="user?.isAdmin" class="x" href="/admin" :title="$t('admin.nav.admin_panel')" :aria-label="$t('admin.nav.admin_panel')"><Icon name="settings" size="sm" /></a>
         </header>
-        <main class="omain"><slot /></main>
+        <main class="omain">
+            <!-- computers: the requests waiting for an answer, top right of the page -->
+            <div class="obell"><RequestsBell /></div>
+            <slot />
+        </main>
         <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" :aria-label="$t('common.new_booking')" :title="$t('common.new_booking')" @click="openForm(props.newBooking)">
             <Icon name="plus" /><span>{{ $t('common.new_booking') }}</span>
         </button>

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 // EnsureVenueStaff sends guests to /login?to=owner and keeps the current place in the session. Staff: schedule and bookings; owner: also settings.
 Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(function () {
     Route::get('/', TodayController::class)->name('today');
+    Route::get('requests', [TodayController::class, 'requests'])->name('requests');
     // where an owner lands (login, the app's home): a club at its desk ("Now"), a field at Today
     Route::get('start', fn (Request $request) => redirect()->route(
         collect(['wallet', 'shop'])->contains(fn ($f) => $request->attributes->get('venue')->hasFeature($f)) ? 'owner.now' : 'owner.today'

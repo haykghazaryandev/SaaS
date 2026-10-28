@@ -6169,6 +6169,21 @@
         "hy": "Այս ժամին դաշտը զբաղված է",
         "ru": "Поле в это время занято"
     },
+    "owner.requests.all": {
+        "en": "All on Today",
+        "hy": "Բոլորը «Այսօր»-ում",
+        "ru": "Все на «Сегодня»"
+    },
+    "owner.requests.none": {
+        "en": "No requests are waiting.",
+        "hy": "Սպասող հայտեր չկան։",
+        "ru": "Нет заявок, ждущих ответа."
+    },
+    "owner.requests.title": {
+        "en": "Requests waiting: :n",
+        "hy": "Սպասող հայտեր՝ :n",
+        "ru": "Ждут ответа: :n"
+    },
     "owner.role_owner": {
         "en": "Owner",
         "hy": "Սեփականատեր",

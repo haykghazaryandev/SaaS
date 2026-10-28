@@ -77,4 +77,14 @@ class TodayController extends OwnerController
                 'start' => round(LocalTime::hourOf($o->starts_at->toImmutable()->setTimezone(LocalTime::tz())), 2),
             ])->values()->all();
     }
+
+    /** JSON: the requests waiting for an answer (the bell at the top of the owner panel), soonest first. */
+    public function requests(Request $request)
+    {
+        $venue = $this->venue($request);
+        $rows = Booking::where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now())
+            ->with('user', 'field')->orderBy('starts_at')->limit(30)->get();
+
+        return response()->json(['requests' => $rows->map(fn ($b) => BookingPresenter::row($b) + ['field' => BookingPresenter::fieldLabel($b->field)])->values()]);
+    }
 }

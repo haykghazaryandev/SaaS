@@ -54,7 +54,7 @@ final class BookingPresenter
             'status' => $b->status->value,
             'source' => $b->source->value,
             'kind' => self::kind($b),
-            'name' => $b->contact_name,
+            'name' => self::contactName($b),
             'team' => $b->team_name,
             'phone' => $b->contact_phone ? Phone::format($b->contact_phone) : null,
             'tel' => $b->contact_phone,
@@ -81,6 +81,19 @@ final class BookingPresenter
             'user' => $b->relationLoaded('user') && $b->user ? ['id' => $b->user->id, 'name' => $b->user->name, 'avatar' => $b->user->avatarUrl(), 'no_shows' => (int) $b->user->no_show_count] : null,
             'sent_ago' => $b->created_at?->locale(app()->getLocale())->diffForHumans(),
         ];
+    }
+
+    /** The booking's name; a walk-in made at the desk ("Walk-in" in any language) in the reader's language. */
+    public static function contactName(Booking $b): string
+    {
+        $name = (string) $b->contact_name;
+        foreach (['en', 'hy', 'ru'] as $l) {
+            if ($name === __('owner.club.walk_in', [], $l)) {
+                return __('owner.club.walk_in');
+            }
+        }
+
+        return $name;
     }
 
     /** How often this player did not come to this place. */

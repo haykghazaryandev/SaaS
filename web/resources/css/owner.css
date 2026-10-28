@@ -28,6 +28,11 @@
 
 .oapp .otop { display: none; }
 .oapp .omain { max-width: 1240px; margin: 0 auto; padding: 28px 32px 60px; }
+/* computers: the requests bell at the top right (phones: in the top bar) */
+.oapp .omain { position: relative; }
+.oapp .obell { position: absolute; top: 24px; right: 32px; z-index: 50; }
+@media (min-width: 901px) { .oapp .phead { padding-right: 64px; } }
+@media (max-width: 900px) { .oapp .obell { display: none; } }
 
 @media (max-width: 900px) {
   .oapp { padding-left: 0; }

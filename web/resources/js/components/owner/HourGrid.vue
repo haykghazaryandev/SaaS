@@ -96,7 +96,9 @@ function piecesOf(c: Col): Piece[] {
         busy.sort((a, b) => a[0] - b[0]);
         let t = o;
         const gap = (s: number, f: number) => {
-            if (f - s >= props.step - 1e-9) out.push({ key: 'f' + s, kind: 'free', top: y(s), h: y(f) - y(s), start: s, end: f, past: isPast(c.date, f) });
+            // today: the free time left from now (the part already gone is shaded, not "free")
+            if (c.date === props.today && s < props.now && f > props.now) s = props.now;
+            if (f - s >= Math.min(props.step, 5 / 60) - 1e-9) out.push({ key: 'f' + s, kind: 'free', top: y(s), h: y(f) - y(s), start: s, end: f, past: isPast(c.date, f) });
         };
         for (const [s, f] of busy) {
             if (s > t) gap(t, Math.min(s, e));
@@ -224,12 +226,13 @@ defineExpose({ scrollToNow });
                         </div>
                     </template>
                 </div>
+                <!-- today: the time already gone is shaded (no line across the blocks), the time is on the left -->
                 <div
                     v-if="nowCols"
-                    class="hg-now"
-                    :data-t="hhmm(now)"
-                    :style="{ top: y(now) + 'px', left: `calc(${nowCols.a} * 100% / var(--n))`, width: `calc(${nowCols.b - nowCols.a + 1} * 100% / var(--n))` }"
+                    class="hg-past"
+                    :style="{ height: Math.max(0, y(now)) + 'px', left: `calc(${nowCols.a} * 100% / var(--n))`, width: `calc(${nowCols.b - nowCols.a + 1} * 100% / var(--n))` }"
                 />
+                <span v-if="nowCols" class="hg-nowt" :style="{ top: y(now) + 'px' }">{{ hhmm(now) }}</span>
             </div>
         </div>
     </div>
@@ -277,8 +280,8 @@ defineExpose({ scrollToNow });
 .hg-free small.one { white-space: nowrap; font-size: 10px; }
 .hg-free.tiny { border-width: 1px; }
 .hg-free.past { opacity: 0.28; cursor: default; }
-.hg-now { position: absolute; height: 2px; background: #ff6b6b; z-index: 5; pointer-events: none; }
-.hg-now::before { content: attr(data-t); position: absolute; left: calc(-1 * var(--gut)); top: -9px; background: #ff6b6b; color: #fff; font: 700 10px var(--mono); padding: 2px 4px; border-radius: 5px; }
+.hg-past { position: absolute; top: 0; background: rgba(0, 0, 0, 0.35); z-index: 4; pointer-events: none; border-bottom: 1px dashed rgba(255, 107, 107, 0.45); }
+.hg-nowt { position: absolute; left: calc(-1 * var(--gut)); transform: translateY(-50%); z-index: 6; background: #ff6b6b; color: #fff; font: 700 10px var(--mono); padding: 2px 4px; border-radius: 5px; pointer-events: none; }
 .hg-b.split { padding: 2px 4px; }
 .hg-b.split em { display: none; }
 .compact .hg-b { padding: 2px 3px; border-left-width: 2px; border-radius: 5px; }

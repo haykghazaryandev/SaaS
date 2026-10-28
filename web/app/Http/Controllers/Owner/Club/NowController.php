@@ -65,7 +65,7 @@ class NowController extends OwnerController
                 'id' => $f->id, 'label' => BookingPresenter::fieldLabel($f), 'size' => $f->size->value,
                 'state' => $game ? ($game->stopped_at ? 'to_pay' : 'playing') : ($due ? 'booked' : 'free'),
                 'game' => $game ? [
-                    'id' => $game->id, 'name' => $game->team_name ?: $game->contact_name, 'purpose' => $game->purpose,
+                    'id' => $game->id, 'name' => $game->team_name ?: BookingPresenter::contactName($game), 'purpose' => $game->purpose,
                     'player' => $game->user ? ['id' => $game->user->id, 'name' => $game->user->name, 'phone' => $game->user->phone ? Phone::format($game->user->phone) : null] : null,
                     'startedAt' => $game->started_at->getTimestamp(),
                     'start' => $hm($game->started_at),
@@ -77,11 +77,11 @@ class NowController extends OwnerController
                     'bill' => $checkout->bill($game),
                 ] : null,
                 // booked, due now, not started yet (late: minutes since its start)
-                'due' => $due ? ['id' => $due->id, 'name' => $due->team_name ?: $due->contact_name, 'start' => $hm($due->starts_at), 'end' => $hm($due->ends_at),
+                'due' => $due ? ['id' => $due->id, 'name' => $due->team_name ?: BookingPresenter::contactName($due), 'start' => $hm($due->starts_at), 'end' => $hm($due->ends_at),
                     'in' => $minsTo($due->starts_at), 'late' => $due->starts_at->isPast() ? (int) $due->starts_at->diffInMinutes($now) : 0,
                     'phone' => $due->contact_phone ? Phone::format($due->contact_phone) : null,
                     'canNoShow' => Attendance::canNoShow($due)] : null,
-                'next' => $next ? ['id' => $next->id, 'start' => $hm($next->starts_at), 'in' => $minsTo($next->starts_at), 'name' => $next->team_name ?: $next->contact_name, 'pending' => $next->status->value === 'pending'] : null,
+                'next' => $next ? ['id' => $next->id, 'start' => $hm($next->starts_at), 'in' => $minsTo($next->starts_at), 'name' => $next->team_name ?: BookingPresenter::contactName($next), 'pending' => $next->status->value === 'pending'] : null,
                 // a free table: free for how long (a walk-in can play that long)
                 'freeMin' => $game || $due ? null : $gap,
                 'freeFrom' => ! $game && ! $due && $held ? $hm($from) : null,
