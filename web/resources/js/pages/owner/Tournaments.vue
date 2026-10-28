@@ -80,7 +80,7 @@ const creating = ref(false);
                             <span v-if="sum(t, 'accepted')" class="pill green">{{
                                 $t('owner.tournament.n_accepted', { n: sum(t, 'accepted') })
                             }}</span>
-                            <span v-if="sum(t, 'unpaid') && t.phase !== 'done'" class="pill hot">{{
+                            <span v-if="sum(t, 'unpaid') && !['done', 'cancelled', 'registration'].includes(t.phase)" class="pill hot">{{
                                 $t('owner.tournament.n_unpaid', { n: sum(t, 'unpaid') })
                             }}</span>
                         </span>
@@ -102,7 +102,7 @@ const creating = ref(false);
                             ><small
                                 >{{ range(d) }} · {{ $t('owner.tournament.n_accepted', { n: d.accepted })
                                 }}<template v-if="d.waiting"> · {{ $t('owner.tournament.n_waiting', { n: d.waiting }) }}</template
-                                ><template v-if="d.unpaid && d.phase !== 'done'">
+                                ><template v-if="d.unpaid && !['done', 'cancelled', 'registration'].includes(d.phase)">
                                     · {{ $t('owner.tournament.n_unpaid', { n: d.unpaid }) }}</template
                                 ></small
                             ></span

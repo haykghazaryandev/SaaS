@@ -331,6 +331,9 @@ class Tournaments
     public function remindUnpaid(Tournament $t): int
     {
         $n = 0;
+        if (in_array($t->status, ['done', 'cancelled'], true)) {
+            return 0;
+        }
         foreach ($t->entries()->where('status', 'accepted')->whereNull('payment_id')->whereNotNull('user_id')->get() as $e) {
             $fee = self::fee($t, $e);
             if ($fee > 0 && ($user = User::find($e->user_id))) {
@@ -661,6 +664,10 @@ class Tournaments
         }
         if ($e->tournament->status === 'cancelled') {
             throw new BookingException('tournament_closed');
+        }
+        // no money while people can still register: the tournament may still be cancelled (too few players)
+        if (self::registrationOpen($e->tournament)) {
+            throw new BookingException('pay_after_registration');
         }
 
         return DB::transaction(function () use ($e, $method, $by) {

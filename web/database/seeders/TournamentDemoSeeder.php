@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Notification;
  * - Autumn Cup: on now, the admin won the semi-final and is in the Grand Final, the other semi-final live
  * - Friday Night: on now, 16 players, the admin's first match and two more live, some results
  * - Weekend Open: the draw is made, in 2 days, the admin accepted with the fee not paid
- * - December Open: registration open, the admin accepted and paid
+ * - December Open: registration open, the admin accepted (the fee is taken after registration closes)
  * - Club Championship: registration open, a rating range and 16 places, the admin waiting for the answer
  * - October Cup: finished 3 days ago, the admin runner-up
  * - Winter Cup: 3 divisions by rating — Amateur on now (a match live), Middle drawn, Pro registration open (the admin accepted)
@@ -71,8 +71,8 @@ class TournamentDemoSeeder extends Seeder
             return;
         }
         $this->fill($t, $admin, $players->take(7), accepted: true);
-        $this->payAll($t, $admin);   // a tournament starts when everybody paid
         $this->tt()->draw($t);
+        $this->payAll($t, $admin);   // fees after registration closed; it starts when everybody paid
         $this->playRound($t, 1);
         $semis = TournamentMatch::where('tournament_id', $t->id)->where('round', 2)->orderBy('slot')->get();
         $this->tt()->result($semis[0], $semis[0]->a_id, '3:2');           // the admin (seed 1) is in the Final
@@ -118,8 +118,7 @@ class TournamentDemoSeeder extends Seeder
         if (! $t) {
             return;
         }
-        $this->fill($t, $admin, $players->take(9), accepted: true, option: 1);
-        $this->pay($t, $admin, 'cash');
+        $this->fill($t, $admin, $players->take(9), accepted: true, option: 1);   // fees after registration closes
         $t->update(['starts_at' => $this->at(9, 11)]);
     }
 
@@ -142,8 +141,8 @@ class TournamentDemoSeeder extends Seeder
             return;
         }
         $this->fill($t, $admin, $players->slice(3, 7), accepted: true);
-        $this->payAll($t, $admin);
         $this->tt()->draw($t);
+        $this->payAll($t, $admin);
         $this->playRound($t, 1);
         $this->playRound($t, 2);
         $final = TournamentMatch::where('tournament_id', $t->id)->where('round', 3)->first();
@@ -176,8 +175,8 @@ class TournamentDemoSeeder extends Seeder
         }
         // every state on one page: Amateur is being played (a result, a match live), Middle has its draw
         [$amateur, $middle] = [$cup->divisions[0]->fresh(), $cup->divisions[1]->fresh()];
-        $this->payAll($amateur, $admin);
         $this->tt()->draw($amateur);
+        $this->payAll($amateur, $admin);
         $first = TournamentMatch::where('tournament_id', $amateur->id)->where('round', 1)->whereNotNull('a_id')->whereNotNull('b_id')->orderBy('slot')->get();
         if ($first->count() >= 2) {
             $this->tt()->result($first[0], $first[0]->a_id, '3:1');

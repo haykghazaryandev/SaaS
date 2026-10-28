@@ -90,6 +90,8 @@ const entry = (id: number, data: Record<string, string>) =>
     router.patch(route('owner.tournaments.entry', id), data, { preserveScroll: true, preserveState: true });
 const started = computed(() => ['live', 'done', 'cancelled'].includes(t.value.phase));
 const over = computed(() => t.value.phase === 'done' || t.value.phase === 'cancelled');
+// fees are taken once registration is closed (closed / draw made): a tournament cancelled for too few players has nothing to give back
+const payNow = computed(() => ['closed', 'drawn', 'live'].includes(t.value.phase));
 const range = (min: number | null, max: number | null) =>
     min == null && max == null ? trans('owner.tournament.any_rating') : min == null ? `≤ ${max}` : max == null ? `${min}+` : `${min}–${max}`;
 
@@ -310,7 +312,7 @@ async function copy() {
         <section v-if="!tournament.divisions.length" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.players') }}</h2>
-                <button v-if="count('unpaid') && !over" type="button" class="btn ghost sm" data-test="t-remind" @click="remind">
+                <button v-if="count('unpaid') && payNow" type="button" class="btn ghost sm" data-test="t-remind" @click="remind">
                     <Icon name="bell" size="sm" />{{ $t('owner.tournament.remind_unpaid', { n: count('unpaid') }) }}
                 </button>
             </div>
@@ -339,6 +341,9 @@ async function copy() {
                         ><Icon name="check" size="sm" />{{ amd(e.paid.amount) }} · {{ $t('owner.club.m_' + e.paid.method) }}</span
                     >
                     <!-- the fee: what is owed, then the player's card (only when they have one here; not enough money: off) or cash -->
+                    <span v-else-if="e.price && !over && !payNow" class="payrow later">
+                        <span class="owe later">{{ $t('owner.tournament.fee_later', { a: amd(e.price) }) }}</span>
+                    </span>
                     <span v-else-if="e.price && !over" class="payrow">
                         <span class="owe">{{ $t('owner.tournament.not_paid') }} · <b>{{ amd(e.price) }}</b></span>
                         <span class="pbtns">
@@ -386,9 +391,12 @@ async function copy() {
                 </button>
             </div>
             <!-- the fees first: the tournament starts when everybody accepted has paid -->
-            <button v-if="tournament.unpaid && !over" type="button" class="paywarn" data-test="t-unpaid" @click="filter = 'unpaid'">
+            <button v-if="tournament.unpaid && payNow" type="button" class="paywarn" data-test="t-unpaid" @click="filter = 'unpaid'">
                 <Icon name="wallet" size="sm" /><span>{{ $t('owner.tournament.pay_first', { n: tournament.unpaid }) }}</span>
             </button>
+            <p v-else-if="tournament.unpaid && tournament.phase === 'registration'" class="faint paylater" data-test="t-pay-later">
+                <Icon name="wallet" size="sm" />{{ $t('owner.tournament.pay_after_registration') }}
+            </p>
             <template v-if="tournament.bracket">
                 <p v-if="canEdit && !over" class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
                 <Bracket :bracket="tournament.bracket" :editable="canEdit" :title="tournament.title" :when="when" :players="accepted" @pick="pick" />
@@ -543,6 +551,8 @@ async function copy() {
 .payrow { order: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap; }
 .owe { color: var(--hot); font-size: 13px; font-weight: 700; }
 .owe b { font-family: var(--mono); }
+.owe.later { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.paylater { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; margin: 0 0 12px; }
 .pbtns { display: flex; gap: 6px; }
 .pb { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); font: 700 13px var(--body); cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
 .pb.card { font-family: var(--mono); color: #8fd9ff; border-color: rgba(92, 200, 255, 0.4); }

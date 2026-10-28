@@ -84,7 +84,7 @@ useLive(() => (user.value ? `App.Models.User.${user.value.id}` : null), 'Illumin
                         </template>
                         <span v-if="i.option && i.fee" class="tag faint">{{ i.option }}</span>
                     </div>
-                    <p v-if="owes(i)" class="hint">{{ $t('club.tournament.unpaid', { amount: amd(i.fee) }) }}</p>
+                    <p v-if="owes(i)" class="hint">{{ i.phase === 'registration' ? $t('club.tournament.fee_later', { amount: amd(i.fee) }) : $t('club.tournament.unpaid', { amount: amd(i.fee) }) }}</p>
                 </Link>
                 <div v-if="!shown.length" class="card pad empty">
                     {{ items.length ? $t('club.mine.none_' + group) : $t('club.mine.none') }}

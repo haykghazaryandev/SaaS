@@ -228,7 +228,8 @@ function send() {
                     }}
                 </div>
                 <div v-else-if="done" class="ok"><Icon name="check" />{{ $t('player.tournament.registered') }}</div>
-                <div v-if="entry?.unpaid" class="ok unpaid" data-test="unpaid"><Icon name="wallet" />{{ $t('club.tournament.unpaid', { amount: amd(entry.unpaid) }) }}</div>
+                <div v-if="entry?.unpaid && tournament.phase === 'registration'" class="ok later" data-test="unpaid"><Icon name="wallet" />{{ $t('club.tournament.fee_later', { amount: amd(entry.unpaid) }) }}</div>
+                <div v-else-if="entry?.unpaid && tournament.phase !== 'cancelled'" class="ok unpaid" data-test="unpaid"><Icon name="wallet" />{{ $t('club.tournament.unpaid', { amount: amd(entry.unpaid) }) }}</div>
                 <Link v-if="chat" class="btn" :href="route('messages.show', chat)" data-test="t-chat"><Icon name="chat" size="sm" />{{ $t('club.tournament.chat') }}</Link>
                 <!-- where the tournament is: no form once the draw is made, it started or it is over -->
                 <div v-if="tournament.phase !== 'registration'" :class="['phase', tournament.phase]" data-test="phase">
@@ -334,6 +335,7 @@ function send() {
 .podium li span { font-size: 22px; }
 .podium .p1 { background: rgba(255, 209, 102, 0.12); }
 .ok.applied { background: var(--warn-soft); color: var(--warn); }
+.ok.later { background: var(--surface-2); color: var(--muted); font-weight: 700; }
 .ok.unpaid { background: var(--hot-soft); color: var(--hot); font-weight: 700; }
 .ok.declined { background: var(--hot-soft); color: var(--hot); }
 .tour { display: flex; flex-direction: column; gap: 8px; }

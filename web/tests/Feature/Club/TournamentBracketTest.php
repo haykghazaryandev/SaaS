@@ -180,6 +180,7 @@ it('sends news to the registered ones only (no chat) and reminds the unpaid', fu
     expect(Message::count())->toBe($before);
 
     // the unpaid: a reminder (the paid one doesn't get it); the public page shows it too
+    $this->t->update(['status' => 'closed']);   // fees after registration
     $this->tt->pay($b->fresh(), 'cash', $this->owner);
     $this->actingAs($this->owner)->post("/owner/tournaments/{$this->t->id}/remind")->assertSessionHasNoErrors();
     Notification::assertSentTo($ua, Notice::class, fn ($n) => $n->type === 'tournament_unpaid');
@@ -278,9 +279,9 @@ it('lists my tournaments: where each is, the answer, the fee and my place; finis
     $me = User::find($a->user_id);
     $this->actingAs($me)->get('/me/tournaments')->assertOk()->assertInertia(fn (Assert $p) => $p->component('player/MyTournaments')
         ->has('items', 1)->where('items.0.phase', 'registration')->where('items.0.status', 'accepted')->where('items.0.fee', 5000)->where('items.0.paid', null));
+    $this->tt->draw($this->t->fresh());
     $this->tt->pay($a->fresh(), 'cash', $this->owner);
     $this->tt->pay($b->fresh(), 'cash', $this->owner);
-    $this->tt->draw($this->t->fresh());
     $final = TournamentMatch::where('tournament_id', $this->t->id)->first();
     $this->tt->result($final, $a->id, '3:0');
     $this->actingAs($me)->get('/me/tournaments')->assertInertia(fn (Assert $p) => $p->where('items.0.phase', 'done')->where('items.0.place', 1)
@@ -313,9 +314,9 @@ it('lets the owner take a player off before the start: the fee goes back, the dr
     [$a, $b, $c] = ($this->players)(3)->all();
     $card = app(Cards::class)->forPlayer($this->club, User::find($a->user_id));
     app(Cards::class)->topUp($card, 8000, $this->owner);
+    $this->tt->draw($this->t->fresh());
     $this->tt->pay($a->fresh(), 'card', $this->owner);
     expect($card->fresh()->balance)->toBe(3000);
-    $this->tt->draw($this->t->fresh());
     $this->actingAs($this->owner)->delete(route('owner.tournaments.remove', $a->id))->assertSessionHasNoErrors();
     expect(TournamentEntry::find($a->id))->toBeNull()
         ->and($card->fresh()->balance)->toBe(8000)
@@ -323,9 +324,9 @@ it('lets the owner take a player off before the start: the fee goes back, the dr
         ->and(TournamentMatch::where('tournament_id', $this->t->id)->count())->toBe(0)
         ->and(Payment::where('ref_id', $a->id)->where('kind', 'tournament')->sum('amount'))->toBe(0);
     // once it started: nobody is taken off
+    $this->tt->draw($this->t->fresh());
     $this->tt->pay($b->fresh(), 'cash', $this->owner);
     $this->tt->pay($c->fresh(), 'cash', $this->owner);
-    $this->tt->draw($this->t->fresh());
     $this->tt->setLive(TournamentMatch::where('tournament_id', $this->t->id)->first(), true);
     expect(fn () => $this->tt->remove($b->fresh(), $this->owner))->toThrow(BookingException::class);
 });
@@ -364,6 +365,7 @@ it('cancels a tournament before its start with a reason: fees back, players told
     [$a, $b] = ($this->players)(2)->all();
     $card = app(Cards::class)->forPlayer($this->club->forceFill(['features' => [...$this->club->features, 'wallet']]), User::find($a->user_id));
     app(Cards::class)->topUp($card, 6000, $this->owner);
+    $this->t->update(['status' => 'closed']);   // registration closed: the fees are taken
     $this->tt->pay($a->fresh(), 'card', $this->owner);
     $this->tt->pay($b->fresh(), 'cash', $this->owner);
     $this->actingAs($this->owner)->post(route('owner.tournaments.cancel', $this->t->id), ['reason' => 'Not enough players registered'])->assertSessionHasNoErrors();

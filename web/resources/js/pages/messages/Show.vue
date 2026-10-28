@@ -529,7 +529,7 @@ onBeforeUnmount(() => {
                     >
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
-                <Link v-if="chat.tournament" class="btn outline sm" :href="chat.tournament.manage ?? chat.tournament.url" :aria-label="$t('messages.open_bracket')"
+                <Link v-if="chat.tournament && !chat.tournament.manage" class="btn outline sm" :href="chat.tournament.url" :aria-label="$t('messages.open_bracket')"
                     ><Icon name="trophy" size="sm" /><span class="hide-sm">{{ $t('messages.open_bracket') }}</span></Link
                 >
                 <Link v-if="chat.venue && !chat.venue.staff" class="btn outline sm" :href="chat.venue.url" :aria-label="chat.venue.name"

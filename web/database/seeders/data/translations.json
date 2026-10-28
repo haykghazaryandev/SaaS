@@ -1359,6 +1359,11 @@
         "hy": "Այս ժամն արդեն անցել է։",
         "ru": "Это время уже прошло."
     },
+    "booking.error.pay_after_registration": {
+        "en": "Fees are taken once registration is closed (close it or make the draw).",
+        "hy": "Վճարներն ընդունվում են գրանցումը փակելուց հետո (փակեք այն կամ կատարեք վիճակահանություն)։",
+        "ru": "Взносы принимаются после закрытия регистрации (закройте её или проведите жеребьёвку)."
+    },
     "booking.error.rate_closed": {
         "en": "This game can't be rated anymore.",
         "hy": "Այս խաղն այլևս հնարավոր չէ գնահատել։",
@@ -2158,6 +2163,11 @@
         "en": "Divisions",
         "hy": "Խմբեր",
         "ru": "Дивизионы"
+    },
+    "club.tournament.fee_later": {
+        "en": "Fee :amount: you pay at the club once registration is closed.",
+        "hy": "Վճարը՝ :amount․ կվճարեք ակումբում գրանցումը փակվելուց հետո։",
+        "ru": "Взнос :amount: оплата в клубе после закрытия регистрации."
     },
     "club.tournament.fits_you": {
         "en": "Your level",
@@ -6849,6 +6859,11 @@
         "hy": "Չվճարած",
         "ru": "Не оплатили"
     },
+    "owner.tournament.fee_later": {
+        "en": "Fee :a · after registration",
+        "hy": "Վճար :a · գրանցումից հետո",
+        "ru": "Взнос :a · после регистрации"
+    },
     "owner.tournament.live_off": {
         "en": "Not playing",
         "hy": "Չեն խաղում",
@@ -6913,6 +6928,11 @@
         "en": "Tournament chat",
         "hy": "Մրցաշարի չատ",
         "ru": "Чат турнира"
+    },
+    "owner.tournament.pay_after_registration": {
+        "en": "Fees are taken once registration is closed (Edit → Closed, or make the draw): if the tournament is cancelled for too few players, there is nothing to give back.",
+        "hy": "Վճարներն ընդունվում են գրանցումը փակելուց հետո (Խմբագրել → Փակ, կամ վիճակահանություն)․ եթե մրցաշարը չեղարկվի խաղացողների պակասի պատճառով, վերադարձնելու բան չի լինի։",
+        "ru": "Взносы принимаются после закрытия регистрации (Изменить → Закрыта или жеребьёвка): если турнир отменят из-за нехватки игроков, возвращать ничего не придётся."
     },
     "owner.tournament.pay_first": {
         "en": ":n not paid yet: the tournament starts when everybody has paid (or take them off).",

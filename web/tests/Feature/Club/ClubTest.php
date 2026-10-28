@@ -193,7 +193,10 @@ it('runs a tournament: register by link, accept, pay the option, results', funct
     expect($e->phone)->toBe('+37491234567')
         ->and(fn () => $tt->register($t, ['first_name' => 'A', 'last_name' => 'B', 'phone' => '+37491234567', 'option' => 0]))->toThrow(BookingException::class);
     $tt->decide($e, 'accepted');
-    expect($tt->pay($e, 'cash', $this->owner)->amount)->toBe(5000);
+    // the fee only once registration is closed (a tournament cancelled for too few players has nothing to give back)
+    expect(fn () => $tt->pay($e, 'cash', $this->owner))->toThrow(BookingException::class);
+    $t->update(['status' => 'closed']);
+    expect($tt->pay($e->fresh(), 'cash', $this->owner)->amount)->toBe(5000);
     $tt->place($e->fresh(), 1);
     expect($e->fresh()->place)->toBe(1);
     $t->update(['status' => 'closed']);
