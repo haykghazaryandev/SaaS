@@ -208,6 +208,7 @@ function stateOf(b: BookingRow): Cell {
     if (k === 'pending') return 'req';
     if (b.playing) return 'live';
     if (b.past) return 'done';
+    if (b.purpose === 'training') return 'train';
     return b.weekly ? 'reg' : 'booked';
 }
 const col = (k: keyof typeof GRID_COLORS) => owner.value.colors?.[k] || GRID_COLORS[k];
@@ -361,6 +362,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                 ><span><i :style="{ background: col('live') }" />{{ $t('owner.schedule.playing') }}</span
                 ><span><i :style="{ background: col('req') }" />{{ $t('owner.schedule.request') }}</span
                 ><span><i :style="{ background: col('reg') }" />{{ $t('owner.schedule.weekly') }}</span
+                ><span><i :style="{ background: col('train') }" />🎓 {{ $t('club.training') }}</span
                 ><span><i :style="{ background: col('done') }" />{{ $t('owner.schedule.legend_done') }}</span>
             </div>
         </template>
@@ -424,7 +426,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                         >{{ hhmm(b.start) }}–{{ hhmm(b.end) }}
                     </div>
                     <div class="n">
-                        <b>{{ b.name }}</b
+                        <b><span v-if="b.purpose === 'training'" class="tchip sm">🎓</span>{{ b.name }}</b
                         ><small>{{ b.team ? b.team + ' · ' : '' }}{{ b.phone || '' }}</small>
                     </div>
                     <div class="f">

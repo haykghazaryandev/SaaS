@@ -109,30 +109,45 @@ final class BookingPresenter
 
     /**
      * Requests waiting, with what helps to choose when several asked for the same court and time: each player's rating
-     * (the place's sport), the competing requests and the preferred one — the best record here (played, minus no-shows
-     * ×3, late cancels ×2, late ×1), then the higher rating, then whoever asked first.
+     * (the place's sport), how far to trust them here (trust), the competing requests and the order among them (rank,
+     * 1 = the best choice, the preferred one). The order: the best record here (played, minus no-shows ×3, late cancels
+     * ×2, late ×1), then the higher rating, then whoever asked first.
+     * Trust: risky (didn't come, or cancelled late twice), mixed (cancelled late or came late), good (played here, no
+     * trouble), new (no record here).
      *
      * @param  Collection<int, Booking>  $requests
-     * @return array<int, array{rating: ?int, competing: int[], preferred: bool}>
+     * @return array<int, array{rating: ?int, trust: string, competing: int[], rank: ?int, preferred: bool}>
      */
     public static function choosing($requests, Venue $venue): array
     {
         $sport = ($venue->sports()[0] ?? Sport::Football)->value;
         $ratings = SportRating::whereIn('user_id', $requests->pluck('user_id')->filter()->unique())->where('sport', $sport)->pluck('rating', 'user_id');
-        $score = function (Booking $b) use ($ratings, $venue) {
-            $h = $b->user_id ? self::history($venue->id, $b->user_id) : ['played' => 0, 'no_shows' => 0, 'late_cancels' => 0, 'lates' => 0];
+        $hist = fn (Booking $b) => $b->user_id ? self::history($venue->id, $b->user_id) : ['played' => 0, 'no_shows' => 0, 'late_cancels' => 0, 'lates' => 0];
+        $score = function (Booking $b) use ($ratings, $hist) {
+            $h = $hist($b);
 
             return [$h['played'] - 3 * $h['no_shows'] - 2 * $h['late_cancels'] - $h['lates'], (int) ($ratings[$b->user_id] ?? 0), -$b->created_at->getTimestamp()];
         };
         $out = [];
         foreach ($requests as $b) {
             $competing = $requests->filter(fn (Booking $o) => $o->id !== $b->id && $o->field_id === $b->field_id && $o->starts_at < $b->ends_at && $o->ends_at > $b->starts_at);
-            $best = $competing->isEmpty() || $competing->every(fn (Booking $o) => $score($b) > $score($o));
-            $out[$b->id] = ['rating' => isset($ratings[$b->user_id]) ? (int) $ratings[$b->user_id] : null, 'competing' => $competing->pluck('id')->values()->all(),
-                'preferred' => $competing->isNotEmpty() && $best];
+            $rank = $competing->isEmpty() ? null : 1 + $competing->filter(fn (Booking $o) => $score($o) > $score($b))->count();
+            $out[$b->id] = ['rating' => isset($ratings[$b->user_id]) ? (int) $ratings[$b->user_id] : null, 'trust' => self::trust($hist($b)),
+                'competing' => $competing->pluck('id')->values()->all(), 'rank' => $rank, 'preferred' => $rank === 1];
         }
 
         return $out;
+    }
+
+    /** risky | mixed | good | new, from a player's record here (see choosing()). */
+    public static function trust(array $h): string
+    {
+        return match (true) {
+            $h['no_shows'] > 0 || $h['late_cancels'] >= 2 => 'risky',
+            $h['late_cancels'] > 0 || $h['lates'] > 0 => 'mixed',
+            $h['played'] > 0 => 'good',
+            default => 'new',
+        };
     }
 
     /** A player's record at this place: ['played', 'no_shows', 'late_cancels', 'lates']. */

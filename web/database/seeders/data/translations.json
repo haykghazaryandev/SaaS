@@ -6229,10 +6229,20 @@
         "hy": "Սպասող հայտեր չկան։",
         "ru": "Нет заявок, ждущих ответа."
     },
-    "owner.requests.preferred": {
-        "en": "Preferred",
-        "hy": "Նախընտրելի",
-        "ru": "Предпочтительно"
+    "owner.requests.rank_best": {
+        "en": "Best choice",
+        "hy": "Լավագույն ընտրություն",
+        "ru": "Лучший выбор"
+    },
+    "owner.requests.rank_how": {
+        "en": "Order: comes and is on time here, then rating, then who asked first",
+        "hy": "Հերթականություն՝ այստեղ գալիս է և չի ուշանում, հետո վարկանիշը, հետո ով է առաջինը հայտ ուղարկել",
+        "ru": "Порядок: приходит и не опаздывает здесь, потом рейтинг, потом кто попросил первым"
+    },
+    "owner.requests.rank_n": {
+        "en": "Choice #:n",
+        "hy": "Ընտրություն #:n",
+        "ru": "Выбор №:n"
     },
     "owner.requests.same_time": {
         "en": "Same time as :names",
@@ -6583,6 +6593,11 @@
         "en": "Default colours",
         "hy": "Լռելյայն գույներ",
         "ru": "Цвета по умолчанию"
+    },
+    "owner.settings.color_train": {
+        "en": "Training",
+        "hy": "Մարզում",
+        "ru": "Тренировка"
     },
     "owner.settings.colors": {
         "en": "Schedule colours",

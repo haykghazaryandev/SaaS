@@ -7,7 +7,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 // a booking is a block from its start to its end (blue booked, lime playing now, orange request, violet every week,
 // grey finished), every empty time is a green dashed "+ Free" block with its times (tap = new booking there),
 // outside the opening hours is striped, a red line is now. Day view: a column per court; week: 7 days × courts.
-export type Cell = 'booked' | 'live' | 'req' | 'reg' | 'done' | 'off';
+export type Cell = 'booked' | 'live' | 'req' | 'reg' | 'train' | 'done' | 'off';
 export interface Col {
     key: string;
     date: string;
@@ -217,7 +217,7 @@ defineExpose({ scrollToNow });
                             <b
                                 ><i v-if="p.cell === 'live'" class="ld" /><span v-if="p.b!.no_shows_here" class="nsw" :title="$t('owner.booking.no_shows_here', { n: p.b!.no_shows_here })"
                                     >⚠{{ p.b!.no_shows_here }}</span
-                                >{{ p.b!.weekly ? '↻ ' : '' }}{{ compact ? label(p.b!).split(' ')[0] : label(p.b!) }}</b
+                                >{{ p.b!.purpose === 'training' ? '🎓 ' : '' }}{{ p.b!.weekly ? '↻ ' : '' }}{{ compact ? label(p.b!).split(' ')[0] : label(p.b!) }}</b
                             >
                             <small v-if="p.h > 28 && !compact">{{ hhmm(p.start) }}–{{ hhmm(p.end) }}</small>
                             <em v-if="p.h > 44 && !compact && (p.cell === 'req' || p.cell === 'live')">{{
@@ -239,7 +239,7 @@ defineExpose({ scrollToNow });
 </template>
 
 <style scoped>
-.hg { --gut: 46px; --c-booked: #5cc8ff; --c-live: #c8ff3d; --c-req: #ffb547; --c-reg: #b69cff; --c-done: #6f7a70; --c-free: #5ef0a8; min-width: 0; }
+.hg { --gut: 46px; --c-booked: #5cc8ff; --c-live: #c8ff3d; --c-req: #ffb547; --c-reg: #b69cff; --c-train: #ff7ad9; --c-done: #6f7a70; --c-free: #5ef0a8; min-width: 0; }
 .hg-heads { display: grid; grid-template-columns: var(--gut) repeat(var(--n), minmax(0, 1fr)); position: sticky; top: var(--hg-top, 0px); z-index: 7; background: var(--bg); border-bottom: 1px solid var(--line); }
 .hg-head { text-align: center; padding: 6px 2px; min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .hg-head b { font-size: 12.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -267,6 +267,7 @@ defineExpose({ scrollToNow });
 .hg-b.live { background: color-mix(in srgb, var(--c-live) 20%, transparent); border-color: var(--c-live); color: color-mix(in srgb, var(--c-live) 25%, #fff); }
 .hg-b.req { background: color-mix(in srgb, var(--c-req) 18%, transparent); border-color: var(--c-req); color: color-mix(in srgb, var(--c-req) 25%, #fff); }
 .hg-b.reg { background: color-mix(in srgb, var(--c-reg) 20%, transparent); border-color: var(--c-reg); color: color-mix(in srgb, var(--c-reg) 25%, #fff); }
+.hg-b.train { background: color-mix(in srgb, var(--c-train) 20%, transparent); border-color: var(--c-train); color: color-mix(in srgb, var(--c-train) 25%, #fff); }
 .hg-b.done { background: color-mix(in srgb, var(--c-done) 18%, transparent); border-color: var(--c-done); color: color-mix(in srgb, var(--c-done) 45%, #fff); }
 .hg-b.off { background: transparent; border: 1px dashed var(--line-2); color: var(--faint); text-decoration: line-through; }
 .hg-b.closed { cursor: default; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 6px, transparent 6px 12px); border-color: #7d867e; color: var(--muted); }

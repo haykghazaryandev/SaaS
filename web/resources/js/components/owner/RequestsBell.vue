@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
-import PlayerRecord from '@/components/owner/PlayerRecord.vue';
+import RequestChips from '@/components/owner/RequestChips.vue';
 import { accept, askDecline, decisions, relDay, useOwner, whoOf, type BookingRow } from '@/composables/useOwner';
 import { hhmm } from '@/composables/useShared';
 import { Link } from '@inertiajs/vue3';
@@ -63,15 +63,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
             <div class="rlist">
                 <p v-if="loading && !shown.length" class="rnone">…</p>
                 <p v-else-if="!shown.length" class="rnone">{{ $t('owner.requests.none') }}</p>
-                <div v-for="b in shown" :key="b.id" class="ritem" :data-test="`request-${b.id}`">
+                <div v-for="b in shown" :key="b.id" :class="['ritem', { train: b.purpose === 'training' }]" :data-test="`request-${b.id}`">
                     <div class="rw">
-                        <b
-                            >{{ b.team || b.name }}<span v-if="b.rating != null" class="rrt">{{ b.rating }}</span
-                            ><span v-if="b.preferred" class="rpref">★ {{ $t('owner.requests.preferred') }}</span></b
-                        >
+                        <b>{{ b.team || b.name }}</b>
+                        <RequestChips :b="b" style="margin: 3px 0 2px" />
                         <small v-if="b.competing?.length" class="rcomp">{{ $t('owner.requests.same_time', { names: compNames(b) }) }}</small>
+                        <small v-if="b.rank === 1" class="rhow">{{ $t('owner.requests.rank_how') }}</small>
                         <small>{{ b.field }} · {{ relDay(b.date, owner.today) }} · {{ hhmm(b.start) }}–{{ hhmm(b.end) }}</small>
-                        <PlayerRecord :history="b.history" style="margin-top: 4px" />
                     </div>
                     <span class="racts">
                         <button type="button" class="btn sm" data-test="bell-accept" @click="accept(b.id, b)">{{ $t('common.accept') }}</button>
@@ -99,10 +97,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
 .ritem + .ritem { border-top: 1px solid var(--line); }
 .rw { display: flex; flex-direction: column; min-width: 0; }
 .rw small { color: var(--muted); font-size: 12.5px; }
-.rrt { margin-left: 6px; font: 700 11px var(--mono); padding: 1px 6px; border-radius: 6px; background: rgba(200, 255, 61, 0.12); color: var(--accent); }
-.rpref { margin-left: 6px; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--free-soft); color: var(--free); }
 .rcomp { color: var(--warn) !important; font-weight: 700; }
+.rhow { color: var(--faint) !important; font-size: 11.5px !important; }
+.ritem.train { box-shadow: inset 3px 0 0 #ff7ad9; }
 .rns { margin-left: 6px; font-size: 11px; font-weight: 800; color: var(--hot); }
 .racts { display: flex; gap: 6px; }
+@media (max-width: 600px) { .rpanel { position: fixed; left: 12px; right: 12px; top: 72px; width: auto; } }
 .rnone { color: var(--faint); text-align: center; font-size: 13px; margin: 18px 0; }
 </style>

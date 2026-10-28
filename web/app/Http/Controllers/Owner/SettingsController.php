@@ -134,7 +134,7 @@ class SettingsController extends OwnerController
     }
 
     /** The schedule's colours per state (empty: the default ones). */
-    public const COLOR_KEYS = ['free', 'booked', 'live', 'req', 'reg', 'done'];
+    public const COLOR_KEYS = ['free', 'booked', 'live', 'req', 'reg', 'train', 'done'];
 
     public function colors(Request $request)
     {

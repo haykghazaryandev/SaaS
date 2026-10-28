@@ -271,7 +271,7 @@ function addTier() {
 // closures (added and removed right away: they are actions, not settings)
 const today = owner.value.today;
 // ---------- the schedule's colours ----------
-const COLOR_KEYS = ['free', 'booked', 'live', 'req', 'reg', 'done'] as const;
+const COLOR_KEYS = ['free', 'booked', 'live', 'req', 'reg', 'train', 'done'] as const;
 const colors = reactive<Record<string, string>>(Object.fromEntries(COLOR_KEYS.map((k) => [k, owner.value.colors?.[k] || GRID_COLORS[k]])));
 function saveColors() {
     // only what differs from the default is kept

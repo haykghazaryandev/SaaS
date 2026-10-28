@@ -139,7 +139,7 @@ async function stop(c: Court) {
                 <!-- a game: who, the clock, the check -->
                 <template v-if="c.game">
                     <div class="who">
-                        <b>{{ c.game.name }}<span v-if="c.game.purpose === 'training'" class="pill" style="margin-left: 6px">{{ $t('club.training') }}</span></b>
+                        <b>{{ c.game.name }}<span v-if="c.game.purpose === 'training'" class="tchip" style="margin-left: 6px">🎓 {{ $t('club.training') }}</span></b>
                         <small>
                             {{ c.game.start }}–{{ c.game.bookedEnd ?? '…' }}
                             <template v-if="c.game.player"> · {{ c.game.player.name }}</template>

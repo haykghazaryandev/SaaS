@@ -56,7 +56,7 @@ class TodayController extends OwnerController
             'requests' => (function () use ($requests, $open, $venue) {
                 $choose = BookingPresenter::choosing($requests, $venue);
 
-                return $requests->map(fn ($b) => [...BookingPresenter::row($b), 'conflicts' => $this->conflicts($b, $open)] + ($choose[$b->id] ?? []))->values();
+                return self::bestFirst($requests, $choose)->map(fn ($b) => [...BookingPresenter::row($b), 'conflicts' => $this->conflicts($b, $open)] + ($choose[$b->id] ?? []))->values();
             })(),
             // the today strip: what holds time on each field today (expired requests left out)
             'lanes' => $todays->filter(fn (Booking $b) => in_array(BookingPresenter::kind($b), ['pending', 'accepted', 'owner', 'noshow'], true))
@@ -91,6 +91,13 @@ class TodayController extends OwnerController
 
         $choose = BookingPresenter::choosing($rows, $venue);
 
-        return response()->json(['requests' => $rows->map(fn ($b) => BookingPresenter::row($b) + ['field' => BookingPresenter::fieldLabel($b->field)] + ($choose[$b->id] ?? []))->values()]);
+        return response()->json(['requests' => self::bestFirst($rows, $choose)->map(fn ($b) => BookingPresenter::row($b) + ['field' => BookingPresenter::fieldLabel($b->field)] + ($choose[$b->id] ?? []))->values()]);
+    }
+
+    /** Soonest first; requests for the same court and time together, the best choice first. */
+    private static function bestFirst($rows, array $choose)
+    {
+        return $rows->sortBy([fn ($a, $b) => $a->starts_at <=> $b->starts_at, fn ($a, $b) => $a->field_id <=> $b->field_id,
+            fn ($a, $b) => ($choose[$a->id]['rank'] ?? 0) <=> ($choose[$b->id]['rank'] ?? 0)])->values();
     }
 }

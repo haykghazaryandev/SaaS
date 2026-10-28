@@ -15,6 +15,7 @@ use App\Domain\Club\Shop;
 use App\Domain\Club\Tournaments;
 use App\Domain\Venues\Availability;
 use App\Enums\Sport;
+use App\Http\Controllers\Owner\BookingPresenter;
 use App\Models\Booking;
 use App\Models\BookingEvent;
 use App\Models\Payment;
@@ -353,5 +354,16 @@ it('marks the preferred one of two requests for the same time: the better record
     $res = $this->actingAs($this->owner)->withSession(['venue_id' => $club->id])->getJson(route('owner.requests'))->json('requests');
     $byId = collect($res)->keyBy('id');
     expect($byId[$b->id]['preferred'])->toBeTrue()->and($byId[$a->id]['preferred'])->toBeFalse()
-        ->and($byId[$a->id]['competing'])->toBe([$b->id])->and($byId[$a->id]['rating'])->toBe(1600);
+        ->and($byId[$a->id]['competing'])->toBe([$b->id])->and($byId[$a->id]['rating'])->toBe(1600)
+        // the order among them (the best first in the list) and how far to trust each one here
+        ->and($byId[$b->id]['rank'])->toBe(1)->and($byId[$a->id]['rank'])->toBe(2)
+        ->and($byId[$a->id]['trust'])->toBe('risky')->and($byId[$b->id]['trust'])->toBe('new')
+        ->and(collect($res)->pluck('id')->all())->toBe([$b->id, $a->id]);
+});
+
+it('tells how far to trust a player here from the record', function () {
+    $h = fn (array $x) => BookingPresenter::trust($x + ['played' => 0, 'no_shows' => 0, 'late_cancels' => 0, 'lates' => 0]);
+    expect($h([]))->toBe('new')->and($h(['played' => 4]))->toBe('good')
+        ->and($h(['played' => 4, 'lates' => 1]))->toBe('mixed')->and($h(['played' => 4, 'late_cancels' => 1]))->toBe('mixed')
+        ->and($h(['played' => 9, 'late_cancels' => 2]))->toBe('risky')->and($h(['played' => 9, 'no_shows' => 1]))->toBe('risky');
 });

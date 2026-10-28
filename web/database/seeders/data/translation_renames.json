@@ -358,6 +358,7 @@
     "owner.player_site": null,
     "owner.reason.cancel_title": "common.cancel_this_booking",
     "owner.reason.ph": "owner.reason.placeholder",
+    "owner.requests.preferred": null,
     "owner.schedule.closure": "common.closed",
     "owner.schedule.f_accepted": "owner.schedule.filter_accepted",
     "owner.schedule.f_all": "owner.schedule.filter_all",

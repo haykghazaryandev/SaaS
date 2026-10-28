@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
-import PlayerRecord from '@/components/owner/PlayerRecord.vue';
+import RequestChips from '@/components/owner/RequestChips.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import {
     accept,
@@ -192,7 +192,7 @@ const chartDays = computed(() =>
                             <span class="li-t"
                                 ><b>{{ $t('common.now') }}</b> · {{ $t('owner.dashboard.ends', { t: hhmm(l.current.end) }) }}</span
                             >
-                            <span class="li-n">{{ l.current.team || l.current.name }}</span>
+                            <span class="li-n"><span v-if="l.current.purpose === 'training'" class="tchip sm">🎓</span>{{ l.current.team || l.current.name }}</span>
                             <span v-if="l.current.arrived" class="li-at ok"><Icon name="check" size="sm" />{{ $t('common.arrived') }}</span>
                             <span v-else-if="l.current.status === 'accepted'" class="li-at warn"
                                 ><Icon name="clock" size="sm" />{{
@@ -215,7 +215,7 @@ const chartDays = computed(() =>
                             <span class="li-t"
                                 >{{ hhmm(b.start) }}–{{ hhmm(b.end) }}<em v-if="statusLabel(kindOf(b))"> · {{ statusLabel(kindOf(b)) }}</em></span
                             >
-                            <span class="li-n">{{ b.team || b.name }}</span>
+                            <span class="li-n"><span v-if="b.purpose === 'training'" class="tchip sm">🎓</span>{{ b.team || b.name }}</span>
                             <span v-if="b.late_minutes" class="li-at warn"><Icon name="clock" size="sm" />{{ $t('owner.booking.late', { min: String(b.late_minutes) }) }}</span>
                         </button>
                         <Link v-if="l.more" class="li-more" :href="route('owner.schedule')">{{
@@ -238,19 +238,19 @@ const chartDays = computed(() =>
                     /></Link>
                 </div>
                 <template v-if="requestsShown.length">
-                    <div v-for="b in requestsShown" :key="b.id" class="req" data-test="request">
+                    <div v-for="b in requestsShown" :key="b.id" :class="['req', { train: b.purpose === 'training' }]" data-test="request">
                         <div class="who" @click="openBooking(b.id)">
                             <div class="who-h">
                                 <Avatar :id="b.user?.id" :name="b.name" :src="b.user?.avatar" size="sm" />
                                 <span class="who-n"
                                     ><b>{{ b.name }}</b
                                     ><span v-if="b.team" class="muted"> · {{ b.team }}</span
-                                    ><span v-if="b.rating != null" class="pill lime" style="margin-left: 6px; font-size: 11px">{{ b.rating }}</span
-                                    ><span v-if="b.preferred" class="pill green" style="margin-left: 6px; font-size: 11px">★ {{ $t('owner.requests.preferred') }}</span></span
+                                    ></span
                                 >
                             </div>
                             <!-- their record at this place: didn't come, cancelled late, late — or reliable / new -->
-                            <div style="margin: 2px 0 0 38px"><PlayerRecord :history="b.history" /></div>
+                            <div style="margin: 4px 0 0 38px"><RequestChips :b="b" /></div>
+                            <p v-if="b.rank === 1" class="faint" style="margin: 2px 0 0 38px; font-size: 11.5px">{{ $t('owner.requests.rank_how') }}</p>
                             <div class="meta">
                                 <span><i :class="['fdot', dotOf(fieldOf(b.field_id)?.size || 'small')]" />{{ fieldOf(b.field_id)?.label }}</span>
                                 <span><Icon name="calendar" size="sm" />{{ relDay(b.date, date) }} · {{ hhmm(b.start) }}–{{ hhmm(b.end) }}</span>
