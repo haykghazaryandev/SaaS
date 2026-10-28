@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Chats: direct (two people) and game chats (all players of an open game).
- * - direct chat: allowed between friends or people who play in the same game; not if one blocked the other
+ * - direct chat: allowed between friends, people who play in the same game or share a group chat; not if one blocked the other
  * - game chat: starts when the game opens; players are added when they join and removed when they leave
  * - a game chat with no messages for 7 days (and no upcoming booking) becomes read-only, deleted 30 days later
  */
@@ -48,8 +48,16 @@ class Chat
         }
 
         // played or plays in the same game
-        return GamePlayer::where('user_id', $a->id)->whereIn('status', GamePlayerStatus::IN)
-            ->whereIn('game_id', GamePlayer::where('user_id', $b->id)->whereIn('status', GamePlayerStatus::IN)->select('game_id'))->exists();
+        if (GamePlayer::where('user_id', $a->id)->whereIn('status', GamePlayerStatus::IN)
+            ->whereIn('game_id', GamePlayer::where('user_id', $b->id)->whereIn('status', GamePlayerStatus::IN)->select('game_id'))->exists()) {
+            return true;
+        }
+
+        // both are in the same group chat (a game, a tournament): tap a member → Message
+        return ConversationParticipant::where('user_id', $a->id)->whereNull('left_at')
+            ->whereIn('conversation_id', ConversationParticipant::where('user_id', $b->id)->whereNull('left_at')
+                ->whereIn('conversation_id', Conversation::whereIn('type', ['game', 'tournament'])->select('id'))->select('conversation_id'))
+            ->exists();
     }
 
     public function direct(User $me, User $other): Conversation

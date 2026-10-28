@@ -96,3 +96,19 @@ it('lists the members of a group chat and tells the ones picked with "@"', funct
     Notification::assertSentTo($mate, Notice::class, fn ($n) => $n->type === 'chat_mention');
     Notification::assertNotSentTo($outsider, Notice::class);
 });
+
+it('lets two members of a group chat write to each other (tap a member → Message)', function () {
+    $g = Conversation::create(['type' => 'tournament', 'last_message_at' => now()]);
+    $mate = User::factory()->create();
+    $stranger = User::factory()->create();
+    foreach ([$this->player, $mate] as $u) {
+        $g->participants()->create(['user_id' => $u->id, 'joined_at' => now()]);
+    }
+    $chat = app(Chat::class);
+    expect($chat->canMessage($this->player, $mate))->toBeTrue()->and($chat->canMessage($this->player, $stranger))->toBeFalse();
+    $this->actingAs($this->player)->post(route('messages.direct', $mate->id))->assertRedirect();
+    expect(Conversation::where('type', 'direct')->where('direct_key', Conversation::directKey($this->player->id, $mate->id))->exists())->toBeTrue();
+    // after leaving the group chat: no more
+    $g->participants()->where('user_id', $mate->id)->update(['left_at' => now()]);
+    expect($chat->canMessage($this->player, $mate))->toBeFalse();
+});

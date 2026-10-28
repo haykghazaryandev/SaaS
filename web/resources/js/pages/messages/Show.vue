@@ -159,7 +159,6 @@ const personRel = computed<Relation>(() => (person.value ? (props.chat.people?.[
 // people who run a place: no friends / player profiles (they work in the owner panel)
 const staffMe = computed(() => !!(user.value as { isOwner?: boolean } | null)?.isOwner);
 function openPerson(u: ChatMessage['user']) {
-    if (staffMe.value) return;
     if (u && u.id !== me.value) person.value = { id: u.id, name: userName(u), username: u.username ?? null, avatar: u.avatar };
 }
 
@@ -804,23 +803,34 @@ onBeforeUnmount(() => {
                     <Avatar :id="person.id" :name="person.name" :src="person.avatar" size="lg" />
                     <h3>{{ person.name }}</h3>
                     <p v-if="person.username" class="faint">@{{ person.username }}</p>
-                    <FriendActions
-                        v-if="personRel !== 'blocked'"
-                        :player="{
-                            id: person.id,
-                            name: person.name,
-                            username: person.username,
-                            avatar: person.avatar,
-                            position: null,
-                            district: null,
-                            url: route('users.show', person.id),
-                            relation: personRel,
-                        }"
-                        message
-                    />
-                    <Link class="btn ghost sm" :href="route('users.show', person.id)"
-                        ><Icon name="user" size="sm" />{{ $t('messages.profile') }}</Link
-                    >
+                    <!-- the place's staff: write as the place, the player's page in the panel -->
+                    <div v-if="staffMe" class="pacts">
+                        <Link class="btn sm" :href="route('owner.players.chat', person.id)" method="post" as="button" data-test="person-message"
+                            ><Icon name="chat" size="sm" />{{ $t('owner.tournament.who_message') }}</Link
+                        >
+                        <Link class="btn ghost sm" :href="route('owner.players.show', person.id)"><Icon name="user" size="sm" />{{ $t('owner.tournament.who_page') }}</Link>
+                    </div>
+                    <template v-else-if="personRel !== 'blocked'">
+                        <FriendActions
+                            :player="{
+                                id: person.id,
+                                name: person.name,
+                                username: person.username,
+                                avatar: person.avatar,
+                                position: null,
+                                district: null,
+                                url: route('users.show', person.id),
+                                relation: personRel,
+                            }"
+                        />
+                        <div class="pacts">
+                            <!-- members of the same group chat can write to each other -->
+                            <Link class="btn sm" :href="route('messages.direct', person.id)" method="post" as="button" data-test="person-message"
+                                ><Icon name="chat" size="sm" />{{ $t('friends.message') }}</Link
+                            >
+                            <Link class="btn ghost sm" :href="route('users.show', person.id)"><Icon name="user" size="sm" />{{ $t('messages.profile') }}</Link>
+                        </div>
+                    </template>
                 </div>
             </div>
         </Teleport>
@@ -901,6 +911,7 @@ onBeforeUnmount(() => {
 .pscrim { position: fixed; inset: 0; z-index: 300; background: rgba(4, 8, 6, 0.55); display: flex; align-items: flex-end; justify-content: center; }
 .psheet { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 22px 22px 0 0; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .psheet h3 { margin: 0; font-size: 18px; }
+.pacts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .psheet .faint { margin: -6px 0 0; font-size: 13px; }
 .psheet .facts-row { justify-content: center; }
 @media (min-width: 640px) { .ht.tap { cursor: pointer; }
