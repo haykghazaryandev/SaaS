@@ -2,6 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
+import { ask } from '@/composables/useConfirm';
 import { fdate, useOwner } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -78,8 +79,9 @@ function renameCourt(id: number, e: Event) {
 function toggleCourt(id: number, active: boolean) {
     router.patch(route('owner.courts.update', id), { active }, opts);
 }
-function removeCourt(id: number, label: string) {
-    if (window.confirm(trans('owner.courts.remove_confirm', { name: label }))) router.delete(route('owner.courts.destroy', id), opts);
+async function removeCourt(id: number, label: string) {
+    if (await ask({ title: trans('owner.courts.remove_confirm', { name: label }), ok: trans('common.remove'), danger: true }))
+        router.delete(route('owner.courts.destroy', id), opts);
 }
 
 // ---------- helpers ----------
@@ -272,8 +274,9 @@ const closure = useForm({ field_id: null as number | null, from: `${today}T09:00
 function addClosure() {
     closure.post(route('owner.closures.store'), { ...opts, onSuccess: () => closure.reset('reason') });
 }
-function removeClosure(id: number) {
-    if (window.confirm(trans('owner.settings.closure_remove_ask'))) router.delete(route('owner.closures.destroy', id), opts);
+async function removeClosure(id: number) {
+    if (await ask({ title: trans('owner.settings.closure_remove_ask'), ok: trans('common.remove'), danger: true }))
+        router.delete(route('owner.closures.destroy', id), opts);
 }
 const fmtRange = (c: ClosureRow) =>
     `${c.from.slice(8, 10)}.${c.from.slice(5, 7)} ${c.from.slice(11)} – ${c.to.slice(0, 10) === c.from.slice(0, 10) ? '' : c.to.slice(8, 10) + '.' + c.to.slice(5, 7) + ' '}${c.to.slice(11)}`;

@@ -83,9 +83,9 @@ class HomeController extends Controller
         $order = ['live' => 0, 'drawn' => 1, 'registration' => 2, 'closed' => 3, 'done' => 4];
         $tournaments = Tournament::where('sport', $sport->value)->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
             ->whereIn('venue_id', $all->filter(fn (Venue $v) => $v->hasFeature('tournaments'))->pluck('id'))
-            ->with('venue:id,name,slug')->orderBy('starts_at')->limit(12)->get()
+            ->whereNull('parent_id')->with(['venue:id,name,slug', 'divisions'])->orderBy('starts_at')->limit(12)->get()
             ->map(fn (Tournament $t) => ['code' => $t->code, 'title' => $t->title, 'venue' => $t->venue->name, 'phase' => Tournaments::phase($t),
-                'when' => $t->starts_at->setTimezone(LocalTime::tz())->toIso8601String(), 'from' => (int) collect($t->options)->min('price')])
+                'when' => $t->starts_at->setTimezone(LocalTime::tz())->toIso8601String(), 'from' => (int) collect($t->options)->min('price'), 'divisions' => $t->divisions->count()])
             ->sortBy(fn ($t) => $order[$t['phase']])->values();
         // open games of this sport anybody can join (the Games tab)
         $openGames = Game::query()->with(PlayerGames::WITH)->where('status', 'open')->where('sport', $sport->value)

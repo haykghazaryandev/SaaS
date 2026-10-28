@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /** A tournament of a place with a registration link (/t/{code}) and up to 3 price options. */
 class Tournament extends Model
 {
-    protected $fillable = ['venue_id', 'sport', 'title', 'code', 'starts_at', 'description', 'options', 'status', 'min_rating', 'max_rating', 'max_players', 'drawn_at'];
+    protected $fillable = ['venue_id', 'parent_id', 'division', 'sport', 'title', 'code', 'starts_at', 'description', 'options', 'status', 'min_rating', 'max_rating', 'max_players', 'drawn_at'];
 
     protected function casts(): array
     {
@@ -20,6 +20,23 @@ class Tournament extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /** The tournament this one is a division of (null: a tournament of its own, or the parent). */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Tournament::class, 'parent_id');
+    }
+
+    /** The divisions (by rating) under this tournament. */
+    public function divisions(): HasMany
+    {
+        return $this->hasMany(Tournament::class, 'parent_id')->orderByRaw('min_rating asc nulls first')->orderBy('id');
+    }
+
+    public function isParent(): bool
+    {
+        return $this->relationLoaded('divisions') ? $this->divisions->isNotEmpty() : $this->divisions()->exists();
     }
 
     public function entries(): HasMany

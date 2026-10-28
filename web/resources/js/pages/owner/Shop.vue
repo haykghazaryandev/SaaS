@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import { ask } from '@/composables/useConfirm';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import { trans } from '@/lib/i18n';
 import { router, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 
@@ -19,7 +21,10 @@ interface Product {
     active: boolean;
     photo: string | null;
 }
-defineProps<{ products: Product[]; sales: { id: number; what: string; who: string | null; amount: number | null; method: string | null; at: string }[] }>();
+const props = defineProps<{
+    products: Product[];
+    sales: { id: number; what: string; who: string | null; amount: number | null; method: string | null; at: string }[];
+}>();
 const owner = useOwner();
 const canEdit = owner.value.role === 'owner';
 const editing = ref<number | 'new' | null>(null);
@@ -42,7 +47,20 @@ function save() {
     form.transform((d) => ({ ...d, in_stock: d.in_stock ? 1 : 0, active: d.active ? 1 : 0 })).post(url, { preserveScroll: true, forceFormData: true, onSuccess: () => (editing.value = null) });
 }
 const qty = reactive<Record<number, number>>({});
-const sell = (id: number) => router.post(route('owner.shop.sell', id), { qty: qty[id] || 1 }, { preserveScroll: true, onSuccess: () => (qty[id] = 1) });
+// a sale at the desk, in cash: ask with the sum
+async function sell(id: number) {
+    const p = props.products.find((x) => x.id === id);
+    const n = qty[id] || 1;
+    if (
+        p &&
+        (await ask({
+            title: trans('owner.club.ask_sell', { n, name: p.name, a: amd(n * p.final) }),
+            text: trans('owner.club.ask_cash_hands'),
+            ok: trans('owner.club.ask_take'),
+        }))
+    )
+        router.post(route('owner.shop.sell', id), { qty: n }, { preserveScroll: true, onSuccess: () => (qty[id] = 1) });
+}
 </script>
 
 <template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
+import { ask } from '@/composables/useConfirm';
 import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
@@ -30,8 +31,8 @@ const pill = computed(() => (b.value ? pillOf(b.value) : null));
 const holds = computed(() => b.value && ['pending', 'accepted'].includes(b.value.status));
 const sourceLabel = computed(() => (b.value ? trans(`owner.source.${b.value.source}`) : ''));
 
-function noShow() {
-    if (!b.value || !window.confirm(trans('owner.action.no_show_ask'))) return;
+async function noShow() {
+    if (!b.value || !(await ask({ title: trans('owner.action.no_show_ask'), danger: true }))) return;
     act('no-show', b.value.id, {}, () => emit('close'));
 }
 // "the team is here" (optional): then "how was the field?" goes to the players 30 min after the game

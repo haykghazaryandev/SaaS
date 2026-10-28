@@ -13,9 +13,11 @@ use App\Models\Tournament;
 use App\Models\TournamentEntry;
 use App\Models\TournamentMatch;
 use App\Models\User;
+use App\Models\VenueCard;
 use App\Notifications\Notice;
 use App\Support\LocalTime;
 use App\Support\Phone;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -57,8 +59,62 @@ class Tournaments
         return $t;
     }
 
+    public const MAX_DIVISIONS = 6;
+
+    /**
+     * A tournament with divisions by rating: the parent (its link lists the divisions; nobody registers on it) and one
+     * full tournament per division ({name, min_rating, max_rating, max_players, id?}) with the parent's date, note,
+     * prices and status; the division's title is "Cup · Amateur". A division left out is removed when nobody is in it.
+     */
+    public function saveWithDivisions(Tournament $parent, array $data, array $divisions): Tournament
+    {
+        $rows = array_values(array_filter(array_map(fn ($d) => [
+            'id' => isset($d['id']) ? (int) $d['id'] : null, 'name' => trim((string) ($d['name'] ?? '')),
+            'min_rating' => $d['min_rating'] ?? null, 'max_rating' => $d['max_rating'] ?? null, 'max_players' => $d['max_players'] ?? null,
+        ], $divisions), fn ($d) => $d['name'] !== ''));
+        if (count($rows) < 2 || count($rows) > self::MAX_DIVISIONS) {
+            throw new BookingException('bad_divisions');
+        }
+        if ($parent->exists && $parent->entries()->exists()) {
+            throw new BookingException('bad_divisions');   // a tournament with players can't be split any more
+        }
+
+        return DB::transaction(function () use ($parent, $data, $rows) {
+            $parent = $this->save($parent, ['min_rating' => null, 'max_rating' => null, 'max_players' => null] + $data);
+            $keep = [];
+            foreach ($rows as $d) {
+                $child = $d['id'] ? $parent->divisions()->find($d['id']) : null;
+                $child ??= new Tournament(['venue_id' => $parent->venue_id]);
+                $child->setRelation('venue', $parent->venue);
+                $child->forceFill(['parent_id' => $parent->id, 'division' => mb_substr($d['name'], 0, 40)]);
+                $this->save($child, ['title' => $parent->title.' · '.$child->division, 'status' => $child->exists ? $child->status : $parent->status,
+                    'min_rating' => $d['min_rating'], 'max_rating' => $d['max_rating'], 'max_players' => $d['max_players']] + $data);
+                $keep[] = $child->id;
+            }
+            foreach ($parent->divisions()->whereNotIn('id', $keep)->get() as $gone) {
+                if (! $gone->entries()->exists()) {
+                    $gone->delete();
+                }
+            }
+
+            return $parent->fresh('divisions');
+        });
+    }
+
+    /** A division's settings: its own title is "Parent · name". */
+    public function saveDivision(Tournament $child, array $data): Tournament
+    {
+        $parent = $child->parent;
+        $child->division = mb_substr(trim((string) ($data['division'] ?? $child->division)), 0, 40) ?: $child->division;
+
+        return $this->save($child, ['title' => $parent->title.' · '.$child->division] + $data);
+    }
+
     public function register(Tournament $t, array $data, ?User $user = null): TournamentEntry
     {
+        if ($t->isParent()) {
+            throw new BookingException('choose_division');
+        }
         if (! self::registrationOpen($t)) {
             throw new BookingException($t->drawn_at ? 'already_drawn_closed' : 'tournament_closed');
         }
@@ -133,6 +189,12 @@ class Tournaments
         return $e;
     }
 
+    /** The divisions of a tournament (empty: none), loaded or not. */
+    public static function divisionsOf(Tournament $t): Collection
+    {
+        return $t->relationLoaded('divisions') ? $t->divisions : $t->divisions()->get();
+    }
+
     /** Registration: open, not started, not drawn yet (after the draw the bracket is fixed). */
     public static function registrationOpen(Tournament $t): bool
     {
@@ -145,6 +207,17 @@ class Tournaments
      */
     public static function phase(Tournament $t): string
     {
+        // a tournament with divisions: where its divisions are (one on = on; all over = over)
+        if ($t->isParent()) {
+            $all = self::divisionsOf($t)->map(fn (Tournament $d) => self::phase($d));
+            foreach (['live', 'registration', 'drawn', 'closed'] as $p) {
+                if ($all->contains($p)) {
+                    return $p;
+                }
+            }
+
+            return 'done';
+        }
         if ($t->status === 'done') {
             return 'done';
         }
@@ -200,6 +273,13 @@ class Tournaments
         if ($text === '' || mb_strlen($text) > 1000 || ! in_array($to, self::AUDIENCES, true)) {
             throw new BookingException('bad_options');
         }
+        if ($t->isParent()) {
+            return self::divisionsOf($t)->filter(fn (Tournament $d) => $d->status !== 'done')->sum(fn (Tournament $d) => $this->announce($d, $by, $text, $to));
+        }
+        // a finished tournament: its chat is closed (the history stays), no more news
+        if ($t->status === 'done') {
+            throw new BookingException('tournament_over');
+        }
         if ($to !== 'applied') {
             $this->chat->send($this->openChat($t, $by), $by, $text);
         }
@@ -218,6 +298,19 @@ class Tournaments
     }
 
     // ---------- the fee ----------
+
+    /** Accepted players who still owe their fee: the tournament starts (a match live / a result) only when everybody paid. */
+    public static function unpaid(Tournament $t): int
+    {
+        return $t->entries()->where('status', 'accepted')->whereNull('payment_id')->get()->filter(fn ($e) => self::fee($t, $e) > 0)->count();
+    }
+
+    private static function ensurePaid(Tournament $t): void
+    {
+        if (self::unpaid($t) > 0) {
+            throw new BookingException('unpaid_first');
+        }
+    }
 
     /** The fee of the entry's option (0: free). */
     public static function fee(Tournament $t, TournamentEntry $e): int
@@ -327,6 +420,9 @@ class Tournaments
     /** A match is being played now (a red dot on the bracket), or not any more. */
     public function setLive(TournamentMatch $m, bool $live): void
     {
+        if ($live) {
+            self::ensurePaid($m->tournament);
+        }
         $m->update(['live' => $live && ! $m->winner_id && $m->a_id && $m->b_id]);
         TournamentChanged::dispatch($m->tournament->code);
     }
@@ -348,6 +444,7 @@ class Tournaments
         if ($next?->winner_id && $next->a_id && $next->b_id) {
             throw new BookingException('already_started');
         }
+        self::ensurePaid($t);
         $score = $score !== null ? mb_substr(trim($score), 0, 20) : null;
 
         DB::transaction(function () use ($m, $t, $winnerId, $score, $rounds) {
@@ -359,6 +456,10 @@ class Tournaments
                 $winner->update(['place' => 1]);
                 $loser->update(['place' => 2]);
                 $t->update(['status' => 'done']);
+                // the last division over: the whole tournament is over
+                if ($t->parent_id && ! Tournament::where('parent_id', $t->parent_id)->where('status', '!=', 'done')->exists()) {
+                    Tournament::whereKey($t->parent_id)->update(['status' => 'done']);
+                }
                 // the chat stays readable (the history), nobody writes any more; it is not deleted
                 if ($c = $t->conversation()->first()) {
                     $this->chat->system($c, 'chat.sys.match_result', ['title' => $t->title, 'winner' => self::name($winner), 'loser' => self::name($loser), 'score' => $score ?: '—']);
@@ -425,6 +526,54 @@ class Tournaments
     {
         return $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i');
     }
+
+    /**
+     * The organiser takes a player off the tournament before it starts (no match played or being played). A paid fee
+     * goes back (to the card, or the desk hands the cash back: a minus payment either way); an accepted player after
+     * the draw: the draw is undone (make it again). The player hears about it and leaves the chat.
+     */
+    public function remove(TournamentEntry $e, User $by): void
+    {
+        $e->loadMissing('tournament.venue', 'payment');
+        $t = $e->tournament;
+        if (in_array(self::phase($t), ['live', 'done'], true)) {
+            throw new BookingException('tournament_started');
+        }
+        DB::transaction(function () use ($e, $t, $by) {
+            if ($p = $e->payment) {
+                $refund = Payment::create(['venue_id' => $p->venue_id, 'user_id' => $p->user_id, 'card_id' => $p->card_id, 'kind' => 'tournament',
+                    'method' => $p->method, 'amount' => -$p->amount, 'ref_id' => $e->id, 'note' => mb_substr(__('owner.tournament.refund_note', ['title' => $t->title]), 0, 200), 'created_by' => $by->id]);
+                if ($p->method === 'card' && $p->card_id && ($card = VenueCard::lockForUpdate()->find($p->card_id))) {
+                    app(Cards::class)->entry($card, $p->amount, 'adjust', $by, $refund->note, $refund);
+                }
+            }
+            if ($t->drawn_at && $e->status === 'accepted') {
+                TournamentMatch::where('tournament_id', $t->id)->delete();
+                $t->update(['drawn_at' => null]);
+            }
+            if ($e->user_id && $t->conversation) {
+                $this->chat->leave($t->conversation, $e->user_id);
+            }
+            if ($e->user_id && $e->status !== 'declined' && ($user = User::find($e->user_id))) {
+                DB::afterCommit(fn () => $user->notify(new Notice('tournament_removed', ['title' => $t->title, 'venue' => $t->venue->name], '/t/'.$t->code)));
+            }
+            $e->delete();
+        });
+        TournamentChanged::dispatch($t->code);
+        ClubChanged::dispatch($t->venue_id);
+    }
+
+    /** A player didn't come: the other one wins the match without playing ("W/O", a technical loss). */
+    public function walkover(TournamentMatch $m, int $absentId): TournamentMatch
+    {
+        if (! $m->a_id || ! $m->b_id || ! in_array($absentId, [$m->a_id, $m->b_id], true)) {
+            throw new BookingException('bad_options');
+        }
+
+        return $this->result($m, $absentId === $m->a_id ? $m->b_id : $m->a_id, self::WALKOVER);
+    }
+
+    public const WALKOVER = 'W/O';
 
     /** A place written by hand (a tournament played without the bracket here). */
     public function place(TournamentEntry $e, ?int $place): TournamentEntry

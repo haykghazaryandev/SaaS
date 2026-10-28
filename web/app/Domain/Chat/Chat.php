@@ -14,6 +14,7 @@ use App\Models\GamePlayer;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserBlock;
+use App\Models\Venue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -60,6 +61,34 @@ class Chat
             $c = Conversation::firstOrCreate(['direct_key' => Conversation::directKey($me->id, $other->id)], ['type' => 'direct']);
             foreach ([$me->id, $other->id] as $uid) {
                 ConversationParticipant::firstOrCreate(['conversation_id' => $c->id, 'user_id' => $uid], ['joined_at' => now()]);
+            }
+
+            return $c;
+        });
+    }
+
+    // ---------- a player and a place ----------
+
+    /**
+     * "Message the place": one chat per player and place; the place's staff (owners, managers) are in it and answer
+     * for the place. Anybody logged in may write to a place (not their own).
+     */
+    public function withVenue(User $player, Venue $venue): Conversation
+    {
+        $staff = DB::table('venue_users')->where('venue_id', $venue->id)->pluck('user_id')->map(fn ($id) => (int) $id);
+        if ($staff->isEmpty() || $staff->contains($player->id)) {
+            throw new SocialException('cannot_message');
+        }
+
+        return DB::transaction(function () use ($player, $venue, $staff) {
+            $c = Conversation::firstOrCreate(['direct_key' => 'venue:'.$venue->id.':'.$player->id], ['type' => 'venue', 'venue_id' => $venue->id, 'last_message_at' => now()]);
+            foreach ([$player->id, ...$staff->all()] as $uid) {
+                if (! ConversationParticipant::where('conversation_id', $c->id)->where('user_id', $uid)->whereNull('left_at')->exists()) {
+                    $this->join($c, $uid);
+                }
+            }
+            if ($c->status === 'archived') {
+                $c->update(['status' => 'active', 'archived_at' => null, 'delete_after' => null]);
             }
 
             return $c;

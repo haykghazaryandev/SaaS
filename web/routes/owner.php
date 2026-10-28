@@ -66,6 +66,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::get('tournaments/{tournament}', [TournamentController::class, 'show'])->whereNumber('tournament')->name('tournaments.show');
     Route::put('tournaments/{tournament}', [TournamentController::class, 'update'])->name('tournaments.update');
     Route::patch('tournament-entries/{entry}', [TournamentController::class, 'entry'])->name('tournaments.entry');
+    Route::delete('tournament-entries/{entry}', [TournamentController::class, 'remove'])->name('tournaments.remove');
     Route::post('tournaments/{tournament}/draw', [TournamentController::class, 'draw'])->name('tournaments.draw');
     Route::post('tournaments/{tournament}/announce', [TournamentController::class, 'announce'])->middleware('throttle:10,1')->name('tournaments.announce');
     Route::post('tournaments/{tournament}/chat', [TournamentController::class, 'chat'])->name('tournaments.chat');

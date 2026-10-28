@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import { ask } from '@/composables/useConfirm';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import { trans } from '@/lib/i18n';
 import { Link, router, usePoll } from '@inertiajs/vue3';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -58,8 +60,19 @@ const elapsed = (from: number) => {
 // the shop window of one game
 const shopFor = ref<number | null>(null);
 const shopGame = computed(() => props.courts.find((c) => c.game?.id === shopFor.value)?.game ?? null);
-const stop = (bookingId: number) => router.post(route('owner.bookings.stop', bookingId));
-
+// stopping ends the time on the bill: ask first
+async function stop(c: Court) {
+    if (!c.game) return;
+    if (
+        await ask({
+            title: trans('owner.club.ask_stop', { name: c.game.name || c.label }),
+            text: trans('owner.club.ask_stop_text', { a: amd(c.game.bill.total) }),
+            ok: trans('owner.club.stop_game'),
+            danger: true,
+        })
+    )
+        router.post(route('owner.bookings.stop', c.game.id));
+}
 </script>
 
 <template>
@@ -120,7 +133,7 @@ const stop = (bookingId: number) => router.post(route('owner.bookings.stop', boo
                     </div>
 
                     <div class="acts">
-                        <button v-if="c.state === 'playing'" type="button" class="btn" data-test="stop" @click="stop(c.game.id)">
+                        <button v-if="c.state === 'playing'" type="button" class="btn" data-test="stop" @click="stop(c)">
                             <Icon name="check" size="sm" />{{ $t('owner.club.stop_check') }}
                         </button>
                         <Link v-else class="btn" :href="route('owner.bookings.checkout', c.game.id)" data-test="to-pay">

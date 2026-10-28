@@ -4,6 +4,7 @@ import Avatar from '@/components/Avatar.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
 import TeamSheet, { type FriendRow } from '@/components/player/TeamSheet.vue';
 import TelegramBanner from '@/components/player/TelegramBanner.vue';
+import { ask } from '@/composables/useConfirm';
 import { amd, useShared } from '@/composables/useShared';
 import { dateLong, dayDiff, directionLinks, nextLabel, yerevanToday } from '@/composables/usePlayer';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
@@ -116,9 +117,9 @@ const waitingAnswers = (b: PlayerBooking) => (b.team ?? []).filter((p) => p.stat
 function answer(b: PlayerBooking, accept: boolean) {
     router.post(route('bookings.team.respond', b.id), { accept }, { preserveScroll: true });
 }
-function leave(b: PlayerBooking) {
+async function leave(b: PlayerBooking) {
     menuFor.value = null;
-    if (window.confirm(trans('player.team.leave_ask'))) router.post(route('bookings.leave', b.id), {}, { preserveScroll: true });
+    if (await ask({ title: trans('player.team.leave_ask'), danger: true })) router.post(route('bookings.leave', b.id), {}, { preserveScroll: true });
 }
 
 // ---------- running late ----------

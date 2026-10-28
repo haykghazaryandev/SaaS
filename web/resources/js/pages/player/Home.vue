@@ -36,7 +36,7 @@ const props = defineProps<{
     days?: DayInfo[];
     districts?: string[];
     venues?: VenueCard[];
-    tournaments?: { code: string; title: string; venue: string; when: string; from: number; phase: Phase }[];
+    tournaments?: { code: string; title: string; venue: string; when: string; from: number; phase: Phase; divisions: number }[];
     openGames?: number | null;
     games?: GameCardT[];
     tab?: 'book' | 'tournaments' | 'games';
@@ -185,7 +185,11 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                     <Link v-for="t in tShown" :key="t.code" class="card trow" :href="route('tournament.show', t.code)">
                         <Icon name="trophy" />
                         <span class="w"
-                            ><b>{{ t.title }}</b><small>{{ t.venue }} · {{ whenOf(t.when) }}</small><span class="tph"><TournamentPhase :phase="t.phase" /></span
+                            ><b>{{ t.title }}</b
+                            ><small
+                                >{{ t.venue }} · {{ whenOf(t.when)
+                                }}<template v-if="t.divisions"> · {{ $t('club.tournament.n_divisions', { n: t.divisions }) }}</template></small
+                            ><span class="tph"><TournamentPhase :phase="t.phase" /></span
                         ></span>
                         <span v-if="t.phase === 'registration'" class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
                     </Link>

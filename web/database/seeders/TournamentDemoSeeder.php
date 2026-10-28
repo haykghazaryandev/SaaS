@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Notification;
  * - December Open: registration open, the admin accepted and paid
  * - Club Championship: registration open, a rating range and 16 places, the admin waiting for the answer
  * - October Cup: finished 3 days ago, the admin runner-up
+ * - Winter Cup: 3 divisions by rating (Amateur / Middle / Pro), registration open, the admin accepted in Pro
  * Made once; made again when older than 2 days (so the dates stay right on staging). Nobody is notified while seeding.
  */
 class TournamentDemoSeeder extends Seeder
@@ -54,6 +55,7 @@ class TournamentDemoSeeder extends Seeder
             $this->decemberOpen($club, $admin, $players);
             $this->championship($club, $admin, $players);
             $this->octoberCup($club, $admin, $players);
+            $this->winterCup($club, $admin, $players);
         } finally {
             Notification::swap($real);
         }
@@ -69,7 +71,7 @@ class TournamentDemoSeeder extends Seeder
             return;
         }
         $this->fill($t, $admin, $players->take(7), accepted: true);
-        $this->pay($t, $admin, 'cash');
+        $this->payAll($t, $admin);   // a tournament starts when everybody paid
         $this->tt()->draw($t);
         $this->playRound($t, 1);
         $semis = TournamentMatch::where('tournament_id', $t->id)->where('round', 2)->orderBy('slot')->get();
@@ -140,13 +142,38 @@ class TournamentDemoSeeder extends Seeder
             return;
         }
         $this->fill($t, $admin, $players->slice(3, 7), accepted: true);
-        $this->pay($t, $admin, 'cash');
+        $this->payAll($t, $admin);
         $this->tt()->draw($t);
         $this->playRound($t, 1);
         $this->playRound($t, 2);
         $final = TournamentMatch::where('tournament_id', $t->id)->where('round', 3)->first();
         $this->tt()->result($final, $final->b_id, '3:2');                   // the admin (side a) loses the Final: 2nd
         $t->update(['starts_at' => $this->at(-3, 11)]);
+    }
+
+    private function winterCup(Venue $club, User $admin, Collection $players): void
+    {
+        $old = Tournament::where('code', 'demowint')->first();
+        if ($old && $old->created_at->greaterThan(now()->subDays(2))) {
+            return;
+        }
+        $old?->delete();
+        $cup = $this->tt()->saveWithDivisions(new Tournament(['venue_id' => $club->id]), ['title' => 'Winter Cup', 'sport' => 'pingpong',
+            'starts_at' => $this->at(20, 11), 'description' => 'Demo tournament with divisions (local / staging).', 'options' => [['label' => 'Standard', 'price' => 4000]]], [
+                ['name' => 'Amateur', 'max_rating' => 1349, 'max_players' => 16],
+                ['name' => 'Middle', 'min_rating' => 1350, 'max_rating' => 1449, 'max_players' => 16],
+                ['name' => 'Pro', 'min_rating' => 1450, 'max_players' => 8],
+            ]);
+        $cup->forceFill(['code' => 'demowint'])->save();
+        foreach ($cup->divisions as $d) {
+            // the players of each division's range
+            $in = $players->filter(function (User $u) use ($d) {
+                $r = Tournaments::ratingOf($d, $u->id, null);
+
+                return $r !== null && ($d->min_rating === null || $r >= $d->min_rating) && ($d->max_rating === null || $r <= $d->max_rating);
+            })->take(6);
+            $this->fill($d, $d->division === 'Pro' ? $admin : null, $in, accepted: true);
+        }
     }
 
     // ---------- helpers ----------
@@ -201,6 +228,16 @@ class TournamentDemoSeeder extends Seeder
         $e = TournamentEntry::where('tournament_id', $t->id)->where('user_id', $u->id)->first();
         if ($e && ! $e->payment_id && Tournaments::fee($t, $e) > 0) {
             $this->tt()->pay($e, $method, $u);
+        }
+    }
+
+    /** Every accepted player's fee, in cash (the admin's own included). */
+    private function payAll(Tournament $t, User $by): void
+    {
+        foreach (TournamentEntry::where('tournament_id', $t->id)->where('status', 'accepted')->whereNull('payment_id')->get() as $e) {
+            if (Tournaments::fee($t, $e) > 0) {
+                $this->tt()->pay($e, 'cash', $by);
+            }
         }
     }
 

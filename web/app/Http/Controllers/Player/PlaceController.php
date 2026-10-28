@@ -18,6 +18,7 @@ use App\Support\Phone;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 /** A place: its two fields, free start times for a day, price, and the booking request. */
@@ -64,6 +65,9 @@ class PlaceController extends Controller
                 'lng' => $venue->lng !== null ? (float) $venue->lng : null,
                 'phone' => $venue->phone ?: null,
                 'phoneLabel' => $venue->phone ? Phone::format($venue->phone) : null,
+                // "Message": a chat with the place (its staff answer); not for the place's own staff
+                'canMessage' => DB::table('venue_users')->where('venue_id', $venue->id)->exists()
+                    && ! ($request->user() && DB::table('venue_users')->where('venue_id', $venue->id)->where('user_id', $request->user()->id)->exists()),
                 'rules' => ['freeCancelHours' => (int) $venue->rule('free_cancel_hours'), 'minNoticeMin' => (int) $venue->rule('min_notice_min'), 'horizonDays' => (int) $venue->rule('horizon_days')],
             ],
             'fields' => $fields->map(fn ($f) => [...$present->field($f), 'count' => $groups[$f->id]->count()])->values()->all(),
@@ -163,9 +167,9 @@ class PlaceController extends Controller
             'products' => $venue->hasFeature('shop') ? Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
                     'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'photo' => $p->photoUrl()])->values()->all() : [],
-            'tournaments' => $venue->hasFeature('tournaments') ? Tournament::where('venue_id', $venue->id)->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
+            'tournaments' => $venue->hasFeature('tournaments') ? Tournament::where('venue_id', $venue->id)->whereNull('parent_id')->with('divisions')->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
                 ->orderBy('starts_at')->limit(8)->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title, 'phase' => Tournaments::phase($t),
-                    'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price')])->values()->all() : [],
+                    'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price'), 'divisions' => $t->divisions->count()])->values()->all() : [],
         ];
     }
 }

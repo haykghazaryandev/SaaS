@@ -2,12 +2,14 @@
 
 use App\Domain\Booking\BookingException;
 use App\Domain\Chat\Chat;
+use App\Domain\Club\Cards;
 use App\Domain\Club\Events\TournamentChanged;
 use App\Domain\Club\Tournaments;
 use App\Domain\Social\SocialException;
 use App\Http\Presenters\TournamentBracket;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Payment;
 use App\Models\SportRating;
 use App\Models\Tournament;
 use App\Models\TournamentEntry;
@@ -277,6 +279,7 @@ it('lists my tournaments: where each is, the answer, the fee and my place; finis
     $this->actingAs($me)->get('/me/tournaments')->assertOk()->assertInertia(fn (Assert $p) => $p->component('player/MyTournaments')
         ->has('items', 1)->where('items.0.phase', 'registration')->where('items.0.status', 'accepted')->where('items.0.fee', 5000)->where('items.0.paid', null));
     $this->tt->pay($a->fresh(), 'cash', $this->owner);
+    $this->tt->pay($b->fresh(), 'cash', $this->owner);
     $this->tt->draw($this->t->fresh());
     $final = TournamentMatch::where('tournament_id', $this->t->id)->first();
     $this->tt->result($final, $a->id, '3:0');
@@ -287,4 +290,70 @@ it('lists my tournaments: where each is, the answer, the fee and my place; finis
     $this->actingAs(User::factory()->create())->get('/me/tournaments')->assertInertia(fn (Assert $p) => $p->has('items', 0));
     auth()->logout();
     $this->get('/me/tournaments')->assertRedirect();
+});
+
+it('starts only when everybody paid; a player who did not come loses by walkover', function () {
+    $this->t->update(['options' => [['label' => 'Standard', 'price' => 5000]]]);
+    [$a, $b] = ($this->players)(2)->all();
+    $this->tt->draw($this->t->fresh());
+    $final = TournamentMatch::where('tournament_id', $this->t->id)->first();
+    // the fees first: no live match, no result
+    expect(fn () => $this->tt->setLive($final, true))->toThrow(BookingException::class);
+    expect(fn () => $this->tt->result($final, $a->id, '3:0'))->toThrow(BookingException::class);
+    expect(Tournaments::unpaid($this->t))->toBe(2);
+    $this->tt->pay($a->fresh(), 'cash', $this->owner);
+    $this->tt->pay($b->fresh(), 'cash', $this->owner);
+    // $a didn't come: $b wins without playing
+    $this->actingAs($this->owner)->patch(route('owner.tournaments.match', $final->id), ['walkover' => $a->id])->assertSessionHasNoErrors();
+    expect($final->fresh()->winner_id)->toBe($b->id)->and($final->fresh()->score)->toBe('W/O')->and($b->fresh()->place)->toBe(1);
+});
+
+it('lets the owner take a player off before the start: the fee goes back, the draw is undone', function () {
+    $this->t->update(['options' => [['label' => 'Standard', 'price' => 5000]]]);
+    [$a, $b, $c] = ($this->players)(3)->all();
+    $card = app(Cards::class)->forPlayer($this->club, User::find($a->user_id));
+    app(Cards::class)->topUp($card, 8000, $this->owner);
+    $this->tt->pay($a->fresh(), 'card', $this->owner);
+    expect($card->fresh()->balance)->toBe(3000);
+    $this->tt->draw($this->t->fresh());
+    $this->actingAs($this->owner)->delete(route('owner.tournaments.remove', $a->id))->assertSessionHasNoErrors();
+    expect(TournamentEntry::find($a->id))->toBeNull()
+        ->and($card->fresh()->balance)->toBe(8000)
+        ->and($this->t->fresh()->drawn_at)->toBeNull()
+        ->and(TournamentMatch::where('tournament_id', $this->t->id)->count())->toBe(0)
+        ->and(Payment::where('ref_id', $a->id)->where('kind', 'tournament')->sum('amount'))->toBe(0);
+    // once it started: nobody is taken off
+    $this->tt->pay($b->fresh(), 'cash', $this->owner);
+    $this->tt->pay($c->fresh(), 'cash', $this->owner);
+    $this->tt->draw($this->t->fresh());
+    $this->tt->setLive(TournamentMatch::where('tournament_id', $this->t->id)->first(), true);
+    expect(fn () => $this->tt->remove($b->fresh(), $this->owner))->toThrow(BookingException::class);
+});
+
+it('makes a tournament with divisions by rating: its page lists them, each is a tournament of its own', function () {
+    $this->actingAs($this->owner)->post(route('owner.tournaments.store'), ['title' => 'Winter Cup', 'date' => now()->addDays(9)->toDateString(), 'time' => '11:00',
+        'options' => [['label' => 'Standard', 'price' => 3000]],
+        'divisions' => [['name' => 'Amateur', 'max_rating' => 1199], ['name' => 'Middle', 'min_rating' => 1200, 'max_rating' => 1499], ['name' => 'Pro', 'min_rating' => 1500]]])
+        ->assertSessionHasNoErrors();
+    $cup = Tournament::where('title', 'Winter Cup')->firstOrFail();
+    expect($cup->divisions()->pluck('title')->all())->toBe(['Winter Cup · Amateur', 'Winter Cup · Middle', 'Winter Cup · Pro']);
+    $middle = $cup->divisions()->where('division', 'Middle')->first();
+    expect($middle->min_rating)->toBe(1200)->and($middle->options[0]['price'])->toBe(3000);
+    // nobody registers on the tournament itself; a player picks the division of their rating
+    $u = User::factory()->create(['phone' => '+37493009901']);
+    SportRating::create(['user_id' => $u->id, 'sport' => 'pingpong', 'rating' => 1300]);
+    expect(fn () => $this->tt->register($cup, ['first_name' => 'A', 'last_name' => 'B', 'phone' => $u->phone, 'option' => 0], $u))->toThrow(BookingException::class);
+    $this->actingAs($u)->get('/t/'.$cup->code)->assertInertia(fn (Assert $p) => $p->where('tournament.isParent', true)->where('tournament.open', false)
+        ->has('tournament.divisions', 3)->where('tournament.divisions.1.fits', true)->where('tournament.divisions.0.fits', false));
+    $this->tt->register($middle, ['first_name' => 'A', 'last_name' => 'B', 'phone' => $u->phone, 'option' => 0], $u);
+    // the owner's list: one row, the divisions under it
+    $this->actingAs($this->owner)->get(route('owner.tournaments'))->assertInertia(fn (Assert $p) => $p->where('tournaments.0.title', 'Winter Cup')
+        ->has('tournaments.0.divisions', 3)->where('tournaments.0.divisions.1.entries', 1));
+    // renamed: the divisions follow
+    $this->actingAs($this->owner)->put(route('owner.tournaments.update', $cup->id), ['title' => 'Winter Open', 'date' => now()->addDays(9)->toDateString(), 'time' => '11:00',
+        'options' => [['label' => 'Standard', 'price' => 3000]], 'divisions' => $cup->divisions->map(fn ($d) => ['id' => $d->id, 'name' => $d->division,
+            'min_rating' => $d->min_rating, 'max_rating' => $d->max_rating])->all()])->assertSessionHasNoErrors();
+    expect($middle->fresh()->title)->toBe('Winter Open · Middle');
+    // the last division over: the tournament is over
+    expect(Tournaments::phase($cup->fresh()))->toBe('registration');
 });

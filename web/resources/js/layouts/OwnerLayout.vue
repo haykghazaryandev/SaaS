@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import '../../css/owner.css';
 
 import Avatar from '@/components/Avatar.vue';
@@ -10,7 +11,7 @@ import OwnerSheets from '@/components/owner/OwnerSheets.vue';
 import { decisions, openForm, sheets, useOwner, type FormOpts } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import QrScanner from '@/components/owner/QrScanner.vue';
 import { computed, onBeforeUnmount, ref } from 'vue';
 
@@ -19,6 +20,7 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 // The language switch lives in Settings (G6: no language switch in the header for logged-in users).
 const props = defineProps<{ title?: string; newBooking?: FormOpts }>();
 const owner = useOwner();
+const page = usePage();
 const { user } = useShared();
 const has = (f: string) => (owner.value.features ?? []).includes(f);
 // the club pages show only where the admin switched them on (admin → place → features)
@@ -40,6 +42,13 @@ const nav = computed(() => [
     { name: 'owner.today', label: 'common.today', icon: 'home', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
     { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
     ...club.value.filter((n) => n.name !== 'owner.now'),
+    // the players' messages to the place (and the tournament chats): the chat list, unread on the badge
+    {
+        name: 'messages.index',
+        label: 'owner.nav.messages',
+        icon: 'chat',
+        badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0),
+    },
     { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
 ]);
 // phones: a club: Now · Schedule · Scan · More (Today and the rest); others: the three tabs as before
@@ -171,5 +180,6 @@ onBeforeUnmount(() => clearTimeout(reloadT));
         <QrScanner v-if="scanOpen" @close="scanOpen = false" />
         <OwnerSheets />
         <Flash />
+        <ConfirmDialog />
     </div>
 </template>

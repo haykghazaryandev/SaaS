@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ask } from '@/composables/useConfirm';
 import PlaceMap from '@/components/PlaceMap.vue';
 import TelegramLogin from '@/components/TelegramLogin.vue';
 import Icon from '@/components/Icon.vue';
@@ -28,6 +29,7 @@ interface SlotAlertInfo {
     notified: boolean;
 }
 interface VenueInfo {
+    canMessage?: boolean;
     id: number;
     slug: string;
     name: string;
@@ -62,7 +64,7 @@ const props = defineProps<{
     club?: {
         card: { balance: number; cashback: number } | false | null;
         products: { id: number; name: string; description: string | null; price: number; final: number; discount_pct: number; in_stock: boolean; photo: string | null }[];
-        tournaments: { code: string; title: string; when: string; from: number; phase: Phase }[];
+        tournaments: { code: string; title: string; when: string; from: number; phase: Phase; divisions: number }[];
     };
 }>();
 const getCard = () => router.post(route('places.card', props.venue.slug));
@@ -447,9 +449,9 @@ function openMine(m: MyTime) {
     mineOpen.value = m;
     sheet.value = 'mine';
 }
-function cancelMine() {
+async function cancelMine() {
     const m = mineOpen.value;
-    if (!m || !window.confirm(trans(m.status === 'pending' ? 'player.place.mine_withdraw_ask' : 'common.cancel_this_booking'))) return;
+    if (!m || !(await ask({ title: trans(m.status === 'pending' ? 'player.place.mine_withdraw_ask' : 'common.cancel_this_booking'), danger: true }))) return;
     cancelBusy.value = true;
     router.post(route('bookings.cancel', m.id), {}, {
         preserveScroll: true,
@@ -562,8 +564,17 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <span class="kicker">{{ $t(`common.districts.${venue.district}`) }} · <template v-if="isTables">🏓 {{ $t('player.place.tables_n', { n: String(fields[0]?.count ?? 1) }) }}</template><template v-else>{{ fields.map((f) => courtShort(f)).join(' · ') }}</template></span>
                 <h1>{{ venue.name }}</h1>
                 <!-- secondary actions at the top (outline, so the Book button stays the main one) -->
-                <div v-if="venue.phone || hasMap" class="vacts">
+                <div v-if="venue.phone || hasMap || venue.canMessage" class="vacts">
                     <a v-if="venue.phone" class="btn outline sm" :href="`tel:${venue.phone}`" :title="venue.phoneLabel ?? undefined"><Icon name="phone" size="sm" />{{ $t('common.call') }}</a>
+                    <!-- write to the place (a chat its staff answer); guests log in first and come back -->
+                    <template v-if="venue.canMessage">
+                        <Link v-if="user" class="btn outline sm" :href="route('messages.venue', venue.slug)" method="post" as="button" data-test="message-place"
+                            ><Icon name="chat" size="sm" />{{ $t('player.place.message') }}</Link
+                        >
+                        <Link v-else class="btn outline sm" :href="route('login', { redirect: route('places.show', venue.slug, false) })" data-test="message-place"
+                            ><Icon name="chat" size="sm" />{{ $t('player.place.message') }}</Link
+                        >
+                    </template>
                     <a v-if="hasMap" class="btn link sm" href="#map" @click.prevent="toMap"><Icon name="directions" size="sm" />{{ $t('common.directions') }}</a>
                 </div>
                 <div class="vmeta">
@@ -812,7 +823,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                 <div v-if="club.tournaments.length" class="card pad">
                     <h2 class="infoh">{{ $t('club.tournaments') }}</h2>
                     <Link v-for="t in club.tournaments" :key="t.code" class="crow" :href="route('tournament.show', t.code)">
-                        <Icon name="trophy" size="sm" /><span class="w"><b>{{ t.title }}</b><small>{{ t.when }}</small></span><TournamentPhase :phase="t.phase" /><Icon
+                        <Icon name="trophy" size="sm" /><span class="w"><b>{{ t.title }}</b><small>{{ t.when }}<template v-if="t.divisions"> · {{ $t('club.tournament.n_divisions', { n: t.divisions }) }}</template></small></span><TournamentPhase :phase="t.phase" /><Icon
                             name="arrow"
                             size="sm"
                         />

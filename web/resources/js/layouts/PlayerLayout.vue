@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 /**
  * Player web layout: sticky header (logo, nav, bell, account menu), the page, and the bottom tab bar on phones.
  *
@@ -171,6 +172,7 @@ watch(() => page.url, () => (menu.value = false));
         </nav>
     </div>
     <Flash />
+    <ConfirmDialog />
 </template>
 
 <style scoped>

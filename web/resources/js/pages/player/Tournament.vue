@@ -18,6 +18,20 @@ interface Opt {
     label: string;
     price: number;
 }
+interface Division {
+    code: string;
+    division: string | null;
+    min_rating: number | null;
+    max_rating: number | null;
+    max_players: number | null;
+    phase: 'registration' | 'closed' | 'drawn' | 'live' | 'done';
+    current: boolean;
+    count: number;
+    /** my rating is in its range */
+    fits: boolean;
+    /** I registered there */
+    mine: boolean;
+}
 const props = defineProps<{
     tournament: {
         code: string;
@@ -39,6 +53,12 @@ const props = defineProps<{
         max_rating: number | null;
         max_players: number | null;
         status: string;
+        /** divisions by rating: the tournament's page lists them; a division's page has the others as tabs */
+        division: string | null;
+        parent: { code: string; title: string } | null;
+        isParent: boolean;
+        divisions: Division[];
+        myRating: number | null;
     };
     /** logged in: my name and the account's phone (null: the account has none, then it is asked) */
     me: { first_name: string; last_name: string; phone: string | null; registered: boolean } | null;
@@ -58,6 +78,14 @@ function closeFull() {
     bigView.value = false;
     document.body.style.overflow = '';
 }
+const rangeOf = (d: { min_rating: number | null; max_rating: number | null }) =>
+    d.min_rating == null && d.max_rating == null
+        ? ''
+        : d.min_rating == null
+          ? `≤ ${d.max_rating}`
+          : d.max_rating == null
+            ? `${d.min_rating}+`
+            : `${d.min_rating}–${d.max_rating}`;
 const ranged = computed(() => t.value.min_rating != null || t.value.max_rating != null);
 const full = computed(() => !!t.value.max_players && t.value.count >= t.value.max_players);
 // live: the draw, a result, a match being played
@@ -91,16 +119,59 @@ function send() {
         <div class="pg">
             <div class="card pad tour">
                 <span class="kicker">{{ SPORT_ICON[tournament.sport] }} {{ tournament.venue.name }}</span>
-                <h1 class="page-title" style="margin: 6px 0">{{ tournament.title }}</h1>
+                <Link v-if="tournament.parent" class="up" :href="`/t/${tournament.parent.code}`" data-test="t-parent"
+                    ><Icon name="back" size="sm" />{{ tournament.parent.title }}</Link
+                >
+                <h1 class="page-title" style="margin: 6px 0">{{ tournament.parent ? tournament.division : tournament.title }}</h1>
+                <!-- the other divisions of the same tournament -->
+                <nav v-if="tournament.parent && tournament.divisions.length > 1" class="dtabs" :aria-label="$t('club.tournament.divisions')">
+                    <Link
+                        v-for="d in tournament.divisions"
+                        :key="d.code"
+                        :href="`/t/${d.code}`"
+                        :class="['dtab', { on: d.current }]"
+                        :aria-current="d.current ? 'page' : undefined"
+                        >{{ d.division }}<small v-if="rangeOf(d)">{{ rangeOf(d) }}</small></Link
+                    >
+                </nav>
                 <TournamentPhase :phase="tournament.phase" style="align-self: flex-start" />
                 <p class="muted" style="margin: 0"><Icon name="calendar" size="sm" /> {{ dateLong(tournament.date) }} · {{ tournament.time }} · {{ $t('club.t_registered', { n: tournament.count }) }}</p>
                 <p v-if="ranged || tournament.max_players" class="chips">
-                    <span v-if="ranged" class="chip">{{ $t('club.tournament.rating', { range: `${tournament.min_rating ?? '…'}–${tournament.max_rating ?? '…'}` }) }}</span>
+                    <span v-if="ranged" class="chip">{{ $t('club.tournament.rating', { range: rangeOf(tournament) }) }}</span>
                     <span v-if="tournament.max_players" :class="['chip', { hot: full }]">{{
                         full ? $t('club.tournament.full') : $t('club.tournament.players', { n: tournament.count, max: tournament.max_players })
                     }}</span>
                 </p>
                 <p v-if="tournament.description" style="white-space: pre-line">{{ tournament.description }}</p>
+
+                <!-- a tournament with divisions: pick the one of your rating (each has its own players and bracket) -->
+                <div v-if="tournament.isParent" class="divs" data-test="divisions">
+                    <b class="divs-h">{{ $t('club.tournament.pick_division') }}</b>
+                    <small v-if="tournament.myRating != null" class="muted">{{ $t('club.tournament.my_rating', { n: tournament.myRating }) }}</small>
+                    <Link
+                        v-for="d in tournament.divisions"
+                        :key="d.code"
+                        :href="`/t/${d.code}`"
+                        :class="['dcard', { fits: d.fits, mine: d.mine }]"
+                        :data-test="`division-${d.code}`"
+                    >
+                        <span class="w">
+                            <b>{{ d.division }}</b>
+                            <small
+                                >{{ rangeOf(d) ? $t('club.tournament.rating', { range: rangeOf(d) }) : $t('club.tournament.any_rating') }} ·
+                                {{
+                                    d.max_players
+                                        ? $t('club.tournament.players', { n: d.count, max: d.max_players })
+                                        : $t('club.t_registered', { n: d.count })
+                                }}</small
+                            >
+                            <span v-if="d.mine" class="tag mine"><Icon name="check" size="sm" />{{ $t('club.tournament.you_are_in') }}</span>
+                            <span v-else-if="d.fits" class="tag"><Icon name="star" size="sm" />{{ $t('club.tournament.fits_you') }}</span>
+                        </span>
+                        <TournamentPhase :phase="d.phase" />
+                        <Icon name="arrow" size="sm" class="faint" />
+                    </Link>
+                </div>
 
                 <!-- my registration: the club's answer, my place, the chat -->
                 <div v-if="entry" :class="['ok', entry.status]" data-test="my-entry">
@@ -161,7 +232,11 @@ function send() {
             </div>
         </div>
         <!-- the bracket: one spotlight that follows the tournament live (Option A); the whole bracket full screen -->
-        <section v-if="tournament.phase !== 'registration' || tournament.players.length" class="pg wide spot" data-test="bracket">
+        <section
+            v-if="!tournament.isParent && (tournament.phase !== 'registration' || tournament.players.length)"
+            class="pg wide spot"
+            data-test="bracket"
+        >
             <BracketPreview
                 :bracket="bracket"
                 :count="tournament.count"
@@ -221,4 +296,18 @@ function send() {
 .opt small { color: var(--muted); font-weight: 700; }
 .ok { display: flex; gap: 8px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--free-soft); color: var(--free); font-weight: 800; }
 .pre { flex: none; width: auto; }
+.up { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
+.dtabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 2px 0; }
+.dtab { flex: none; display: flex; flex-direction: column; padding: 7px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 800; font-size: 13px; line-height: 1.2; }
+.dtab small { color: var(--muted); font: 500 11px var(--mono); }
+.dtab.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.divs { display: grid; gap: 8px; margin-top: 4px; }
+.divs-h { font-size: 15px; }
+.dcard { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: inherit; text-decoration: none; min-width: 0; }
+.dcard .w { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dcard small { color: var(--muted); font-size: 12.5px; }
+.dcard.fits { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.dcard.mine { border-color: var(--free); }
+.tag { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin-top: 3px; font-size: 11.5px; font-weight: 800; color: var(--accent); }
+.tag.mine { color: var(--free); }
 </style>

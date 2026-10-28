@@ -2,13 +2,15 @@
 import Avatar from '@/components/Avatar.vue';
 import EmojiPicker from '@/components/EmojiPicker.vue';
 import Icon from '@/components/Icon.vue';
+import FriendActions from '@/components/social/FriendActions.vue';
 import { whenShort } from '@/composables/useGames';
-import { api, type ChatItem, type ChatMessage, chatTitle, clock, dayKey, dayLabel, lastSeenText, sysText, userName } from '@/composables/useChat';
+import { api, type ChatItem, type ChatMessage, chatIcon, chatTitle, clock, dayKey, dayLabel, lastSeenText, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
 import { presence, refresh as refreshCounts } from '@/composables/useSocial';
 import { echoConnected, echoState } from '@/lib/echo';
 import { tgApp } from '@/lib/telegram';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
+import type { Relation } from '@/types/social';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -17,7 +19,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // and the "typing" whisper; when the socket is down it polls /history?after=<last id> every 5 s.
 // The header shows "online" / "last seen …" (direct) or "N online" (game), refreshed from /presence every minute.
 const props = defineProps<{
-    chat: ChatItem & { members: number; lastReadId: number | null; online: number | null; reads?: Record<string, number> };
+    chat: ChatItem & {
+        members: number;
+        lastReadId: number | null;
+        online: number | null;
+        reads?: Record<string, number>;
+        people?: Record<string, Relation>;
+    };
     messages: ChatMessage[];
     hasMore: boolean;
     editMinutes: number;
@@ -55,8 +63,14 @@ const groups = computed(() => {
 // a group chat (a game or a tournament): names and avatars on others' messages, "n online"
 const isGame = props.chat.type !== 'direct';
 // a tournament: the organiser's messages stand out
-const hosts = new Set(props.chat.tournament?.hostIds ?? []);
+const hosts = new Set(props.chat.tournament?.hostIds ?? props.chat.venue?.hostIds ?? []);
 const isHost = (m: ChatMessage) => !!m.user && hosts.has(m.user.id);
+// tap a name or an avatar in a group chat: who it is, their profile, "Add friend"
+const person = ref<{ id: number; name: string; username: string | null; avatar?: string | null } | null>(null);
+const personRel = computed<Relation>(() => (person.value ? (props.chat.people?.[person.value.id] ?? 'none') : 'none'));
+function openPerson(u: ChatMessage['user']) {
+    if (u && u.id !== me.value) person.value = { id: u.id, name: userName(u), username: u.username ?? null, avatar: u.avatar };
+}
 
 // ---------- pinned game bar: "Thu 21:00 · Zangak · field not booked → Book" ----------
 const bar = computed(() => {
@@ -473,7 +487,7 @@ onBeforeUnmount(() => {
         <div class="chat">
             <header class="chead">
                 <Link class="back" :href="route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
-                <span v-if="isGame" class="cav game"><Icon :name="chat.type === 'tournament' ? 'trophy' : 'ball'" /></span>
+                <span v-if="isGame" class="cav game"><Icon :name="chatIcon(chat)" /></span>
                 <Avatar v-else :id="chat.other?.id ?? null" :name="chat.other?.name" :src="chat.other?.avatar" size="md" />
                 <div class="ht">
                     <b>{{ chatTitle(chat) }}</b>
@@ -482,13 +496,23 @@ onBeforeUnmount(() => {
                         <!-- "N online" before the member count: on phones the end of this line is cut -->
                         <template v-if="onlineN"><span class="on">{{ $t('messages.online_count', { n: String(onlineN) }) }}</span> · </template>{{ $t('messages.members', { n: String(chat.members) }) }}
                     </span>
-                    <span v-else-if="seenText" :class="['hs', { on: otherOnline }]"><i v-if="otherOnline" class="on-dot" aria-hidden="true" />{{ seenText }}</span>
+                    <span v-else-if="chat.venue" class="hs">{{
+                        chat.venue.staff ? $t('messages.place_chat_staff') : $t('messages.place_chat')
+                    }}</span>
+                    <span v-else-if="seenText" :class="['hs', { on: otherOnline }]"
+                        ><i v-if="otherOnline" class="on-dot" aria-hidden="true" />{{ seenText }}</span
+                    >
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
                 <Link v-if="chat.tournament" class="btn outline sm" :href="chat.tournament.url" :aria-label="$t('messages.open_bracket')"
                     ><Icon name="trophy" size="sm" /><span class="hide-sm">{{ $t('messages.open_bracket') }}</span></Link
                 >
-                <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.open_game')"><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.open_game') }}</span></Link>
+                <Link v-if="chat.venue && !chat.venue.staff" class="btn outline sm" :href="chat.venue.url" :aria-label="chat.venue.name"
+                    ><Icon name="pin" size="sm" /><span class="hide-sm">{{ $t('messages.open_place') }}</span></Link
+                >
+                <Link v-if="chat.game?.url" class="btn outline sm" :href="chat.game.url" :aria-label="$t('messages.open_game')"
+                    ><Icon name="users" size="sm" /><span class="hide-sm">{{ $t('messages.open_game') }}</span></Link
+                >
             </header>
 
             <div v-if="bar" class="gbar">
@@ -518,10 +542,24 @@ onBeforeUnmount(() => {
                             <span>{{ sysText(r.m.body, r.m.meta) }}</span>
                         </div>
                         <div v-else :id="`m${r.m.id}`" :class="['mrow', { mine: r.mine, head: r.head, tail: r.tail, host: isHost(r.m) }]">
-                            <span v-if="!r.mine && isGame" class="mav" :aria-hidden="true"><Avatar v-if="r.tail" :id="r.m.user?.id ?? null" :name="userName(r.m.user)" :src="r.m.user?.avatar" size="sm" /></span>
+                            <button
+                                v-if="!r.mine && isGame"
+                                type="button"
+                                class="mav"
+                                tabindex="-1"
+                                :aria-label="userName(r.m.user)"
+                                @click="openPerson(r.m.user)"
+                            >
+                                <Avatar v-if="r.tail" :id="r.m.user?.id ?? null" :name="userName(r.m.user)" :src="r.m.user?.avatar" size="sm" />
+                            </button>
                             <div class="mcol">
-                                <span v-if="!r.mine && isGame && r.head" class="mname"
-                                    >{{ userName(r.m.user) }}<b v-if="isHost(r.m)" class="htag">{{ $t('messages.organiser') }}</b></span
+                                <button
+                                    v-if="!r.mine && isGame && r.head"
+                                    type="button"
+                                    class="mname"
+                                    data-test="chat-person"
+                                    @click="openPerson(r.m.user)"
+                                    >{{ userName(r.m.user) }}<b v-if="isHost(r.m)" class="htag">{{ chat.venue ? chat.venue.name : $t('messages.organiser') }}</b></button
                                 >
                                 <div
                                     :class="['bubble', { deleted: r.m.deleted, on: active === r.m.id, drag: drag?.id === r.m.id }]"
@@ -605,6 +643,33 @@ onBeforeUnmount(() => {
                 </div>
             </form>
         </div>
+        <!-- a member of a group chat: profile and friend buttons -->
+        <Teleport to="body">
+            <div v-if="person" class="pscrim" @click.self="person = null">
+                <div class="psheet" role="dialog" aria-modal="true" :aria-label="person.name" data-test="chat-person-sheet">
+                    <Avatar :id="person.id" :name="person.name" :src="person.avatar" size="lg" />
+                    <h3>{{ person.name }}</h3>
+                    <p v-if="person.username" class="faint">@{{ person.username }}</p>
+                    <FriendActions
+                        v-if="personRel !== 'blocked'"
+                        :player="{
+                            id: person.id,
+                            name: person.name,
+                            username: person.username,
+                            avatar: person.avatar,
+                            position: null,
+                            district: null,
+                            url: route('users.show', person.id),
+                            relation: personRel,
+                        }"
+                        message
+                    />
+                    <Link class="btn ghost sm" :href="route('users.show', person.id)"
+                        ><Icon name="user" size="sm" />{{ $t('messages.profile') }}</Link
+                    >
+                </div>
+            </div>
+        </Teleport>
     </PlayerLayout>
 </template>
 
@@ -652,7 +717,14 @@ onBeforeUnmount(() => {
 .mrow { display: flex; gap: 8px; align-items: flex-end; margin-top: 2px; min-width: 0; }
 .mrow.head { margin-top: 10px; }
 .mrow.mine { justify-content: flex-end; }
-.mav { width: 30px; height: 30px; flex: none; display: grid; }
+.mav { width: 30px; height: 30px; flex: none; display: grid; padding: 0; border: 0; background: none; cursor: pointer; }
+.mname { border: 0; background: none; padding: 0; cursor: pointer; text-align: left; font-family: inherit; }
+.pscrim { position: fixed; inset: 0; z-index: 300; background: rgba(4, 8, 6, 0.55); display: flex; align-items: flex-end; justify-content: center; }
+.psheet { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 22px 22px 0 0; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.psheet h3 { margin: 0; font-size: 18px; }
+.psheet .faint { margin: -6px 0 0; font-size: 13px; }
+.psheet .facts-row { justify-content: center; }
+@media (min-width: 640px) { .pscrim { align-items: center; } .psheet { border-radius: 22px; } }
 .mcol { display: flex; flex-direction: column; max-width: min(78%, 560px); min-width: 0; }
 .mine .mcol { align-items: flex-end; }
 .mname { font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 3px 10px; }

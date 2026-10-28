@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Conversation extends Model
 {
-    protected $fillable = ['type', 'game_id', 'tournament_id', 'direct_key', 'status', 'last_message_at', 'archived_at', 'delete_after'];
+    protected $fillable = ['type', 'game_id', 'tournament_id', 'venue_id', 'direct_key', 'status', 'last_message_at', 'archived_at', 'delete_after'];
 
     protected function casts(): array
     {
@@ -25,6 +25,12 @@ class Conversation extends Model
     public function tournament(): BelongsTo
     {
         return $this->belongsTo(Tournament::class);
+    }
+
+    /** A chat between a player and a place (its staff answer). */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
     }
 
     public function participants(): HasMany

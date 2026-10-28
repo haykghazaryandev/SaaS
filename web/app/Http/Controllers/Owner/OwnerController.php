@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Domain\Booking\BookingException;
+use App\Domain\Social\SocialException;
 use App\Enums\VenueRole;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
@@ -38,7 +39,7 @@ abstract class OwnerController extends Controller
     }
 
     /** A club page the place doesn't have (admin → place → features): not found. */
-    protected function ensureAny(\App\Models\Venue $venue, array $features): void
+    protected function ensureAny(Venue $venue, array $features): void
     {
         abort_unless(collect($features)->contains(fn ($f) => $venue->hasFeature($f)), 404);
     }
@@ -50,6 +51,8 @@ abstract class OwnerController extends Controller
             return $fn();
         } catch (BookingException $e) {
             throw ValidationException::withMessages(['booking' => __('booking.error.'.$e->reason)]);
+        } catch (SocialException $e) {
+            throw ValidationException::withMessages(['booking' => $e->getMessage()]);
         }
     }
 }

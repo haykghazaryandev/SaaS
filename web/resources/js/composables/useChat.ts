@@ -25,7 +25,7 @@ export interface ChatMessage {
 }
 export interface ChatItem {
     id: number;
-    type: 'direct' | 'game' | 'tournament';
+    type: 'direct' | 'game' | 'tournament' | 'venue';
     archived: boolean;
     // direct chats; online = seen in the last 2 minutes (User::isActiveNow), lastSeen an ISO time
     other: { id: number; name: string; username: string | null; avatar?: string | null; online?: boolean; lastSeen?: string | null } | null;
@@ -44,6 +44,14 @@ export interface ChatItem {
     } | null;
     /** a tournament chat: the organiser's (place staff) messages stand out */
     tournament?: { title: string; url: string; hostIds: number[] } | null;
+    /** a player and a place: the staff answer for the place; staff see the player's name */
+    venue?: {
+        name: string;
+        url: string;
+        hostIds: number[];
+        staff: boolean;
+        player: { id: number; name: string; avatar: string | null } | null;
+    } | null;
     last: ChatMessage | null;
     unread: number;
     at: string | null;
@@ -72,6 +80,7 @@ export const initials = (n: string | null | undefined) =>
 export function chatTitle(c: ChatItem): string {
     if (c.type === 'game' && c.game) return trans('messages.game', { f: c.game.format });
     if (c.type === 'tournament' && c.tournament) return c.tournament.title;
+    if (c.type === 'venue' && c.venue) return c.venue.staff && c.venue.player ? `${c.venue.player.name} → ${c.venue.name}` : c.venue.name;
     return c.other?.name ?? trans('messages.direct');
 }
 
@@ -138,3 +147,6 @@ export async function api<T>(method: string, url: string, body?: unknown): Promi
     if (!r.ok) throw new ApiError(data.error || data.message || trans('messages.error'), r.status);
     return data as T;
 }
+
+/** the round icon of a group chat in the list / header */
+export const chatIcon = (c: ChatItem) => (c.type === 'tournament' ? 'trophy' : c.type === 'venue' ? 'home' : 'ball');

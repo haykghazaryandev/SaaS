@@ -2,7 +2,7 @@
 import { presence } from '@/composables/useSocial';
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
-import { type ChatItem, chatTitle, shortWhen, sysText, userName } from '@/composables/useChat';
+import { type ChatItem, chatIcon, chatTitle, shortWhen, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -94,7 +94,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
 
             <section v-if="chats.length" class="clist">
                 <Link v-for="c in chats" :key="c.id" :href="route('messages.show', c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
-                    <span v-if="c.type !== 'direct'" class="cav"><Icon :name="c.type === 'tournament' ? 'trophy' : 'ball'" /></span>
+                    <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                     <span v-else class="avw">
                         <Avatar :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <i v-if="isOnline(c.other)" class="on-dot" role="img" :aria-label="$t('messages.online')" />
@@ -122,7 +122,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                 <h2 class="sec">{{ $t('messages.archived_title') }}</h2>
                 <section class="clist off">
                     <Link v-for="c in archived" :key="c.id" :href="route('messages.show', c.id)" class="list-row citem">
-                        <span v-if="c.type !== 'direct'" class="cav"><Icon :name="c.type === 'tournament' ? 'trophy' : 'ball'" /></span>
+                        <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                         <Avatar v-else :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <span class="cmain">
                             <span class="crow">

@@ -4,9 +4,11 @@ import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.v
 import Icon from '@/components/Icon.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import TournamentForm, { type TournamentSettings } from '@/components/owner/TournamentForm.vue';
+import { ask } from '@/composables/useConfirm';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import { trans } from '@/lib/i18n';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -26,8 +28,32 @@ interface Entry {
     place: number | null;
     account: boolean;
     paid: { amount: number; method: string } | null;
+    /** the balance of the player's card here; null: no card (no "from the card") */
+    card: number | null;
 }
-const props = defineProps<{ tournament: TournamentSettings & { phase: Phase; link: string; drawn: boolean; list: Entry[]; bracket: BracketData | null; chat: number | null } }>();
+interface Division {
+    id: number;
+    division: string | null;
+    min_rating: number | null;
+    max_rating: number | null;
+    max_players: number | null;
+    phase: Phase;
+    accepted: number;
+    waiting: number;
+}
+const props = defineProps<{
+    tournament: TournamentSettings & {
+        phase: Phase;
+        link: string;
+        drawn: boolean;
+        list: Entry[];
+        bracket: BracketData | null;
+        chat: number | null;
+        unpaid: number;
+        divisions: Division[];
+        siblings: { id: number; division: string | null }[];
+    };
+}>();
 const owner = useOwner();
 const canEdit = owner.value.role === 'owner';
 const has = (f: string) => (owner.value.features ?? []).includes(f);
@@ -57,12 +83,58 @@ watch(filter, () => (page.value = 0));
 watch(pages, (n) => page.value >= n && (page.value = n - 1));
 const count = (f: Filter) => t.value.list.filter(test[f]).length;
 const accepted = computed(() => count('accepted'));
-const entry = (id: number, data: Record<string, string>) => router.patch(route('owner.tournaments.entry', id), data, { preserveScroll: true, preserveState: true });
-const remind = () => router.post(route('owner.tournaments.remind', t.value.id), {}, opts);
+const entry = (id: number, data: Record<string, string>) =>
+    router.patch(route('owner.tournaments.entry', id), data, { preserveScroll: true, preserveState: true });
+const started = computed(() => t.value.phase === 'live' || t.value.phase === 'done');
+const over = computed(() => t.value.phase === 'done');
+const range = (min: number | null, max: number | null) =>
+    min == null && max == null ? trans('owner.tournament.any_rating') : min == null ? `≤ ${max}` : max == null ? `${min}+` : `${min}–${max}`;
+
+// every step that changes something for a player asks first
+async function decline(e: Entry) {
+    if (await ask({ title: trans('owner.tournament.ask_decline', { name: e.name }), ok: trans('common.decline'), danger: true }))
+        entry(e.id, { status: 'declined' });
+}
+async function pay(e: Entry, how: 'card' | 'cash') {
+    const text =
+        how === 'card'
+            ? trans('owner.tournament.ask_card_text', { balance: amd(e.card ?? 0), after: amd((e.card ?? 0) - e.price) })
+            : trans('owner.tournament.ask_cash_text');
+    const title = trans(how === 'card' ? 'owner.tournament.ask_card' : 'owner.tournament.ask_cash', { amount: amd(e.price), name: e.name });
+    if (await ask({ title, text, ok: trans('owner.tournament.ask_take') })) entry(e.id, { pay: how });
+}
+async function removeEntry(e: Entry) {
+    const notes = [
+        e.paid
+            ? trans(e.paid.method === 'card' ? 'owner.tournament.remove_refund_card' : 'owner.tournament.remove_refund_cash', {
+                  amount: amd(e.paid.amount),
+              })
+            : '',
+        t.value.drawn && e.status === 'accepted' ? trans('owner.tournament.remove_redraw') : '',
+    ].filter(Boolean);
+    if (
+        await ask({ title: trans('owner.tournament.ask_remove', { name: e.name }), text: notes.join('\n'), ok: trans('common.remove'), danger: true })
+    )
+        router.delete(route('owner.tournaments.remove', e.id), { preserveScroll: true, preserveState: true });
+}
+async function remind() {
+    if (await ask({ title: trans('owner.tournament.ask_remind', { n: count('unpaid') }), ok: trans('owner.tournament.send') }))
+        router.post(route('owner.tournaments.remind', t.value.id), {}, opts);
+}
 const placeName = (n: number) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : `#${n}`);
 
 // ---------- the draw and the bracket ----------
-const draw = () => router.post(route('owner.tournaments.draw', t.value.id), {}, { preserveScroll: true, preserveState: true });
+async function draw() {
+    const title = trans(t.value.drawn ? 'owner.tournament.ask_redraw' : 'owner.tournament.ask_draw', { n: accepted.value });
+    if (
+        await ask({
+            title,
+            text: trans('owner.tournament.ask_draw_text'),
+            ok: trans(t.value.drawn ? 'owner.tournament.redraw' : 'owner.tournament.draw'),
+        })
+    )
+        router.post(route('owner.tournaments.draw', t.value.id), {}, { preserveScroll: true, preserveState: true });
+}
 // a match: a number next to each name, the higher one wins. The page keeps its place (round tab, page, scroll,
 // full screen): preserveState.
 const picked = ref<Match | null>(null);
@@ -84,12 +156,43 @@ function setMatch(data: Record<string, string | number | boolean | null>) {
     });
 }
 const canSave = computed(() => sc.value.a !== '' && sc.value.b !== '' && sc.value.a !== sc.value.b);
-const saveScore = () => canSave.value && setMatch({ score_a: Number(sc.value.a), score_b: Number(sc.value.b) });
+async function saveScore() {
+    const m = picked.value;
+    if (!canSave.value || !m?.a || !m.b) return;
+    const [a, b] = [Number(sc.value.a), Number(sc.value.b)];
+    const won = a > b ? m.a.name : m.b.name;
+    if (
+        await ask({
+            title: trans('owner.tournament.ask_score', { a: m.a.name, b: m.b.name, score: `${a}:${b}` }),
+            text: trans('owner.tournament.ask_score_text', { name: won }),
+            ok: trans('common.save'),
+        })
+    )
+        setMatch({ score_a: a, score_b: b });
+}
+// a player didn't come: the other one goes on ("W/O")
+async function walkover(absent: { id: number; name: string }) {
+    const m = picked.value;
+    if (!m?.a || !m.b) return;
+    const other = absent.id === m.a.id ? m.b.name : m.a.name;
+    if (
+        await ask({
+            title: trans('owner.tournament.ask_walkover', { name: absent.name }),
+            text: trans('owner.tournament.ask_walkover_text', { name: other }),
+            ok: trans('owner.tournament.walkover'),
+            danger: true,
+        })
+    )
+        setMatch({ walkover: absent.id });
+}
 const when = computed(() => `${t.value.date.slice(8)}.${t.value.date.slice(5, 7)} · ${t.value.time}`);
 
 // ---------- news, chat ----------
 const news = useForm({ text: '', to: 'all' as 'all' | 'accepted' | 'applied' });
-const sendNews = () => news.post(route('owner.tournaments.announce', t.value.id), { ...opts, onSuccess: () => news.reset('text') });
+async function sendNews() {
+    if (await ask({ title: trans('owner.tournament.ask_news_' + news.to), text: news.text.slice(0, 200), ok: trans('owner.tournament.send') }))
+        news.post(route('owner.tournaments.announce', t.value.id), { ...opts, onSuccess: () => news.reset('text') });
+}
 const openChat = () => router.post(route('owner.tournaments.chat', t.value.id));
 const copied = ref(false);
 async function copy() {
@@ -105,7 +208,21 @@ async function copy() {
 
 <template>
     <OwnerLayout :title="tournament.title">
-        <Link class="backlink" :href="route('owner.tournaments')"><Icon name="back" size="sm" />{{ $t('owner.nav.tournaments') }}</Link>
+        <Link v-if="tournament.parent" class="backlink" :href="route('owner.tournaments.show', tournament.parent.id)"
+            ><Icon name="back" size="sm" />{{ tournament.parent.title }}</Link
+        >
+        <Link v-else class="backlink" :href="route('owner.tournaments')"><Icon name="back" size="sm" />{{ $t('owner.nav.tournaments') }}</Link>
+        <!-- the divisions of the same tournament -->
+        <nav v-if="tournament.siblings.length" class="chips sibs" :aria-label="$t('owner.tournament.divisions')">
+            <Link
+                v-for="d in tournament.siblings"
+                :key="d.id"
+                class="chip"
+                :aria-pressed="d.id === tournament.id"
+                :href="route('owner.tournaments.show', d.id)"
+                >{{ d.division }}</Link
+            >
+        </nav>
 
         <section class="card panel">
             <div class="sec-h" style="align-items: flex-start">
@@ -116,10 +233,17 @@ async function copy() {
                         {{ when }} ·
                         {{ tournament.options.map((o) => `${o.label} ${amd(o.price)}`).join(' / ') }}
                     </p>
-                    <p v-if="tournament.min_rating != null || tournament.max_rating != null || tournament.max_players" class="muted" style="margin: 2px 0 0; font-size: 13px">
-                        <template v-if="tournament.min_rating != null || tournament.max_rating != null"
-                            >{{ $t('club.tournament.rating', { range: `${tournament.min_rating ?? '…'}–${tournament.max_rating ?? '…'}` }) }}</template
-                        ><template v-if="tournament.max_players"> · {{ $t('club.tournament.players', { n: accepted, max: tournament.max_players }) }}</template>
+                    <p
+                        v-if="tournament.min_rating != null || tournament.max_rating != null || tournament.max_players"
+                        class="muted"
+                        style="margin: 2px 0 0; font-size: 13px"
+                    >
+                        <template v-if="tournament.min_rating != null || tournament.max_rating != null">{{
+                            $t('club.tournament.rating', { range: range(tournament.min_rating, tournament.max_rating) })
+                        }}</template
+                        ><template v-if="tournament.max_players">
+                            · {{ $t('club.tournament.players', { n: accepted, max: tournament.max_players }) }}</template
+                        >
                     </p>
                 </div>
                 <button v-if="canEdit && !editing" type="button" class="btn ghost sm" data-test="t-edit" @click="editing = true"><Icon name="edit" size="sm" /></button>
@@ -134,11 +258,36 @@ async function copy() {
             </template>
         </section>
 
+        <!-- a tournament with divisions: each division is its own tournament (players, fees, bracket, chat) -->
+        <section v-if="tournament.divisions.length" class="card panel" style="margin-top: 14px">
+            <div class="sec-h">
+                <h2>{{ $t('owner.tournament.divisions') }}</h2>
+            </div>
+            <Link
+                v-for="d in tournament.divisions"
+                :key="d.id"
+                :href="route('owner.tournaments.show', d.id)"
+                class="drow"
+                :data-test="`division-${d.id}`"
+            >
+                <span class="w">
+                    <b>{{ d.division }}</b>
+                    <small
+                        >{{ $t('owner.tournament.rating_short', { range: range(d.min_rating, d.max_rating) }) }} ·
+                        {{ d.max_players ? `${d.accepted}/${d.max_players}` : d.accepted }} {{ $t('owner.tournament.f_accepted').toLowerCase()
+                        }}<template v-if="d.waiting"> · {{ $t('owner.tournament.n_waiting', { n: d.waiting }) }}</template></small
+                    >
+                </span>
+                <TournamentPhase :phase="d.phase" />
+                <Icon name="arrow" size="sm" />
+            </Link>
+        </section>
+
         <!-- the registered players -->
-        <section class="card panel" style="margin-top: 14px">
+        <section v-if="!tournament.divisions.length" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.players') }}</h2>
-                <button v-if="count('unpaid')" type="button" class="btn ghost sm" data-test="t-remind" @click="remind">
+                <button v-if="count('unpaid') && !over" type="button" class="btn ghost sm" data-test="t-remind" @click="remind">
                     <Icon name="bell" size="sm" />{{ $t('owner.tournament.remind_unpaid', { n: count('unpaid') }) }}
                 </button>
             </div>
@@ -158,19 +307,48 @@ async function copy() {
                         {{ e.price ? amd(e.price) : $t('club.free') }}</small
                     >
                 </div>
-                <span v-if="e.status === 'applied'" class="row" style="gap: 6px">
+                <span v-if="e.status === 'applied' && !started" class="row" style="gap: 6px">
                     <button type="button" class="btn sm" @click="entry(e.id, { status: 'accepted' })">{{ $t('common.accept') }}</button>
-                    <button type="button" class="btn ghost sm" @click="entry(e.id, { status: 'declined' })">{{ $t('common.decline') }}</button>
+                    <button type="button" class="btn ghost sm" @click="decline(e)">{{ $t('common.decline') }}</button>
                 </span>
                 <span v-else-if="e.status === 'declined'" class="pill">{{ $t('owner.club.declined') }}</span>
-                <template v-else>
-                    <span v-if="e.paid" class="pill green"><Icon name="check" size="sm" />{{ amd(e.paid.amount) }} · {{ $t('owner.club.m_' + e.paid.method) }}</span>
-                    <span v-else-if="e.price" class="row" style="gap: 6px">
+                <template v-else-if="e.status === 'accepted'">
+                    <span v-if="e.paid" class="pill green"
+                        ><Icon name="check" size="sm" />{{ amd(e.paid.amount) }} · {{ $t('owner.club.m_' + e.paid.method) }}</span
+                    >
+                    <!-- the fee: from the player's card (only when they have one here) or in cash; not after the end -->
+                    <span v-else-if="e.price && !over" class="row" style="gap: 6px">
                         <span class="pill hot">{{ $t('owner.tournament.not_paid') }}</span>
-                        <button v-if="has('wallet')" type="button" class="btn sm" @click="entry(e.id, { pay: 'card' })">{{ $t('owner.club.from_card') }}</button>
-                        <button type="button" class="btn ghost sm" @click="entry(e.id, { pay: 'cash' })">{{ $t('owner.club.cash') }}</button>
+                        <button
+                            v-if="has('wallet') && e.card !== null"
+                            type="button"
+                            class="btn sm"
+                            :data-test="`pay-card-${e.id}`"
+                            @click="pay(e, 'card')"
+                        >
+                            {{ $t('owner.club.from_card') }} <small class="bal">{{ amd(e.card) }}</small>
+                        </button>
+                        <button
+                            type="button"
+                            :class="['btn', 'sm', { ghost: e.card !== null }]"
+                            :data-test="`pay-cash-${e.id}`"
+                            @click="pay(e, 'cash')"
+                        >
+                            {{ $t('owner.club.cash') }}
+                        </button>
                     </span>
                 </template>
+                <!-- take the player off: only before the start -->
+                <button
+                    v-if="canEdit && !started"
+                    type="button"
+                    class="btn ghost sm rm"
+                    :aria-label="$t('common.remove')"
+                    :data-test="`remove-${e.id}`"
+                    @click="removeEntry(e)"
+                >
+                    <Icon name="trash" size="sm" />
+                </button>
             </div>
             <p v-if="!shown.length" class="faint" style="margin: 8px 0 0">{{ $t('owner.club.no_entries') }}</p>
             <div v-if="pages > 1" class="pager">
@@ -181,25 +359,31 @@ async function copy() {
         </section>
 
         <!-- the draw and the bracket -->
-        <section class="card panel" style="margin-top: 14px">
+        <section v-if="!tournament.divisions.length" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.bracket') }}</h2>
                 <button v-if="canEdit && tournament.status !== 'done'" type="button" :class="['btn', 'sm', { ghost: tournament.drawn }]" :disabled="accepted < 2" data-test="draw" @click="draw">
                     <Icon name="trophy" size="sm" />{{ tournament.drawn ? $t('owner.tournament.redraw') : $t('owner.tournament.draw') }}
                 </button>
             </div>
+            <!-- the fees first: the tournament starts when everybody accepted has paid -->
+            <button v-if="tournament.unpaid && !over" type="button" class="paywarn" data-test="t-unpaid" @click="filter = 'unpaid'">
+                <Icon name="wallet" size="sm" /><span>{{ $t('owner.tournament.pay_first', { n: tournament.unpaid }) }}</span>
+            </button>
             <template v-if="tournament.bracket">
-                <p v-if="canEdit" class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
+                <p v-if="canEdit && !over" class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
                 <Bracket :bracket="tournament.bracket" :editable="canEdit" :title="tournament.title" :when="when" :players="accepted" @pick="pick" />
             </template>
             <p v-else class="faint" style="font-size: 13px; margin: 0">{{ $t('owner.tournament.draw_hint') }}</p>
         </section>
 
-        <!-- news to the players, and the chat -->
-        <section v-if="canEdit" class="card panel" style="margin-top: 14px">
+        <!-- news to the players, and the chat (not after the end: the chat stays readable in Messages) -->
+        <section v-if="canEdit && !over" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.announce') }}</h2>
-                <button type="button" class="btn ghost sm" data-test="t-chat" @click="openChat"><Icon name="chat" size="sm" />{{ $t('owner.tournament.open_chat') }}</button>
+                <button v-if="!tournament.divisions.length" type="button" class="btn ghost sm" data-test="t-chat" @click="openChat">
+                    <Icon name="chat" size="sm" />{{ $t('owner.tournament.open_chat') }}
+                </button>
             </div>
             <form class="news" @submit.prevent="sendNews">
                 <div class="chips aud" role="group">
@@ -207,9 +391,21 @@ async function copy() {
                         {{ $t('owner.tournament.aud_' + a) }}
                     </button>
                 </div>
-                <textarea v-model="news.text" class="input" rows="3" maxlength="1000" :placeholder="$t('owner.tournament.announce_ph')" data-test="t-news" />
-                <button class="btn" :disabled="news.processing || !news.text.trim()" data-test="t-send"><Icon name="send" size="sm" />{{ $t('owner.tournament.send') }}</button>
-                <small class="faint">{{ news.to === 'applied' ? $t('owner.tournament.announce_hint_applied') : $t('owner.tournament.announce_hint') }}</small>
+                <textarea
+                    v-model="news.text"
+                    class="input"
+                    rows="3"
+                    maxlength="1000"
+                    :placeholder="$t('owner.tournament.announce_ph')"
+                    data-test="t-news"
+                />
+                <button class="btn" :disabled="news.processing || !news.text.trim()" data-test="t-send">
+                    <Icon name="send" size="sm" />{{ $t('owner.tournament.send') }}
+                </button>
+                <small class="faint">{{
+                    news.to === 'applied' ? $t('owner.tournament.announce_hint_applied') : $t('owner.tournament.announce_hint')
+                }}</small>
+                <small v-if="tournament.divisions.length" class="faint">{{ $t('owner.tournament.announce_divisions') }}</small>
             </form>
         </section>
 
@@ -218,7 +414,12 @@ async function copy() {
             <!-- a number next to each name; the higher one wins -->
             <form class="who" @submit.prevent="saveScore">
                 <label v-for="(s, k) in [picked.a, picked.b]" :key="s!.id" :class="['srow', { won: picked.winner === s!.id }]">
-                    <span class="sname">{{ s!.name }}<small v-if="s!.rating">{{ s!.rating }}</small></span>
+                    <span class="sname"
+                        >{{ s!.name }}<small v-if="s!.rating">{{ s!.rating }}</small>
+                        <button type="button" class="wo" :data-test="`wo-${k === 0 ? 'a' : 'b'}`" @click.prevent="walkover(s!)">
+                            {{ $t('owner.tournament.no_show') }}
+                        </button></span
+                    >
                     <input
                         v-model.number="sc[k === 0 ? 'a' : 'b']"
                         class="input snum"
@@ -264,6 +465,16 @@ async function copy() {
 .sname small { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 500; }
 .snum::-webkit-outer-spin-button, .snum::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .snum { -moz-appearance: textfield; appearance: textfield; width: 76px; text-align: center; font: 700 22px var(--mono); padding: 8px; }
+.sibs { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 12px; padding-bottom: 2px; scrollbar-width: none; }
+.sibs .chip { flex: none; text-decoration: none; }
+.drow { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
+.drow:last-child { border-bottom: 0; }
+.drow .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.drow small { color: var(--muted); font-size: 12.5px; }
+.rm { margin-left: auto; padding-inline: 8px; }
+.bal { opacity: 0.75; font-weight: 600; margin-left: 2px; }
+.paywarn { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 107, 107, 0.3); background: var(--hot-soft); color: var(--hot); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.wo { align-self: flex-start; margin-top: 4px; border: 0; background: none; padding: 0; color: var(--hot); font: 600 12px var(--font, inherit); text-decoration: underline; cursor: pointer; }
 .pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 12px; }
 .ldot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff6b6b; margin-right: 6px; }
 </style>

@@ -3,8 +3,10 @@ import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import CashbackLevel, { type Level } from '@/components/club/CashbackLevel.vue';
 import QrScanner from '@/components/owner/QrScanner.vue';
+import { ask } from '@/composables/useConfirm';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import { trans } from '@/lib/i18n';
 import { Link, router } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 
@@ -31,8 +33,16 @@ const r = (name: string, extra: Record<string, unknown> = {}) => route(name, { c
 const num = (v: string | number) => Number(String(v ?? '').replace(/\D/g, '')) || 0;
 const scan = ref(false);
 const money = reactive({ topup: '' });
-function topUp() {
-    if (num(money.topup)) router.post(r('owner.cards.topup'), { amount: num(money.topup) }, { ...opts, onSuccess: () => (money.topup = '') });
+async function topUp() {
+    if (
+        num(money.topup) &&
+        (await ask({
+            title: trans('owner.club.ask_topup', { a: amd(num(money.topup)), name: props.player.name || '' }),
+            text: trans('owner.club.ask_cash_hands'),
+            ok: trans('owner.club.ask_take'),
+        }))
+    )
+        router.post(r('owner.cards.topup'), { amount: num(money.topup) }, { ...opts, onSuccess: () => (money.topup = '') });
 }
 // attach this card to a bill and go on to it (the desk screen shows it at once)
 const attach = (id: number) => router.post(route('owner.bookings.scan', id), { code: props.card.code, open: 1 });

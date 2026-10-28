@@ -8,8 +8,11 @@ use App\Domain\Social\SocialException;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerGames;
 use App\Models\Conversation;
+use App\Models\Friendship;
 use App\Models\Message;
 use App\Models\User;
+use App\Models\UserBlock;
+use App\Models\Venue;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +40,7 @@ class ChatController extends Controller
         $unread = $this->chat->unread($me);
         $chats = Conversation::query()
             ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at'))
-            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'latestMessage.user', 'participants.user'])
+            ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'latestMessage.user', 'participants.user'])
             ->orderByDesc('last_message_at')->orderByDesc('id')
             ->get()
             ->map(fn (Conversation $c) => $this->item($c, $me, $unread[$c->id] ?? 0));
@@ -55,7 +58,7 @@ class ChatController extends Controller
     {
         $me = $request->user();
         $this->authorizeMember($conversation, $me);
-        $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'participants.user']);
+        $conversation->load(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'participants.user']);
         $msgs = $this->query($conversation)->limit(self::PAGE + 1)->get();
         $mine = $conversation->participants->firstWhere('user_id', $me->id);
 
@@ -68,6 +71,8 @@ class ChatController extends Controller
                 // "seen" ticks on my messages: how far each other member has read
                 'reads' => $conversation->participants->whereNull('left_at')->where('user_id', '!=', $me->id)
                     ->mapWithKeys(fn ($p) => [$p->user_id => (int) $p->last_read_message_id])->all(),
+                // a group chat: tap someone → their profile / "Add friend" (my relation to each member)
+                'people' => $conversation->type === 'direct' ? (object) [] : (object) self::relations($me, $conversation->participants->pluck('user_id')->all()),
             ],
             'messages' => $msgs->take(self::PAGE)->reverse()->values()->map(fn ($m) => ChatPresenter::message($m))->all(),
             'hasMore' => $msgs->count() > self::PAGE,
@@ -159,6 +164,18 @@ class ChatController extends Controller
         });
     }
 
+    /** "Message the place" on its page: open (or start) my chat with the place. */
+    public function venue(Request $request, Venue $venue)
+    {
+        try {
+            $c = $this->chat->withVenue($request->user(), $venue);
+        } catch (SocialException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('messages.show', $c);
+    }
+
     /** "Message" on a profile / player list: open (or create) the direct chat. */
     public function direct(Request $request, User $user)
     {
@@ -228,10 +245,36 @@ class ChatController extends Controller
                 'title' => $c->tournament->title, 'url' => route('tournament.show', $c->tournament->code),
                 'hostIds' => DB::table('venue_users')->where('venue_id', $c->tournament->venue_id)->pluck('user_id')->map(fn ($id) => (int) $id)->all(),
             ] : null,
+            // a player and a place: the place's staff answer (their messages carry the place's name); the staff see the player
+            'venue' => $c->type === 'venue' && $c->venue ? (function () use ($c, $me) {
+                $hosts = DB::table('venue_users')->where('venue_id', $c->venue_id)->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+                $player = in_array($me->id, $hosts, true) ? $c->participants->first(fn ($p) => ! in_array($p->user_id, $hosts, true))?->user : null;
+
+                return ['name' => $c->venue->name, 'url' => route('places.show', $c->venue->slug), 'hostIds' => $hosts, 'staff' => in_array($me->id, $hosts, true),
+                    'player' => $player ? ['id' => $player->id, 'name' => self::name($player), 'avatar' => $player->avatarUrl()] : null];
+            })() : null,
             'last' => $last ? ChatPresenter::message($last) : null,
             'unread' => $unread,
             'at' => $c->last_message_at?->toIso8601String(),
         ];
+    }
+
+    /** My relation to each of these people: friends | sent | received | blocked | none (me left out). */
+    private static function relations(User $me, array $ids): array
+    {
+        $ids = array_values(array_diff(array_unique($ids), [$me->id]));
+        $out = array_fill_keys($ids, 'none');
+        foreach (Friendship::where(fn ($q) => $q->where('user_id', $me->id)->whereIn('friend_id', $ids))
+            ->orWhere(fn ($q) => $q->where('friend_id', $me->id)->whereIn('user_id', $ids))->get() as $f) {
+            $other = $f->user_id === $me->id ? $f->friend_id : $f->user_id;
+            $out[$other] = $f->status === 'accepted' ? 'friends' : ($f->user_id === $me->id ? 'sent' : 'received');
+        }
+        foreach (UserBlock::where(fn ($q) => $q->where('blocker_id', $me->id)->whereIn('blocked_id', $ids))
+            ->orWhere(fn ($q) => $q->where('blocked_id', $me->id)->whereIn('blocker_id', $ids))->get() as $b) {
+            $out[$b->blocker_id === $me->id ? $b->blocked_id : $b->blocker_id] = 'blocked';
+        }
+
+        return $out;
     }
 
     /** "online" / "last seen" of a user, only ever shown to people who share a chat with them */

@@ -1139,6 +1139,11 @@
         "hy": "Ստուգեք գումարը։",
         "ru": "Проверьте сумму."
     },
+    "booking.error.bad_divisions": {
+        "en": "Give 2 to 6 divisions, each with a name (a tournament with players can't be split).",
+        "hy": "Նշեք 2-ից 6 խումբ՝ յուրաքանչյուրն իր անունով (խաղացողներով մրցաշարը բաժանել հնարավոր չէ)։",
+        "ru": "Укажите от 2 до 6 дивизионов с названиями (турнир с игроками разделить нельзя)."
+    },
     "booking.error.bad_duration": {
         "en": "This duration is not available for this field.",
         "hy": "Այս տևողությունը հասանելի չէ այս դաշտի համար։",
@@ -1168,6 +1173,11 @@
         "en": "You can't send requests right now (too many no-shows).",
         "hy": "Այժմ չեք կարող հայտեր ուղարկել (չափազանց շատ բացակայություններ)։",
         "ru": "Сейчас вы не можете отправлять заявки (слишком много неявок)."
+    },
+    "booking.error.choose_division": {
+        "en": "This tournament has divisions: choose yours and register there.",
+        "hy": "Այս մրցաշարն ունի խմբեր․ ընտրեք ձերը և գրանցվեք այնտեղ։",
+        "ru": "В этом турнире есть дивизионы: выберите свой и регистрируйтесь там."
     },
     "booking.error.closed": {
         "en": "This field is closed.",
@@ -1304,10 +1314,25 @@
         "hy": "Այս մրցաշարում ազատ տեղեր չկան։",
         "ru": "В этом турнире не осталось мест."
     },
+    "booking.error.tournament_over": {
+        "en": "The tournament is over: no more news or messages.",
+        "hy": "Մրցաշարն ավարտվել է․ այլևս նորություններ կամ հաղորդագրություններ չեն ուղարկվում։",
+        "ru": "Турнир завершён: новости и сообщения больше не отправляются."
+    },
+    "booking.error.tournament_started": {
+        "en": "The tournament has started: players can't be removed now.",
+        "hy": "Մրցաշարը սկսվել է․ այժմ խաղացողներին հեռացնել հնարավոր չէ։",
+        "ru": "Турнир начался: игроков теперь убрать нельзя."
+    },
     "booking.error.training_full": {
         "en": "This training is full today.",
         "hy": "Այս մարզումն այսօր լրացված է։",
         "ru": "На эту тренировку сегодня мест нет."
+    },
+    "booking.error.unpaid_first": {
+        "en": "Not everybody has paid yet: take the fees first, then start the tournament.",
+        "hy": "Դեռ բոլորը չեն վճարել․ նախ ընդունեք վճարները, հետո սկսեք մրցաշարը։",
+        "ru": "Ещё не все оплатили: сначала примите взносы, затем начинайте турнир."
     },
     "brand": {
         "en": "ZoneSpot",
@@ -1904,6 +1929,11 @@
         "hy": "Սեղմեք փակելու համար",
         "ru": "Нажмите, чтобы закрыть"
     },
+    "club.tournament.any_rating": {
+        "en": "Any rating",
+        "hy": "Ցանկացած ռեյթինգ",
+        "ru": "Любой рейтинг"
+    },
     "club.tournament.badge_closed": {
         "en": "Registration closed",
         "hy": "Գրանցումը փակ է",
@@ -1934,6 +1964,16 @@
         "hy": "Մրցաշարի չատ",
         "ru": "Чат турнира"
     },
+    "club.tournament.divisions": {
+        "en": "Divisions",
+        "hy": "Խմբեր",
+        "ru": "Дивизионы"
+    },
+    "club.tournament.fits_you": {
+        "en": "Your level",
+        "hy": "Ձեր մակարդակը",
+        "ru": "Ваш уровень"
+    },
     "club.tournament.full": {
         "en": "No places left",
         "hy": "Ազատ տեղեր չկան",
@@ -1959,6 +1999,16 @@
         "hy": "Ձեր տեղը՝ :n",
         "ru": "Ваше место: :n"
     },
+    "club.tournament.my_rating": {
+        "en": "Your rating: :n",
+        "hy": "Ձեր ռեյթինգը՝ :n",
+        "ru": "Ваш рейтинг: :n"
+    },
+    "club.tournament.n_divisions": {
+        "en": ":n divisions",
+        "hy": ":n խումբ",
+        "ru": "дивизионов: :n"
+    },
     "club.tournament.phase_closed": {
         "en": "Registration is closed.",
         "hy": "Գրանցումը փակ է։",
@@ -1978,6 +2028,11 @@
         "en": "The tournament is on now: results update live below.",
         "hy": "Մրցաշարն ընթացքի մեջ է․ արդյունքները թարմանում են ներքևում։",
         "ru": "Турнир идёт: результаты обновляются ниже."
+    },
+    "club.tournament.pick_division": {
+        "en": "Choose your division",
+        "hy": "Ընտրեք ձեր խումբը",
+        "ru": "Выберите свой дивизион"
     },
     "club.tournament.players": {
         "en": ":n of :max players",
@@ -2008,6 +2063,11 @@
         "en": "Your fee of :amount isn't paid yet: pay at the club, by card or cash.",
         "hy": "Ձեր :amount վճարը դեռ վճարված չէ․ վճարեք ակումբում՝ քարտով կամ կանխիկ։",
         "ru": "Ваш взнос :amount ещё не оплачен: оплатите в клубе картой или наличными."
+    },
+    "club.tournament.you_are_in": {
+        "en": "You're registered",
+        "hy": "Դուք գրանցված եք",
+        "ru": "Вы зарегистрированы"
     },
     "club.tournaments": {
         "en": "Tournaments",
@@ -2598,6 +2658,11 @@
         "en": "When",
         "hy": "Երբ",
         "ru": "Когда"
+    },
+    "common.yes": {
+        "en": "Yes",
+        "hy": "Այո",
+        "ru": "Да"
     },
     "common.yes_cancel": {
         "en": "Yes, cancel",
@@ -3754,10 +3819,25 @@
         "hy": "Խաղի էջը",
         "ru": "Страница игры"
     },
+    "messages.open_place": {
+        "en": "The place",
+        "hy": "Վայրը",
+        "ru": "Заведение"
+    },
     "messages.organiser": {
         "en": "Organiser",
         "hy": "Կազմակերպիչ",
         "ru": "Организатор"
+    },
+    "messages.place_chat": {
+        "en": "The place answers here",
+        "hy": "Վայրը պատասխանում է այստեղ",
+        "ru": "Здесь отвечает заведение"
+    },
+    "messages.place_chat_staff": {
+        "en": "A player writes to your place",
+        "hy": "Խաղացողը գրում է ձեր վայրին",
+        "ru": "Игрок пишет вашему заведению"
     },
     "messages.placeholder": {
         "en": "Write a message…",
@@ -3778,6 +3858,11 @@
         "en": ":n/:t players",
         "hy": ":n/:t խաղացող",
         "ru": ":n/:t игроков"
+    },
+    "messages.profile": {
+        "en": "Profile",
+        "hy": "Պրոֆիլ",
+        "ru": "Профиль"
     },
     "messages.reply": {
         "en": "Reply",
@@ -4134,6 +4219,11 @@
         "hy": "📣 :title․ :text",
         "ru": "📣 :title: :text"
     },
+    "notice.tournament_removed": {
+        "en": "You were taken off :title at :venue. A paid fee is returned.",
+        "hy": "Ձեզ հանել են :title մրցաշարից (:venue)։ Վճարված գումարը վերադարձվում է։",
+        "ru": "Вас убрали из турнира :title в :venue. Оплаченный взнос возвращается."
+    },
     "notice.tournament_result": {
         "en": ":title: :winner beat :loser :score.",
         "hy": ":title․ :winner-ը հաղթեց :loser-ին :score։",
@@ -4238,6 +4328,41 @@
         "en": "Card by phone",
         "hy": "Քարտ ըստ հեռախոսի",
         "ru": "Карта по телефону"
+    },
+    "owner.club.ask_card_after": {
+        "en": "Left on the card after this: :a.",
+        "hy": "Քարտում կմնա՝ :a։",
+        "ru": "Останется на карте: :a."
+    },
+    "owner.club.ask_cash_hands": {
+        "en": "Confirm when the cash is in your hands.",
+        "hy": "Հաստատեք, երբ կանխիկը ձեր ձեռքում է։",
+        "ru": "Подтвердите, когда наличные у вас."
+    },
+    "owner.club.ask_sell": {
+        "en": "Sell :n × :name for :a in cash?",
+        "hy": "Վաճառե՞լ :n × :name :a-ով կանխիկ",
+        "ru": "Продать :n × :name за :a наличными?"
+    },
+    "owner.club.ask_stop": {
+        "en": "Stop the game of :name?",
+        "hy": "Կանգնեցնե՞լ :name-ի խաղը",
+        "ru": "Остановить игру :name?"
+    },
+    "owner.club.ask_stop_text": {
+        "en": "The time is counted until now. The bill: :a.",
+        "hy": "Ժամանակը հաշվվում է մինչև հիմա։ Հաշիվը՝ :a։",
+        "ru": "Время считается до этой минуты. Счёт: :a."
+    },
+    "owner.club.ask_take": {
+        "en": "Yes, take it",
+        "hy": "Այո, գանձել",
+        "ru": "Да, принять"
+    },
+    "owner.club.ask_topup": {
+        "en": "Put :a on :name's card?",
+        "hy": "Լիցքավորե՞լ :a :name-ի քարտին",
+        "ru": "Пополнить карту :name на :a?"
     },
     "owner.club.attach_card": {
         "en": "Attach to this bill",
@@ -4393,6 +4518,11 @@
         "en": "Or find the card: name or phone",
         "hy": "Կամ գտեք քարտը՝ անուն կամ հեռախոս",
         "ru": "Или найдите карту: имя или телефон"
+    },
+    "owner.club.find_card_why": {
+        "en": "No card on this bill. Scan the player's card (or find it below): pay from it, or pay cash and still add the cashback to it.",
+        "hy": "Այս հաշվին քարտ չկա։ Սկանավորեք խաղացողի քարտը (կամ գտեք ներքևում)՝ վճարելու դրանից, կամ վճարեք կանխիկ և դարձյալ ստացեք քեշբեքը քարտին։",
+        "ru": "К счёту не привязана карта. Отсканируйте карту игрока (или найдите ниже): оплатить с неё или наличными, но с кэшбэком на карту."
     },
     "owner.club.free_now": {
         "en": "Free",
@@ -5414,6 +5544,11 @@
         "hy": "Քարտեր",
         "ru": "Карты"
     },
+    "owner.nav.messages": {
+        "en": "Messages",
+        "hy": "Հաղորդագրություններ",
+        "ru": "Сообщения"
+    },
     "owner.nav.money": {
         "en": "Money",
         "hy": "Եկամուտ",
@@ -6094,6 +6229,11 @@
         "hy": "Լուր խաղացողներին",
         "ru": "Новость игрокам"
     },
+    "owner.tournament.announce_divisions": {
+        "en": "Goes to the players of every division.",
+        "hy": "Կուղարկվի բոլոր խմբերի խաղացողներին։",
+        "ru": "Уйдёт игрокам всех дивизионов."
+    },
     "owner.tournament.announce_hint": {
         "en": "Everybody registered gets it in the app and on Telegram; it is also written in the chat.",
         "hy": "Բոլոր գրանցվածները կստանան այն հավելվածում և Telegram-ում․ այն կգրվի նաև չատում։",
@@ -6114,6 +6254,101 @@
         "hy": "ցանկացած",
         "ru": "любой"
     },
+    "owner.tournament.any_rating": {
+        "en": "any rating",
+        "hy": "ցանկացած ռեյթինգ",
+        "ru": "любой рейтинг"
+    },
+    "owner.tournament.ask_card": {
+        "en": "Take :amount from :name's card?",
+        "hy": "Գանձե՞լ :amount :name-ի քարտից",
+        "ru": "Списать :amount с карты :name?"
+    },
+    "owner.tournament.ask_card_text": {
+        "en": "Balance :balance → :after after the payment.",
+        "hy": "Մնացորդը՝ :balance → վճարումից հետո :after։",
+        "ru": "Баланс :balance → после оплаты :after."
+    },
+    "owner.tournament.ask_cash": {
+        "en": "Got :amount in cash from :name?",
+        "hy": "Ստացե՞լ եք :amount կանխիկ :name-ից",
+        "ru": "Получили :amount наличными от :name?"
+    },
+    "owner.tournament.ask_cash_text": {
+        "en": "Confirm only when the money is in your hands. A card holder still gets the cashback.",
+        "hy": "Հաստատեք միայն, երբ գումարը ձեր ձեռքում է։ Քարտ ունեցողը կստանա քեշբեքը։",
+        "ru": "Подтверждайте, только когда деньги у вас. Владелец карты всё равно получит кэшбэк."
+    },
+    "owner.tournament.ask_decline": {
+        "en": "Decline :name?",
+        "hy": "Մերժե՞լ :name-ին",
+        "ru": "Отклонить :name?"
+    },
+    "owner.tournament.ask_draw": {
+        "en": "Make the draw for :n players?",
+        "hy": "Կատարե՞լ վիճակահանություն :n խաղացողի համար",
+        "ru": "Провести жеребьёвку на :n игроков?"
+    },
+    "owner.tournament.ask_draw_text": {
+        "en": "Registration closes and every player hears who they play.",
+        "hy": "Գրանցումը կփակվի, և յուրաքանչյուր խաղացող կիմանա՝ ում հետ է խաղում։",
+        "ru": "Регистрация закроется, и каждый игрок узнает соперника."
+    },
+    "owner.tournament.ask_news_accepted": {
+        "en": "Send this to the accepted players?",
+        "hy": "Ուղարկե՞լ ընդունված խաղացողներին",
+        "ru": "Отправить принятым игрокам?"
+    },
+    "owner.tournament.ask_news_all": {
+        "en": "Send this to everybody registered?",
+        "hy": "Ուղարկե՞լ բոլոր գրանցվածներին",
+        "ru": "Отправить всем зарегистрированным?"
+    },
+    "owner.tournament.ask_news_applied": {
+        "en": "Send this to the ones not accepted yet?",
+        "hy": "Ուղարկե՞լ դեռ չընդունվածներին",
+        "ru": "Отправить ещё не принятым?"
+    },
+    "owner.tournament.ask_redraw": {
+        "en": "Redo the draw for :n players?",
+        "hy": "Կրկնե՞լ վիճակահանությունը :n խաղացողի համար",
+        "ru": "Провести жеребьёвку заново на :n игроков?"
+    },
+    "owner.tournament.ask_remind": {
+        "en": "Remind :n players to pay?",
+        "hy": "Հիշեցնե՞լ :n խաղացողի վճարելու մասին",
+        "ru": "Напомнить :n игрокам об оплате?"
+    },
+    "owner.tournament.ask_remove": {
+        "en": "Take :name off the tournament?",
+        "hy": "Հանե՞լ :name-ին մրցաշարից",
+        "ru": "Убрать :name из турнира?"
+    },
+    "owner.tournament.ask_score": {
+        "en": ":a — :b, :score. Save?",
+        "hy": ":a — :b, :score։ Պահպանե՞լ",
+        "ru": ":a — :b, :score. Сохранить?"
+    },
+    "owner.tournament.ask_score_text": {
+        "en": ":name goes on to the next round.",
+        "hy": ":name-ն անցնում է հաջորդ փուլ։",
+        "ru": ":name проходит в следующий раунд."
+    },
+    "owner.tournament.ask_take": {
+        "en": "Yes, paid",
+        "hy": "Այո, վճարված է",
+        "ru": "Да, оплачено"
+    },
+    "owner.tournament.ask_walkover": {
+        "en": ":name didn't come?",
+        "hy": ":name-ը չի՞ եկել",
+        "ru": ":name не пришёл?"
+    },
+    "owner.tournament.ask_walkover_text": {
+        "en": ":name wins without playing (W/O, a technical loss).",
+        "hy": ":name-ը հաղթում է առանց խաղի (W/O, տեխնիկական պարտություն)։",
+        "ru": ":name побеждает без игры (W/O, техническое поражение)."
+    },
     "owner.tournament.aud_accepted": {
         "en": "Accepted",
         "hy": "Ընդունվածներին",
@@ -6133,6 +6368,41 @@
         "en": "Bracket",
         "hy": "Սխեմա",
         "ru": "Сетка"
+    },
+    "owner.tournament.division_add": {
+        "en": "Add a division",
+        "hy": "Ավելացնել խումբ",
+        "ru": "Добавить дивизион"
+    },
+    "owner.tournament.division_name": {
+        "en": "Division name",
+        "hy": "Խմբի անունը",
+        "ru": "Название дивизиона"
+    },
+    "owner.tournament.division_of": {
+        "en": "A division of :title",
+        "hy": ":title մրցաշարի խումբ",
+        "ru": "Дивизион турнира :title"
+    },
+    "owner.tournament.division_ph_0": {
+        "en": "e.g. Amateur",
+        "hy": "օր․՝ Սիրողական",
+        "ru": "напр. Любители"
+    },
+    "owner.tournament.division_ph_1": {
+        "en": "e.g. Middle",
+        "hy": "օր․՝ Միջին",
+        "ru": "напр. Средний"
+    },
+    "owner.tournament.division_ph_2": {
+        "en": "e.g. Pro",
+        "hy": "օր․՝ Պրո",
+        "ru": "напр. Профи"
+    },
+    "owner.tournament.divisions": {
+        "en": "Divisions",
+        "hy": "Խմբեր",
+        "ru": "Дивизионы"
     },
     "owner.tournament.draw": {
         "en": "Make the draw",
@@ -6209,6 +6479,11 @@
         "hy": ":n ընդունված",
         "ru": ":n принято"
     },
+    "owner.tournament.n_divisions": {
+        "en": ":n divisions",
+        "hy": ":n խումբ",
+        "ru": "дивизионов: :n"
+    },
     "owner.tournament.n_registered": {
         "en": ":n registered",
         "hy": ":n գրանցված",
@@ -6224,6 +6499,11 @@
         "hy": ":n սպասում",
         "ru": ":n ждут"
     },
+    "owner.tournament.no_show": {
+        "en": "Didn't come",
+        "hy": "Չի եկել",
+        "ru": "Не пришёл"
+    },
     "owner.tournament.not_paid": {
         "en": "Not paid",
         "hy": "Չի վճարել",
@@ -6234,15 +6514,30 @@
         "hy": "Մրցաշարի չատ",
         "ru": "Чат турнира"
     },
+    "owner.tournament.pay_first": {
+        "en": ":n not paid yet: the tournament starts when everybody has paid (or take them off).",
+        "hy": ":n խաղացող դեռ չի վճարել․ մրցաշարը կսկսվի, երբ բոլորը վճարեն (կամ հանեք նրանց)։",
+        "ru": "Не оплатили: :n. Турнир начнётся, когда оплатят все (или уберите их)."
+    },
     "owner.tournament.players": {
         "en": "Players",
         "hy": "Խաղացողներ",
         "ru": "Игроки"
     },
+    "owner.tournament.rating_short": {
+        "en": "Rating :range",
+        "hy": "Ռեյթինգ :range",
+        "ru": "Рейтинг :range"
+    },
     "owner.tournament.redraw": {
         "en": "Redo the draw",
         "hy": "Կրկնել վիճակահանությունը",
         "ru": "Провести жеребьёвку заново"
+    },
+    "owner.tournament.refund_note": {
+        "en": "Refund · :title",
+        "hy": "Վերադարձ · :title",
+        "ru": "Возврат · :title"
     },
     "owner.tournament.remind_unpaid": {
         "en": "Remind unpaid (:n)",
@@ -6253,6 +6548,26 @@
         "en": "Reminder sent to :n players who haven't paid (those who paid don't get it).",
         "hy": "Հիշեցումն ուղարկվեց :n չվճարած խաղացողի (վճարածները չեն ստանում)։",
         "ru": "Напоминание отправлено :n неоплатившим игрокам (оплатившие его не получают)."
+    },
+    "owner.tournament.remove_redraw": {
+        "en": "The draw is undone: make it again.",
+        "hy": "Վիճակահանությունը կչեղարկվի․ կատարեք այն նորից։",
+        "ru": "Жеребьёвка отменится: проведите её заново."
+    },
+    "owner.tournament.remove_refund_card": {
+        "en": "The fee :amount goes back to the card.",
+        "hy": ":amount վճարը կվերադարձվի քարտին։",
+        "ru": "Взнос :amount вернётся на карту."
+    },
+    "owner.tournament.remove_refund_cash": {
+        "en": "Give back the :amount paid in cash.",
+        "hy": "Վերադարձրեք կանխիկ վճարված :amount-ը։",
+        "ru": "Верните :amount, оплаченные наличными."
+    },
+    "owner.tournament.removed": {
+        "en": "The player is taken off the tournament.",
+        "hy": "Խաղացողը հանվեց մրցաշարից։",
+        "ru": "Игрок убран из турнира."
     },
     "owner.tournament.score_hint": {
         "en": "Type each player's score (e.g. 3 and 1): the higher one wins and goes on.",
@@ -6269,10 +6584,25 @@
         "hy": "Ուղարկվեց :n խաղացողի։",
         "ru": "Отправлено :n игрокам."
     },
+    "owner.tournament.split": {
+        "en": "Divisions by rating",
+        "hy": "Խմբեր ըստ ռեյթինգի",
+        "ru": "Дивизионы по рейтингу"
+    },
+    "owner.tournament.split_hint": {
+        "en": "One tournament, 2–6 divisions under it: each with its own rating range, players, bracket and chat.",
+        "hy": "Մեկ մրցաշար, դրա տակ 2–6 խումբ․ յուրաքանչյուրն իր ռեյթինգով, խաղացողներով, սխեմայով և չատով։",
+        "ru": "Один турнир, под ним 2–6 дивизионов: у каждого свой рейтинг, игроки, сетка и чат."
+    },
     "owner.tournament.tap_match": {
         "en": "Tap a match to mark the winner: the bracket updates for everybody and both players are told.",
         "hy": "Սեղմեք խաղի վրա՝ հաղթողին նշելու համար․ սխեման կթարմանա բոլորի համար, և երկու խաղացողներին կտեղեկացվի։",
         "ru": "Нажмите на матч, чтобы отметить победителя: сетка обновится у всех, игрокам придёт уведомление."
+    },
+    "owner.tournament.walkover": {
+        "en": "Technical loss",
+        "hy": "Տեխնիկական պարտություն",
+        "ru": "Техническое поражение"
     },
     "owner.tournament.who_won": {
         "en": "The score",
@@ -6963,6 +7293,11 @@
         "en": "Yandex Maps",
         "hy": "Yandex Maps",
         "ru": "Яндекс Карты"
+    },
+    "player.place.message": {
+        "en": "Message",
+        "hy": "Գրել",
+        "ru": "Написать"
     },
     "player.place.mine_confirmed": {
         "en": "Your booking: confirmed",

@@ -2,8 +2,10 @@
 
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\DecideBooking;
+use App\Domain\Booking\Actions\ExpireAndComplete;
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Domain\Booking\AfterBooking\Attendance;
+use App\Domain\Booking\AfterBooking\BookingPeople;
 use App\Domain\Booking\AfterBooking\BookingTeam;
 use App\Domain\Booking\AfterBooking\Penalties;
 use App\Domain\Booking\AfterBooking\Reminders;
@@ -16,6 +18,7 @@ use App\Models\Friendship;
 use App\Models\User;
 use App\Models\VenueReview;
 use App\Notifications\Notice;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 
@@ -33,12 +36,15 @@ beforeEach(function () {
 /** An accepted booking 8 days ahead at 21:00 (made now, so all reminders apply). */
 function acceptedBooking($test, ?User $player = null, float $hour = 21): Booking
 {
-    $b = app(RequestBooking::class)->handle($player ?? $test->player, $test->small, at($hour, 7), 60);
+    // a week after next Wednesday; on a Wednesday that is past the 14 days one can book ahead: a week earlier
+    $when = at($hour, 7);
+    $when = $when->greaterThan(now()->addDays(13)) ? $when->subDays(7) : $when;
+    $b = app(RequestBooking::class)->handle($player ?? $test->player, $test->small, $when, 60);
 
     return app(DecideBooking::class)->accept($b, $test->owner)->fresh();
 }
 
-function notices(User $user, string $type): Illuminate\Support\Collection
+function notices(User $user, string $type): Collection
 {
     return $user->fresh()->notifications()->get()->filter(fn ($n) => $n->data['type'] === $type)->values();
 }
@@ -67,7 +73,7 @@ it('marks a no-show until 12:00 the next day, tells the player and frees the res
     expect(fn () => app(Attendance::class)->noShow($this->owner, $b))->toThrow(BookingException::class);   // not started
 
     $this->travelTo($b->ends_at->copy()->addHours(2));
-    app(\App\Domain\Booking\Actions\ExpireAndComplete::class)->completeEnded();
+    app(ExpireAndComplete::class)->completeEnded();
     expect($b->fresh()->status)->toBe(BookingStatus::Completed);
     // the owner forgot during the game: still possible the next morning
     app(Attendance::class)->noShow($this->owner, $b->fresh());
@@ -76,7 +82,7 @@ it('marks a no-show until 12:00 the next day, tells the player and frees the res
         ->and(notices($this->player, 'booking_no_show'))->toHaveCount(1);
 
     $other = acceptedBooking($this, null, 18);
-    $this->travelTo(\App\Domain\Booking\AfterBooking\BookingPeople::noShowDeadline($other)->addMinute());
+    $this->travelTo(BookingPeople::noShowDeadline($other)->addMinute());
     expect(fn () => app(Attendance::class)->noShow($this->owner, $other->fresh()))->toThrow(BookingException::class);
 });
 
@@ -153,13 +159,13 @@ it('asks "how was the field?" 30 min after a game the place marked as arrived, n
     app(Attendance::class)->noShow($this->owner, $missed);
 
     $this->travelTo($unmarked->ends_at->copy()->addMinutes(40));
-    app(\App\Domain\Booking\Actions\ExpireAndComplete::class)->completeEnded();
+    app(ExpireAndComplete::class)->completeEnded();
     $r = app(Reminders::class);
     expect($r->askRatings())->toBe(1);   // only the arrived one
     Notification::assertSentTo($this->player, Notice::class, fn ($n) => $n->type === 'booking_rate' && $n->link === '/rate/'.$came->id);
 
     // not marked: asked once the no-show deadline has passed
-    $this->travelTo(\App\Domain\Booking\AfterBooking\BookingPeople::noShowDeadline($unmarked)->addMinutes(5));
+    $this->travelTo(BookingPeople::noShowDeadline($unmarked)->addMinutes(5));
     expect($r->askRatings())->toBe(1)->and(Booking::find($missed->id)->rating_asked_at)->toBeNull();
 });
 
@@ -167,7 +173,7 @@ it('updates the place rating from the stars', function () {
     $this->venue->forceFill(['rating_avg' => 4.0, 'rating_count' => 4])->save();
     $b = acceptedBooking($this);
     $this->travelTo($b->ends_at->copy()->addHour());
-    app(\App\Domain\Booking\Actions\ExpireAndComplete::class)->completeEnded();
+    app(ExpireAndComplete::class)->completeEnded();
 
     app(Reviews::class)->rate($b->fresh(), $this->player, 5);
     expect((float) $this->venue->fresh()->rating_avg)->toBe(4.2)->and($this->venue->fresh()->rating_count)->toBe(5);
@@ -271,7 +277,7 @@ it('cancels from the reminder after a confirmation, and rates with the stars', f
     $this->travelBack();
     $played = acceptedBooking($this, null, 18);
     $this->travelTo($played->ends_at->copy()->addHour());
-    app(\App\Domain\Booking\Actions\ExpireAndComplete::class)->completeEnded();
+    app(ExpireAndComplete::class)->completeEnded();
     tapButton($this, 5001, "rate:{$played->id}:4");
     expect(VenueReview::where('booking_id', $played->id)->value('stars'))->toBe(4);
 });

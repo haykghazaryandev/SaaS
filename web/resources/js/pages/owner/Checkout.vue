@@ -2,9 +2,11 @@
 import Icon from '@/components/Icon.vue';
 import QrScanner from '@/components/owner/QrScanner.vue';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
+import { ask } from '@/composables/useConfirm';
 import { relDay, useOwner, type BookingRow } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import { trans } from '@/lib/i18n';
 import { Link, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -74,9 +76,38 @@ function pickCard(code: string) {
     found.value = [];
     onCode(code);
 }
-const stop = () => router.post(route('owner.bookings.stop', props.booking.id));
-function pay() {
-    router.post(route('owner.bookings.pay', props.booking.id), { card: how.value === 'cash' ? 0 : fromCard.value || 0, cash: how.value === 'cash' ? props.bill.total : cash.value });
+async function stop() {
+    if (
+        await ask({
+            title: trans('owner.club.ask_stop', { name: props.booking.team || props.booking.name || props.booking.field }),
+            text: trans('owner.club.ask_stop_text', { a: amd(props.bill.total) }),
+            ok: trans('owner.club.stop_game'),
+            danger: true,
+        })
+    )
+        router.post(route('owner.bookings.stop', props.booking.id));
+}
+// the money: say exactly what is taken (card / cash) and ask
+async function pay() {
+    const card = how.value === 'cash' ? 0 : fromCard.value || 0;
+    const money = how.value === 'cash' ? props.bill.total : cash.value;
+    const title =
+        card > 0 && money > 0
+            ? trans('owner.club.take_split', { a: amd(card), b: amd(money) })
+            : card > 0
+              ? trans('owner.club.take_card', { a: amd(card) })
+              : trans('owner.club.take_cash', { a: amd(money) });
+    const lines = [
+        card > 0 && props.bill.card ? trans('owner.club.ask_card_after', { a: amd(props.bill.card.balance - card) }) : '',
+        money > 0 ? trans('owner.club.ask_cash_hands') : '',
+        props.bill.card?.cashback
+            ? trans('owner.club.cashback_note', { p: props.bill.card.cashback }) +
+              ' +' +
+              amd(Math.floor((props.bill.total * props.bill.card.cashback) / 100))
+            : '',
+    ].filter(Boolean);
+    if (await ask({ title: title + '?', text: lines.join('\n'), ok: trans('owner.club.ask_take') }))
+        router.post(route('owner.bookings.pay', props.booking.id), { card, cash: money });
 }
 </script>
 
@@ -129,7 +160,7 @@ function pay() {
                         <Icon name="wallet" />
                         <span class="w">
                             <b>{{ bill.card ? $t('owner.club.card_balance', { a: amd(bill.card.balance) }) : $t('owner.club.no_card_short') }}</b>
-                            <small v-if="!bill.card && !booking.player">{{ $t('owner.club.find_card') }}</small>
+                            <small v-if="!bill.card && !booking.player">{{ $t('owner.club.find_card_why') }}</small>
                         </span>
                         <button v-if="!bill.card && !booking.player" type="button" class="btn sm" data-test="scan-bill" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
                     </div>

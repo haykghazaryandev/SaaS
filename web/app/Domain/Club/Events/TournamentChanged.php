@@ -2,6 +2,7 @@
 
 namespace App\Domain\Club\Events;
 
+use App\Models\Tournament;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
@@ -20,7 +21,10 @@ class TournamentChanged implements ShouldBroadcast, ShouldDispatchAfterCommit
     public function broadcastOn(): array
     {
         // the tournament's page, and the Tournaments tab (Live / Open / Finished)
-        return [new Channel('tournament.'.$this->code), new Channel('tournaments')];
+        // a division: the page of its tournament (the list of divisions) too
+        $parent = Tournament::where('code', $this->code)->whereNotNull('parent_id')->first()?->parent()->value('code');
+
+        return array_values(array_filter([new Channel('tournament.'.$this->code), $parent ? new Channel('tournament.'.$parent) : null, new Channel('tournaments')]));
     }
 
     public function broadcastAs(): string
