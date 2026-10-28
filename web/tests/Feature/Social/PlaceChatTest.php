@@ -29,8 +29,8 @@ it('lets a player write to a place; its staff read and answer in their messages'
     $this->actingAs($this->owner)->postJson(route('messages.send', $c->id), ['body' => 'Yes'])->assertCreated();
     $this->actingAs($this->player)->get(route('messages.show', $c->id))->assertInertia(fn (Assert $p) => $p->where('chat.venue.name', $this->venue->name)
         ->where('chat.venue.staff', false)->has('messages', 2));
-    // the place's own staff don't write to themselves
-    $this->actingAs($this->owner)->get(route('places.show', $this->venue->slug))->assertInertia(fn (Assert $p) => $p->where('venue.canMessage', false));
+    // the place's own staff don't open player pages at all
+    $this->actingAs($this->owner)->get(route('places.show', $this->venue->slug))->assertRedirect(route('owner.start'));
 });
 
 it('shows in a group chat who is a friend, so a member can be added from there', function () {

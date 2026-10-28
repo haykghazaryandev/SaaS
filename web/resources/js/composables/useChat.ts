@@ -43,7 +43,7 @@ export interface ChatItem {
         booking?: { status: string; date: string; start: string; venue: { name: string } } | null;
     } | null;
     /** a tournament chat: the organiser's (place staff) messages stand out */
-    tournament?: { title: string; url: string; hostIds: number[] } | null;
+    tournament?: { title: string; url: string; hostIds: number[]; manage?: string | null } | null;
     /** a player and a place: the staff answer for the place; staff see the player's name */
     venue?: {
         name: string;

@@ -352,6 +352,7 @@
     "owner.loading": "common.loading",
     "owner.nav.today": "common.today",
     "owner.new_booking": "common.new_booking",
+    "owner.player_site": null,
     "owner.reason.cancel_title": "common.cancel_this_booking",
     "owner.reason.ph": "owner.reason.placeholder",
     "owner.schedule.closure": "common.closed",

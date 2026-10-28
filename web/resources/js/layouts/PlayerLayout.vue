@@ -45,8 +45,15 @@ const has = (name: string) => {
 
 // label: desktop nav (wide screens); short: narrow desktop nav; tab (or short): the phone tab bar (5 must fit in 390px)
 type NavItem = { key: string; href: string; label: string; short: string; tab?: string; icon: string; match: string[]; badge?: number; warn?: boolean };
+// people who run a place: only Messages and the profile are open to them here (the rest is the owner panel)
+const staff = computed(() => !!user.value?.isOwner);
 const nav = computed<NavItem[]>(() => {
     const c = social.counts;
+    if (staff.value)
+        return [
+            { key: 'panel', href: route('owner.start'), label: 'nav.owner', short: 'nav.owner', icon: 'chart', match: ['/owner'] },
+            { key: 'chats', href: route('messages.index'), label: 'nav.chats', short: 'nav.chats', icon: 'chat', match: ['/messages'], badge: c.messages },
+        ];
     const items: NavItem[] = [{ key: 'fields', href: route('home'), label: 'nav.home', short: 'nav.home', icon: 'home', match: ['/', '/places', '/t/'] }];
     // games of the chosen sport only: none on "What do you play?"
     if (has('games.index') && page.props.sport) items.push({ key: 'games', href: route('games.index', { sport: page.props.sport }), label: 'common.games', short: 'common.games', icon: 'ball', match: ['/games'], badge: user.value ? c.invites : 0 });
@@ -116,7 +123,7 @@ watch(() => page.url, () => (menu.value = false));
     <div :class="['papp', { 'with-tabbar': showTabbar, fs: fullscreen, guest: !user }]">
         <header class="top">
             <div class="wrap">
-                <Link :href="route('home')" class="brand" :prefetch="PREFETCH" :aria-label="'ZoneSpot'"><Logo /></Link>
+                <Link :href="staff ? route('owner.start') : route('home')" class="brand" :prefetch="PREFETCH" :aria-label="'ZoneSpot'"><Logo /></Link>
                 <nav class="nav" :aria-label="$t('nav.main')">
                     <Link v-for="n in nav" :key="n.key" :href="n.href" :prefetch="PREFETCH" :aria-current="active(n.match) ? 'page' : undefined">
                         <Icon :name="n.icon" /><span class="nl">{{ $t(n.label) }}</span><span class="ns">{{ $t(n.short) }}</span
@@ -144,8 +151,8 @@ watch(() => page.url, () => (menu.value = false));
                                     </span>
                                 </div>
                                 <Link role="menuitem" :href="route('me.profile')" :prefetch="PREFETCH"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                                <Link role="menuitem" :href="route('me.bookings')" :prefetch="PREFETCH"><Icon name="ticket" size="sm" />{{ $t('common.my_bookings') }}</Link>
-                                <Link v-if="social.counts.tournaments" role="menuitem" :href="route('me.tournaments')" :prefetch="PREFETCH"
+                                <Link v-if="!staff" role="menuitem" :href="route('me.bookings')" :prefetch="PREFETCH"><Icon name="ticket" size="sm" />{{ $t('common.my_bookings') }}</Link>
+                                <Link v-if="social.counts.tournaments && !staff" role="menuitem" :href="route('me.tournaments')" :prefetch="PREFETCH"
                                     ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }}</Link
                                 >
                                 <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my_bookings.finish_profile') }}</Link>

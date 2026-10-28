@@ -376,7 +376,9 @@ it('cancels a tournament before its start with a reason: fees back, players told
     // nothing more on it; the page says why
     expect(fn () => $this->tt->draw($t))->toThrow(BookingException::class);
     expect(fn () => $this->tt->cancel($t, $this->owner, 'again'))->toThrow(BookingException::class);
-    $this->get('/t/'.$t->code)->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'cancelled')->where('tournament.cancel_reason', 'Not enough players registered')->where('tournament.open', false));
+    // the owner's link opens its owner page; players see why
+    $this->get('/t/'.$t->code)->assertRedirect(route('owner.tournaments.show', $t->id));
+    $this->actingAs(User::find($b->user_id))->get('/t/'.$t->code)->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'cancelled')->where('tournament.cancel_reason', 'Not enough players registered')->where('tournament.open', false));
 });
 
 it('gives byes to the best when the players do not fill the bracket (11 players: 5 byes, 16 places)', function () {

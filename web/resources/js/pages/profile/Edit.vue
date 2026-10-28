@@ -212,15 +212,15 @@ function unblock(p: PlayerCard) {
             </label>
         </section>
 
-        <!-- tournaments I registered for: live, upcoming, finished; my answer, the fee, my place -->
-        <section class="card pad panels">
+        <!-- tournaments I registered for: live, upcoming, finished; my answer, the fee, my place (players only) -->
+        <section v-if="!user?.isOwner" class="card pad panels">
             <h2>{{ $t('club.mine.title') }}</h2>
             <p class="muted" style="margin: 0 0 10px; font-size: 13.5px">{{ $t('club.mine.sub') }}</p>
             <Link class="btn ghost block" :href="route('me.tournaments')" data-test="my-tournaments"><Icon name="trophy" size="sm" />{{ $t('club.mine.open') }}</Link>
         </section>
 
-        <!-- club cards: one per club, each with its own QR (balance, cashback, history) -->
-        <section class="card pad panels">
+        <!-- club cards: one per club, each with its own QR (balance, cashback, history) (players only) -->
+        <section v-if="!user?.isOwner" class="card pad panels">
             <h2>{{ $t('club.my_cards') }}</h2>
             <p class="muted" style="margin: 0 0 10px; font-size: 13.5px">{{ $t('club.my_cards_sub') }}</p>
             <Link class="btn ghost block" :href="route('me.cards')"><Icon name="wallet" size="sm" />{{ $t('club.open_cards') }}</Link>

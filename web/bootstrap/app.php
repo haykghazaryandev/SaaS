@@ -3,11 +3,13 @@
 use App\Http\Middleware\EnsureVenueStaff;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\StaffStayInPanel;
 use App\Http\Middleware\TouchLastSeen;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,10 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         then: function () {
-            Illuminate\Support\Facades\Route::middleware('web')->group(base_path('routes/owner.php'));
-            Illuminate\Support\Facades\Route::middleware('web')->group(base_path('routes/telegram.php'));
+            Route::middleware('web')->group(base_path('routes/owner.php'));
+            Route::middleware('web')->group(base_path('routes/telegram.php'));
             foreach (['social', 'games', 'chat', 'alerts'] as $file) {
-                Illuminate\Support\Facades\Route::middleware('web')->group(base_path("routes/{$file}.php"));
+                Route::middleware('web')->group(base_path("routes/{$file}.php"));
             }
         },
     )
@@ -29,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
             TouchLastSeen::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            // people who run a place stay in the owner panel (no player pages)
+            StaffStayInPanel::class,
         ]);
         // behind ngrok / a load balancer: trust X-Forwarded-* so links use https and the right host
         $middleware->trustProxies(at: '*');

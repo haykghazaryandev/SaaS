@@ -288,6 +288,9 @@ class ChatController extends Controller
             // a tournament chat: its title, its page, and who is the organiser (the place's staff: their messages stand out)
             'tournament' => $c->type === 'tournament' && $c->tournament ? [
                 'title' => $c->tournament->title, 'url' => route('tournament.show', $c->tournament->code),
+                // the place's staff open it in their panel
+                'manage' => DB::table('venue_users')->where('venue_id', $c->tournament->venue_id)->where('user_id', $me->id)->exists()
+                    ? route('owner.tournaments.show', $c->tournament->id) : null,
                 'hostIds' => DB::table('venue_users')->where('venue_id', $c->tournament->venue_id)->pluck('user_id')->map(fn ($id) => (int) $id)->all(),
             ] : null,
             // a player and a place: the place's staff answer (their messages carry the place's name); the staff see the player

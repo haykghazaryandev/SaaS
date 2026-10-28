@@ -87,7 +87,10 @@ async function removeChat() {
 // tap a name or an avatar in a group chat: who it is, their profile, "Add friend"
 const person = ref<{ id: number; name: string; username: string | null; avatar?: string | null } | null>(null);
 const personRel = computed<Relation>(() => (person.value ? (props.chat.people?.[person.value.id] ?? 'none') : 'none'));
+// people who run a place: no friends / player profiles (they work in the owner panel)
+const staffMe = computed(() => !!(user.value as { isOwner?: boolean } | null)?.isOwner);
 function openPerson(u: ChatMessage['user']) {
+    if (staffMe.value) return;
     if (u && u.id !== me.value) person.value = { id: u.id, name: userName(u), username: u.username ?? null, avatar: u.avatar };
 }
 
@@ -526,7 +529,7 @@ onBeforeUnmount(() => {
                     >
                     <span v-else class="hs">{{ $t('messages.direct') }}</span>
                 </div>
-                <Link v-if="chat.tournament" class="btn outline sm" :href="chat.tournament.url" :aria-label="$t('messages.open_bracket')"
+                <Link v-if="chat.tournament" class="btn outline sm" :href="chat.tournament.manage ?? chat.tournament.url" :aria-label="$t('messages.open_bracket')"
                     ><Icon name="trophy" size="sm" /><span class="hide-sm">{{ $t('messages.open_bracket') }}</span></Link
                 >
                 <Link v-if="chat.venue && !chat.venue.staff" class="btn outline sm" :href="chat.venue.url" :aria-label="chat.venue.name"

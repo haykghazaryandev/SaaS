@@ -198,7 +198,8 @@ it('prices tables by length: 15 min 1 200, 30 min 2 000, 1 h 5 000; longer games
         ->and($prices->price($t, $at(19), 15))->toBe(1200)         // no evening price: the day one
         ->and($prices->price($t, LocalTime::at($weekday->next(CarbonInterface::SATURDAY), 12), 60))->toBe(5000);
 
-    // a player's booking and the place page use the same prices
+    // a player's booking and the place page use the same prices (seen as a player: the owner stays in the panel)
+    $this->actingAs(User::factory()->create());
     $b = app(RequestBooking::class)->handle(User::factory()->create(), $t, $at(12), 30);
     expect($b->price)->toBe(2000);
     $this->getJson("/places/{$club->slug}/slots?date={$weekday->toDateString()}")->assertOk()

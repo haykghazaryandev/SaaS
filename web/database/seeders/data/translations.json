@@ -5919,15 +5919,15 @@
         "hy": "Դուք որևէ ակումբի հասանելիություն չունեք։ Դիմեք ZoneSpot-ին։",
         "ru": "У вас нет доступа ни к одному клубу. Обратитесь в ZoneSpot."
     },
+    "owner.panel_only": {
+        "en": "People who run a place work in their owner panel.",
+        "hy": "Վայրը կառավարողներն աշխատում են իրենց վահանակում։",
+        "ru": "Сотрудники заведения работают в своей панели."
+    },
     "owner.place": {
         "en": "Your place",
         "hy": "Ձեր ակումբը",
         "ru": "Ваш клуб"
-    },
-    "owner.player_site": {
-        "en": "Open the player site",
-        "hy": "Բացել խաղացողի կայքը",
-        "ru": "Открыть сайт для игроков"
     },
     "owner.reason.call": {
         "en": "Please call us",

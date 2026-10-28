@@ -20,14 +20,7 @@ class HomeController extends Controller
 {
     public function __invoke(Request $request, PlayerVenues $present, Availability $availability)
     {
-        // owners and staff work in their place's dashboard; "Open the player site" there (?as=player) lets them play too.
-        // Admins use the app as players and open their panels (admin, owner) from Profile.
-        if ($request->query('as') === 'player') {
-            $request->session()->put('player_mode', true);
-        }
-        if (($u = $request->user()) && ! $u->is_admin && ! $request->session()->get('player_mode') && $u->venues()->exists()) {
-            return redirect()->route('owner.start');
-        }
+        // people who run a place never get here: StaffStayInPanel sends them to their panel
 
         // the sport first (only those the admin shows): with several, the home page is just "What do you play?"
         $sports = Sport::visible();

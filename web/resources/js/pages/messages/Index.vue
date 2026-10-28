@@ -95,7 +95,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
         <div class="msgs">
             <header class="mhead">
                 <h1 class="page-title">{{ $t('messages.title') }}</h1>
-                <button type="button" class="btn sm" @click="openPicker"><Icon name="edit" size="sm" />{{ $t('messages.new_message') }}</button>
+                <button v-if="!user?.isOwner" type="button" class="btn sm" @click="openPicker"><Icon name="edit" size="sm" />{{ $t('messages.new_message') }}</button>
             </header>
 
             <section v-if="chats.length" class="clist">
@@ -121,7 +121,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                 <span class="es-ico"><Icon name="chat" /></span>
                 <h3>{{ $t('messages.empty') }}</h3>
                 <p>{{ $t('messages.empty_hint') }}</p>
-                <Link v-if="hasFind" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('common.find_players') }}</Link>
+                <Link v-if="hasFind && !user?.isOwner" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('common.find_players') }}</Link>
             </div>
 
             <template v-if="archived.length">
