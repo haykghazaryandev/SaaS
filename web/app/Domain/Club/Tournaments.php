@@ -155,6 +155,9 @@ class Tournaments
         }
         $e->loadMissing('tournament.venue');
         $t = $e->tournament;
+        if ($t->status === 'cancelled') {
+            throw new BookingException('tournament_closed');
+        }
         if ($status === 'accepted' && $e->status !== 'accepted' && $t->max_players
             && $t->entries()->where('status', 'accepted')->count() >= $t->max_players) {
             throw new BookingException('tournament_full');
@@ -210,13 +213,16 @@ class Tournaments
         // a tournament with divisions: where its divisions are (one on = on; all over = over)
         if ($t->isParent()) {
             $all = self::divisionsOf($t)->map(fn (Tournament $d) => self::phase($d));
-            foreach (['live', 'registration', 'drawn', 'closed'] as $p) {
+            foreach (['live', 'registration', 'drawn', 'closed', 'done'] as $p) {
                 if ($all->contains($p)) {
                     return $p;
                 }
             }
 
-            return 'done';
+            return 'cancelled';
+        }
+        if ($t->status === 'cancelled') {
+            return 'cancelled';
         }
         if ($t->status === 'done') {
             return 'done';
@@ -274,10 +280,10 @@ class Tournaments
             throw new BookingException('bad_options');
         }
         if ($t->isParent()) {
-            return self::divisionsOf($t)->filter(fn (Tournament $d) => $d->status !== 'done')->sum(fn (Tournament $d) => $this->announce($d, $by, $text, $to));
+            return self::divisionsOf($t)->filter(fn (Tournament $d) => ! in_array($d->status, ['done', 'cancelled'], true))->sum(fn (Tournament $d) => $this->announce($d, $by, $text, $to));
         }
         // a finished tournament: its chat is closed (the history stays), no more news
-        if ($t->status === 'done') {
+        if (in_array($t->status, ['done', 'cancelled'], true)) {
             throw new BookingException('tournament_over');
         }
         if ($to !== 'applied') {
@@ -357,7 +363,7 @@ class Tournaments
     public function draw(Tournament $t): void
     {
         $t->loadMissing('venue');
-        if ($t->status === 'done') {
+        if (in_array($t->status, ['done', 'cancelled'], true)) {
             throw new BookingException('tournament_closed');
         }
         if ($t->matches()->whereNotNull('winner_id')->whereNotNull('a_id')->whereNotNull('b_id')->exists()) {
@@ -457,7 +463,7 @@ class Tournaments
                 $loser->update(['place' => 2]);
                 $t->update(['status' => 'done']);
                 // the last division over: the whole tournament is over
-                if ($t->parent_id && ! Tournament::where('parent_id', $t->parent_id)->where('status', '!=', 'done')->exists()) {
+                if ($t->parent_id && ! Tournament::where('parent_id', $t->parent_id)->whereNotIn('status', ['done', 'cancelled'])->exists()) {
                     Tournament::whereKey($t->parent_id)->update(['status' => 'done']);
                 }
                 // the chat stays readable (the history), nobody writes any more; it is not deleted
@@ -536,17 +542,11 @@ class Tournaments
     {
         $e->loadMissing('tournament.venue', 'payment');
         $t = $e->tournament;
-        if (in_array(self::phase($t), ['live', 'done'], true)) {
+        if (in_array(self::phase($t), ['live', 'done', 'cancelled'], true)) {
             throw new BookingException('tournament_started');
         }
         DB::transaction(function () use ($e, $t, $by) {
-            if ($p = $e->payment) {
-                $refund = Payment::create(['venue_id' => $p->venue_id, 'user_id' => $p->user_id, 'card_id' => $p->card_id, 'kind' => 'tournament',
-                    'method' => $p->method, 'amount' => -$p->amount, 'ref_id' => $e->id, 'note' => mb_substr(__('owner.tournament.refund_note', ['title' => $t->title]), 0, 200), 'created_by' => $by->id]);
-                if ($p->method === 'card' && $p->card_id && ($card = VenueCard::lockForUpdate()->find($p->card_id))) {
-                    app(Cards::class)->entry($card, $p->amount, 'adjust', $by, $refund->note, $refund);
-                }
-            }
+            $this->refund($e, $t, $by);
             if ($t->drawn_at && $e->status === 'accepted') {
                 TournamentMatch::where('tournament_id', $t->id)->delete();
                 $t->update(['drawn_at' => null]);
@@ -558,6 +558,75 @@ class Tournaments
                 DB::afterCommit(fn () => $user->notify(new Notice('tournament_removed', ['title' => $t->title, 'venue' => $t->venue->name], '/t/'.$t->code)));
             }
             $e->delete();
+        });
+        TournamentChanged::dispatch($t->code);
+        ClubChanged::dispatch($t->venue_id);
+    }
+
+    /** The fee back: a minus payment (the report and ZoneSpot's fee go down); paid by card: the money goes back on it. */
+    private function refund(TournamentEntry $e, Tournament $t, User $by): void
+    {
+        $p = $e->payment;
+        if (! $p) {
+            return;
+        }
+        $refund = Payment::create(['venue_id' => $p->venue_id, 'user_id' => $p->user_id, 'card_id' => $p->card_id, 'kind' => 'tournament',
+            'method' => $p->method, 'amount' => -$p->amount, 'ref_id' => $e->id, 'note' => mb_substr(__('owner.tournament.refund_note', ['title' => $t->title]), 0, 200), 'created_by' => $by->id]);
+        if ($p->method === 'card' && $p->card_id && ($card = VenueCard::lockForUpdate()->find($p->card_id))) {
+            app(Cards::class)->entry($card, $p->amount, 'adjust', $by, $refund->note, $refund);
+        }
+    }
+
+    /**
+     * Cancel before the start (not enough players, the place closed …): every paid fee goes back, everybody registered
+     * hears the reason (app + Telegram), the chat says it and closes. A tournament with divisions: every division not
+     * started yet; it is cancelled itself when none is left to play.
+     */
+    public function cancel(Tournament $t, User $by, string $reason): void
+    {
+        $reason = mb_substr(trim($reason), 0, 300);
+        if ($reason === '') {
+            throw new BookingException('bad_options');
+        }
+        if ($t->isParent()) {
+            $left = self::divisionsOf($t)->filter(fn (Tournament $d) => ! in_array(self::phase($d), ['live', 'done', 'cancelled'], true));
+            if ($left->isEmpty()) {
+                throw new BookingException('tournament_started');
+            }
+            foreach ($left as $d) {
+                $this->cancel($d->setRelation('venue', $t->venue), $by, $reason);
+            }
+            if (! $t->divisions()->whereNotIn('status', ['cancelled'])->exists()) {
+                $t->update(['status' => 'cancelled', 'cancel_reason' => $reason]);
+            }
+            TournamentChanged::dispatch($t->code);
+
+            return;
+        }
+        if (in_array(self::phase($t), ['live', 'done', 'cancelled'], true)) {
+            throw new BookingException('tournament_started');
+        }
+        $t->loadMissing('venue');
+        DB::transaction(function () use ($t, $by, $reason) {
+            foreach ($t->entries()->with('payment')->get() as $e) {
+                if ($e->payment) {
+                    $this->refund($e, $t, $by);
+                    $e->update(['payment_id' => null]);
+                }
+                if ($e->user_id && $e->status !== 'declined' && ($user = User::find($e->user_id))) {
+                    DB::afterCommit(fn () => $user->notify(new Notice('tournament_cancelled', ['title' => $t->title, 'venue' => $t->venue->name, 'reason' => $reason], '/t/'.$t->code)));
+                }
+            }
+            $t->update(['status' => 'cancelled', 'cancel_reason' => $reason]);
+            if ($c = $t->conversation()->first()) {
+                $this->chat->system($c, 'chat.sys.tournament_cancelled', ['title' => $t->title, 'reason' => $reason]);
+                $c->update(['status' => 'archived', 'archived_at' => now(), 'delete_after' => null]);
+            }
+            // the last division left: the whole tournament is over / cancelled
+            if ($t->parent_id && ! Tournament::where('parent_id', $t->parent_id)->whereNotIn('status', ['done', 'cancelled'])->exists()) {
+                $all = ! Tournament::where('parent_id', $t->parent_id)->where('status', 'done')->exists();
+                Tournament::whereKey($t->parent_id)->update($all ? ['status' => 'cancelled', 'cancel_reason' => $reason] : ['status' => 'done']);
+            }
         });
         TournamentChanged::dispatch($t->code);
         ClubChanged::dispatch($t->venue_id);
@@ -589,6 +658,9 @@ class Tournaments
         $e->loadMissing('tournament.venue');
         if ($e->payment_id) {
             throw new BookingException('already_paid');
+        }
+        if ($e->tournament->status === 'cancelled') {
+            throw new BookingException('tournament_closed');
         }
 
         return DB::transaction(function () use ($e, $method, $by) {

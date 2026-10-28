@@ -25,11 +25,12 @@ interface Division {
     min_rating: number | null;
     max_rating: number | null;
     max_players: number | null;
-    phase: 'registration' | 'closed' | 'drawn' | 'live' | 'done';
+    phase: 'registration' | 'closed' | 'drawn' | 'live' | 'done' | 'cancelled';
     current: boolean;
     count: number;
     /** my rating is in its range */
     fits: boolean;
+    cancel_reason: string | null;
     /** I registered there */
     mine: boolean;
     accepted: number;
@@ -55,7 +56,8 @@ const props = defineProps<{
         options: Opt[];
         open: boolean;
         /** registration | closed (by the club) | drawn (the pairs are known) | live | done */
-        phase: 'registration' | 'closed' | 'drawn' | 'live' | 'done';
+        phase: 'registration' | 'closed' | 'drawn' | 'live' | 'done' | 'cancelled';
+        cancel_reason: string | null;
         venue: { slug: string; name: string };
         count: number;
         accepted: number;
@@ -199,6 +201,7 @@ function send() {
                         </template>
                         <!-- the draw is made: the bracket is ready (my first opponent) -->
                         <span v-else-if="d.phase === 'drawn'" class="dnote drawn"><Icon name="trophy" size="sm" />{{ $t('club.tournament.d_bracket_ready') }}</span>
+                        <span v-else-if="d.phase === 'cancelled'" class="dnote cancelled"><Icon name="x" size="sm" />{{ d.cancel_reason }}</span>
                         <!-- over: the champion and the runner-up -->
                         <span v-else-if="d.phase === 'done' && d.podium.length" class="dpod">
                             <span v-for="p in d.podium" :key="p.place">{{ p.place === 1 ? '🏆' : '🥈' }} {{ p.name }}</span>
@@ -229,7 +232,9 @@ function send() {
                 <Link v-if="chat" class="btn" :href="route('messages.show', chat)" data-test="t-chat"><Icon name="chat" size="sm" />{{ $t('club.tournament.chat') }}</Link>
                 <!-- where the tournament is: no form once the draw is made, it started or it is over -->
                 <div v-if="tournament.phase !== 'registration'" :class="['phase', tournament.phase]" data-test="phase">
-                    <i v-if="tournament.phase === 'live'" class="pdot" />{{ $t('club.tournament.phase_' + tournament.phase) }}
+                    <i v-if="tournament.phase === 'live'" class="pdot" />{{
+                        tournament.phase === 'cancelled' ? $t('club.tournament.phase_cancelled', { reason: tournament.cancel_reason ?? '' }) : $t('club.tournament.phase_' + tournament.phase)
+                    }}
                 </div>
                 <ol v-if="tournament.podium.length" class="podium" data-test="podium">
                     <li v-for="p in tournament.podium" :key="p.place + p.name" :class="'p' + p.place">
@@ -278,7 +283,7 @@ function send() {
         </div>
         <!-- the bracket: one spotlight that follows the tournament live (Option A); the whole bracket full screen -->
         <section
-            v-if="!tournament.isParent && (tournament.phase !== 'registration' || tournament.players.length)"
+            v-if="!tournament.isParent && tournament.phase !== 'cancelled' && (tournament.phase !== 'registration' || tournament.players.length)"
             class="pg wide spot"
             data-test="bracket"
         >
@@ -366,6 +371,9 @@ function send() {
 .dprog i { display: block; height: 100%; background: linear-gradient(90deg, #ff9f43, #ff6b6b); }
 .dnote { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
 .dnote.drawn { color: #ff9f43; }
+.dnote.cancelled { color: #ff8a8a; }
+.dcard.ph-cancelled { border-left-color: #6f7a70; opacity: 0.75; }
+.phase.cancelled { background: var(--hot-soft); color: #ff8a8a; }
 .dpod { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; font-weight: 800; }
 .dcard { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s; }
 .dcard:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.9), 0 0 0 1px var(--accent); background-color: var(--surface-3); }

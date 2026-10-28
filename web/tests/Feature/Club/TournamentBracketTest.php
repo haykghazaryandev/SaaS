@@ -357,3 +357,35 @@ it('makes a tournament with divisions by rating: its page lists them, each is a 
     // the last division over: the tournament is over
     expect(Tournaments::phase($cup->fresh()))->toBe('registration');
 });
+
+it('cancels a tournament before its start with a reason: fees back, players told, chat closed', function () {
+    Notification::fake();
+    $this->t->update(['options' => [['label' => 'Standard', 'price' => 5000]]]);
+    [$a, $b] = ($this->players)(2)->all();
+    $card = app(Cards::class)->forPlayer($this->club->forceFill(['features' => [...$this->club->features, 'wallet']]), User::find($a->user_id));
+    app(Cards::class)->topUp($card, 6000, $this->owner);
+    $this->tt->pay($a->fresh(), 'card', $this->owner);
+    $this->tt->pay($b->fresh(), 'cash', $this->owner);
+    $this->actingAs($this->owner)->post(route('owner.tournaments.cancel', $this->t->id), ['reason' => 'Not enough players registered'])->assertSessionHasNoErrors();
+    $t = $this->t->fresh();
+    expect($t->status)->toBe('cancelled')->and(Tournaments::phase($t))->toBe('cancelled')->and($t->cancel_reason)->toBe('Not enough players registered')
+        ->and($card->fresh()->balance)->toBe(6000)
+        ->and(Payment::where('kind', 'tournament')->sum('amount'))->toBe(0)
+        ->and($t->conversation->status)->toBe('archived');
+    Notification::assertSentTo(User::find($b->user_id), Notice::class, fn ($n) => $n->type === 'tournament_cancelled');
+    // nothing more on it; the page says why
+    expect(fn () => $this->tt->draw($t))->toThrow(BookingException::class);
+    expect(fn () => $this->tt->cancel($t, $this->owner, 'again'))->toThrow(BookingException::class);
+    $this->get('/t/'.$t->code)->assertInertia(fn (Assert $p) => $p->where('tournament.phase', 'cancelled')->where('tournament.cancel_reason', 'Not enough players registered')->where('tournament.open', false));
+});
+
+it('gives byes to the best when the players do not fill the bracket (11 players: 5 byes, 16 places)', function () {
+    $this->t->update(['max_players' => null, 'min_rating' => null, 'max_rating' => null]);
+    ($this->players)(11);
+    $this->tt->draw($this->t->fresh());
+    $first = TournamentMatch::where('tournament_id', $this->t->id)->where('round', 1)->get();
+    expect($first)->toHaveCount(8)
+        ->and($first->filter(fn ($m) => ! $m->a_id || ! $m->b_id)->count())->toBe(5)
+        ->and(TournamentMatch::where('tournament_id', $this->t->id)->where('round', 2)->whereNotNull('a_id')->count()
+            + TournamentMatch::where('tournament_id', $this->t->id)->where('round', 2)->whereNotNull('b_id')->count())->toBe(5);
+});

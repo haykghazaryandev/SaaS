@@ -18,11 +18,12 @@ export interface TournamentSettings {
     time: string;
     description: string | null;
     options: Opt[];
-    status: 'open' | 'closed' | 'done';
+    status: 'open' | 'closed' | 'done' | 'cancelled';
     min_rating: number | null;
     max_rating: number | null;
     max_players: number | null;
     division?: string | null;
+    cancel_reason?: string | null;
     parent?: { id: number; title: string } | null;
     divisions?: { id: number; division: string | null; min_rating: number | null; max_rating: number | null; max_players: number | null }[];
 }

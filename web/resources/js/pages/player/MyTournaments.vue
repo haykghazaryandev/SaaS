@@ -25,7 +25,7 @@ interface Item {
 }
 const props = defineProps<{ items: Item[] }>();
 type Group = 'live' | 'upcoming' | 'done';
-const groupOf = (i: Item): Group => (i.phase === 'live' ? 'live' : i.phase === 'done' ? 'done' : 'upcoming');
+const groupOf = (i: Item): Group => (i.phase === 'live' ? 'live' : i.phase === 'done' || i.phase === 'cancelled' ? 'done' : 'upcoming');
 const count = (g: Group) => props.items.filter((i) => groupOf(i) === g).length;
 const group = ref<Group>((['live', 'upcoming', 'done'] as const).find((g) => count(g) > 0) ?? 'upcoming');
 // finished: the newest first; the others: the soonest first

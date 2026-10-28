@@ -88,8 +88,8 @@ const count = (f: Filter) => t.value.list.filter(test[f]).length;
 const accepted = computed(() => count('accepted'));
 const entry = (id: number, data: Record<string, string>) =>
     router.patch(route('owner.tournaments.entry', id), data, { preserveScroll: true, preserveState: true });
-const started = computed(() => t.value.phase === 'live' || t.value.phase === 'done');
-const over = computed(() => t.value.phase === 'done');
+const started = computed(() => ['live', 'done', 'cancelled'].includes(t.value.phase));
+const over = computed(() => t.value.phase === 'done' || t.value.phase === 'cancelled');
 const range = (min: number | null, max: number | null) =>
     min == null && max == null ? trans('owner.tournament.any_rating') : min == null ? `≤ ${max}` : max == null ? `${min}+` : `${min}–${max}`;
 
@@ -119,6 +119,18 @@ async function removeEntry(e: Entry) {
         await ask({ title: trans('owner.tournament.ask_remove', { name: e.name }), text: notes.join('\n'), ok: trans('common.remove'), danger: true })
     )
         router.delete(route('owner.tournaments.remove', e.id), { preserveScroll: true, preserveState: true });
+}
+// ---------- cancel (before the start): a reason the players get; paid fees go back ----------
+const cancelling = ref(false);
+const reason = ref('');
+const REASONS = ['few', 'closed'] as const;
+const paidCount = computed(() => t.value.list.filter((e) => e.paid).length);
+const canCancel = computed(() => canEdit && !['live', 'done', 'cancelled'].includes(t.value.phase));
+async function cancelNow() {
+    const isAll = t.value.divisions.length > 0;
+    if (!reason.value.trim()) return;
+    if (await ask({ title: trans(isAll ? 'owner.tournament.ask_cancel_all' : 'owner.tournament.ask_cancel', { title: t.value.title }), text: reason.value, ok: trans('owner.tournament.cancel_btn'), danger: true }))
+        router.post(route('owner.tournaments.cancel', t.value.id), { reason: reason.value }, { preserveScroll: true, onSuccess: () => (cancelling.value = false) });
 }
 // tap a player's name: call, message (the place's chat with them), their page, their card (or make one and top it up)
 const who = ref<Entry | null>(null);
@@ -254,7 +266,10 @@ async function copy() {
                         >
                     </p>
                 </div>
-                <button v-if="canEdit && !editing" type="button" class="btn ghost sm" data-test="t-edit" @click="editing = true"><Icon name="edit" size="sm" /></button>
+                <button v-if="canEdit && !editing && tournament.phase !== 'cancelled'" type="button" class="btn ghost sm" data-test="t-edit" @click="editing = true"><Icon name="edit" size="sm" /></button>
+            </div>
+            <div v-if="tournament.phase === 'cancelled'" class="cbanner" data-test="t-cancelled">
+                <Icon name="x" size="sm" /><span><b>{{ $t('club.tournament.badge_cancelled') }}</b> · {{ tournament.cancel_reason }}</span>
             </div>
             <TournamentForm v-if="editing" :tournament="tournament" @done="editing = false" />
             <template v-else>
@@ -366,7 +381,7 @@ async function copy() {
         <section v-if="!tournament.divisions.length" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.bracket') }}</h2>
-                <button v-if="canEdit && tournament.status !== 'done'" type="button" :class="['btn', 'sm', { ghost: tournament.drawn }]" :disabled="accepted < 2" data-test="draw" @click="draw">
+                <button v-if="canEdit && !over" type="button" :class="['btn', 'sm', { ghost: tournament.drawn }]" :disabled="accepted < 2" data-test="draw" @click="draw">
                     <Icon name="trophy" size="sm" />{{ tournament.drawn ? $t('owner.tournament.redraw') : $t('owner.tournament.draw') }}
                 </button>
             </div>
@@ -412,6 +427,29 @@ async function copy() {
                 <small v-if="tournament.divisions.length" class="faint">{{ $t('owner.tournament.announce_divisions') }}</small>
             </form>
         </section>
+
+        <!-- cancel before the start: not enough players, the place closed … -->
+        <div v-if="canCancel" class="cancelrow">
+            <button type="button" class="btn ghost sm hotb" data-test="t-cancel" @click="cancelling = true">
+                <Icon name="x" size="sm" />{{ tournament.divisions.length ? $t('owner.tournament.cancel_all') : tournament.parent ? $t('owner.tournament.cancel_division') : $t('owner.tournament.cancel') }}
+            </button>
+        </div>
+        <OwnerSheet v-if="cancelling" :title="tournament.divisions.length ? $t('owner.tournament.cancel_all') : $t('owner.tournament.cancel')" @close="cancelling = false">
+            <div class="cform">
+                <div class="chips" role="group">
+                    <button v-for="r in REASONS" :key="r" type="button" class="chip" :aria-pressed="reason === $t('owner.tournament.reason_' + r)" @click="reason = $t('owner.tournament.reason_' + r)">
+                        {{ $t('owner.tournament.reason_' + r) }}
+                    </button>
+                </div>
+                <textarea v-model="reason" class="input" rows="3" maxlength="300" :placeholder="$t('owner.tournament.reason_ph')" data-test="cancel-reason" />
+                <p class="faint" style="font-size: 12.5px; margin: 0">
+                    {{ tournament.divisions.length ? $t('owner.tournament.cancel_hint_all') : $t('owner.tournament.cancel_hint', { n: paidCount }) }}
+                </p>
+                <button type="button" class="btn block danger" :disabled="reason.trim().length < 3" data-test="cancel-go" @click="cancelNow">
+                    {{ $t('owner.tournament.cancel_btn') }}
+                </button>
+            </div>
+        </OwnerSheet>
 
         <!-- a player: call, message, their page, their card -->
         <OwnerSheet v-if="who" :title="who.name" :sub="`${who.option} · ${who.price ? amd(who.price) : $t('club.free')}`" @close="who = null">
@@ -513,6 +551,12 @@ async function copy() {
 .pb.cash:hover { border-color: var(--accent); }
 .ename { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; color: var(--ink); font: 800 15px var(--body); cursor: pointer; text-align: left; }
 .ename:hover { color: var(--accent); }
+.cbanner { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--hot-soft); color: #ff8a8a; font-size: 13.5px; }
+.cancelrow { display: flex; justify-content: center; margin: 18px 0 6px; }
+.hotb { color: var(--hot); border-color: rgba(255, 107, 107, 0.3); }
+.cform { display: grid; gap: 10px; }
+.cform textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.cform .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .who-acts { display: grid; gap: 8px; }
 .wa { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); text-decoration: none; text-align: left; font: inherit; cursor: pointer; }
 .wa:hover { border-color: var(--accent); }

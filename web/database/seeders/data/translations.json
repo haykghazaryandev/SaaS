@@ -1519,6 +1519,11 @@
         "hy": ":name-ին հեռացրին խաղից",
         "ru": ":name удалён(а) из игры"
     },
+    "chat.sys.tournament_cancelled": {
+        "en": ":title is cancelled: :reason",
+        "hy": ":title մրցաշարը չեղարկվել է․ :reason",
+        "ru": "Турнир :title отменён: :reason"
+    },
     "chat.sys.tournament_drawn": {
         "en": "The draw is made: see the bracket",
         "hy": "Վիճակահանությունն արված է․ նայեք սխեման",
@@ -2044,6 +2049,11 @@
         "hy": "Ցանկացած ռեյթինգ",
         "ru": "Любой рейтинг"
     },
+    "club.tournament.badge_cancelled": {
+        "en": "Cancelled",
+        "hy": "Չեղարկված",
+        "ru": "Отменён"
+    },
     "club.tournament.badge_closed": {
         "en": "Registration closed",
         "hy": "Գրանցումը փակ է",
@@ -2078,6 +2088,11 @@
         "en": "The draw is made: see who plays whom",
         "hy": "Վիճակահանությունն արված է․ տեսեք՝ ով ում հետ է խաղում",
         "ru": "Жеребьёвка проведена: смотрите, кто с кем играет"
+    },
+    "club.tournament.d_cta_cancelled": {
+        "en": "Details",
+        "hy": "Մանրամասներ",
+        "ru": "Подробнее"
     },
     "club.tournament.d_cta_closed": {
         "en": "Open",
@@ -2183,6 +2198,11 @@
         "en": ":n divisions",
         "hy": ":n խումբ",
         "ru": "дивизионов: :n"
+    },
+    "club.tournament.phase_cancelled": {
+        "en": "The tournament is cancelled: :reason",
+        "hy": "Մրցաշարը չեղարկվել է․ :reason",
+        "ru": "Турнир отменён: :reason"
     },
     "club.tournament.phase_closed": {
         "en": "Registration is closed.",
@@ -4449,6 +4469,11 @@
         "hy": "🎾 :title վիճակահանություն․ դուք անմիջապես անցնում եք հաջորդ փուլ (:when)։",
         "ru": "🎾 Жеребьёвка :title: вы сразу проходите в следующий раунд (:when)."
     },
+    "notice.tournament_cancelled": {
+        "en": "❌ :title at :venue is cancelled: :reason. A paid fee is returned.",
+        "hy": "❌ :title մրցաշարը (:venue) չեղարկվել է․ :reason։ Վճարված գումարը վերադարձվում է։",
+        "ru": "❌ Турнир :title в :venue отменён: :reason. Оплаченный взнос возвращается."
+    },
     "notice.tournament_champion": {
         "en": "🥇 You won :title! Final: :winner – :loser :score.",
         "hy": "🥇 Դուք հաղթեցիք :title մրցաշարում։ Եզրափակիչ՝ :winner – :loser :score։",
@@ -6574,6 +6599,16 @@
         "hy": "ցանկացած ռեյթինգ",
         "ru": "любой рейтинг"
     },
+    "owner.tournament.ask_cancel": {
+        "en": "Cancel :title?",
+        "hy": "Չեղարկե՞լ :title-ը",
+        "ru": "Отменить :title?"
+    },
+    "owner.tournament.ask_cancel_all": {
+        "en": "Cancel :title with all its divisions not started yet?",
+        "hy": "Չեղարկե՞լ :title-ը՝ բոլոր չսկսված խմբերով",
+        "ru": "Отменить :title со всеми не начавшимися дивизионами?"
+    },
     "owner.tournament.ask_card": {
         "en": "Take :amount from :name's card?",
         "hy": "Գանձե՞լ :amount :name-ի քարտից",
@@ -6603,6 +6638,11 @@
         "en": "Make the draw for :n players?",
         "hy": "Կատարե՞լ վիճակահանություն :n խաղացողի համար",
         "ru": "Провести жеребьёвку на :n игроков?"
+    },
+    "owner.tournament.ask_draw_byes": {
+        "en": ":n players get a bye (the highest-rated go straight to round 2): the bracket has :size places.",
+        "hy": ":n խաղացող առանց խաղի կանցնի 2-րդ փուլ (ամենաբարձր ռեյթինգով)․ սխեման ունի :size տեղ։",
+        "ru": ":n игроков проходят во 2-й раунд без игры (самые высокие по рейтингу): в сетке :size мест."
     },
     "owner.tournament.ask_draw_text": {
         "en": "Registration closes and every player hears who they play.",
@@ -6683,6 +6723,41 @@
         "en": "Bracket",
         "hy": "Սխեմա",
         "ru": "Сетка"
+    },
+    "owner.tournament.cancel": {
+        "en": "Cancel the tournament",
+        "hy": "Չեղարկել մրցաշարը",
+        "ru": "Отменить турнир"
+    },
+    "owner.tournament.cancel_all": {
+        "en": "Cancel the whole tournament",
+        "hy": "Չեղարկել ամբողջ մրցաշարը",
+        "ru": "Отменить весь турнир"
+    },
+    "owner.tournament.cancel_btn": {
+        "en": "Cancel and tell the players",
+        "hy": "Չեղարկել և տեղեկացնել խաղացողներին",
+        "ru": "Отменить и сообщить игрокам"
+    },
+    "owner.tournament.cancel_division": {
+        "en": "Cancel this division",
+        "hy": "Չեղարկել այս խումբը",
+        "ru": "Отменить этот дивизион"
+    },
+    "owner.tournament.cancel_hint": {
+        "en": "Every registered player gets the reason (app + Telegram). Paid fees go back: :n (card fees to the card; cash: give it back).",
+        "hy": "Յուրաքանչյուր գրանցված խաղացող կստանա պատճառը (հավելված + Telegram)։ Վճարված գումարները վերադարձվում են՝ :n (քարտով՝ քարտին, կանխիկը՝ վերադարձրեք)։",
+        "ru": "Каждый записавшийся игрок получит причину (приложение + Telegram). Оплаченные взносы возвращаются: :n (с карты — на карту, наличные — верните)."
+    },
+    "owner.tournament.cancel_hint_all": {
+        "en": "Every division that has not started is cancelled: the players get the reason, paid fees go back.",
+        "hy": "Չսկսված բոլոր խմբերը կչեղարկվեն․ խաղացողները կստանան պատճառը, վճարները կվերադարձվեն։",
+        "ru": "Все не начавшиеся дивизионы будут отменены: игроки получат причину, взносы вернутся."
+    },
+    "owner.tournament.cancelled_flash": {
+        "en": "Cancelled: the players are told, paid fees are returned.",
+        "hy": "Չեղարկված է․ խաղացողները տեղեկացված են, վճարները վերադարձված են։",
+        "ru": "Отменено: игроки уведомлены, взносы возвращены."
     },
     "owner.tournament.card_balance": {
         "en": ":a on it",
@@ -6853,6 +6928,21 @@
         "en": "Rating :range",
         "hy": "Ռեյթինգ :range",
         "ru": "Рейтинг :range"
+    },
+    "owner.tournament.reason_closed": {
+        "en": "The place is closed that day",
+        "hy": "Այդ օրը վայրը փակ է",
+        "ru": "В этот день заведение закрыто"
+    },
+    "owner.tournament.reason_few": {
+        "en": "Not enough players registered",
+        "hy": "Բավարար խաղացողներ չեն գրանցվել",
+        "ru": "Записалось недостаточно игроков"
+    },
+    "owner.tournament.reason_ph": {
+        "en": "The reason the players will see",
+        "hy": "Պատճառը, որը կտեսնեն խաղացողները",
+        "ru": "Причина, которую увидят игроки"
     },
     "owner.tournament.redraw": {
         "en": "Redo the draw",

@@ -46,7 +46,7 @@ const tab = ref<'book' | 'tournaments' | 'games'>(props.tab ?? 'book');
 const { user } = useShared();
 // tournaments: Live · Open · Finished — on Live when something is on, else Open, else Finished
 type TGroup = 'live' | 'open' | 'done';
-const groupOf = (p: Phase): TGroup => (p === 'live' ? 'live' : p === 'done' ? 'done' : 'open');
+const groupOf = (p: Phase): TGroup => (p === 'live' ? 'live' : p === 'done' || p === 'cancelled' ? 'done' : 'open');
 const tCount = (g: TGroup) => (props.tournaments ?? []).filter((t) => groupOf(t.phase) === g).length;
 const tGroup = ref<TGroup>((['live', 'open', 'done'] as const).find((g) => tCount(g) > 0) ?? 'open');
 // live: a tournament starts, a result comes, one ends (the tab open: its list reloads)

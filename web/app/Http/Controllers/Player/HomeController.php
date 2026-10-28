@@ -80,7 +80,7 @@ class HomeController extends Controller
 
         // the sport's page: book (places and free times), its tournaments, open games
         // upcoming, on now and finished this week (with where each one is), on now first, finished last
-        $order = ['live' => 0, 'drawn' => 1, 'registration' => 2, 'closed' => 3, 'done' => 4];
+        $order = ['live' => 0, 'drawn' => 1, 'registration' => 2, 'closed' => 3, 'done' => 4, 'cancelled' => 5];
         $tournaments = Tournament::where('sport', $sport->value)->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
             ->whereIn('venue_id', $all->filter(fn (Venue $v) => $v->hasFeature('tournaments'))->pluck('id'))
             ->whereNull('parent_id')->with(['venue:id,name,slug', 'divisions'])->orderBy('starts_at')->limit(12)->get()

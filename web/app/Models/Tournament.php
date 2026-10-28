@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /** A tournament of a place with a registration link (/t/{code}) and up to 3 price options. */
 class Tournament extends Model
 {
-    protected $fillable = ['venue_id', 'parent_id', 'division', 'sport', 'title', 'code', 'starts_at', 'description', 'options', 'status', 'min_rating', 'max_rating', 'max_players', 'drawn_at'];
+    protected $fillable = ['venue_id', 'parent_id', 'division', 'sport', 'title', 'code', 'starts_at', 'description', 'options', 'status', 'cancel_reason', 'min_rating', 'max_rating', 'max_players', 'drawn_at'];
 
     protected function casts(): array
     {

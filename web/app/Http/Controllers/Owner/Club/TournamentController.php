@@ -132,6 +132,18 @@ class TournamentController extends OwnerController
         return back()->with('success', __('owner.flash.saved'));
     }
 
+    /** Cancel before the start (a division, or the whole tournament): fees back, players told why. */
+    public function cancel(Request $request, Tournament $tournament, Tournaments $tournaments)
+    {
+        $this->own($request, $tournament);
+        $this->ensureOwner($request);
+        $data = $request->validate(['reason' => 'required|string|min:3|max:300']);
+        $tournament->setRelation('venue', $this->venue($request));
+        $this->attempt(fn () => $tournaments->cancel($tournament, $request->user(), $data['reason']));
+
+        return back()->with('success', __('owner.tournament.cancelled_flash'));
+    }
+
     /** Take a player off the tournament (before it starts): a paid fee goes back. */
     public function remove(Request $request, TournamentEntry $entry, Tournaments $tournaments)
     {
@@ -242,6 +254,7 @@ class TournamentController extends OwnerController
         return ['id' => $t->id, 'title' => $t->title, 'date' => $at->toDateString(), 'time' => $at->format('H:i'), 'description' => $t->description,
             'options' => $t->options, 'status' => $t->status, 'link' => $t->link(),
             'min_rating' => $t->min_rating, 'max_rating' => $t->max_rating, 'max_players' => $t->max_players, 'drawn' => $t->drawn_at !== null,
+            'cancel_reason' => $t->cancel_reason,
             'division' => $t->division, 'parent' => $t->parent_id ? ['id' => $t->parent_id, 'title' => $t->parent?->title] : null];
     }
 }

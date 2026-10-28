@@ -14,7 +14,7 @@ interface Row {
     title: string;
     date: string;
     time: string;
-    status: 'open' | 'closed' | 'done';
+    status: 'open' | 'closed' | 'done' | 'cancelled';
     phase: Phase;
     drawn: boolean;
     entries: number;
@@ -62,7 +62,7 @@ const creating = ref(false);
         </section>
 
         <div class="tlist">
-            <div v-for="t in tournaments" :key="t.id" :class="['card', 'tcard', 'ph-' + t.phase, { done: t.status === 'done' }]">
+            <div v-for="t in tournaments" :key="t.id" :class="['card', 'tcard', 'ph-' + t.phase, { done: t.status === 'done' || t.status === 'cancelled' }]">
                 <Link :href="route('owner.tournaments.show', t.id)" class="trow" :data-test="`tournament-${t.id}`">
                     <span class="ico"><Icon name="trophy" /></span>
                     <span class="w">
@@ -125,6 +125,7 @@ const creating = ref(false);
 .tcard.ph-registration { border-left-color: #5ef0a8; }
 .tcard.ph-done { border-left-color: #ffd166; }
 .tcard.done { opacity: 0.7; }
+.tcard.ph-cancelled { border-left-color: #6f7a70; opacity: 0.6; }
 .trow { display: flex; align-items: center; gap: 12px; padding: 14px; color: inherit; text-decoration: none; min-width: 0; }
 .dlist { border-top: 1px solid var(--line); padding: 4px 14px 6px 66px; }
 .drow { display: flex; align-items: center; gap: 10px; padding: 9px 0; color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); min-width: 0; }

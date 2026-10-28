@@ -80,6 +80,7 @@ class ClubPublicController extends Controller
                 'podium' => $phase === 'done' ? $t->entries()->whereNotNull('place')->where('place', '<=', 3)->orderBy('place')->get()
                     ->map(fn ($e) => ['place' => $e->place, 'name' => Tournaments::name($e)])->values() : [],
                 'min_rating' => $t->min_rating, 'max_rating' => $t->max_rating, 'max_players' => $t->max_players, 'status' => $t->status,
+                'cancel_reason' => $t->cancel_reason,
                 'division' => $t->division, 'parent' => $t->parent ? ['code' => $t->parent->code, 'title' => $t->parent->title] : null,
                 'isParent' => $t->divisions->isNotEmpty(), 'divisions' => $divisionList, 'myRating' => $myRating],
             // who plays whom (after the draw), live: the public channel tournament.{code}
@@ -105,7 +106,7 @@ class ClubPublicController extends Controller
         $phase = Tournaments::phase($d);
         $mine = $user ? $d->entries()->where(fn ($q) => $q->where('user_id', $user->id)->when($user->phone, fn ($w) => $w->orWhere('phone', $user->phone)))->first() : null;
         $out = ['code' => $d->code, 'division' => $d->division, 'min_rating' => $d->min_rating, 'max_rating' => $d->max_rating,
-            'max_players' => $d->max_players, 'phase' => $phase, 'current' => $d->id === $current->id,
+            'max_players' => $d->max_players, 'phase' => $phase, 'current' => $d->id === $current->id, 'cancel_reason' => $d->cancel_reason,
             'count' => $d->entries()->where('status', '!=', 'declined')->count(),
             'accepted' => $d->entries()->where('status', 'accepted')->count(),
             // my rating fits this division
