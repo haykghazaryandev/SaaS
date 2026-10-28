@@ -7,9 +7,11 @@ use App\Enums\BookingStatus;
 use App\Filament\Pages\PlatformFee;
 use App\Models\Booking;
 use App\Models\Conversation;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Inertia\Testing\AssertableInertia as Assert;
 use Livewire\Livewire;
@@ -22,34 +24,78 @@ beforeEach(function () {
     $this->money = app(Money::class);
 });
 
-it('takes the % of bookings, trainings and tournaments — not the shop, not top-ups — and played but unpaid games', function () {
+it('takes the % of bookings, trainings and tournaments only — not the shop, not top-ups — refunds taken off', function () {
     $card = app(Cards::class)->forPlayer($this->club, $this->player);
-    app(Cards::class)->topUp($card, 20000, $this->owner);                                     // not counted
-    $this->money->charge($this->club, $this->owner, 'booking', 6000, 'card', $this->player);   // counted (card money used)
+    app(Cards::class)->topUp($card, 20000, $this->owner);                                     // not counted (counted when used)
+    $this->money->charge($this->club, $this->owner, 'booking', 6000, 'card', $this->player);   // card money used: counted
     $this->money->charge($this->club, $this->owner, 'training', 4000, 'cash', $this->player);
     $this->money->charge($this->club, $this->owner, 'tournament', 3000, 'cash', $this->player);
     $this->money->charge($this->club, $this->owner, 'shop', 1500, 'cash', $this->player);      // not counted
-    // a game played today, never paid at the desk: its price
+    // a place with the desk: a game played but never paid is not money taken
     Booking::create(['code' => 'BB-9901', 'venue_id' => $this->club->id, 'field_id' => $this->club->fields->first()->id, 'status' => BookingStatus::Completed,
         'source' => 'owner', 'contact_name' => 'Walk-in', 'starts_at' => now()->startOfHour(), 'ends_at' => now()->startOfHour()->addHour(), 'price' => 2000]);
     [$from, $to] = Commission::period('month');
     $r = app(Commission::class)->between($this->club, $from, $to);
-    expect($r['byKind'])->toBe(['booking' => 6000, 'training' => 4000, 'tournament' => 3000, 'unpaid' => 2000])
-        ->and($r['base'])->toBe(15000)->and($r['pct'])->toBe(5.0)->and($r['fee'])->toBe(750);
+    expect($r['byKind'])->toBe(['booking' => 6000, 'training' => 4000, 'tournament' => 3000, 'unpaid' => 0])
+        ->and($r['base'])->toBe(13000)->and($r['pct'])->toBe(5.0)->and($r['fee'])->toBe(650)
+        ->and(array_sum(array_column($r['days'], 'base')))->toBe(13000);
+
+    // a refunded tournament fee comes off
+    Payment::create(['venue_id' => $this->club->id, 'kind' => 'tournament', 'method' => 'cash', 'amount' => -3000, 'created_by' => $this->owner->id]);
+    expect(app(Commission::class)->between($this->club, $from, $to)['base'])->toBe(10000);
 
     // the admin sets another % for this place
     $this->club->update(['commission_pct' => 2]);
-    expect(app(Commission::class)->between($this->club->fresh(), $from, $to)['fee'])->toBe(300);
+    expect(app(Commission::class)->between($this->club->fresh(), $from, $to)['fee'])->toBe(200);
 
     // the owner sees it on Money, the admin on ZoneSpot fee
     $this->actingAs($this->owner)->get(route('owner.money', ['period' => 'month']))->assertOk()
-        ->assertInertia(fn (Assert $p) => $p->where('fee.fee', 300)->where('fee.base', 15000));
+        ->assertInertia(fn (Assert $p) => $p->where('fee.fee', 200)->where('fee.base', 10000));
     $admin = User::factory()->create();
     $admin->forceFill(['is_admin' => true])->save();
     $this->actingAs($admin);
     Filament::setCurrentPanel(Filament::getPanel('admin'));
-    Livewire::test(PlatformFee::class)->assertOk()->assertSee($this->club->name)->assertSee('300 ֏')
-        ->call('setPeriod', 'day')->assertSee('300 ֏')->call('move', -1)->assertDontSee('300 ֏');
+    Livewire::test(PlatformFee::class)->assertOk()->assertSee($this->club->name)->assertSee('200 ֏')
+        ->call('setPeriod', 'day')->assertSee('200 ֏')->call('move', -1)->assertDontSee('200 ֏');
+});
+
+it('counts the played bookings of a place without the desk, once (a bill paid there is the payment, not the booking)', function () {
+    $park = makeVenue();
+    $field = $park->fields->first();
+    $mk = fn ($code, $status, $price, $hour, $paid = null) => Booking::create(['code' => $code, 'venue_id' => $park->id, 'field_id' => $field->id, 'status' => $status,
+        'source' => 'owner', 'contact_name' => 'Team', 'starts_at' => now()->startOfDay()->addHours($hour), 'ends_at' => now()->startOfDay()->addHours($hour + 1), 'price' => $price, 'paid_at' => $paid]);
+    $mk('BB-1', BookingStatus::Completed, 10000, 1);
+    $mk('BB-2', BookingStatus::Cancelled, 9000, 2);                 // not played
+    $mk('BB-3', BookingStatus::NoShow, 8000, 3);                     // not played
+    $mk('BB-4', BookingStatus::Pending, 7000, 4);                    // not played
+    $paid = $mk('BB-5', BookingStatus::Completed, 12000, 5, now());  // paid at a bill: its payment counts, not the booking
+    $this->money->charge($park, $this->owner, 'booking', 12000, 'cash', null, $paid->id);
+    [$from, $to] = Commission::period('day');
+    $r = app(Commission::class)->between($park, $from, $to);
+    expect($r['byKind']['unpaid'])->toBe(10000)->and($r['byKind']['booking'])->toBe(12000)->and($r['base'])->toBe(22000)->and($r['fee'])->toBe(1100)
+        ->and($r['desk'])->toBeFalse();
+});
+
+it('cuts the periods in Yerevan time and rounds the fee', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-15 12:00', 'Asia/Yerevan'));
+    $pay = function (string $at, int $amount) {
+        $p = $this->money->charge($this->club, $this->owner, 'booking', $amount, 'cash', $this->player);
+        $p->forceFill(['created_at' => CarbonImmutable::parse($at, 'Asia/Yerevan')->utc()])->save();
+    };
+    $pay('2026-10-31 23:30', 1000);   // the last minutes of October in Yerevan
+    $pay('2026-11-01 00:10', 1999);   // November in Yerevan (still October 31 in UTC)
+    $this->club->update(['commission_pct' => 2.5]);
+    $club = $this->club->fresh();
+    [$f, $t] = Commission::period('month');
+    $nov = app(Commission::class)->between($club, $f, $t);
+    [$pf, $pt] = Commission::period('prev_month');
+    $oct = app(Commission::class)->between($club, $pf, $pt);
+    expect($nov['base'])->toBe(1999)->and($nov['fee'])->toBe(50)       // 49.975 → 50
+        ->and($oct['base'])->toBe(1000)->and($oct['fee'])->toBe(25)
+        ->and($nov['days'][0]['date'])->toBe('2026-11-01');
+    // the admin's totals are the sum of the places
+    $all = app(Commission::class)->forVenues(collect([$club, makeVenue()]), $pf, $t);
+    expect($all['base'])->toBe(2999)->and($all['fee'])->toBe(75);
 });
 
 it('shows the fee to the owner of a place without the money feature', function () {

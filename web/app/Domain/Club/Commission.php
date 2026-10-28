@@ -14,8 +14,9 @@ use Illuminate\Support\Collection;
  * ZoneSpot's fee: a % (venues.commission_pct, 5 by default, set per place by the admin) of what a place takes for
  * bookings, trainings and tournament fees — paid from the player's card or in cash, refunds taken off. Shop sales
  * and card top-ups are not counted (the top-up money counts when the card pays for a booking or a tournament).
- * A game that was played but not paid at the desk (a place without the club till, or a forgotten bill) counts with
- * its booking price, on the day it was played.
+ * Places that take the money at the desk (Now / the bill: wallet, shop or money switched on) count only the money taken.
+ * Places without the desk (a football field paid in cash on the spot) record no payments: their played bookings count
+ * with the booking price, on the day played ('unpaid'). A bill paid at the desk is never counted twice (paid_at).
  */
 class Commission
 {
@@ -41,7 +42,9 @@ class Commission
         $paid = Payment::whereIn('venue_id', $ids)->whereIn('kind', self::KINDS)
             ->where('created_at', '>=', $from->utc())->where('created_at', '<', $to->utc())
             ->get(['venue_id', 'kind', 'amount', 'created_at']);
-        $unpaid = Booking::whereIn('venue_id', $ids)->where('status', BookingStatus::Completed->value)->whereNull('paid_at')
+        // only places without the desk: their played bookings stand for the money
+        $noDesk = $venues->reject(fn (Venue $v) => self::usesDesk($v))->pluck('id')->all();
+        $unpaid = Booking::whereIn('venue_id', $noDesk)->where('status', BookingStatus::Completed->value)->whereNull('paid_at')
             ->where('starts_at', '>=', $from->utc())->where('starts_at', '<', $to->utc())
             ->get(['venue_id', 'price', 'starts_at']);
 
@@ -63,12 +66,18 @@ class Commission
             krsort($days);
             $base = array_sum($by);
 
-            return ['id' => $v->id, 'name' => $v->name, 'slug' => $v->slug, 'pct' => $pct, 'byKind' => $by, 'base' => $base,
+            return ['id' => $v->id, 'name' => $v->name, 'slug' => $v->slug, 'pct' => $pct, 'byKind' => $by, 'base' => $base, 'desk' => self::usesDesk($v),
                 'fee' => self::fee($base, $pct),
                 'days' => collect($days)->map(fn ($sum, $d) => ['date' => $d, 'base' => $sum, 'fee' => self::fee($sum, $pct)])->values()->all()];
         })->values();
 
         return ['venues' => $rows->all(), 'base' => (int) $rows->sum('base'), 'fee' => (int) $rows->sum('fee')];
+    }
+
+    /** The place takes the money at the desk (the bill of a game, cards, the shop): its payments are the truth. */
+    public static function usesDesk(Venue $v): bool
+    {
+        return $v->hasFeature('wallet') || $v->hasFeature('shop') || $v->hasFeature('money');
     }
 
     public static function fee(int $base, float $pct): int
