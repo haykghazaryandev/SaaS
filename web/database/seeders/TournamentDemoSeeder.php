@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Club\Tournaments;
+use App\Models\Payment;
 use App\Models\SportRating;
 use App\Models\Tournament;
 use App\Models\TournamentEntry;
@@ -17,18 +18,23 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * Demo tournaments at Pingpong.land (local / staging only) around the first admin (ADMIN_PHONE), who owns the club
- * there, so one account sees every case as the owner and as a player:
- * - Autumn Cup: on now, the admin won the semi-final and is in the Grand Final, the other semi-final live
- * - Friday Night: on now, 16 players, the admin's first match and two more live, some results
- * - Weekend Open: the draw is made, in 2 days, the admin accepted with the fee not paid
- * - December Open: registration open, the admin accepted (the fee is taken after registration closes)
- * - Club Championship: registration open, a rating range and 16 places, the admin waiting for the answer
- * - October Cup: finished 3 days ago, the admin runner-up
- * - Winter Cup: 3 divisions by rating — Amateur on now (a match live), Middle drawn, Pro registration open (the admin accepted)
+ * there and plays in them too. Every tournament has divisions by rating (Amateur ≤1349, Middle 1350–1449, Pro 1450+),
+ * each division in its own state, so every case can be seen:
+ * - Autumn Cup (today): Amateur on now; Pro on now, the admin through to the Final
+ * - Weekend Open (in 2 days): the draws made, fees taken; Amateur still waiting for one fee
+ * - Club Championship (in 14 days): registration open, the admin waiting for the answer in Pro
+ * - Winter Cup (in 20 days): registration open, the admin accepted in Pro (the fee after registration)
+ * - October Cup (3 days ago): Amateur and Pro over (the admin runner-up), Middle cancelled — not enough players
  * Made once; made again when older than 2 days (so the dates stay right on staging). Nobody is notified while seeding.
  */
 class TournamentDemoSeeder extends Seeder
 {
+    private const DIVISIONS = [
+        ['name' => 'Amateur', 'max_rating' => 1349, 'max_players' => 16],
+        ['name' => 'Middle', 'min_rating' => 1350, 'max_rating' => 1449, 'max_players' => 16],
+        ['name' => 'Pro', 'min_rating' => 1450, 'max_players' => 8],
+    ];
+
     public function run(): void
     {
         $club = Venue::where('slug', 'pingpong-land')->first();
@@ -36,11 +42,11 @@ class TournamentDemoSeeder extends Seeder
         if (! $club || ! $admin) {
             return;
         }
-        $players = User::where('phone', 'like', '+3749300%')->orderBy('phone')->limit(20)->get();
+        $players = User::where('phone', 'like', '+3749300%')->orderBy('phone')->limit(24)->get();
         if ($players->count() < 15) {
             return;
         }
-        // the admin is the best seed (1650): the top of the bracket
+        // the admin is the best (1650): Pro, the top of its bracket
         SportRating::updateOrCreate(['user_id' => $admin->id, 'sport' => 'pingpong'], ['rating' => 1650, 'venue_id' => $club->id]);
         foreach ($players->values() as $i => $u) {
             SportRating::firstOrCreate(['user_id' => $u->id, 'sport' => 'pingpong'], ['rating' => 1600 - 15 * $i, 'venue_id' => $club->id]);
@@ -50,140 +56,167 @@ class TournamentDemoSeeder extends Seeder
         Notification::fake();   // no messages / Telegram for the demo
         try {
             $this->autumnCup($club, $admin, $players);
-            $this->fridayNight($club, $admin, $players);
             $this->weekendOpen($club, $admin, $players);
-            $this->decemberOpen($club, $admin, $players);
             $this->championship($club, $admin, $players);
-            $this->octoberCup($club, $admin, $players);
             $this->winterCup($club, $admin, $players);
+            $this->octoberCup($club, $admin, $players);
         } finally {
             Notification::swap($real);
         }
-        $this->command?->info('Demo tournaments: ready for '.$admin->phone.'.');
+        $this->command?->info('Demo tournaments (with divisions): ready for '.$admin->phone.'.');
     }
 
     // ---------- the cases ----------
 
     private function autumnCup(Venue $club, User $admin, Collection $players): void
     {
-        $t = $this->make($club, 'demoauto', 'Autumn Cup', now()->subHour(), [['label' => 'Standard', 'price' => 3000]]);
-        if (! $t) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demoautm', 'Autumn Cup', [['label' => 'Standard', 'price' => 3000]])) {
             return;
         }
-        $this->fill($t, $admin, $players->take(7), accepted: true);
-        $this->tt()->draw($t);
-        $this->payAll($t, $admin);   // fees after registration closed; it starts when everybody paid
-        $this->playRound($t, 1);
-        $semis = TournamentMatch::where('tournament_id', $t->id)->where('round', 2)->orderBy('slot')->get();
-        $this->tt()->result($semis[0], $semis[0]->a_id, '3:2');           // the admin (seed 1) is in the Final
-        $semis[1]->update(['score' => '1:1']);
-        $this->tt()->setLive($semis[1]->fresh(), true);                     // the other semi-final: live
-        $t->update(['starts_at' => now()->subHours(2)]);
-    }
-
-    private function fridayNight(Venue $club, User $admin, Collection $players): void
-    {
-        $t = $this->make($club, 'demofrid', 'Friday Night', now()->subMinutes(40), [['label' => 'Free', 'price' => 0]]);
-        if (! $t) {
-            return;
+        $this->fill($am, null, $this->inRange($am, $players)->take(7), accepted: true);
+        $this->fill($pro, $admin, $this->inRange($pro, $players)->take(3), accepted: true);
+        foreach ([$am, $pro] as $d) {
+            $this->tt()->draw($d->fresh());
+            $this->payAll($d, $admin);
         }
-        $this->fill($t, $admin, $players->take(15), accepted: true);
-        $this->tt()->draw($t);
-        foreach (TournamentMatch::where('tournament_id', $t->id)->where('round', 1)->orderBy('slot')->get() as $m) {
-            if (in_array($m->slot, [0, 3, 6], true)) {
-                $m->update(['score' => $m->slot === 0 ? '2:1' : '1:1']);
-                $this->tt()->setLive($m->fresh(), true);                    // the admin's match (slot 0) and two more: live
-            } elseif ($m->a_id && $m->b_id) {
-                $this->tt()->result($m, $m->a_id, '3:1');
+        // Amateur: the first round half played, one match live
+        $this->live($am, 1);
+        // Pro (4 players): the admin (seed 1) through to the Final, the other semi-final live
+        $mine = $this->entryOf($pro, $admin);
+        $semis = TournamentMatch::where('tournament_id', $pro->id)->where('round', 1)->orderBy('slot')->get();
+        foreach ($semis as $m) {
+            if (! $m->a_id || ! $m->b_id) {
+                continue;
+            }
+            if (in_array($mine, [$m->a_id, $m->b_id], true)) {
+                $this->tt()->result($m, $mine, '3:1');
+            } else {
+                $m->update(['score' => '1:1']);
+                $this->tt()->setLive($m->fresh(), true);
             }
         }
-        $t->update(['starts_at' => now()->subMinutes(40)]);
+        $this->tt()->cancel($mid->fresh(), $admin, 'Not enough players registered');
+        $this->dates($cup, now()->subHour());
     }
 
     private function weekendOpen(Venue $club, User $admin, Collection $players): void
     {
-        $t = $this->make($club, 'demowknd', 'Weekend Open', $this->at(2, 11), [['label' => 'Standard', 'price' => 5000]]);
-        if (! $t) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demowkd2', 'Weekend Open', [['label' => 'Standard', 'price' => 5000]])) {
             return;
         }
-        $this->fill($t, $admin, $players->take(7), accepted: true);        // the admin: accepted, the fee not paid
-        $t->update(['starts_at' => $this->at(2, 11)]);
-        $this->tt()->draw($t->fresh());
-    }
-
-    private function decemberOpen(Venue $club, User $admin, Collection $players): void
-    {
-        $t = $this->make($club, 'demodece', 'December Open', $this->at(9, 11),
-            [['label' => 'Amateur', 'price' => 0], ['label' => 'Standard', 'price' => 5000], ['label' => 'Pro', 'price' => 10000]], ['max_players' => 16]);
-        if (! $t) {
-            return;
+        foreach ([[$am, null, 9], [$mid, null, 6], [$pro, $admin, 3]] as [$d, $who, $n]) {
+            $this->fill($d, $who, $this->inRange($d, $players)->take($n), accepted: true);
+            $this->tt()->draw($d->fresh());
+            $this->payAll($d, $admin);
         }
-        $this->fill($t, $admin, $players->take(9), accepted: true, option: 1);   // fees after registration closes
-        $t->update(['starts_at' => $this->at(9, 11)]);
+        // one Amateur fee still to take
+        $last = TournamentEntry::where('tournament_id', $am->id)->whereNotNull('payment_id')->latest('id')->first();
+        if ($last) {
+            Payment::whereKey($last->payment_id)->delete();
+            $last->update(['payment_id' => null]);
+        }
+        $this->dates($cup, $this->at(2, 11));
     }
 
     private function championship(Venue $club, User $admin, Collection $players): void
     {
-        $t = $this->make($club, 'demochmp', 'Club Championship', $this->at(14, 12), [['label' => 'Standard', 'price' => 4000]],
-            ['min_rating' => 1100, 'max_rating' => 1700, 'max_players' => 16]);
-        if (! $t) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demochm2', 'Club Championship', [['label' => 'Standard', 'price' => 4000]])) {
             return;
         }
-        $this->fill($t, null, $players->take(10), accepted: true);
-        $this->register($t, $admin);                                        // the admin: waiting for the answer
-        $t->update(['starts_at' => $this->at(14, 12)]);
-    }
-
-    private function octoberCup(Venue $club, User $admin, Collection $players): void
-    {
-        $t = $this->make($club, 'demooctc', 'October Cup', $this->at(-3, 11), [['label' => 'Standard', 'price' => 3000]]);
-        if (! $t) {
-            return;
-        }
-        $this->fill($t, $admin, $players->slice(3, 7), accepted: true);
-        $this->tt()->draw($t);
-        $this->payAll($t, $admin);
-        $this->playRound($t, 1);
-        $this->playRound($t, 2);
-        $final = TournamentMatch::where('tournament_id', $t->id)->where('round', 3)->first();
-        $this->tt()->result($final, $final->b_id, '3:2');                   // the admin (side a) loses the Final: 2nd
-        $t->update(['starts_at' => $this->at(-3, 11)]);
+        $this->fill($am, null, $this->inRange($am, $players)->take(5), accepted: true);
+        $this->fill($mid, null, $this->inRange($mid, $players)->take(4), accepted: true);
+        $this->fill($pro, null, $this->inRange($pro, $players)->take(2), accepted: true);
+        $this->register($pro, $admin);   // the admin: waiting for the answer
+        $this->dates($cup, $this->at(14, 12));
     }
 
     private function winterCup(Venue $club, User $admin, Collection $players): void
     {
-        $old = Tournament::where('code', 'demowint')->first();
-        if ($old && $old->created_at->greaterThan(now()->subDays(2))) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demowin2', 'Winter Cup', [['label' => 'Standard', 'price' => 4000], ['label' => 'With a T-shirt', 'price' => 7000]])) {
             return;
         }
-        $old?->delete();
-        $cup = $this->tt()->saveWithDivisions(new Tournament(['venue_id' => $club->id]), ['title' => 'Winter Cup', 'sport' => 'pingpong',
-            'starts_at' => $this->at(20, 11), 'description' => 'Demo tournament with divisions (local / staging).', 'options' => [['label' => 'Standard', 'price' => 4000]]], [
-                ['name' => 'Amateur', 'max_rating' => 1349, 'max_players' => 16],
-                ['name' => 'Middle', 'min_rating' => 1350, 'max_rating' => 1449, 'max_players' => 16],
-                ['name' => 'Pro', 'min_rating' => 1450, 'max_players' => 8],
-            ]);
-        $cup->forceFill(['code' => 'demowint'])->save();
-        foreach ($cup->divisions as $d) {
-            // the players of each division's range
-            $in = $players->filter(function (User $u) use ($d) {
-                $r = Tournaments::ratingOf($d, $u->id, null);
+        $this->fill($am, null, $this->inRange($am, $players)->take(6), accepted: true);
+        $this->fill($mid, null, $this->inRange($mid, $players)->take(4), accepted: true);
+        $this->fill($pro, $admin, $this->inRange($pro, $players)->take(2), accepted: true, option: 1);
+        $this->dates($cup, $this->at(20, 11));
+    }
 
-                return $r !== null && ($d->min_rating === null || $r >= $d->min_rating) && ($d->max_rating === null || $r <= $d->max_rating);
-            })->take(6);
-            $this->fill($d, $d->division === 'Pro' ? $admin : null, $in, accepted: true);
+    private function octoberCup(Venue $club, User $admin, Collection $players): void
+    {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demooct2', 'October Cup', [['label' => 'Standard', 'price' => 3000]])) {
+            return;
         }
-        // every state on one page: Amateur is being played (a result, a match live), Middle has its draw
-        [$amateur, $middle] = [$cup->divisions[0]->fresh(), $cup->divisions[1]->fresh()];
-        $this->tt()->draw($amateur);
-        $this->payAll($amateur, $admin);
-        $first = TournamentMatch::where('tournament_id', $amateur->id)->where('round', 1)->whereNotNull('a_id')->whereNotNull('b_id')->orderBy('slot')->get();
-        if ($first->count() >= 2) {
-            $this->tt()->result($first[0], $first[0]->a_id, '3:1');
-            $first[1]->update(['score' => '2:1']);
-            $this->tt()->setLive($first[1]->fresh(), true);
+        $this->fill($am, null, $this->inRange($am, $players)->take(4), accepted: true);
+        $this->fill($pro, $admin, $this->inRange($pro, $players)->take(3), accepted: true);
+        $this->fill($mid, null, $this->inRange($mid, $players)->take(1), accepted: true);
+        $this->tt()->cancel($mid->fresh(), $admin, 'Not enough players registered');
+        foreach ([$am, $pro] as $d) {
+            $this->tt()->draw($d->fresh());
+            $this->payAll($d, $admin);
+            $this->playRound($d, 1);
         }
-        $this->tt()->draw($middle);
+        // the Finals: Amateur by the higher seed, Pro lost by the admin
+        foreach ([$am, $pro] as $d) {
+            $final = TournamentMatch::where('tournament_id', $d->id)->orderByDesc('round')->first();
+            if ($final?->a_id && $final->b_id) {
+                $this->tt()->result($final, $final->a_id === $this->entryOf($d, $admin) ? $final->b_id : $final->a_id, '3:2');
+            }
+        }
+        $this->dates($cup, $this->at(-3, 11));
+    }
+
+    // ---------- divisions ----------
+
+    /** The cup with its three divisions, made now (registration open), or null when a fresh one is there. */
+    private function cup(Venue $club, string $code, string $title, array $options): ?array
+    {
+        $old = Tournament::where('code', $code)->first();
+        if ($old && $old->created_at->greaterThan(now()->subDays(2))) {
+            return null;
+        }
+        $old?->delete();
+        $cup = $this->tt()->saveWithDivisions(new Tournament(['venue_id' => $club->id]), ['title' => $title, 'sport' => 'pingpong',
+            'starts_at' => now()->addDays(30), 'description' => 'Demo tournament with divisions (local / staging).', 'options' => $options], self::DIVISIONS);
+        $cup->forceFill(['code' => $code])->save();
+        $d = $cup->divisions()->get()->each(fn ($x) => $x->setRelation('venue', $club))->values();
+
+        return [$cup, $d[0], $d[1], $d[2]];
+    }
+
+    /** The user's entry id in the division (matches hold entry ids). */
+    private function entryOf(Tournament $d, User $u): ?int
+    {
+        return TournamentEntry::where('tournament_id', $d->id)->where('user_id', $u->id)->value('id');
+    }
+
+    /** The players whose rating is in the division's range. */
+    private function inRange(Tournament $d, Collection $players): Collection
+    {
+        return $players->filter(function (User $u) use ($d) {
+            $r = Tournaments::ratingOf($d, $u->id, null);
+
+            return $r !== null && ($d->min_rating === null || $r >= $d->min_rating) && ($d->max_rating === null || $r <= $d->max_rating);
+        })->values();
+    }
+
+    /** Half of a round played (the higher seed wins), the next match being played now. */
+    private function live(Tournament $d, int $round): void
+    {
+        $ms = TournamentMatch::where('tournament_id', $d->id)->where('round', $round)->whereNotNull('a_id')->whereNotNull('b_id')->orderBy('slot')->get();
+        foreach ($ms->values() as $i => $m) {
+            if ($i < intdiv($ms->count(), 2)) {
+                $this->tt()->result($m, $m->a_id, '3:1');
+            } elseif ($i === intdiv($ms->count(), 2)) {
+                $m->update(['score' => '2:1']);
+                $this->tt()->setLive($m->fresh(), true);
+            }
+        }
+    }
+
+    /** The real date of the cup and its divisions (after the registrations). */
+    private function dates(Tournament $cup, $at): void
+    {
+        Tournament::whereKey($cup->id)->orWhere('parent_id', $cup->id)->update(['starts_at' => $at instanceof CarbonImmutable ? $at->utc() : $at]);
     }
 
     // ---------- helpers ----------

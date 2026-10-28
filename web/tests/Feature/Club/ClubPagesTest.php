@@ -192,14 +192,11 @@ it('attaches a card to a phone booking from the scanned card (a phone) or by nam
     foreach ([$b, $b2, $ob] as $x) {
         $x->update(['started_at' => $start->utc()]);
     }
-    // the card page (a scan on the phone) lists the bill; attaching opens it
-    $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p
-        ->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id) == [...collect($bills)->firstWhere('id', $b->id), 'mine' => false, 'total' => 15000]));
+    // the card scanned at the bill: attached, the bill opens
     $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/scan", ['code' => $this->card->code, 'open' => 1])
         ->assertRedirect(route('owner.bookings.checkout', $b->id));
     expect($b->fresh()->user_id)->toBe($this->player->id);
     Event::assertDispatched(ScheduleChanged::class);
-    $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id)['mine'] === true));
 
     // no camera: find the card by name or phone on another phone booking's bill
     $this->actingAs($this->owner)->getJson("/owner/bookings/{$b2->id}/cards?q=gor")->assertOk()->assertJsonPath('0.code', $this->card->code);

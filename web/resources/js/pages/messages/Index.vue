@@ -41,6 +41,30 @@ const hasFind = (() => {
 })();
 
 // ---------- "New message": friend picker ----------
+// the filter: all, one-to-one (a friend, a player and the place), groups (games, tournaments)
+type Kind = 'all' | 'direct' | 'group';
+const isGroup = (c: ChatItem) => c.type === 'game' || c.type === 'tournament';
+const readKind = (): Kind => {
+    try {
+        const v = localStorage.getItem('bb.chats.kind');
+        return v === 'direct' || v === 'group' ? v : 'all';
+    } catch {
+        return 'all';
+    }
+};
+const kind = ref<Kind>(readKind());
+function setKind(k: Kind) {
+    kind.value = k;
+    try {
+        localStorage.setItem('bb.chats.kind', k);
+    } catch {
+        /* private mode */
+    }
+}
+const fits = (c: ChatItem) => kind.value === 'all' || (kind.value === 'group') === isGroup(c);
+const shownChats = computed(() => props.chats.filter(fits));
+const shownArchived = computed(() => props.archived.filter(fits));
+const unreadOf = (k: Kind) => props.chats.filter((c) => k === 'all' || (k === 'group') === isGroup(c)).reduce((n, c) => n + (c.muted ? 0 : c.unread), 0);
 const picking = ref(false);
 const loadingFriends = ref(false);
 const q = ref('');
@@ -106,9 +130,14 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                 <h1 class="page-title">{{ $t('messages.title') }}</h1>
                 <button v-if="!user?.isOwner" type="button" class="btn sm" @click="openPicker"><Icon name="edit" size="sm" />{{ $t('messages.new_message') }}</button>
             </header>
+            <div class="seg kinds" role="group" :aria-label="$t('messages.filter')">
+                <button v-for="k in ['all', 'direct', 'group'] as const" :key="k" type="button" :aria-pressed="kind === k" :data-test="`kind-${k}`" @click="setKind(k)">
+                    {{ $t('messages.kind_' + k) }}<span v-if="unreadOf(k)" class="kun">{{ unreadOf(k) }}</span>
+                </button>
+            </div>
 
-            <section v-if="chats.length" class="clist">
-                <Link v-for="c in chats" :key="c.id" :href="chatUrl(c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
+            <section v-if="shownChats.length" class="clist">
+                <Link v-for="c in shownChats" :key="c.id" :href="chatUrl(c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
                     <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                     <span v-else class="avw">
                         <Avatar :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
@@ -126,17 +155,18 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                     </span>
                 </Link>
             </section>
-            <div v-else class="empty-state">
+            <div v-else-if="!chats.length" class="empty-state">
                 <span class="es-ico"><Icon name="chat" /></span>
                 <h3>{{ $t('messages.empty') }}</h3>
                 <p>{{ $t('messages.empty_hint') }}</p>
                 <Link v-if="hasFind && !user?.isOwner" class="btn sm" :href="route('friends.index', { tab: 'find' })"><Icon name="search" size="sm" />{{ $t('common.find_players') }}</Link>
             </div>
 
-            <template v-if="archived.length">
+            <p v-if="chats.length && !shownChats.length" class="faint" style="text-align: center; margin: 18px 0">{{ $t('messages.kind_none') }}</p>
+            <template v-if="shownArchived.length">
                 <h2 class="sec">{{ $t('messages.archived_title') }}</h2>
                 <section class="clist off">
-                    <Link v-for="c in archived" :key="c.id" :href="chatUrl(c.id)" class="list-row citem" :data-test="`closed-${c.id}`">
+                    <Link v-for="c in shownArchived" :key="c.id" :href="chatUrl(c.id)" class="list-row citem" :data-test="`closed-${c.id}`">
                         <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                         <Avatar v-else :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <span class="cmain">
@@ -184,6 +214,8 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
 </template>
 
 <style scoped>
+.kinds { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 12px; }
+.kun { margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 800; display: inline-grid; place-items: center; }
 .ctitle .mut { color: var(--muted); margin-left: 6px; vertical-align: -2px; }
 .badge-dot.mutedb { background: var(--surface-3); color: var(--muted); }
 .rmx { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--muted); display: grid; place-items: center; cursor: pointer; }

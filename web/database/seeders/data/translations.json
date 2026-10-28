@@ -4014,6 +4014,11 @@
         "hy": "Չհաջողվեց ուղարկել։ Ստուգեք կապը և նորից փորձեք։",
         "ru": "Не удалось отправить. Проверьте соединение и попробуйте ещё раз."
     },
+    "messages.filter": {
+        "en": "Show",
+        "hy": "Ցույց տալ",
+        "ru": "Показать"
+    },
     "messages.game": {
         "en": ":f game",
         "hy": ":f խաղ",
@@ -4028,6 +4033,26 @@
         "en": "Muted",
         "hy": "Ծանուցումներն անջատված են",
         "ru": "Без звука"
+    },
+    "messages.kind_all": {
+        "en": "All",
+        "hy": "Բոլորը",
+        "ru": "Все"
+    },
+    "messages.kind_direct": {
+        "en": "Direct",
+        "hy": "Անձնական",
+        "ru": "Личные"
+    },
+    "messages.kind_group": {
+        "en": "Groups",
+        "hy": "Խմբեր",
+        "ru": "Группы"
+    },
+    "messages.kind_none": {
+        "en": "No chats here.",
+        "hy": "Այստեղ զրույցներ չկան։",
+        "ru": "Здесь нет чатов."
     },
     "messages.leave": {
         "en": "Leave the chat",
@@ -4724,11 +4749,6 @@
         "hy": "Առանց ամրագրման խաղացողների համար․ սեղանը պահվում է այդքան, վճարում են խաղացած ժամանակի համար։",
         "ru": "Для игроков без брони: стол занят на это время, оплата за сыгранное время."
     },
-    "owner.club.attach_card": {
-        "en": "Attach to this bill",
-        "hy": "Կցել այս հաշվին",
-        "ru": "Привязать к счёту"
-    },
     "owner.club.back_to_page": {
         "en": "Back",
         "hy": "Վերադառնալ",
@@ -5133,16 +5153,6 @@
         "en": "Nothing booked later today.",
         "hy": "Այսօր ավելի ուշ ամրագրում չկա։",
         "ru": "Позже сегодня броней нет."
-    },
-    "owner.club.open_bill": {
-        "en": "Open the bill",
-        "hy": "Բացել հաշիվը",
-        "ru": "Открыть счёт"
-    },
-    "owner.club.open_bills": {
-        "en": "Bills waiting for payment",
-        "hy": "Վճարման սպասող հաշիվներ",
-        "ru": "Счета, ожидающие оплаты"
     },
     "owner.club.open_card": {
         "en": "Open the card",
