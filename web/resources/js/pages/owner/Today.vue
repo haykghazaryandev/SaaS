@@ -99,14 +99,21 @@ const statusLabel = (k: Kind) => (k === 'pending' ? trans('owner.status.pending'
 const conflictText = (c: RequestRow['conflicts'][number]) =>
     trans('owner.dashboard.conflict', { name: c.name, time: `${hhmm(c.start)} · ${fieldOf(c.field_id)?.format ?? ''}` });
 
-// ---------- next 7 days ----------
+// ---------- occupancy: the place as a whole (one candle a day), each table as its icon ----------
+const avg = (m: Record<number, number>) => {
+    const v = owner.value.fields.map((f) => m[f.id] ?? 0);
+    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : 0;
+};
+const level = (p: number) => (p >= 70 ? 'hi' : p >= 35 ? 'mid' : 'lo');
+const occToday = computed(() => avg(props.kpi.occupancy));
 const chartDays = computed(() =>
     props.chart.map((d, i) => ({
         date: d.date,
         top: i === 0 ? trans('common.today') : fdate(d.date, { weekday: 'short' }),
         day: fdate(d.date, { day: 'numeric' }),
         today: i === 0,
-        bars: owner.value.fields.map((f) => ({ id: f.id, size: f.size, p: d.fields[f.id] ?? 0, label: f.label })),
+        p: avg(d.fields),
+        title: owner.value.fields.map((f) => `${f.label}: ${d.fields[f.id] ?? 0}%`).join(' · '),
     })),
 );
 </script>
@@ -153,12 +160,11 @@ const chartDays = computed(() =>
                 <div class="lbl">
                     <Icon name="chart" size="sm" /><span>{{ $t('owner.dashboard.kpi_occupancy') }}</span>
                 </div>
-                <div class="occ">
-                    <div v-for="f in owner.fields" :key="f.id">
-                        <span>{{ f.format }}</span
-                        ><span :class="['bar', dotOf(f.size)]"><i :style="{ width: (kpi.occupancy[f.id] ?? 0) + '%' }" /></span
-                        ><b>{{ kpi.occupancy[f.id] ?? 0 }}%</b>
-                    </div>
+                <div class="val">{{ occToday }}%</div>
+                <div class="occ" data-test="occ">
+                    <span v-for="f in owner.fields" :key="f.id" :class="['oi', level(kpi.occupancy[f.id] ?? 0)]" :title="`${f.label}: ${kpi.occupancy[f.id] ?? 0}%`"
+                        ><em :style="{ opacity: 0.4 + (kpi.occupancy[f.id] ?? 0) / 160 }">{{ f.format }}</em><small>{{ kpi.occupancy[f.id] ?? 0 }}%</small></span
+                    >
                 </div>
             </div>
             <div class="card kpi">
@@ -285,25 +291,20 @@ const chartDays = computed(() =>
         <section class="card panel week7">
             <div class="sec-h" style="margin-bottom: 2px">
                 <h2>{{ $t('owner.dashboard.chart') }}</h2>
-                <div class="legend">
-                    <span v-for="f in owner.fields" :key="f.id"><i :class="['fdot', dotOf(f.size)]" />{{ f.format }}</span>
-                </div>
             </div>
             <p class="faint" style="margin: 0 0 12px; font-size: 12.5px">{{ $t('owner.dashboard.chart_sub') }}</p>
             <div class="wchart" role="img" :aria-label="$t('owner.dashboard.chart')">
-                <div class="yax" aria-hidden="true"><span>100%</span><span>50%</span><span>0</span></div>
                 <button
                     v-for="d in chartDays"
                     :key="d.date"
                     type="button"
                     :class="['wcol', { today: d.today }]"
-                    :title="d.bars.map((x) => `${x.label}: ${x.p}%`).join(' · ')"
+                    :title="d.title"
+                    data-test="candle"
                     @click="router.visit(route('owner.schedule', { date: d.date }))"
                 >
-                    <span class="bars">
-                        <i v-for="x in d.bars" :key="x.id" :class="dotOf(x.size)" :style="{ height: Math.max(2, x.p) + '%' }"
-                            ><em>{{ x.p }}</em></i
-                        >
+                    <span class="candle">
+                        <i v-if="d.p" :class="level(d.p)" :style="{ height: Math.max(4, d.p) + '%' }" /><em :style="{ bottom: Math.max(4, d.p) + '%' }">{{ d.p }}%</em>
                     </span>
                     <small>{{ d.top }}</small>
                     <b>{{ d.day }}</b>
