@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
+use App\Support\LocalTime;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -63,7 +64,7 @@ it('counts the played bookings of a place without the desk, once (a bill paid th
     $park = makeVenue();
     $field = $park->fields->first();
     $mk = fn ($code, $status, $price, $hour, $paid = null) => Booking::create(['code' => $code, 'venue_id' => $park->id, 'field_id' => $field->id, 'status' => $status,
-        'source' => 'owner', 'contact_name' => 'Team', 'starts_at' => now()->startOfDay()->addHours($hour), 'ends_at' => now()->startOfDay()->addHours($hour + 1), 'price' => $price, 'paid_at' => $paid]);
+        'source' => 'owner', 'contact_name' => 'Team', 'starts_at' => LocalTime::now()->startOfDay()->addHours($hour)->utc(), 'ends_at' => LocalTime::now()->startOfDay()->addHours($hour + 1)->utc(), 'price' => $price, 'paid_at' => $paid]);
     $mk('BB-1', BookingStatus::Completed, 10000, 1);
     $mk('BB-2', BookingStatus::Cancelled, 9000, 2);                 // not played
     $mk('BB-3', BookingStatus::NoShow, 8000, 3);                     // not played

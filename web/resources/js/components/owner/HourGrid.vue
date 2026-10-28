@@ -43,7 +43,10 @@ const props = defineProps<{
     compact?: boolean;
     stateOf: (b: BookingRow) => Cell;
     label: (b: BookingRow) => string;
+    /** the place's colours (Settings); missing ones: the default */
+    colors?: Partial<Record<string, string>> | null;
 }>();
+const colorVars = computed(() => Object.fromEntries(Object.entries(props.colors ?? {}).filter(([, v]) => !!v).map(([k, v]) => [`--c-${k}`, v as string])));
 const emit = defineEmits<{ open: [id: number]; free: [field: number, date: string, start: number] }>();
 
 const y = (h: number) => (h - props.from) * props.pxh;
@@ -159,7 +162,7 @@ defineExpose({ scrollToNow });
 </script>
 
 <template>
-    <div :class="['hg', { compact }]" :style="{ '--n': cols.length }">
+    <div :class="['hg', { compact }]" :style="{ '--n': cols.length, ...colorVars }">
         <!-- the column heads (sticky): the court, and what is on it now -->
         <div class="hg-heads">
             <span class="hg-gut" />
@@ -209,7 +212,11 @@ defineExpose({ scrollToNow });
                             @click="emit('open', p.b!.id)"
                             @keydown.enter="emit('open', p.b!.id)"
                         >
-                            <b><i v-if="p.cell === 'live'" class="ld" />{{ p.b!.weekly ? '↻ ' : '' }}{{ compact ? label(p.b!).split(' ')[0] : label(p.b!) }}</b>
+                            <b
+                                ><i v-if="p.cell === 'live'" class="ld" /><span v-if="p.b!.no_shows_here" class="nsw" :title="$t('owner.booking.no_shows_here', { n: p.b!.no_shows_here })"
+                                    >⚠{{ p.b!.no_shows_here }}</span
+                                >{{ p.b!.weekly ? '↻ ' : '' }}{{ compact ? label(p.b!).split(' ')[0] : label(p.b!) }}</b
+                            >
                             <small v-if="p.h > 28 && !compact">{{ hhmm(p.start) }}–{{ hhmm(p.end) }}</small>
                             <em v-if="p.h > 44 && !compact && (p.cell === 'req' || p.cell === 'live')">{{
                                 p.cell === 'req' ? $t('owner.schedule.request') : $t('owner.schedule.playing')
@@ -239,6 +246,7 @@ defineExpose({ scrollToNow });
 .hg-sub { font: 700 10.5px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: var(--muted); }
 .hg-sub.live { color: var(--c-live); }
 .hg-sub.free { color: var(--c-free); }
+.hg-sub.booked { color: var(--c-booked); }
 .hg-sub.closed { color: var(--faint); }
 .hg-body { position: relative; }
 .hg-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
@@ -252,17 +260,18 @@ defineExpose({ scrollToNow });
 .hg-b b { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hg-b small { display: block; font: 600 10.5px var(--mono); opacity: 0.85; white-space: nowrap; }
 .hg-b em { display: block; font-style: normal; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
-.hg-b.booked { background: rgba(92, 200, 255, 0.18); border-color: var(--c-booked); color: #d7f0ff; }
-.hg-b.live { background: rgba(200, 255, 61, 0.2); border-color: var(--c-live); color: #f3ffd0; }
-.hg-b.req { background: rgba(255, 181, 71, 0.18); border-color: var(--c-req); color: #ffe6bf; }
-.hg-b.reg { background: rgba(182, 156, 255, 0.2); border-color: var(--c-reg); color: #e9e0ff; }
-.hg-b.done { background: rgba(111, 122, 112, 0.18); border-color: var(--c-done); color: #a5ada6; }
+.hg-b.booked { background: color-mix(in srgb, var(--c-booked) 18%, transparent); border-color: var(--c-booked); color: color-mix(in srgb, var(--c-booked) 25%, #fff); }
+.hg-b.live { background: color-mix(in srgb, var(--c-live) 20%, transparent); border-color: var(--c-live); color: color-mix(in srgb, var(--c-live) 25%, #fff); }
+.hg-b.req { background: color-mix(in srgb, var(--c-req) 18%, transparent); border-color: var(--c-req); color: color-mix(in srgb, var(--c-req) 25%, #fff); }
+.hg-b.reg { background: color-mix(in srgb, var(--c-reg) 20%, transparent); border-color: var(--c-reg); color: color-mix(in srgb, var(--c-reg) 25%, #fff); }
+.hg-b.done { background: color-mix(in srgb, var(--c-done) 18%, transparent); border-color: var(--c-done); color: color-mix(in srgb, var(--c-done) 45%, #fff); }
 .hg-b.off { background: transparent; border: 1px dashed var(--line-2); color: var(--faint); text-decoration: line-through; }
 .hg-b.closed { cursor: default; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 6px, transparent 6px 12px); border-color: #7d867e; color: var(--muted); }
+.nsw { flex: none; font-size: 10px; font-weight: 800; color: #1d0f00; background: var(--c-req); border-radius: 4px; padding: 0 3px; }
 .ld { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; animation: hgp 1.4s infinite; }
 @keyframes hgp { 50% { opacity: 0.3; } }
-.hg-free { position: absolute; left: 3px; right: 3px; border-radius: 8px; border: 1.5px dashed rgba(94, 240, 168, 0.5); background: rgba(94, 240, 168, 0.08); color: var(--c-free); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; cursor: pointer; padding: 0 2px; font: inherit; overflow: hidden; }
-.hg-free:hover:not(:disabled) { background: rgba(94, 240, 168, 0.16); }
+.hg-free { position: absolute; left: 3px; right: 3px; border-radius: 8px; border: 1.5px dashed color-mix(in srgb, var(--c-free) 50%, transparent); background: color-mix(in srgb, var(--c-free) 8%, transparent); color: var(--c-free); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; cursor: pointer; padding: 0 2px; font: inherit; overflow: hidden; }
+.hg-free:hover:not(:disabled) { background: color-mix(in srgb, var(--c-free) 16%, transparent); }
 .hg-free b { font-size: 12px; }
 .hg-free small { font: 600 10.5px var(--mono); }
 .hg-free small.one { white-space: nowrap; font-size: 10px; }

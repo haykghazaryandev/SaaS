@@ -88,7 +88,8 @@ it('lists everybody who played here, with filters', function () {
 it('takes the check at the desk: items, card + cash', function () {
     $small = $this->club->fields->firstWhere('size.value', 'small');
     $b = Booking::create(['code' => 'BB-777', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $this->player->id,
-        'starts_at' => at(10)->utc(), 'ends_at' => at(11)->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000]);
+        'starts_at' => at(10)->utc(), 'ends_at' => at(11)->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000,
+        'started_at' => now()]);   // started at the desk
     $p = Product::create(['venue_id' => $this->club->id, 'name' => 'Cola', 'price' => 500]);
     app(Cards::class)->topUp($this->card, 14000, $this->owner);
     $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/items", ['product_id' => $p->id])->assertRedirect();
@@ -108,6 +109,9 @@ it('shows every table now: a game with its live check, a free one its next booki
     $this->travelTo($start->addMinutes(20));
     $b = Booking::create(['code' => 'BB-555', 'venue_id' => $this->club->id, 'field_id' => $small->id, 'user_id' => $this->player->id,
         'starts_at' => $start->utc(), 'ends_at' => $start->addHour()->utc(), 'status' => 'accepted', 'source' => 'player', 'contact_name' => 'Gor', 'price' => 15000]);
+    // booked, the team not started yet: no bill, Start game
+    $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->where('courts.0.state', 'booked')->where('courts.0.due.id', $b->id)->where('courts.0.game', null));
+    $this->actingAs($this->owner)->post(route('owner.bookings.start', $b->id))->assertSessionHasNoErrors();
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->component('owner/Now')
         ->where('courts.0.state', 'playing')->where('courts.0.game.id', $b->id)->where('courts.0.game.bill.card.balance', 0)
         ->where('courts.1.state', 'free'));
@@ -184,7 +188,10 @@ it('attaches a card to a phone booking from the scanned card (a phone) or by nam
     $b = app(OwnerBooking::class)->create($this->owner, $small, $start, 60, ['name' => 'Walk-in']);
     $b2 = app(OwnerBooking::class)->create($this->owner, $this->club->fields->firstWhere('size.value', 'big'), $start, 90, ['name' => 'Walk-in 2']);
     $ob = app(OwnerBooking::class)->create($this->owner, $other->fields->first(), $start, 60, ['name' => 'X']);
-    $this->travelTo($start->addMinutes(30));   // they play
+    $this->travelTo($start->addMinutes(30));   // they play (started at the desk)
+    foreach ([$b, $b2, $ob] as $x) {
+        $x->update(['started_at' => $start->utc()]);
+    }
     // the card page (a scan on the phone) lists the bill; attaching opens it
     $this->actingAs($this->owner)->get('/owner/cards/'.$this->card->code)->assertInertia(fn (Assert $p) => $p
         ->where('bills', fn ($bills) => collect($bills)->firstWhere('id', $b->id) == [...collect($bills)->firstWhere('id', $b->id), 'mine' => false, 'total' => 15000]));

@@ -14,6 +14,8 @@ import { computed, ref, watch } from 'vue';
 // then the money: from the player's card (we know it from the booking), in cash, or part each (1 450 + 50).
 // A booking made by phone without an account: scan the player's card to find it.
 interface Bill {
+    /** the desk started the game: only then is there a bill */
+    started: boolean;
     minutes: number;
     running: boolean;
     stopped: boolean;
@@ -76,6 +78,10 @@ function pickCard(code: string) {
     found.value = [];
     onCode(code);
 }
+async function startGame() {
+    if (await ask({ title: trans('owner.club.ask_start', { name: props.booking.team || props.booking.name || props.booking.field }), text: trans('owner.club.ask_start_text'), ok: trans('owner.club.start_game') }))
+        router.post(route('owner.bookings.start', props.booking.id), {}, opts);
+}
 async function stop() {
     if (
         await ask({
@@ -129,7 +135,16 @@ async function pay() {
             </p>
         </section>
 
-        <div class="cgrid">
+        <!-- not started yet: no bill, no money (the booked team: "Start game" when they are here) -->
+        <section v-if="!bill.started && !bill.paid" class="card panel notstarted" data-test="not-started">
+            <Icon name="clock" />
+            <div>
+                <b>{{ $t('owner.club.not_started') }}</b>
+                <p class="muted">{{ $t('owner.club.not_started_text') }}</p>
+                <button v-if="booking.can_start" type="button" class="btn" data-test="start-game" @click="startGame"><Icon name="check" size="sm" />{{ $t('owner.club.start_game') }}</button>
+            </div>
+        </section>
+        <div v-else class="cgrid">
             <section class="card panel">
                 <div class="sec-h"><h2>{{ $t('owner.club.bill') }}</h2></div>
                 <div class="bline">
@@ -206,6 +221,8 @@ async function pay() {
 </template>
 
 <style scoped>
+.notstarted { display: flex; gap: 14px; align-items: flex-start; margin-top: 14px; }
+.notstarted p { margin: 4px 0 12px; }
 .cgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; align-items: start; margin-top: 14px; }
 .cgrid .panel { margin: 0; }
 .bline { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }

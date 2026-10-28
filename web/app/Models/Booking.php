@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Domain\Booking\Events\ScheduleChanged;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Booking extends HasFactoryModel
 {
@@ -14,9 +16,9 @@ class Booking extends HasFactoryModel
     protected static function booted(): void
     {
         // owner pages and the booking page update at once
-        static::created(fn (Booking $b) => \App\Domain\Booking\Events\ScheduleChanged::forBooking($b));
-        static::updated(fn (Booking $b) => \App\Domain\Booking\Events\ScheduleChanged::forBooking($b, updated: true));
-        static::deleted(fn (Booking $b) => \App\Domain\Booking\Events\ScheduleChanged::forBooking($b));
+        static::created(fn (Booking $b) => ScheduleChanged::forBooking($b));
+        static::updated(fn (Booking $b) => ScheduleChanged::forBooking($b, updated: true));
+        static::deleted(fn (Booking $b) => ScheduleChanged::forBooking($b));
     }
 
     protected function casts(): array
@@ -32,6 +34,7 @@ class Booking extends HasFactoryModel
             'not_here_asked_at' => 'datetime',
             'paid_at' => 'datetime',
             'stopped_at' => 'datetime',
+            'started_at' => 'datetime',
             'open_end' => 'boolean',
             'rating_asked_at' => 'datetime',
             'status' => BookingStatus::class,
@@ -67,7 +70,7 @@ class Booking extends HasFactoryModel
     }
 
     /** People who get the booking's reminders: the booker and the joined team. */
-    public function attendees(): \Illuminate\Support\Collection
+    public function attendees(): Collection
     {
         $this->loadMissing(['user', 'players.user']);
 

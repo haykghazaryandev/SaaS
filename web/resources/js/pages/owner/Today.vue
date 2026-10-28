@@ -237,7 +237,11 @@ const chartDays = computed(() =>
                                 <Avatar :id="b.user?.id" :name="b.name" :src="b.user?.avatar" size="sm" />
                                 <span class="who-n"
                                     ><b>{{ b.name }}</b
-                                    ><span v-if="b.team" class="muted"> · {{ b.team }}</span></span
+                                    ><span v-if="b.team" class="muted"> · {{ b.team }}</span
+                                    ><!-- this player did not come here before: a reminder (prefer reliable players for the same time) -->
+                                    <span v-if="b.no_shows_here" class="pill hot" style="margin-left: 6px; font-size: 11px" :title="$t('owner.booking.no_shows_here', { n: b.no_shows_here })"
+                                        >⚠ {{ $t('owner.booking.no_shows_here', { n: b.no_shows_here }) }}</span
+                                    ></span
                                 >
                             </div>
                             <div class="meta">

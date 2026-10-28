@@ -17,6 +17,7 @@ use App\Models\TournamentMatch;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\Notice;
+use App\Support\LocalTime;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -189,7 +190,8 @@ it('sends news to the registered ones only (no chat) and reminds the unpaid', fu
     $this->actingAs(User::find($b->user_id))->get('/t/'.$this->t->code)->assertInertia(fn (Assert $p) => $p->where('entry.unpaid', 0));
 
     // by itself the day before
-    $this->travelTo($this->t->starts_at->subDay()->setTime(10, 0));
+    // (the day before in Yerevan, at noon: a test run near midnight lands on the right day)
+    $this->travelTo($this->t->starts_at->toImmutable()->setTimezone(LocalTime::tz())->subDay()->setTime(12, 0));
     expect(app(Tournaments::class)->remindTomorrow())->toBe(1);
 });
 

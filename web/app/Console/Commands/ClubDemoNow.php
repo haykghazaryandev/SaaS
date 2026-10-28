@@ -61,6 +61,8 @@ class ClubDemoNow extends Command
                 'starts_at' => $start->utc(), 'ends_at' => $start->addMinutes($minutes)->utc(), 'status' => 'accepted', 'source' => $player ? 'player' : 'owner',
                 'contact_name' => $player?->name ?? 'Gor (phone booking)', 'contact_phone' => $player?->phone ?? '+37491555444',
                 'price' => $full, 'purpose' => $purpose, 'note_owner' => 'demo-now',
+                // started at the desk when they came
+                'started_at' => $start->utc(), 'arrived_at' => $start->utc(),
             ]);
             foreach ($items as $name => $qty) {
                 if ($p = Product::where('venue_id', $venue->id)->where('name', 'ilike', $name.'%')->first()) {
@@ -71,6 +73,15 @@ class ClubDemoNow extends Command
                 $checkout->stop($b->fresh(), $owner);   // finished: waiting to be paid
             }
             $this->line(sprintf('%s: %s, %s, started %d min ago', $table->name, $player?->name ?? 'phone booking', $purpose, $ago));
+        }
+        // the next team on the first table, 20 min after its game ends: Now shows "can extend +15", then "Start game"
+        if ($t = $tables[0] ?? null) {
+            $at = $now->addMinutes(30);
+            Booking::where('field_id', $t->id)->whereIn('status', ['pending', 'accepted'])->where('note_owner', '!=', 'demo-now')
+                ->where('starts_at', '<', $at->addHour()->utc())->where('ends_at', '>', $at->utc())->update(['status' => 'cancelled']);
+            Booking::create(['code' => Booking::newCode(), 'venue_id' => $venue->id, 'field_id' => $t->id, 'starts_at' => $at->utc(), 'ends_at' => $at->addHour()->utc(),
+                'status' => 'accepted', 'source' => 'owner', 'contact_name' => "Narek's team", 'contact_phone' => '+37491555777',
+                'price' => $prices->price($t, $at, 60, 'play'), 'note_owner' => 'demo-now']);
         }
         $this->info('Open Owner → Now.');
 

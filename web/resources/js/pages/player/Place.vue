@@ -788,6 +788,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             <li><Icon name="send" size="sm" />{{ $t('player.place.badge_telegram') }}</li>
                         </ul>
                         <p v-if="user && user.name" class="hint as"><Icon name="user" size="sm" />{{ $t('player.place.booking_as', { name: user.name, phone: user.phone }) }}</p>
+                        <!-- coming matters: a no-show is noted at this place -->
+                        <p class="hint as"><Icon name="alert" size="sm" />{{ $t('player.place.no_show_note') }}</p>
                     </template>
                 </aside>
             </section>

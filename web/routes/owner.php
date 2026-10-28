@@ -48,6 +48,9 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::get('now', [NowController::class, 'index'])->name('now');
     // local / staging: test games on the tables right now (the club:demo-now command)
     Route::post('now/demo', [NowController::class, 'demo'])->name('now.demo');
+    Route::post('bookings/{booking}/start', [NowController::class, 'start'])->whereNumber('booking')->name('bookings.start');
+    Route::post('bookings/{booking}/extend', [NowController::class, 'extend'])->whereNumber('booking')->name('bookings.extend');
+    Route::post('fields/{field}/walk-in', [NowController::class, 'walkIn'])->whereNumber('field')->name('fields.walkin');
     Route::get('players', [PlayerController::class, 'index'])->name('players');
     Route::get('players/{user}', [PlayerController::class, 'show'])->whereNumber('user')->name('players.show');
     Route::post('players/{user}/rating', [PlayerController::class, 'rating'])->whereNumber('user')->name('players.rating');
@@ -80,6 +83,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::put('settings/prices', [SettingsController::class, 'prices'])->name('settings.prices');
     Route::put('settings/hours', [SettingsController::class, 'hours'])->name('settings.hours');
     Route::put('settings/rules', [SettingsController::class, 'rules'])->name('settings.rules');
+    Route::put('settings/colors', [SettingsController::class, 'colors'])->name('settings.colors');
     Route::put('settings', [SettingsController::class, 'save'])->name('settings.save');
     Route::post('courts', [SettingsController::class, 'storeCourt'])->name('courts.store');
     Route::patch('courts/{field}', [SettingsController::class, 'updateCourt'])->whereNumber('field')->name('courts.update');

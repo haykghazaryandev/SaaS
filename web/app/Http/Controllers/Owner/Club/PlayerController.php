@@ -35,8 +35,10 @@ class PlayerController extends OwnerController
         $this->ensureAny($venue, ['wallet', 'rating']);
         $f = $request->validate([
             'q' => 'nullable|string|max:60', 'min' => 'nullable|integer|min:0', 'max' => 'nullable|integer|min:0',
-            'card' => 'nullable|in:yes,no', 'sort' => 'nullable|in:last,visits,rating,name',
+            'card' => 'nullable|in:yes,no', 'sort' => 'nullable|in:last,visits,rating,name,noshows', 'noshow' => 'nullable|in:yes,no',
         ]);
+        // how often each one did not come to THIS place (other places don't count here)
+        $noShows = BookingPresenter::venueNoShows($venue->id);
         $sport = $this->sport($venue);
         $ids = self::playerIds($venue);
         $stats = Booking::where('venue_id', $venue->id)->whereIn('user_id', $ids)
@@ -54,20 +56,23 @@ class PlayerController extends OwnerController
             'lastTs' => isset($stats[$u->id]->last) ? CarbonImmutable::parse($stats[$u->id]->last)->getTimestamp() : 0,
             'rating' => $ratings[$u->id] ?? null,
             'card' => isset($cards[$u->id]) ? ['balance' => $cards[$u->id]->balance, 'code' => $cards[$u->id]->code] : null,
+            'noShows' => $noShows[$u->id] ?? 0,
         ])
             ->filter(fn ($r) => $q === '' || str_contains(mb_strtolower((string) $r['name']), $q) || ($digits !== '' && str_contains((string) $r['tel'], $digits)))
             ->filter(fn ($r) => ! isset($f['min']) || ($r['rating'] !== null && $r['rating'] >= $f['min']))
             ->filter(fn ($r) => ! isset($f['max']) || ($r['rating'] !== null && $r['rating'] <= $f['max']))
-            ->filter(fn ($r) => ! isset($f['card']) || ($f['card'] === 'yes') === ($r['card'] !== null));
+            ->filter(fn ($r) => ! isset($f['card']) || ($f['card'] === 'yes') === ($r['card'] !== null))
+            ->filter(fn ($r) => ! isset($f['noshow']) || ($f['noshow'] === 'yes') === ($r['noShows'] > 0));
         $rows = match ($f['sort'] ?? 'last') {
             'visits' => $rows->sortByDesc('visits'),
             'rating' => $rows->sortByDesc(fn ($r) => $r['rating'] ?? -1),
             'name' => $rows->sortBy(fn ($r) => mb_strtolower((string) $r['name'])),
+            'noshows' => $rows->sortByDesc('noShows'),
             default => $rows->sortByDesc('lastTs'),
         };
 
         return Inertia::render('owner/Players', [
-            'filters' => ['q' => $f['q'] ?? '', 'min' => $f['min'] ?? null, 'max' => $f['max'] ?? null, 'card' => $f['card'] ?? null, 'sort' => $f['sort'] ?? 'last'],
+            'filters' => ['q' => $f['q'] ?? '', 'min' => $f['min'] ?? null, 'max' => $f['max'] ?? null, 'card' => $f['card'] ?? null, 'noshow' => $f['noshow'] ?? null, 'sort' => $f['sort'] ?? 'last'],
             'players' => $rows->take(300)->values(),
             'total' => count($ids),
             'sport' => $sport->value,

@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Owner;
 
+use App\Domain\Booking\AfterBooking\Attendance;
+use App\Domain\Club\Checkout;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
+use App\Enums\FieldSize;
 use App\Models\Booking;
 use App\Models\BookingEvent;
 use App\Models\Field;
@@ -62,15 +65,35 @@ final class BookingPresenter
             'purpose' => $b->purpose ?? 'play',
             'paid' => $b->paid_at !== null,
             'started' => $b->starts_at->isPast(),
+            // the desk: the game was started (the bill runs only then), is being played now, can be started now
+            'game_started' => $b->started_at !== null,
+            'playing' => $b->started_at !== null && ! $b->stopped_at && ! $b->paid_at,
+            'can_start' => ! $b->started_at && ! $b->paid_at && $b->status === BookingStatus::Accepted
+                && $b->starts_at->lessThanOrEqualTo(now()->addMinutes(Checkout::EARLY_MINUTES)) && $b->ends_at->isFuture(),
+            // how often this player did not come to THIS place (the place sees only its own)
+            'no_shows_here' => $b->user_id ? self::noShowsHere($b->venue_id, $b->user_id) : 0,
             'past' => $b->ends_at->isPast(),
             // at the field: "Arrived ✓" (optional), "about 10 min late", "Didn't come" until 12:00 the next day
             'arrived' => $b->arrived_at !== null,
             'late_minutes' => $b->late_minutes,
-            'can_arrive' => \App\Domain\Booking\AfterBooking\Attendance::canArrive($b),
-            'can_no_show' => \App\Domain\Booking\AfterBooking\Attendance::canNoShow($b),
+            'can_arrive' => Attendance::canArrive($b),
+            'can_no_show' => Attendance::canNoShow($b),
             'user' => $b->relationLoaded('user') && $b->user ? ['id' => $b->user->id, 'name' => $b->user->name, 'avatar' => $b->user->avatarUrl(), 'no_shows' => (int) $b->user->no_show_count] : null,
             'sent_ago' => $b->created_at?->locale(app()->getLocale())->diffForHumans(),
         ];
+    }
+
+    /** How often this player did not come to this place. */
+    public static function noShowsHere(int $venueId, int $userId): int
+    {
+        return self::venueNoShows($venueId)[$userId] ?? 0;
+    }
+
+    /** user id => no-shows at the place, counted once per request (once(): fresh for every request, also on long-running servers). */
+    public static function venueNoShows(int $venueId): array
+    {
+        return once(fn () => Booking::where('venue_id', $venueId)->where('status', BookingStatus::NoShow->value)->whereNotNull('user_id')
+            ->groupBy('user_id')->selectRaw('user_id, count(*) as n')->pluck('n', 'user_id')->map(fn ($n) => (int) $n)->all());
     }
 
     /** Full details for the booking sheet, with the history. */
@@ -137,7 +160,7 @@ final class BookingPresenter
             return $f->name;
         }
 
-        return $f->size === \App\Enums\FieldSize::Table ? __('owner.field.table') : __('owner.field.'.$f->size->value).' '.$f->format;
+        return $f->size === FieldSize::Table ? __('owner.field.table') : __('owner.field.'.$f->size->value).' '.$f->format;
     }
 
     public static function fields(Venue $venue): array

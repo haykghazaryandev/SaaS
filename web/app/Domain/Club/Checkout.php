@@ -2,10 +2,14 @@
 
 namespace App\Domain\Club;
 
+use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\BookingException;
 use App\Domain\Venues\PriceCalculator;
+use App\Enums\BookingStatus;
 use App\Models\Booking;
+use App\Models\BookingEvent;
 use App\Models\BookingItem;
+use App\Models\Field;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
@@ -51,6 +55,66 @@ class Checkout
 
     // ---------- start / stop at the desk ----------
 
+    /** How early before its time a booked game can be started at the desk. */
+    public const EARLY_MINUTES = 30;
+
+    /**
+     * "Start game": the team is here and plays. The time is counted from now (at least the booked length), the bill
+     * starts. Until then a booking is only planned: no bill, no money. From 30 min before its time until its end.
+     */
+    public function start(Booking $booking, User $by): Booking
+    {
+        $this->ensureOpen($booking);
+        if ($booking->started_at) {
+            throw new BookingException('already_started_game');
+        }
+        if ($booking->status === BookingStatus::Pending) {
+            throw new BookingException('accept_first');
+        }
+        if (! in_array($booking->status, [BookingStatus::Accepted, BookingStatus::Completed], true)
+            || $booking->starts_at->greaterThan(now()->addMinutes(self::EARLY_MINUTES)) || $booking->ends_at->isPast()) {
+            throw new BookingException('not_active');
+        }
+        $booking->update(['started_at' => now(), 'arrived_at' => $booking->arrived_at ?? now()]);
+        BookingEvent::create(['booking_id' => $booking->id, 'type' => 'started', 'user_id' => $by->id]);
+
+        return $booking;
+    }
+
+    /**
+     * A walk-in at a free table: a game started now, charged for the time played (open end); it holds the table for
+     * $minutes (players can't book over it) and stopping gives the rest back.
+     */
+    public function walkIn(Field $field, User $by, int $minutes, ?string $name = null): Booking
+    {
+        $minutes = max($this->stepOf($field), min(240, $minutes));
+        $start = LocalTime::now()->setSecond(0);
+        $b = app(OwnerBooking::class)->create($by, $field, $start, $minutes, ['name' => $name ?: __('owner.club.walk_in')]);
+        $b->update(['open_end' => true, 'started_at' => now(), 'arrived_at' => now()]);
+
+        return $b;
+    }
+
+    /** "+15 min": the game holds the table longer, if nobody booked it (the next booking is never moved). */
+    public function extend(Booking $booking, int $minutes, User $by): Booking
+    {
+        $this->ensureOpen($booking);
+        if ($minutes < 5 || $minutes > 240 || $booking->stopped_at || ! in_array($booking->status, [BookingStatus::Accepted, BookingStatus::Completed], true)) {
+            throw new BookingException('bad_options');
+        }
+        try {
+            DB::transaction(fn () => $booking->update(['ends_at' => $booking->ends_at->toImmutable()->addMinutes($minutes)->utc(), 'status' => BookingStatus::Accepted]));
+        } catch (QueryException $e) {
+            if (($e->errorInfo[0] ?? null) === '23P01') {
+                throw new BookingException('taken');
+            }
+            throw $e;
+        }
+        BookingEvent::create(['booking_id' => $booking->id, 'type' => 'extended', 'user_id' => $by->id, 'changes' => ['minutes' => $minutes]]);
+
+        return $booking;
+    }
+
     /** They finished: the time charged is fixed and the table's time follows it (shorter frees it, longer takes more if free). */
     public function stop(Booking $booking, User $by): Booking
     {
@@ -58,12 +122,14 @@ class Checkout
         if ($booking->stopped_at) {
             throw new BookingException('already_stopped');
         }
-        if ($booking->starts_at->isFuture()) {
+        if (! $booking->started_at) {
             throw new BookingException('not_started');
         }
         $minutes = $this->chargedMinutes($booking, LocalTime::now());
         $price = $this->timePrice($booking, $minutes)['price'];
-        $end = $booking->starts_at->toImmutable()->addMinutes($minutes);
+        // the table is held from the booked start until the time charged ends (counted from the real start)
+        $end = $booking->started_at->toImmutable()->addMinutes($minutes);
+        $end = $end->lessThan($booking->starts_at) ? $booking->starts_at->toImmutable()->addMinutes($this->stepOf($booking->field)) : $end;
         try {
             DB::transaction(fn () => $booking->update(['ends_at' => $end->utc()]));
         } catch (QueryException $e) {
@@ -87,7 +153,9 @@ class Checkout
     {
         $booking->loadMissing('items', 'venue', 'field');
         $card = $this->card($booking);
-        $running = ! $booking->stopped_at && ! $booking->paid_at && $booking->starts_at->isPast();
+        // a bill only once the game was started at the desk; before that the booking is just planned
+        $started = $booking->started_at !== null;
+        $running = $started && ! $booking->stopped_at && ! $booking->paid_at;
         $minutes = $running ? $this->chargedMinutes($booking, LocalTime::now()) : $booking->durationMinutes();
         $time = $running ? $this->timePrice($booking, $minutes) : ['full' => $this->fullPrice($booking, $minutes), 'price' => (int) $booking->price];
         $items = (int) $booking->items->sum(fn (BookingItem $i) => $i->qty * $i->price_each);
@@ -101,6 +169,7 @@ class Checkout
         ] : null;
 
         return [
+            'started' => $started,
             'minutes' => $minutes,
             'running' => $running,
             'next' => $next,
@@ -131,8 +200,8 @@ class Checkout
     public function openBillsFor(VenueCard $card)
     {
         return Booking::where('venue_id', $card->venue_id)->whereNull('paid_at')
-            ->whereIn('status', ['accepted', 'completed'])
-            ->where('starts_at', '<=', now())->where('starts_at', '>', now()->subHours(12))
+            ->whereIn('status', ['accepted', 'completed'])->whereNotNull('started_at')
+            ->where('starts_at', '<=', now()->addMinutes(self::EARLY_MINUTES))->where('starts_at', '>', now()->subHours(12))
             ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $card->user_id))
             ->with('field', 'user')->latest('starts_at')->latest('id')->limit(10)->get();
     }
@@ -155,7 +224,10 @@ class Checkout
     public function pay(Booking $booking, int $card, int $cash, User $by): void
     {
         $this->ensureOpen($booking);
-        if (! $booking->stopped_at && $booking->starts_at->isPast()) {
+        if (! $booking->started_at) {
+            throw new BookingException('not_started');
+        }
+        if (! $booking->stopped_at) {
             $this->stop($booking, $by);
             $booking->refresh();
         }
@@ -201,7 +273,8 @@ class Checkout
     public function chargedMinutes(Booking $booking, CarbonImmutable $now): int
     {
         $step = $this->step($booking);
-        $played = max(0, (int) ceil(($now->getTimestamp() - $booking->starts_at->getTimestamp()) / 60));
+        $from = ($booking->started_at ?? $booking->starts_at)->getTimestamp();
+        $played = max(0, (int) ceil(($now->getTimestamp() - $from) / 60));
         $played = max($step, (int) (ceil($played / $step) * $step));
 
         return $booking->open_end ? $played : max($played, $booking->durationMinutes());
@@ -223,6 +296,11 @@ class Checkout
     private function step(Booking $booking): int
     {
         return max(5, (int) $booking->venue->rule('step_min'));
+    }
+
+    private function stepOf(Field $field): int
+    {
+        return max(5, (int) $field->venue->rule('step_min'));
     }
 
     private function ensureOpen(Booking $booking): void

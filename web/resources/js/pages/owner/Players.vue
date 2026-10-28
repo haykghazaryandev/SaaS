@@ -19,16 +19,17 @@ interface Row {
     last: string | null;
     rating: number | null;
     card: { balance: number; code: string } | null;
+    noShows: number;
 }
 const props = defineProps<{
-    filters: { q: string; min: number | null; max: number | null; card: 'yes' | 'no' | null; sort: string };
+    filters: { q: string; min: number | null; max: number | null; card: 'yes' | 'no' | null; noshow: 'yes' | 'no' | null; sort: string };
     players: Row[];
     total: number;
     sport: string;
 }>();
 const owner = useOwner();
 const has = (f: string) => (owner.value.features ?? []).includes(f);
-const f = reactive({ q: props.filters.q, min: props.filters.min ?? '', max: props.filters.max ?? '', card: props.filters.card ?? '', sort: props.filters.sort });
+const f = reactive({ q: props.filters.q, min: props.filters.min ?? '', max: props.filters.max ?? '', card: props.filters.card ?? '', noshow: props.filters.noshow ?? '', sort: props.filters.sort });
 let t: number | undefined;
 watch(
     () => ({ ...f }),
@@ -63,8 +64,14 @@ watch(
                     <option value="yes">{{ $t('owner.club.card_yes') }}</option>
                     <option value="no">{{ $t('owner.club.card_no') }}</option>
                 </select>
+                <!-- players who did not come here (only this place counts) -->
+                <select v-model="f.noshow" class="input" :aria-label="$t('owner.club.noshow_filter')" data-test="noshow-filter">
+                    <option value="">{{ $t('owner.club.noshow_any') }}</option>
+                    <option value="yes">{{ $t('owner.club.noshow_yes') }}</option>
+                    <option value="no">{{ $t('owner.club.noshow_no') }}</option>
+                </select>
                 <select v-model="f.sort" class="input" :aria-label="$t('owner.club.sort')">
-                    <option v-for="s in ['last', 'visits', 'rating', 'name']" :key="s" :value="s">{{ $t('owner.club.sort_' + s) }}</option>
+                    <option v-for="s in ['last', 'visits', 'rating', 'name', 'noshows']" :key="s" :value="s">{{ $t('owner.club.sort_' + s) }}</option>
                 </select>
             </div>
             <div class="plist">
@@ -74,6 +81,7 @@ watch(
                         ><b>{{ p.name || '—' }}</b><small>{{ p.phone }} · {{ $t('owner.club.visits_n', { n: p.visits }) }}<template v-if="p.last"> · {{ p.last }}</template></small></span
                     >
                     <span v-if="has('rating') && p.rating != null" class="pill lime">{{ SPORT_ICON[sport] }} {{ p.rating }}</span>
+                    <span v-if="p.noShows" class="pill hot" :title="$t('owner.booking.no_shows_here', { n: p.noShows })">⚠ {{ p.noShows }}</span>
                     <span v-if="has('wallet') && p.card" class="bal">{{ amd(p.card.balance) }}</span>
                 </Link>
                 <p v-if="!players.length" class="faint" style="margin: 14px 0 4px">{{ $t('owner.schedule.none') }}</p>

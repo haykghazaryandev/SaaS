@@ -15,6 +15,7 @@ import {
     relDay,
     useOwner,
     whoOf,
+    GRID_COLORS,
     type BookingRow,
     type Kind,
 } from '@/composables/useOwner';
@@ -202,20 +203,22 @@ const grid = ref<InstanceType<typeof HourGrid>>();
 /** a booking's colour on the grid */
 function stateOf(b: BookingRow): Cell {
     const k = kindOf(b);
-    if (k === 'off' || k === 'expired') return 'off';
+    // didn't come, declined, expired: the time is free again
+    if (k === 'off' || k === 'expired' || k === 'noshow') return 'off';
     if (k === 'pending') return 'req';
-    if (k === 'noshow' || b.past) return 'done';
-    if (b.started) return 'live';
+    if (b.playing) return 'live';
+    if (b.past) return 'done';
     return b.weekly ? 'reg' : 'booked';
 }
+const col = (k: keyof typeof GRID_COLORS) => owner.value.colors?.[k] || GRID_COLORS[k];
 const nameOf = (b: BookingRow) => b.team || b.name || '—';
-const shownRows = (rows: BookingRow[]) => rows.filter((b) => showOff.value || !isOff(b));
+const shownRows = (rows: BookingRow[]) => rows.filter((b) => showOff.value || (!isOff(b) && kindOf(b) !== 'noshow'));
 const courtName = (f: { short?: string | null; label: string }) => f.short || f.label;
 // under each court today: what is on it now
 function nowSub(id: number): { sub: string; subCls: string } {
     const rows = (props.day?.bookings ?? []).filter((b) => b.field_id === id && b.date === props.today && !isOff(b));
-    const on = rows.find((b) => b.start <= now.value && b.end > now.value);
-    if (on) return { sub: `● ${hhmm(on.end)}`, subCls: 'live' };
+    const on = rows.find((b) => b.start <= now.value && b.end > now.value && kindOf(b) !== 'noshow');
+    if (on) return on.playing ? { sub: `● ${hhmm(on.end)}`, subCls: 'live' } : { sub: `${trans('owner.club.state_booked')} → ${hhmm(on.end)}`, subCls: 'booked' };
     const shut = (props.day?.closures ?? []).find((c) => (c.field_id === null || c.field_id === id) && c.start <= now.value && c.end > now.value);
     if (shut) return { sub: `${trans('common.closed')} → ${hhmm(shut.end)}`, subCls: 'closed' };
     const next = rows.filter((b) => b.start > now.value).sort((a, b) => a.start - b.start)[0];
@@ -346,14 +349,19 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                     :compact="narrow && dayCols.length > 4"
                     :state-of="stateOf"
                     :label="nameOf"
+                    :colors="owner.colors"
                     @open="openBooking"
                     @free="newFree"
                 />
             </div>
+            <!-- the colours: Settings → Schedule colours -->
             <div class="hglegend">
-                <span><i class="lf" />{{ $t('owner.schedule.free_row') }}</span><span><i style="background: #5cc8ff" />{{ $t('owner.schedule.legend_booked') }}</span
-                ><span><i style="background: #c8ff3d" />{{ $t('owner.schedule.playing') }}</span><span><i style="background: #ffb547" />{{ $t('owner.schedule.request') }}</span
-                ><span><i style="background: #b69cff" />{{ $t('owner.schedule.weekly') }}</span><span><i style="background: #6f7a70" />{{ $t('owner.schedule.legend_done') }}</span>
+                <span><i class="lf" :style="{ borderColor: col('free') }" />{{ $t('owner.schedule.free_row') }}</span
+                ><span><i :style="{ background: col('booked') }" />{{ $t('owner.schedule.legend_booked') }}</span
+                ><span><i :style="{ background: col('live') }" />{{ $t('owner.schedule.playing') }}</span
+                ><span><i :style="{ background: col('req') }" />{{ $t('owner.schedule.request') }}</span
+                ><span><i :style="{ background: col('reg') }" />{{ $t('owner.schedule.weekly') }}</span
+                ><span><i :style="{ background: col('done') }" />{{ $t('owner.schedule.legend_done') }}</span>
             </div>
         </template>
 
@@ -380,6 +388,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                     compact
                     :state-of="stateOf"
                     :label="nameOf"
+                    :colors="owner.colors"
                     @open="openBooking"
                     @free="newFree"
                 />

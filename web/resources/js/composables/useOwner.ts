@@ -31,7 +31,12 @@ export interface OwnerShared {
     features?: string[];
     /** its main sport (ratings are per sport) */
     sport?: string;
+    /** the schedule's colours chosen by the place (missing ones: the default) */
+    colors?: Partial<Record<'free' | 'booked' | 'live' | 'req' | 'reg' | 'done', string>> | null;
 }
+
+/** The schedule's default colours per state (Settings → Schedule colours changes them for the place). */
+export const GRID_COLORS = { free: '#5ef0a8', booked: '#5cc8ff', live: '#c8ff3d', req: '#ffb547', reg: '#b69cff', done: '#6f7a70' } as const;
 
 /** Visual kind of booking (BookingPresenter::kind): colors come from the --st-* tokens. */
 export type Kind = 'pending' | 'accepted' | 'owner' | 'noshow' | 'expired' | 'off';
@@ -67,6 +72,12 @@ export interface BookingRow {
     purpose?: string;
     /** the bill was paid at the desk */
     paid?: boolean;
+    /** the desk started the game (a bill only then), it is being played, it can be started now */
+    game_started?: boolean;
+    playing?: boolean;
+    can_start?: boolean;
+    /** how often this player did not come to this place */
+    no_shows_here?: number;
 }
 
 /** A request on Today, with the other open requests it clashes with. */

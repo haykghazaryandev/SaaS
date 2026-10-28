@@ -9,9 +9,12 @@ import { Link, router, usePoll } from '@inertiajs/vue3';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-// The desk: every table now. A game shows its check live (time so far + what they took,
-// the total, their card); "+ Cola" adds to it; "Stop" fixes the time and opens the check to take the money.
-// A free table shows its next booking. Games come from bookings (Schedule).
+// The desk: every table now.
+// - booked and due (from 30 min before): "Start game" (the time and the bill start only then) or "Didn't come" (frees the time)
+// - playing: the clock and the check live (time + what they took, the total, their card), how long it may still be
+//   held (+15 / +30 / +60 while the table is free), "Stop" → the check
+// - free: for how long (until the next booking or the closing), the next booking, a walk-in started right away
+// Every change goes live to the schedule and to the players' booking page.
 interface Bill {
     minutes: number;
     running: boolean;
@@ -27,7 +30,7 @@ interface Court {
     id: number;
     label: string;
     size: string;
-    state: 'playing' | 'to_pay' | 'free';
+    state: 'playing' | 'to_pay' | 'booked' | 'free';
     game: {
         id: number;
         name: string;
@@ -36,11 +39,44 @@ interface Court {
         startedAt: number;
         start: string;
         bookedEnd: string | null;
+        holdsUntil: string;
+        openEnd: boolean;
+        /** minutes the table is still free after the game */
+        canExtend: number;
         bill: Bill;
     } | null;
-    next: { start: string; name: string; pending: boolean } | null;
+    due: { id: number; name: string; start: string; end: string; in: number; late: number; phone: string | null; canNoShow: boolean } | null;
+    next: { id: number; start: string; in: number; name: string; pending: boolean } | null;
+    freeMin: number | null;
+    freeUntil: string | null;
 }
-const props = defineProps<{ courts: Court[]; products: { id: number; name: string; price: number; photo: string | null }[]; canDemo?: boolean }>();
+const props = defineProps<{ courts: Court[]; products: { id: number; name: string; price: number; photo: string | null }[]; canDemo?: boolean; step: number }>();
+const opts = { preserveScroll: true, preserveState: true };
+// "1 h 15" / "45 min"
+const len = (m: number) => (m >= 60 ? trans('owner.club.len_h', { h: Math.floor(m / 60), m: m % 60 ? ' ' + (m % 60) : '' }) : trans('owner.club.len_m', { m }));
+async function startGame(c: Court) {
+    if (c.due && (await ask({ title: trans('owner.club.ask_start', { name: c.due.name }), text: trans('owner.club.ask_start_text'), ok: trans('owner.club.start_game') })))
+        router.post(route('owner.bookings.start', c.due.id), {}, opts);
+}
+async function noShow(c: Court) {
+    if (c.due && (await ask({ title: trans('owner.club.ask_noshow', { name: c.due.name }), text: trans('owner.club.ask_noshow_text'), ok: trans('owner.club.no_show_btn'), danger: true })))
+        router.post(route('owner.bookings.no-show', c.due.id), {}, opts);
+}
+async function extend(c: Court, m: number) {
+    if (c.game && (await ask({ title: trans('owner.club.ask_extend', { name: c.game.name, n: m }), ok: '+' + m })))
+        router.post(route('owner.bookings.extend', c.game.id), { minutes: m }, opts);
+}
+async function walkIn(c: Court, m: number) {
+    if (await ask({ title: trans('owner.club.ask_walkin', { table: c.label, t: len(m) }), text: trans('owner.club.ask_walkin_text'), ok: trans('owner.club.start_game') }))
+        router.post(route('owner.fields.walkin', c.id), { minutes: m }, opts);
+}
+const extendSteps = (c: Court) => [15, 30, 60].filter((m) => (c.game?.canExtend ?? 0) >= m);
+const walkSteps = (c: Court) => {
+    const free = c.freeMin ?? 0;
+    const list = [30, 60, 90].filter((m) => free >= m);
+    // less than half an hour left: what there is
+    return list.length ? list : free >= props.step ? [Math.floor(free / props.step) * props.step] : [];
+};
 const demo = () => router.post(route('owner.now.demo'), {}, { preserveScroll: true });
 const owner = useOwner();
 usePoll(30000, { only: ['courts'] });
@@ -94,7 +130,8 @@ async function stop(c: Court) {
                     <b>{{ c.label }}</b>
                     <span v-if="c.state === 'playing'" class="pill green live"><i />{{ $t('owner.club.playing') }}</span>
                     <span v-else-if="c.state === 'to_pay'" class="pill warn">{{ $t('owner.club.to_pay') }}</span>
-                    <span v-else class="pill">{{ $t('owner.club.free_now') }}</span>
+                    <span v-else-if="c.state === 'booked'" class="pill blue">{{ $t('owner.club.state_booked') }} · {{ c.due?.start }}</span>
+                    <span v-else class="pill green">{{ $t('owner.club.free_now') }}</span>
                 </header>
 
                 <!-- a game: who, the clock, the check -->
@@ -140,14 +177,56 @@ async function stop(c: Court) {
                             <Icon name="wallet" size="sm" />{{ $t('owner.club.take_money', { a: amd(c.game.bill.total) }) }}
                         </Link>
                     </div>
+                    <!-- more time: the table is free after the game for … (the next booking is never moved) -->
+                    <div v-if="c.state === 'playing'" class="ext">
+                        <small v-if="c.game.canExtend" class="muted"
+                            >{{ $t('owner.club.held_until', { t: c.game.holdsUntil }) }} · {{ $t('owner.club.extend_hint', { t: len(c.game.canExtend) }) }}</small
+                        >
+                        <small v-else class="warnt">{{ $t('owner.club.held_until', { t: c.game.holdsUntil }) }} · {{ $t('owner.club.extend_none') }}</small>
+                        <span v-if="extendSteps(c).length" class="extb">
+                            <button v-for="m in extendSteps(c)" :key="m" type="button" class="chip" :data-test="`extend-${m}`" @click="extend(c, m)">+{{ m }}′</button>
+                        </span>
+                    </div>
+                    <p v-if="c.next" class="nextl"><Icon name="clock" size="sm" />{{ $t('owner.club.next_in', { name: c.next.name, t: c.next.start, in: len(c.next.in) }) }}</p>
                 </template>
 
-                <!-- free: its next booking -->
-                <template v-else>
-                    <p v-if="c.next" class="muted small">
-                        {{ $t('owner.club.next_at', { t: c.next.start, name: c.next.name }) }}<span v-if="c.next.pending" class="faint"> · {{ $t('owner.status.pending') }}</span>
+                <!-- booked and due: the team is coming / here -->
+                <template v-else-if="c.state === 'booked' && c.due">
+                    <div class="who">
+                        <b>{{ c.due.name }}</b>
+                        <small
+                            >{{ c.due.start }}–{{ c.due.end
+                            }}<template v-if="c.due.phone">
+                                · <a :href="`tel:${c.due.phone}`">{{ c.due.phone }}</a></template
+                            ></small
+                        >
+                    </div>
+                    <p :class="['duel', { late: c.due.late }]">
+                        {{ c.due.late ? $t('owner.club.late_by', { n: c.due.late }) : $t('owner.club.starts_in', { t: len(c.due.in) }) }}
                     </p>
-                    <p v-else class="faint small">{{ $t('owner.club.nothing_next') }}</p>
+                    <div class="acts two">
+                        <button type="button" class="btn" data-test="start-game" @click="startGame(c)"><Icon name="check" size="sm" />{{ $t('owner.club.start_game') }}</button>
+                        <button v-if="c.due.canNoShow" type="button" class="btn ghost hotb" data-test="no-show" @click="noShow(c)">{{ $t('owner.club.no_show_btn') }}</button>
+                    </div>
+                    <p v-if="c.next" class="nextl"><Icon name="clock" size="sm" />{{ $t('owner.club.next_in', { name: c.next.name, t: c.next.start, in: len(c.next.in) }) }}</p>
+                </template>
+
+                <!-- free: for how long, the next booking, a walk-in right away -->
+                <template v-else>
+                    <div class="freebig">
+                        <b>{{ c.freeMin ? len(c.freeMin) : '—' }}</b>
+                        <small>{{ c.next ? $t('owner.club.free_until_next', { t: c.freeUntil ?? '' }) : $t('owner.club.free_until_close', { t: c.freeUntil ?? '' }) }}</small>
+                    </div>
+                    <p v-if="c.next" class="nextl">
+                        <Icon name="clock" size="sm" />{{ $t('owner.club.next_in', { name: c.next.name, t: c.next.start, in: len(c.next.in) })
+                        }}<span v-if="c.next.pending" class="faint"> · {{ $t('owner.status.pending') }}</span>
+                    </p>
+                    <div v-if="walkSteps(c).length" class="walk">
+                        <small class="muted">{{ $t('owner.club.walk_in_hint') }}</small>
+                        <span class="extb">
+                            <button v-for="m in walkSteps(c)" :key="m" type="button" class="chip" :data-test="`walk-${m}`" @click="walkIn(c, m)">▶ {{ len(m) }}</button>
+                        </span>
+                    </div>
                 </template>
             </article>
         </div>
@@ -189,4 +268,20 @@ async function stop(c: Court) {
 .shopln .plus { color: var(--accent); }
 .acts .btn { width: 100%; justify-content: center; }
 .small { font-size: 13px; margin: 0; }
+.court.booked { border-color: color-mix(in srgb, #5cc8ff 45%, transparent); }
+.pill.blue { color: #5cc8ff; background: rgba(92, 200, 255, 0.14); }
+.duel { margin: 0; font-weight: 800; font-size: 14px; color: #5cc8ff; }
+.duel.late { color: var(--warn); }
+.acts.two { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.hotb { color: var(--hot); border-color: rgba(255, 107, 107, 0.3); }
+.ext { display: flex; flex-direction: column; gap: 6px; }
+.ext small, .walk small { font-size: 12.5px; }
+.warnt { color: var(--warn); }
+.extb { display: flex; gap: 6px; flex-wrap: wrap; }
+.extb .chip { font-weight: 800; }
+.nextl { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--muted); }
+.freebig { display: flex; flex-direction: column; }
+.freebig b { font: 700 26px var(--display); color: var(--free); }
+.freebig small { color: var(--muted); font-size: 12.5px; }
+.walk { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
 </style>

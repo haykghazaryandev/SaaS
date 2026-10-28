@@ -5,7 +5,7 @@ import { ask } from '@/composables/useConfirm';
 import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
 // Booking details: contact, notes, price, history and the actions for the place.
@@ -50,7 +50,14 @@ function edit() {
 }
 // the bill: time + things taken during the game, paid at the end (card after a scan, cash, or both)
 const hasFeature = (f: string) => (owner.value.features ?? []).includes(f);
-const billable = computed(() => b.value && ['accepted', 'completed', 'no_show'].includes(b.value.status) && (hasFeature('wallet') || hasFeature('shop') || hasFeature('money')));
+// a place with the desk: "Start game" instead of "Arrived", and a bill only once the game was started
+const desk = computed(() => hasFeature('wallet') || hasFeature('shop') || hasFeature('money'));
+const billable = computed(() => b.value && desk.value && !!b.value.game_started && ['accepted', 'completed'].includes(b.value.status));
+async function startGame() {
+    if (!b.value) return;
+    if (await ask({ title: trans('owner.club.ask_start', { name: whoOf(b.value) }), text: trans('owner.club.ask_start_text'), ok: trans('owner.club.start_game') }))
+        router.post(route('owner.bookings.start', b.value.id), {}, { preserveScroll: true, onSuccess: () => emit('close') });
+}
 const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.sum, 0));
 </script>
 
@@ -102,8 +109,8 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
                     <Icon name="user" size="sm" /><span>{{ $t('owner.booking.player') }}</span>
                     <b
                         >{{ b.user.name || '—'
-                        }}<span v-if="b.user.no_shows" class="pill hot" style="margin-left: 6px">{{
-                            $t('owner.booking.no_shows', { n: b.user.no_shows })
+                        }}<span v-if="b.no_shows_here" class="pill hot" style="margin-left: 6px">⚠ {{
+                            $t('owner.booking.no_shows_here', { n: b.no_shows_here })
                         }}</span></b
                     >
                 </div>
@@ -157,7 +164,10 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
                 <button v-if="b.status === 'accepted' && !b.started" type="button" class="btn ghost hot" data-test="cancel" @click="askCancel(b.id)">
                     {{ $t('common.cancel_booking') }}
                 </button>
-                <button v-if="b.can_arrive" type="button" class="btn" data-test="arrived" @click="arrived">
+                <button v-if="desk && b.can_start" type="button" class="btn" data-test="start-game" @click="startGame">
+                    <Icon name="check" size="sm" />{{ $t('owner.club.start_game') }}
+                </button>
+                <button v-if="b.can_arrive && !desk" type="button" class="btn" data-test="arrived" @click="arrived">
                     <Icon name="check" size="sm" />{{ $t('common.arrived') }}
                 </button>
                 <button v-if="b.can_no_show" type="button" class="btn ghost hot" data-test="noshow" @click="noShow">

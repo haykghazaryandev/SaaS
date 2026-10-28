@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Booking\Actions\DecideBooking;
 use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Domain\Booking\BookingException;
@@ -12,6 +13,7 @@ use App\Domain\Club\Ratings;
 use App\Domain\Club\Report;
 use App\Domain\Club\Shop;
 use App\Domain\Club\Tournaments;
+use App\Domain\Venues\Availability;
 use App\Enums\Sport;
 use App\Models\Payment;
 use App\Models\Product;
@@ -109,7 +111,11 @@ it('pays a check of time and items: card first (known from the booking, no scan)
     $cola = app(Shop::class)->save(new Product(['venue_id' => $this->club->id]), ['name' => 'Cola', 'price' => 500]);
     $checkout = app(Checkout::class);
     $checkout->addItem($b, $cola, 2, $this->owner);
-    $bill = $checkout->bill($b);
+    // no bill before the game is started at the desk
+    expect($checkout->bill($b)['started'])->toBeFalse()
+        ->and(fn () => $checkout->pay($b, 13000, 3000, $this->owner))->toThrow(BookingException::class);
+    $b->update(['started_at' => now()]);   // started at the desk
+    $bill = $checkout->bill($b->fresh());
     expect($bill['total'])->toBe(16000)->and($bill['card']['balance'])->toBe(13000);
     expect(fn () => $checkout->pay($b, 13000, 1000, $this->owner))->toThrow(BookingException::class);   // not the total
     $checkout->pay($b, 13000, 3000, $this->owner);
@@ -144,6 +150,10 @@ it('stops a game: at least its booked length, longer costs more', function () {
     $this->travelTo($start->subMinutes(5));
     $b = app(RequestBooking::class)->handle($this->player, $t1, $start, 60);   // 3 000
     $b->update(['status' => 'accepted']);
+    // not started: nothing to stop; they come and the desk starts the game
+    expect(fn () => $checkout->stop($b->fresh(), $this->owner))->toThrow(BookingException::class);
+    $this->travelTo($start);
+    $checkout->start($b->fresh(), $this->owner);
     // they leave after 40 min: still the booked hour
     $this->travelTo($start->addMinutes(40));
     expect($checkout->bill($b->fresh())['minutes'])->toBe(60)
@@ -242,6 +252,7 @@ it('tells the player about their card: made, topped up, paid (one message for a 
     $b = app(RequestBooking::class)->handle($this->player, $small, at(10), 60);   // 15 000
     $cola = app(Shop::class)->save(new Product(['venue_id' => $this->club->id]), ['name' => 'Cola', 'price' => 500]);
     app(Checkout::class)->addItem($b, $cola, 2, $this->owner);
+    $b->update(['started_at' => now()]);   // started at the desk
     app(Checkout::class)->pay($b->fresh(), 5000, 11000, $this->owner);
 
     $sent = fn (string $type) => Notification::sent($this->player, Notice::class)->filter(fn ($n) => $n->type === $type);
@@ -253,4 +264,43 @@ it('tells the player about their card: made, topped up, paid (one message for a 
     // the second time it is the same card: no new "card made"
     $this->cards->forPlayer($this->club, $this->player);
     expect($sent('card_created'))->toHaveCount(1);
+});
+
+it('runs the desk: start a booked game in its window, extend it while the table is free, a walk-in holds the table', function () {
+    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15], 'features' => ['booking', 'wallet', 'shop']]);
+    [$t1, $t2] = [$club->fields[0], $club->fields[1]];
+    $checkout = app(Checkout::class);
+    $start = LocalTime::at(LocalTime::now()->startOfDay(), 12);
+    $this->travelTo($start->subHours(2));
+    $b = app(OwnerBooking::class)->create($this->owner, $t1, $start, 60, ['name' => 'Team A']);
+    $next = app(OwnerBooking::class)->create($this->owner, $t1, $start->addMinutes(90), 60, ['name' => 'Team B']);
+    // too early (more than 30 min before): no start
+    expect(fn () => $checkout->start($b->fresh(), $this->owner))->toThrow(BookingException::class);
+    $this->travelTo($start->subMinutes(10));
+    $checkout->start($b->fresh(), $this->owner);
+    expect($b->fresh()->started_at)->not->toBeNull()->and($b->fresh()->arrived_at)->not->toBeNull()
+        ->and(fn () => $checkout->start($b->fresh(), $this->owner))->toThrow(BookingException::class);
+    // the table is free 30 min after it: +15 yes, then +30 more would hit Team B
+    $checkout->extend($b->fresh(), 15, $this->owner);
+    expect($b->fresh()->ends_at->equalTo($start->addMinutes(75)))->toBeTrue()
+        ->and(fn () => $checkout->extend($b->fresh(), 30, $this->owner))->toThrow(BookingException::class);
+    // a walk-in on the free table: started now, holds 60 min, charged for the time played
+    $w = $checkout->walkIn($t2->setRelation('venue', $club), $this->owner, 60);
+    expect($w->open_end)->toBeTrue()->and($w->started_at)->not->toBeNull()
+        ->and(app(Availability::class)->problem($t2, $start, 30))->not->toBeNull();
+    $this->travelTo($start->subMinutes(10)->addMinutes(20));
+    $checkout->stop($w->fresh(), $this->owner);
+    expect($w->fresh()->durationMinutes())->toBe(30);   // 20 min played → 30 (two 15-min steps); the rest of the hour is free again
+});
+
+it('frees the time of a team that did not come', function () {
+    $club = makeClub(1, ['rules' => ['min_notice_min' => 0], 'features' => ['booking', 'wallet']]);
+    $start = LocalTime::at(LocalTime::now()->startOfDay(), 12);
+    $this->travelTo($start->subHour());
+    $b = app(RequestBooking::class)->handle($this->player, $club->fields[0], $start, 60);
+    app(DecideBooking::class)->accept($b, $this->owner);
+    $this->travelTo($start->addMinutes(20));
+    app(OwnerBooking::class)->noShow($this->owner, $b->fresh());
+    expect($b->fresh()->status->value)->toBe('no_show')
+        ->and(app(Availability::class)->problem($club->fields[0], $start->addMinutes(30), 30, forPlayer: false))->toBeNull();
 });

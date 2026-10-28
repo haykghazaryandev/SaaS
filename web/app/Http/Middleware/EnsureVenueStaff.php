@@ -46,6 +46,8 @@ class EnsureVenueStaff
             'today' => LocalTime::now()->toDateString(),
             // which club pages the place has (admin → place → features) and its main sport (ratings)
             'features' => $venue->featureList(),
+            // the schedule's colours chosen by the place (null: the default ones)
+            'colors' => $venue->rules['grid_colors'] ?? null,
             'sport' => ($venue->sports()[0] ?? Sport::Football)->value,
             'nowHour' => round(LocalTime::hourOf(LocalTime::now()), 3),
         ]);

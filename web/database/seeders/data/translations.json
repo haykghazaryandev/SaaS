@@ -1209,6 +1209,11 @@
         "hy": "Թեստային հաշիվներ (առանց Telegram)",
         "ru": "Тестовые аккаунты (без Telegram)"
     },
+    "booking.error.accept_first": {
+        "en": "Accept the request first.",
+        "hy": "Նախ ընդունեք հայտը։",
+        "ru": "Сначала примите заявку."
+    },
     "booking.error.already_drawn": {
         "en": "The draw is made: redo the draw first.",
         "hy": "Վիճակահանությունն արված է․ նախ կրկնեք այն։",
@@ -1233,6 +1238,11 @@
         "en": "Matches are already played: the bracket can't change here.",
         "hy": "Խաղերն արդեն անցկացվել են․ սխեման այստեղ փոխել հնարավոր չէ։",
         "ru": "Матчи уже сыграны: сетку здесь изменить нельзя."
+    },
+    "booking.error.already_started_game": {
+        "en": "The game is already started.",
+        "hy": "Խաղն արդեն սկսված է։",
+        "ru": "Игра уже начата."
     },
     "booking.error.already_visited": {
         "en": "This visit is marked already today.",
@@ -1328,6 +1338,11 @@
         "en": "This request was already answered.",
         "hy": "Այս հայտին արդեն պատասխանել են։",
         "ru": "На эту заявку уже ответили."
+    },
+    "booking.error.not_started": {
+        "en": "The game has not started: press Start game first.",
+        "hy": "Խաղը չի սկսվել․ նախ սեղմեք «Սկսել խաղը»։",
+        "ru": "Игра не началась: сначала нажмите «Начать игру»."
     },
     "booking.error.not_yours": {
         "en": "Only the person who booked can do this.",
@@ -4305,9 +4320,9 @@
         "ru": "Брони"
     },
     "notice.booking_accepted": {
-        "en": "✅ Confirmed: :venue :field, :date :time. Code :code.",
-        "hy": "✅ Հաստատված է՝ :venue :field, :date :time։ Կոդ՝ :code։",
-        "ru": "✅ Подтверждено: :venue :field, :date :time. Код :code."
+        "en": "✅ Confirmed: :venue :field, :date :time. Code :code. Can't come? Cancel in time: a no-show is noted at this place, and next time the place may give the time to a player who always comes.",
+        "hy": "✅ Հաստատված է՝ :venue :field, :date :time։ Կոդ՝ :code։ Չե՞ք կարող գալ։ Չեղարկեք ժամանակին․ չգալը նշվում է այս վայրում, և հաջորդ անգամ վայրը կարող է ժամը տալ այն խաղացողին, ով միշտ գալիս է։",
+        "ru": "✅ Подтверждено: :venue :field, :date :time. Код :code. Не сможете прийти? Отмените заранее: неявка отмечается в этом заведении, и в следующий раз время могут отдать игроку, который всегда приходит."
     },
     "notice.booking_ban": {
         "en": "⛔ You missed games too often (3 times in :days days), so you can't book until :until.",
@@ -4355,9 +4370,9 @@
         "ru": "⭐ Как вам :venue? Нажмите на звёзды, это поможет другим игрокам выбрать."
     },
     "notice.booking_reminder_day": {
-        "en": "⚽ Tomorrow at :start: :venue, :field (:time). Booking :code.",
-        "hy": "⚽ Վաղը :start-ին՝ :venue, :field (:time)։ Ամրագրում :code։",
-        "ru": "⚽ Завтра в :start: :venue, :field (:time). Бронь :code."
+        "en": "⚽ Tomorrow at :start: :venue, :field (:time). Booking :code. Can't come? Cancel now: a no-show is noted at this place.",
+        "hy": "⚽ Վաղը :start-ին՝ :venue, :field (:time)։ Ամրագրում :code։ Չե՞ք կարող գալ։ Չեղարկեք հիմա․ չգալը նշվում է այս վայրում։",
+        "ru": "⚽ Завтра в :start: :venue, :field (:time). Бронь :code. Не сможете прийти? Отмените сейчас: неявка отмечается в этом заведении."
     },
     "notice.booking_reminder_hour": {
         "en": "⏰ In 1 hour: :venue, :field, :time. Running late? Tell the place with one tap.",
@@ -4574,6 +4589,11 @@
         "hy": "չգալու դեպքեր՝ :n",
         "ru": "неявок: :n"
     },
+    "owner.booking.no_shows_here": {
+        "en": "didn't come here: :n",
+        "hy": "այստեղ չի եկել՝ :n",
+        "ru": "не пришёл сюда: :n"
+    },
     "owner.booking.note_owner": {
         "en": "Private note",
         "hy": "Ներքին նշում",
@@ -4639,10 +4659,35 @@
         "hy": "Հաստատեք, երբ կանխիկը ձեր ձեռքում է։",
         "ru": "Подтвердите, когда наличные у вас."
     },
+    "owner.club.ask_extend": {
+        "en": ":name: +:n min?",
+        "hy": ":name․ +:n րոպե՞",
+        "ru": ":name: +:n мин?"
+    },
+    "owner.club.ask_noshow": {
+        "en": ":name didn't come?",
+        "hy": ":name-ը չեկա՞վ",
+        "ru": ":name не пришли?"
+    },
+    "owner.club.ask_noshow_text": {
+        "en": "The time becomes free for others at once; the no-show is noted for the player at your place.",
+        "hy": "Ժամանակն անմիջապես ազատ կլինի մյուսների համար․ չգալը կնշվի խաղացողի համար ձեր վայրում։",
+        "ru": "Время сразу освободится для других; неявка отметится у игрока в вашем заведении."
+    },
     "owner.club.ask_sell": {
         "en": "Sell :n × :name for :a in cash?",
         "hy": "Վաճառե՞լ :n × :name :a-ով կանխիկ",
         "ru": "Продать :n × :name за :a наличными?"
+    },
+    "owner.club.ask_start": {
+        "en": ":name: start the game?",
+        "hy": ":name․ սկսե՞լ խաղը",
+        "ru": ":name: начать игру?"
+    },
+    "owner.club.ask_start_text": {
+        "en": "The time is counted from now (at least the booked length) and the bill starts.",
+        "hy": "Ժամանակը հաշվվում է հիմիկվանից (առնվազն ամրագրված տևողությունը), և հաշիվը սկսվում է։",
+        "ru": "Время считается с этой минуты (не меньше забронированного), и начинается счёт."
     },
     "owner.club.ask_stop": {
         "en": "Stop the game of :name?",
@@ -4663,6 +4708,16 @@
         "en": "Put :a on :name's card?",
         "hy": "Լիցքավորե՞լ :a :name-ի քարտին",
         "ru": "Пополнить карту :name на :a?"
+    },
+    "owner.club.ask_walkin": {
+        "en": "Start a game on :table for :t?",
+        "hy": "Սկսե՞լ խաղ :table-ում :t-ով",
+        "ru": "Начать игру на :table на :t?"
+    },
+    "owner.club.ask_walkin_text": {
+        "en": "For players without a booking: the table is held that long, they pay for the time played.",
+        "hy": "Առանց ամրագրման խաղացողների համար․ սեղանը պահվում է այդքան, վճարում են խաղացած ժամանակի համար։",
+        "ru": "Для игроков без брони: стол занят на это время, оплата за сыгранное время."
     },
     "owner.club.attach_card": {
         "en": "Attach to this bill",
@@ -4814,6 +4869,21 @@
         "hy": "Պատրաստ է",
         "ru": "Готово"
     },
+    "owner.club.extend_hint": {
+        "en": "free after it for :t",
+        "hy": "դրանից հետո ազատ է :t",
+        "ru": "после свободно :t"
+    },
+    "owner.club.extend_none": {
+        "en": "the next booking comes right after",
+        "hy": "հաջորդ ամրագրումն անմիջապես հետո է",
+        "ru": "следующая бронь сразу после"
+    },
+    "owner.club.extended": {
+        "en": "+:n min: the table is held longer.",
+        "hy": "+:n րոպե․ սեղանը պահվում է ավելի երկար։",
+        "ru": "+:n мин: стол занят дольше."
+    },
     "owner.club.find_card": {
         "en": "Booked without an account: scan the player's card to pay from it",
         "hy": "Ամրագրված է առանց հաշվի․ սկանավորեք խաղացողի քարտը՝ դրանից վճարելու համար",
@@ -4834,6 +4904,16 @@
         "hy": "Ազատ",
         "ru": "Свободен"
     },
+    "owner.club.free_until_close": {
+        "en": "free until :t (closing)",
+        "hy": "ազատ է մինչև :t (փակում)",
+        "ru": "свободно до :t (закрытие)"
+    },
+    "owner.club.free_until_next": {
+        "en": "free until :t (the next booking)",
+        "hy": "ազատ է մինչև :t (հաջորդ ամրագրումը)",
+        "ru": "свободно до :t (следующая бронь)"
+    },
     "owner.club.from_card": {
         "en": "From card",
         "hy": "Քարտից",
@@ -4843,6 +4923,11 @@
         "en": "Paid from cards",
         "hy": "Վճարված քարտերից",
         "ru": "Оплачено с карт"
+    },
+    "owner.club.held_until": {
+        "en": "Held until :t",
+        "hy": "Պահված է մինչև :t",
+        "ru": "Занято до :t"
     },
     "owner.club.history": {
         "en": "Card history",
@@ -4868,6 +4953,21 @@
         "en": "items: :n · :a",
         "hy": "ապրանքներ՝ :n · :a",
         "ru": "товаров: :n · :a"
+    },
+    "owner.club.late_by": {
+        "en": "Late :n min: not started",
+        "hy": "Ուշանում են :n րոպե․ չի սկսվել",
+        "ru": "Опаздывают на :n мин: не начато"
+    },
+    "owner.club.len_h": {
+        "en": ":h h:m",
+        "hy": ":h ժ:m",
+        "ru": ":h ч:m"
+    },
+    "owner.club.len_m": {
+        "en": ":m min",
+        "hy": ":m ր",
+        "ru": ":m мин"
     },
     "owner.club.level_n": {
         "en": "level :n",
@@ -4919,6 +5019,11 @@
         "hy": "Հաջորդը՝ :t · :name",
         "ru": "Следующая: :t · :name"
     },
+    "owner.club.next_in": {
+        "en": "Next: :name at :t (in :in)",
+        "hy": "Հաջորդը՝ :name :t-ին (:in հետո)",
+        "ru": "Следующие: :name в :t (через :in)"
+    },
     "owner.club.no_account": {
         "en": "booked without an account",
         "hy": "ամրագրված առանց հաշվի",
@@ -4969,15 +5074,50 @@
         "hy": "Ապրանքներ դեռ չկան։",
         "ru": "Товаров пока нет."
     },
+    "owner.club.no_show_btn": {
+        "en": "Didn't come",
+        "hy": "Չեկան",
+        "ru": "Не пришли"
+    },
     "owner.club.no_tournaments": {
         "en": "No tournaments yet.",
         "hy": "Մրցաշարեր դեռ չկան։",
         "ru": "Турниров пока нет."
     },
+    "owner.club.noshow_any": {
+        "en": "Came or not: all",
+        "hy": "Եկել են թե ոչ՝ բոլորը",
+        "ru": "Неявки: все"
+    },
+    "owner.club.noshow_filter": {
+        "en": "Didn't come",
+        "hy": "Չեկածներ",
+        "ru": "Неявки"
+    },
+    "owner.club.noshow_no": {
+        "en": "Always came",
+        "hy": "Միշտ եկել են",
+        "ru": "Всегда приходили"
+    },
+    "owner.club.noshow_yes": {
+        "en": "Didn't come sometimes",
+        "hy": "Երբեմն չեն եկել",
+        "ru": "Бывали неявки"
+    },
     "owner.club.not_here": {
         "en": "This card is from another club.",
         "hy": "Այս քարտը այլ ակումբի է։",
         "ru": "Это карта другого клуба."
+    },
+    "owner.club.not_started": {
+        "en": "The game has not started",
+        "hy": "Խաղը դեռ չի սկսվել",
+        "ru": "Игра ещё не началась"
+    },
+    "owner.club.not_started_text": {
+        "en": "A booking is only planned: the time and the bill start when you press Start game (from 30 min before). Before that there is nothing to pay.",
+        "hy": "Ամրագրումը միայն պլանավորված է․ ժամանակը և հաշիվը սկսվում են «Սկսել խաղը» սեղմելիս (30 րոպե առաջվանից)։ Մինչ այդ վճարելու բան չկա։",
+        "ru": "Бронь только запланирована: время и счёт начинаются по кнопке «Начать игру» (за 30 мин до начала). До этого платить нечего."
     },
     "owner.club.nothing_next": {
         "en": "Nothing booked later today.",
@@ -5224,6 +5364,11 @@
         "hy": "Անուն",
         "ru": "Имя"
     },
+    "owner.club.sort_noshows": {
+        "en": "Most no-shows",
+        "hy": "Ամենաշատ չեկածները",
+        "ru": "Больше неявок"
+    },
     "owner.club.sort_rating": {
         "en": "Rating",
         "hy": "Ռեյթինգ",
@@ -5238,6 +5383,26 @@
         "en": "Start",
         "hy": "Սկիզբ",
         "ru": "Начало"
+    },
+    "owner.club.start_game": {
+        "en": "Start game",
+        "hy": "Սկսել խաղը",
+        "ru": "Начать игру"
+    },
+    "owner.club.started": {
+        "en": "The game started: the time is counting.",
+        "hy": "Խաղը սկսվեց․ ժամանակը հաշվվում է։",
+        "ru": "Игра началась: время идёт."
+    },
+    "owner.club.starts_in": {
+        "en": "Starts in :t",
+        "hy": "Սկսվում է :t-ից",
+        "ru": "Начало через :t"
+    },
+    "owner.club.state_booked": {
+        "en": "Booked",
+        "hy": "Ամրագրված",
+        "ru": "Забронировано"
     },
     "owner.club.stop_check": {
         "en": "Stop · check",
@@ -5328,6 +5493,16 @@
         "en": "visits: :n",
         "hy": "այցեր՝ :n",
         "ru": "визитов: :n"
+    },
+    "owner.club.walk_in": {
+        "en": "Walk-in",
+        "hy": "Առանց ամրագրման",
+        "ru": "Без брони"
+    },
+    "owner.club.walk_in_hint": {
+        "en": "Players without a booking: start a game now for",
+        "hy": "Առանց ամրագրման խաղացողներ․ սկսել խաղ հիմա՝",
+        "ru": "Игроки без брони: начать игру сейчас на"
     },
     "owner.courts.active_hint": {
         "en": "Switched off: players can not book it",
@@ -6288,6 +6463,56 @@
         "en": "Close a field or the whole place for a time. Players can’t book it.",
         "hy": "Փակեք դաշտը կամ ամբողջ ակումբը որոշ ժամանակով։ Խաղացողները չեն կարող այն ամրագրել։",
         "ru": "Закройте поле или весь клуб на время. Игроки не смогут его забронировать."
+    },
+    "owner.settings.color_booked": {
+        "en": "Booked",
+        "hy": "Ամրագրված",
+        "ru": "Забронировано"
+    },
+    "owner.settings.color_done": {
+        "en": "Finished",
+        "hy": "Ավարտված",
+        "ru": "Завершено"
+    },
+    "owner.settings.color_free": {
+        "en": "Free",
+        "hy": "Ազատ",
+        "ru": "Свободно"
+    },
+    "owner.settings.color_live": {
+        "en": "Playing now",
+        "hy": "Հիմա խաղում են",
+        "ru": "Сейчас играют"
+    },
+    "owner.settings.color_reg": {
+        "en": "Every week",
+        "hy": "Ամեն շաբաթ",
+        "ru": "Каждую неделю"
+    },
+    "owner.settings.color_req": {
+        "en": "Request",
+        "hy": "Հայտ",
+        "ru": "Заявка"
+    },
+    "owner.settings.color_reset": {
+        "en": "Back to the default colour",
+        "hy": "Վերադարձնել լռելյայն գույնը",
+        "ru": "Вернуть цвет по умолчанию"
+    },
+    "owner.settings.color_reset_all": {
+        "en": "Default colours",
+        "hy": "Լռելյայն գույներ",
+        "ru": "Цвета по умолчанию"
+    },
+    "owner.settings.colors": {
+        "en": "Schedule colours",
+        "hy": "Ժամանակացույցի գույներ",
+        "ru": "Цвета расписания"
+    },
+    "owner.settings.colors_hint": {
+        "en": "The colour of each state in the schedule, for everybody of your place.",
+        "hy": "Ժամանակացույցում յուրաքանչյուր վիճակի գույնը՝ ձեր վայրի բոլորի համար։",
+        "ru": "Цвет каждого состояния в расписании — для всех сотрудников заведения."
     },
     "owner.settings.discard": {
         "en": "Discard",
@@ -7833,6 +8058,11 @@
         "en": "This place takes bookings by phone only. Call them.",
         "hy": "Այս վայրը ամրագրում է միայն հեռախոսով։ Զանգահարեք։",
         "ru": "Это место принимает брони только по телефону. Позвоните."
+    },
+    "player.place.no_show_note": {
+        "en": "Can't come? Cancel in time: a no-show is noted at this place, and it may give the time to players who always come.",
+        "hy": "Չե՞ք կարող գալ։ Չեղարկեք ժամանակին․ չգալը նշվում է այս վայրում, և այն կարող է ժամը տալ միշտ եկող խաղացողներին։",
+        "ru": "Не сможете прийти? Отмените заранее: неявка отмечается в этом заведении, и оно может отдать время игрокам, которые всегда приходят."
     },
     "player.place.note_label": {
         "en": "Note to the place (optional)",
