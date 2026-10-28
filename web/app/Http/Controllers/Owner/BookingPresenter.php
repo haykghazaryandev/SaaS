@@ -157,7 +157,7 @@ final class BookingPresenter
     public static function fieldLabel(Field $f): string
     {
         if ($f->name) {
-            return $f->name;
+            return $f->displayName();
         }
 
         return $f->size === FieldSize::Table ? __('owner.field.table') : __('owner.field.'.$f->size->value).' '.$f->format;
@@ -167,7 +167,7 @@ final class BookingPresenter
     {
         return $venue->fields->map(fn (Field $f) => [
             'id' => $f->id, 'size' => $f->size->value, 'sport' => $f->sport()->value, 'format' => $f->format, 'label' => self::fieldLabel($f),
-            'short' => $f->name ?: $f->format,
+            'short' => $f->displayName() ?: $f->format,
             'durations' => $f->durations, 'default_duration' => $f->default_duration, 'active' => $f->active,
         ])->values()->all();
     }

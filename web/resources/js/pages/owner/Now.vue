@@ -48,6 +48,8 @@ interface Court {
     due: { id: number; name: string; start: string; end: string; in: number; late: number; phone: string | null; canNoShow: boolean } | null;
     next: { id: number; start: string; in: number; name: string; pending: boolean } | null;
     freeMin: number | null;
+    /** still held by a game until … (then free) */
+    freeFrom: string | null;
     freeUntil: string | null;
 }
 const props = defineProps<{ courts: Court[]; products: { id: number; name: string; price: number; photo: string | null }[]; canDemo?: boolean; step: number }>();
@@ -215,13 +217,14 @@ async function stop(c: Court) {
                 <template v-else>
                     <div class="freebig">
                         <b>{{ c.freeMin ? len(c.freeMin) : '—' }}</b>
+                        <small v-if="c.freeFrom" class="warnt">{{ $t('owner.club.free_from', { t: c.freeFrom }) }}</small>
                         <small>{{ c.next ? $t('owner.club.free_until_next', { t: c.freeUntil ?? '' }) : $t('owner.club.free_until_close', { t: c.freeUntil ?? '' }) }}</small>
                     </div>
                     <p v-if="c.next" class="nextl">
                         <Icon name="clock" size="sm" />{{ $t('owner.club.next_in', { name: c.next.name, t: c.next.start, in: len(c.next.in) })
                         }}<span v-if="c.next.pending" class="faint"> · {{ $t('owner.status.pending') }}</span>
                     </p>
-                    <div v-if="walkSteps(c).length" class="walk">
+                    <div v-if="walkSteps(c).length && !c.freeFrom" class="walk">
                         <small class="muted">{{ $t('owner.club.walk_in_hint') }}</small>
                         <span class="extb">
                             <button v-for="m in walkSteps(c)" :key="m" type="button" class="chip" :data-test="`walk-${m}`" @click="walkIn(c, m)">▶ {{ len(m) }}</button>

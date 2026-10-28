@@ -12,6 +12,7 @@ use App\Models\Field;
 use App\Models\Product;
 use App\Support\LocalTime;
 use App\Support\Phone;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
@@ -47,8 +48,16 @@ class NowController extends OwnerController
             $due = $game ? null : $mine->first(fn (Booking $b) => ! $b->started_at && $b->status->value !== 'pending'
                 && $b->starts_at->lessThanOrEqualTo($now->addMinutes(Checkout::EARLY_MINUTES)) && $b->ends_at->isFuture());
             $next = $mine->first(fn (Booking $b) => ! $b->started_at && $b->starts_at->greaterThan($now) && $b->id !== $due?->id);
-            // free time: after the game (or now) until the next booking or the closing
+            // free time: after the game (or now) until the next booking or the closing; a time still held now (a game
+            // paid but its time not over, a request for now) counts as taken
+            // (a stopped game is over: at most the minute it stopped in)
+            $held = $mine->filter(fn (Booking $b) => in_array($b->status->value, ['pending', 'accepted'], true) && ! $b->stopped_at
+                && $b->starts_at->lessThanOrEqualTo($now) && $b->ends_at->greaterThan($now))
+                ->max(fn (Booking $b) => $b->ends_at->getTimestamp());
             $from = $game && ! $game->stopped_at ? $game->ends_at->toImmutable() : ($due ? $due->ends_at->toImmutable() : $now);
+            if (! $game && ! $due && $held) {
+                $from = CarbonImmutable::createFromTimestamp($held, LocalTime::tz());
+            }
             $until = $next ? $next->starts_at->toImmutable() : $close;
             $gap = max(0, (int) round(($until->getTimestamp() - max($from->getTimestamp(), $now->getTimestamp())) / 60));
 
@@ -75,6 +84,7 @@ class NowController extends OwnerController
                 'next' => $next ? ['id' => $next->id, 'start' => $hm($next->starts_at), 'in' => $minsTo($next->starts_at), 'name' => $next->team_name ?: $next->contact_name, 'pending' => $next->status->value === 'pending'] : null,
                 // a free table: free for how long (a walk-in can play that long)
                 'freeMin' => $game || $due ? null : $gap,
+                'freeFrom' => ! $game && ! $due && $held ? $hm($from) : null,
                 'freeUntil' => $game || $due ? null : ($next ? $hm($next->starts_at) : $hm($close)),
             ];
         });

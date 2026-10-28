@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FieldSize;
+use App\Enums\Sport;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -15,7 +16,7 @@ class Field extends HasFactoryModel
         return ['size' => FieldSize::class, 'indoor' => 'boolean', 'durations' => 'array', 'active' => 'boolean'];
     }
 
-    public function sport(): \App\Enums\Sport
+    public function sport(): Sport
     {
         return $this->size->sport();
     }
@@ -39,5 +40,27 @@ class Field extends HasFactoryModel
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * The name to show: a default name ("Table 2", "Սեղան 2", "Стол 2", "Small field 1" …, made in the language of whoever
+     * added the court) in the reader's language; a name the owner typed as it is.
+     */
+    public function displayName(): ?string
+    {
+        if (! $this->name) {
+            return null;
+        }
+        foreach (['table', 'small', 'big'] as $kind) {
+            foreach (['en', 'hy', 'ru'] as $locale) {
+                $parts = array_map(fn ($x) => preg_quote($x, '/'), explode(':n', __('owner.courts.name_'.$kind, [], $locale)));
+                $pattern = '/^'.implode('(\d+)', $parts).'$/u';
+                if (preg_match($pattern, $this->name, $m)) {
+                    return __('owner.courts.name_'.$kind, ['n' => $m[1]]);
+                }
+            }
+        }
+
+        return $this->name;
     }
 }

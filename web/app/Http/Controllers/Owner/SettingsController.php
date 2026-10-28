@@ -90,7 +90,7 @@ class SettingsController extends OwnerController
                 'sport' => $group->first()->sport()->value,
                 'label' => __('owner.courts.kind_'.$size),
                 'items' => $group->sortBy(fn (Field $x) => [$x->sort, $x->id])->values()->map(fn (Field $f) => [
-                    'id' => $f->id, 'name' => $f->name, 'label' => BookingPresenter::fieldLabel($f), 'active' => $f->active,
+                    'id' => $f->id, 'name' => $f->displayName(), 'label' => BookingPresenter::fieldLabel($f), 'active' => $f->active,
                 ]),
             ])->values(),
             'hours' => collect(range(0, 6))->map(function ($wd) use ($venue) {

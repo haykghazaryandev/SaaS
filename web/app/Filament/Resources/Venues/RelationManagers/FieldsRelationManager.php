@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Venues\RelationManagers;
 
+use App\Domain\Venues\Courts;
 use App\Enums\FieldSize;
 use App\Filament\Support\Options;
 use App\Models\Field;
-use App\Domain\Venues\Courts;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -70,7 +70,7 @@ class FieldsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitle(fn (Field $f) => $f->name ?: __('telegram.field.'.$f->size->value))
+            ->recordTitle(fn (Field $f) => $f->displayName() ?: __('telegram.field.'.$f->size->value))
             ->defaultSort('sort')
             ->columns([
                 TextColumn::make('name')->label(__('admin.field.name'))->placeholder('—')->weight('bold'),

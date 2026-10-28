@@ -88,7 +88,7 @@ class Checkout
     public function walkIn(Field $field, User $by, int $minutes, ?string $name = null): Booking
     {
         $minutes = max($this->stepOf($field), min(240, $minutes));
-        $start = LocalTime::now()->setSecond(0);
+        $start = self::nextMinute();
         $b = app(OwnerBooking::class)->create($by, $field, $start, $minutes, ['name' => $name ?: __('owner.club.walk_in')]);
         $b->update(['open_end' => true, 'started_at' => now(), 'arrived_at' => now()]);
 
@@ -127,18 +127,18 @@ class Checkout
         }
         $minutes = $this->chargedMinutes($booking, LocalTime::now());
         $price = $this->timePrice($booking, $minutes)['price'];
-        // the table is held from the booked start until the time charged ends (counted from the real start)
-        $end = $booking->started_at->toImmutable()->addMinutes($minutes);
-        $end = $end->lessThan($booking->starts_at) ? $booking->starts_at->toImmutable()->addMinutes($this->stepOf($booking->field)) : $end;
+        // the table is free from now on (the next full minute): the bill still counts the time charged (rounded up, at
+        // least the booked length), but nobody waits for minutes nobody plays
+        $end = self::nextMinute();
+        $end = $end->lessThanOrEqualTo($booking->starts_at) ? $booking->starts_at->toImmutable()->addMinute() : $end;
         try {
             DB::transaction(fn () => $booking->update(['ends_at' => $end->utc()]));
         } catch (QueryException $e) {
-            // longer than booked, but the next booking is there: the table keeps its time, the price still counts all of it
             if (($e->errorInfo[0] ?? null) !== '23P01') {
                 throw $e;
             }
         }
-        $booking->update(['price' => $price, 'stopped_at' => now()]);
+        $booking->update(['price' => $price, 'stopped_at' => now(), 'charged_minutes' => $minutes]);
 
         return $booking;
     }
@@ -156,7 +156,7 @@ class Checkout
         // a bill only once the game was started at the desk; before that the booking is just planned
         $started = $booking->started_at !== null;
         $running = $started && ! $booking->stopped_at && ! $booking->paid_at;
-        $minutes = $running ? $this->chargedMinutes($booking, LocalTime::now()) : $booking->durationMinutes();
+        $minutes = $running ? $this->chargedMinutes($booking, LocalTime::now()) : ($booking->charged_minutes ?? $booking->durationMinutes());
         $time = $running ? $this->timePrice($booking, $minutes) : ['full' => $this->fullPrice($booking, $minutes), 'price' => (int) $booking->price];
         $items = (int) $booking->items->sum(fn (BookingItem $i) => $i->qty * $i->price_each);
 
@@ -296,6 +296,14 @@ class Checkout
     private function step(Booking $booking): int
     {
         return max(5, (int) $booking->venue->rule('step_min'));
+    }
+
+    /** Now, rounded up to the next full minute (a game stopped and the next one started meet there). */
+    public static function nextMinute(): CarbonImmutable
+    {
+        $now = LocalTime::now();
+
+        return $now->second === 0 && $now->micro === 0 ? $now : $now->setSecond(0)->setMicrosecond(0)->addMinute();
     }
 
     private function stepOf(Field $field): int

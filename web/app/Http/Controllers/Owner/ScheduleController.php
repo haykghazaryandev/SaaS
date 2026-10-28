@@ -177,7 +177,7 @@ class ScheduleController extends OwnerController
                     return [
                         'id' => $f->id, 'size' => $f->size->value, 'sport' => $f->sport()->value, 'count' => $courts->count(),
                         'label' => $many ? __('owner.courts.kind_'.$f->size->value) : BookingPresenter::fieldLabel($f),
-                        'short' => $many ? __('owner.courts.kind_'.$f->size->value) : ($f->name ?: $f->format),
+                        'short' => $many ? __('owner.courts.kind_'.$f->size->value) : ($f->displayName() ?: $f->format),
                         'courts' => $courts->pluck('id')->values()->all(),
                         'models' => $courts->values(),
                     ];
