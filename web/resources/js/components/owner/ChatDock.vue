@@ -33,6 +33,13 @@ const save = (k: string, v: string | null) => {
 };
 
 const open = ref(read('bb.dock.open') === '1');
+const onChats = computed(() => {
+    try {
+        return !!route().current('owner.messages') || !!route().current('owner.messages.*');
+    } catch {
+        return false;
+    }
+});
 const chats = ref<ChatItem[]>([]);
 const current = ref<ChatItem | null>(null);
 const msgs = ref<ChatMessage[]>([]);
@@ -170,13 +177,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div v-if="wide && user" class="dock" data-test="chat-dock">
+    <!-- not on the Chats page itself -->
+    <div v-if="wide && user && !onChats" class="dock" data-test="chat-dock">
         <section v-if="open" class="dwin" role="dialog" :aria-label="$t('owner.nav.messages')">
             <!-- the chats -->
             <template v-if="!current">
                 <header class="dh">
                     <b>{{ $t('owner.nav.messages') }}</b>
-                    <a class="dx" :href="route('messages.index')" :title="$t('owner.dock.full')"><Icon name="share" size="sm" /></a>
+                    <a class="dx" :href="route('owner.messages')" :title="$t('owner.dock.full')"><Icon name="share" size="sm" /></a>
                     <button type="button" class="dx" :aria-label="$t('common.close')" @click="toggle"><Icon name="x" size="sm" /></button>
                 </header>
                 <div class="dlist">
@@ -196,7 +204,7 @@ onBeforeUnmount(() => {
                 <header class="dh">
                     <button type="button" class="dx" :aria-label="$t('messages.back')" @click="back"><Icon name="back" size="sm" /></button>
                     <b class="dt">{{ chatTitle(current) }}</b>
-                    <a class="dx" :href="route('messages.show', current.id)" :title="$t('owner.dock.full')"><Icon name="share" size="sm" /></a>
+                    <a class="dx" :href="route('owner.messages.show', current.id)" :title="$t('owner.dock.full')"><Icon name="share" size="sm" /></a>
                     <button type="button" class="dx" :aria-label="$t('common.close')" @click="toggle"><Icon name="x" size="sm" /></button>
                 </header>
                 <div ref="body" class="dbody">

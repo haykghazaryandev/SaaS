@@ -21,6 +21,10 @@ class StaffStayInPanel
     {
         $user = $request->user();
         $name = (string) $request->route()?->getName();
+        // the chat pages: in the panel (its menu stays)
+        if ($user && in_array($name, ['messages.index', 'messages.show'], true) && $request->isMethod('GET') && $user->venues()->exists()) {
+            return $name === 'messages.index' ? redirect()->route('owner.messages') : redirect()->route('owner.messages.show', $request->route('conversation'));
+        }
         if (! $user || $name === '' || ! self::isPlayerRoute($name) || ! $user->venues()->exists()) {
             return $next($request);
         }

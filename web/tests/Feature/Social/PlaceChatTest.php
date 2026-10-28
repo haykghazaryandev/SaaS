@@ -26,7 +26,7 @@ it('lets a player write to a place; its staff read and answer in their messages'
 
     $this->actingAs($this->player)->postJson(route('messages.send', $c->id), ['body' => 'Do you have balls?'])->assertCreated();
     // the owner sees it (with the player's name) and answers for the place
-    $this->actingAs($this->owner)->get(route('messages.index'))->assertInertia(fn (Assert $p) => $p->where('chats.0.type', 'venue')
+    $this->actingAs($this->owner)->get(route('owner.messages'))->assertInertia(fn (Assert $p) => $p->where('chats.0.type', 'venue')
         ->where('chats.0.venue.staff', true)->where('chats.0.venue.player.name', 'Aram'));
     $this->actingAs($this->owner)->postJson(route('messages.send', $c->id), ['body' => 'Yes'])->assertCreated();
     $this->actingAs($this->player)->get(route('messages.show', $c->id))->assertInertia(fn (Assert $p) => $p->where('chat.venue.name', $this->venue->name)
@@ -78,7 +78,7 @@ it('mutes a chat (no badge), deletes a direct / place chat for me until someone 
     $g->participants()->where('user_id', $this->owner->id)->update(['left_at' => null]);
     $g->update(['status' => 'archived']);
     $this->actingAs($this->owner)->post(route('messages.remove', $g->id))->assertRedirect(route('messages.index'));
-    $this->actingAs($this->owner)->get(route('messages.index'))->assertInertia(fn (Assert $p) => $p->where('archived', []));
+    $this->actingAs($this->owner)->get(route('owner.messages'))->assertInertia(fn (Assert $p) => $p->where('archived', []));
 });
 
 it('lists the members of a group chat and tells the ones picked with "@"', function () {

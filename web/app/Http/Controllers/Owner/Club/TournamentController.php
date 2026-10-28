@@ -210,7 +210,7 @@ class TournamentController extends OwnerController
         $this->own($request, $tournament);
         $c = $tournaments->openChat($tournament, $request->user());
 
-        return redirect()->route('messages.show', $c->id);
+        return redirect()->route('owner.messages.show', $c->id);
     }
 
     private function own(Request $request, Tournament $t): void

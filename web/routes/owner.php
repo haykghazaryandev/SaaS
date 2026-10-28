@@ -8,6 +8,7 @@ use App\Http\Controllers\Owner\Club\NowController;
 use App\Http\Controllers\Owner\Club\PlayerController;
 use App\Http\Controllers\Owner\Club\ShopController;
 use App\Http\Controllers\Owner\Club\TournamentController;
+use App\Http\Controllers\Owner\OwnerChatController;
 use App\Http\Controllers\Owner\ScheduleController;
 use App\Http\Controllers\Owner\SettingsController;
 use App\Http\Controllers\Owner\TodayController;
@@ -20,6 +21,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(function () {
     Route::get('/', TodayController::class)->name('today');
     Route::get('requests', [TodayController::class, 'requests'])->name('requests');
+    // chats in the panel (the JSON of a chat stays under /messages)
+    Route::get('messages', [OwnerChatController::class, 'index'])->name('messages');
+    Route::get('messages/{conversation}', [OwnerChatController::class, 'show'])->whereNumber('conversation')->name('messages.show');
     // where an owner lands (login, the app's home): a club at its desk ("Now"), a field at Today
     Route::get('start', fn (Request $request) => redirect()->route(
         collect(['wallet', 'shop'])->contains(fn ($f) => $request->attributes->get('venue')->hasFeature($f)) ? 'owner.now' : 'owner.today'

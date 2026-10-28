@@ -5,6 +5,7 @@ import Icon from '@/components/Icon.vue';
 import { type ChatItem, chatIcon, chatTitle, shortWhen, sysText, userName } from '@/composables/useChat';
 import { ask } from '@/composables/useConfirm';
 import { useShared } from '@/composables/useShared';
+import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
@@ -13,7 +14,15 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 // Chats: direct and game chats with the last message; unread ones bold with a count; closed (archived) chats below.
 // "New message" opens a friend picker (friends are loaded on demand) and starts the direct chat (messages.direct).
 // Live: private-user.{id} ".chat.updated" reloads the list.
-const props = defineProps<{ chats: ChatItem[]; archived: ChatItem[]; friends?: { id: number; name: string; username: string | null; avatar?: string | null }[] }>();
+const props = defineProps<{
+    chats: ChatItem[];
+    archived: ChatItem[];
+    friends?: { id: number; name: string; username: string | null; avatar?: string | null }[];
+    /** shown inside the owner panel (its menu stays) */
+    panel?: boolean;
+}>();
+const Layout = props.panel ? OwnerLayout : PlayerLayout;
+const chatUrl = (id: number) => (props.panel ? route('owner.messages.show', id) : route('messages.show', id));
 const { user } = useShared();
 
 function preview(c: ChatItem): string {
@@ -90,7 +99,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
 </script>
 
 <template>
-    <PlayerLayout>
+    <component :is="Layout" :title="$t('messages.title')">
         <Head :title="$t('messages.title')" />
         <div class="msgs">
             <header class="mhead">
@@ -99,7 +108,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
             </header>
 
             <section v-if="chats.length" class="clist">
-                <Link v-for="c in chats" :key="c.id" :href="route('messages.show', c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
+                <Link v-for="c in chats" :key="c.id" :href="chatUrl(c.id)" :class="['list-row', 'citem', { unread: c.unread }]">
                     <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                     <span v-else class="avw">
                         <Avatar :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
@@ -127,7 +136,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
             <template v-if="archived.length">
                 <h2 class="sec">{{ $t('messages.archived_title') }}</h2>
                 <section class="clist off">
-                    <Link v-for="c in archived" :key="c.id" :href="route('messages.show', c.id)" class="list-row citem" :data-test="`closed-${c.id}`">
+                    <Link v-for="c in archived" :key="c.id" :href="chatUrl(c.id)" class="list-row citem" :data-test="`closed-${c.id}`">
                         <span v-if="c.type !== 'direct'" class="cav"><Icon :name="chatIcon(c)" /></span>
                         <Avatar v-else :id="c.other?.id ?? null" :name="c.other?.name" :src="c.other?.avatar" size="md" />
                         <span class="cmain">
@@ -171,7 +180,7 @@ const isOnline = (o: { id: number; online?: boolean } | null | undefined) => (o 
                 </div>
             </div>
         </Teleport>
-    </PlayerLayout>
+    </component>
 </template>
 
 <style scoped>

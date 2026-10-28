@@ -17,7 +17,7 @@ it('sends an owner to the dashboard instead of the player app, unless they open 
     $this->actingAs($owner)->get('/places/'.$club->slug)->assertRedirect(route('owner.start'));
     $this->actingAs($owner)->get('/me/bookings')->assertRedirect(route('owner.start'));
     $this->actingAs($owner)->getJson('/places/'.$club->slug.'/slots')->assertForbidden();
-    $this->actingAs($owner)->get('/messages')->assertOk();
+    $this->actingAs($owner)->get('/messages')->assertRedirect(route('owner.messages'));
     $this->actingAs($owner)->get('/me/profile')->assertOk();
 
     // a football place lands at Today; players are not redirected

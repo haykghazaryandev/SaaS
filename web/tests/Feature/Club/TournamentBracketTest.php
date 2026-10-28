@@ -82,7 +82,7 @@ it('tells players they are accepted and puts them in the tournament chat with th
     Notification::assertSentTo($u1, Notice::class, fn ($n) => $n->type === 'tournament_news' && $n->params['text'] === 'Accepted only');
     $this->actingAs($u1)->get("/messages/{$c->id}")->assertInertia(fn (Assert $p) => $p->where('chat.type', 'tournament')
         ->where('chat.tournament.title', 'November Open')->where('chat.tournament.hostIds', [$this->owner->id]));
-    $this->actingAs($this->owner)->post("/owner/tournaments/{$this->t->id}/chat")->assertRedirect("/messages/{$c->id}");
+    $this->actingAs($this->owner)->post("/owner/tournaments/{$this->t->id}/chat")->assertRedirect("/owner/messages/{$c->id}");
 });
 
 it('draws a bracket by rating with byes for the best, moves winners on and ends with the final', function () {

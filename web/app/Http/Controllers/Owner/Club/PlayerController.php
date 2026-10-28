@@ -136,6 +136,6 @@ class PlayerController extends OwnerController
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('messages.show', $c->id);
+        return redirect()->route('owner.messages.show', $c->id);
     }
 }

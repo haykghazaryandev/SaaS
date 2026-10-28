@@ -47,7 +47,7 @@ const nav = computed(() => [
     ...club.value.filter((n) => n.name !== 'owner.now'),
     // the players' messages to the place (and the tournament chats): the chat list, unread on the badge
     {
-        name: 'messages.index',
+        name: 'owner.messages',
         label: 'owner.nav.messages',
         icon: 'chat',
         badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0),
@@ -64,7 +64,7 @@ const more = computed(() => (club.value.length ? nav.value.filter((n) => !tabs.v
 const moreOpen = ref(false);
 const scanOpen = ref(false);
 const moreActive = computed(() => more.value.some((n) => current(n.name)));
-const current = (name: string) => route().current(name);
+const current = (name: string) => route().current(name) || route().current(name + '.*');
 
 function switchVenue(e: Event) {
     router.post(route('owner.venue'), { venue_id: Number((e.target as HTMLSelectElement).value) });

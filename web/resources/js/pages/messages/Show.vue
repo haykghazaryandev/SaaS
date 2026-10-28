@@ -10,6 +10,7 @@ import { useShared } from '@/composables/useShared';
 import { presence, refresh as refreshCounts } from '@/composables/useSocial';
 import { echoConnected, echoState } from '@/lib/echo';
 import { tgApp } from '@/lib/telegram';
+import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import type { Relation } from '@/types/social';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -43,7 +44,10 @@ const props = defineProps<{
     editMinutes: number;
     maxLength: number;
     canReport: boolean;
+    /** shown inside the owner panel (its menu stays) */
+    panel?: boolean;
 }>();
+const Layout = props.panel ? OwnerLayout : PlayerLayout;
 const { user } = useShared();
 const me = computed(() => user.value?.id ?? 0);
 const cid = props.chat.id;
@@ -584,11 +588,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <PlayerLayout fullscreen>
+    <component :is="Layout" :fullscreen="!panel" :title="chatTitle(chat)">
         <Head :title="chatTitle(chat)" />
-        <div class="chat">
+        <div :class="['chat', { inpanel: panel }]">
             <header class="chead">
-                <Link class="back" :href="route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
+                <Link class="back" :href="panel ? route('owner.messages') : route('messages.index')" :aria-label="$t('messages.back')"><Icon name="back" /></Link>
                 <span v-if="isGame" class="cav game"><Icon :name="chatIcon(chat)" /></span>
                 <Avatar v-else :id="chat.other?.id ?? null" :name="chat.other?.name" :src="chat.other?.avatar" size="md" />
                 <div :class="['ht', { tap: memberList.length }]" @click="memberList.length && (membersOpen = true)">
@@ -834,13 +838,15 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </Teleport>
-    </PlayerLayout>
+    </component>
 </template>
 
 <style scoped>
 .tick { margin-left: 4px; letter-spacing: -3px; color: var(--muted); font-size: 11px; }
 .tick.seen { color: var(--accent-2); }
 .chat { max-width: 820px; width: 100%; margin: 12px auto 0; display: flex; flex-direction: column; height: calc(100dvh - var(--app-top, 64px) - 24px); min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.chat.inpanel { margin-top: 0; height: calc(100dvh - 120px); }
+@media (max-width: 900px) { .chat.inpanel { height: calc(100dvh - 170px); margin: 0; } }
 .chead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2); min-width: 0; }
 .back { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); flex: none; }
 .back:hover { background: var(--surface-2); color: var(--ink); }
