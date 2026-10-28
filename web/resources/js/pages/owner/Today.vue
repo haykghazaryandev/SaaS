@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
+import PlayerRecord from '@/components/owner/PlayerRecord.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import {
     accept,
@@ -238,12 +239,12 @@ const chartDays = computed(() =>
                                 <span class="who-n"
                                     ><b>{{ b.name }}</b
                                     ><span v-if="b.team" class="muted"> · {{ b.team }}</span
-                                    ><!-- this player did not come here before: a reminder (prefer reliable players for the same time) -->
-                                    <span v-if="b.no_shows_here" class="pill hot" style="margin-left: 6px; font-size: 11px" :title="$t('owner.booking.no_shows_here', { n: b.no_shows_here })"
-                                        >⚠ {{ $t('owner.booking.no_shows_here', { n: b.no_shows_here }) }}</span
-                                    ></span
+                                    ><span v-if="b.rating != null" class="pill lime" style="margin-left: 6px; font-size: 11px">{{ b.rating }}</span
+                                    ><span v-if="b.preferred" class="pill green" style="margin-left: 6px; font-size: 11px">★ {{ $t('owner.requests.preferred') }}</span></span
                                 >
                             </div>
+                            <!-- their record at this place: didn't come, cancelled late, late — or reliable / new -->
+                            <div style="margin: 2px 0 0 38px"><PlayerRecord :history="b.history" /></div>
                             <div class="meta">
                                 <span><i :class="['fdot', dotOf(fieldOf(b.field_id)?.size || 'small')]" />{{ fieldOf(b.field_id)?.label }}</span>
                                 <span><Icon name="calendar" size="sm" />{{ relDay(b.date, date) }} · {{ hhmm(b.start) }}–{{ hhmm(b.end) }}</span>

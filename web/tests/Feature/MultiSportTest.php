@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Booking\Actions\DecideBooking;
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Domain\Booking\AfterBooking\BookingTeam;
 use App\Domain\Booking\BookingException;
@@ -16,20 +17,28 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 // ---------- any free table ----------
 
-it('books any free table: three players at 18:00 get three tables, the fourth is told it is taken', function () {
+it('books any free table: three players at 18:00 get three tables; a fourth competes for one, once taken it is taken', function () {
     $club = makeClub(3);
     $first = $club->fields->first();
-    $tables = collect(range(1, 3))->map(fn () => app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60)->field_id);
-    expect($tables->unique())->toHaveCount(3)
+    $owner = User::factory()->create();
+    $reqs = collect(range(1, 3))->map(fn () => app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60));
+    expect($reqs->pluck('field_id')->unique())->toHaveCount(3);
+    // every table only asked for: a fourth player may still ask (the place picks)
+    $fourth = app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
+    expect(Booking::where('venue_id', $club->id)->count())->toBe(4);
+    // all three tables given: now it is taken
+    $reqs->each(fn ($b) => app(DecideBooking::class)->accept($b->fresh(), $owner));
+    expect($fourth->fresh()->status->value)->toBe('declined')
         ->and(fn () => app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60))->toThrow(BookingException::class);
-    expect(Booking::where('venue_id', $club->id)->count())->toBe(3);
 });
 
 it('shows a time as free while at least one table is free, with how many are left', function () {
     $club = makeClub(3);
     $first = $club->fields->first();
-    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
-    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
+    // two tables given (accepted), one still free
+    foreach ([1, 2] as $_) {
+        app(DecideBooking::class)->accept(app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60), User::factory()->create());
+    }
     $date = at(0)->toDateString();
 
     $row = $this->getJson("/places/{$club->slug}/slots?date={$date}")->assertOk()->json('fields');
@@ -38,7 +47,7 @@ it('shows a time as free while at least one table is free, with how many are lef
         ->and($row[0]['starts']['60'])->toContain(18)     // one table is still free at 18:00
         ->and($row[0]['left']['60']['18'])->toBe(1);
 
-    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
+    app(DecideBooking::class)->accept(app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60), User::factory()->create());
     $row = $this->getJson("/places/{$club->slug}/slots?date={$date}")->json('fields.0');
     expect($row['starts']['60'])->not->toContain(18)->and($row['taken']['60'])->toContain(18);
 });
@@ -47,6 +56,7 @@ it('keeps football as it was: one field per kind, booked by its own id', functio
     $venue = makeVenue();
     $small = $venue->fields->firstWhere('size.value', 'small');
     $b = app(RequestBooking::class)->handle(User::factory()->create(), $small, at(20), 60);
+    app(DecideBooking::class)->accept($b, User::factory()->create());
     expect($b->field_id)->toBe($small->id)
         ->and(fn () => app(RequestBooking::class)->handle(User::factory()->create(), $small, at(20), 60))->toThrow(BookingException::class);
 });
@@ -145,8 +155,10 @@ it('shows the tables as one column with how many are taken, and books any free t
     $owner = User::factory()->create();
     $club->staff()->attach($owner->id, ['role' => 'owner']);
     $first = $club->fields->first();
-    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
-    app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60);
+    // two tables given (accepted), one still free
+    foreach ([1, 2] as $_) {
+        app(DecideBooking::class)->accept(app(RequestBooking::class)->handle(User::factory()->create(), $first, at(18), 60), User::factory()->create());
+    }
     $date = at(0)->toDateString();
     $this->actingAs($owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
         ->has('day.lanes', 1)->where('day.lanes.0.count', 3)

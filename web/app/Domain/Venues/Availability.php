@@ -27,11 +27,16 @@ class Availability
     }
 
     /** Busy blocks of a field on a local day: holding bookings + closures, as [[from, to, bookingId|null], …] in hours. */
-    public function busy(Field $field, CarbonImmutable $day, ?int $ignoreBookingId = null): array
+    /**
+     * @param  bool  $acceptedOnly  for a player's request: other players' requests (still waiting) don't block — several may
+     *                              ask for the same time and the place picks one (DecideBooking declines the others)
+     */
+    public function busy(Field $field, CarbonImmutable $day, ?int $ignoreBookingId = null, bool $acceptedOnly = false): array
     {
         $from = $day->startOfDay();
         $to = $from->addDay();
-        $blocks = Booking::query()->holding()->overlapping($field->id, $from->utc(), $to->utc())
+        $blocks = Booking::query()->when($acceptedOnly, fn ($q) => $q->where('status', BookingStatus::Accepted->value), fn ($q) => $q->holding())
+            ->overlapping($field->id, $from->utc(), $to->utc())
             ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId))
             ->get(['id', 'starts_at', 'ends_at'])
             ->map(fn ($b) => [max(0, LocalTime::hourOf($b->starts_at->toImmutable(), $from)), min(24, LocalTime::hourOf($b->ends_at->toImmutable(), $from)), $b->id])
@@ -50,7 +55,7 @@ class Availability
      * Why a time can't be booked, or null when it is free.
      * $forPlayer applies the player rules (minimum notice, horizon); the owner can book any free time.
      */
-    public function problem(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true, ?int $ignoreBookingId = null): ?string
+    public function problem(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true, ?int $ignoreBookingId = null, bool $acceptedOnly = false): ?string
     {
         $venue = $field->loadMissing('venue.openingHours')->venue;
         $start = $start->setTimezone(LocalTime::tz());
@@ -79,7 +84,7 @@ class Availability
                 return 'too_far';
             }
         }
-        foreach ($this->busy($field, $day, $ignoreBookingId) as [$a, $b]) {
+        foreach ($this->busy($field, $day, $ignoreBookingId, $acceptedOnly) as [$a, $b]) {
             if ($a < $to - 1e-9 && $b > $from + 1e-9) {
                 return 'taken';
             }
@@ -115,14 +120,14 @@ class Availability
      * A court of the group that is free for this time: the asked one when free, else the next free one of its kind.
      * Returns [field, null] or [null, the asked court's problem].
      */
-    public function freeInGroup(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true): array
+    public function freeInGroup(Field $field, CarbonImmutable $start, int $minutes, bool $forPlayer = true, bool $acceptedOnly = false): array
     {
-        $problem = $this->problem($field, $start, $minutes, $forPlayer);
+        $problem = $this->problem($field, $start, $minutes, $forPlayer, null, $acceptedOnly);
         if ($problem !== 'taken') {
             return $problem === null ? [$field, null] : [null, $problem];
         }
         foreach ($this->group($field) as $other) {
-            if ($other->id !== $field->id && $this->problem($other, $start, $minutes, $forPlayer) === null) {
+            if ($other->id !== $field->id && $this->problem($other, $start, $minutes, $forPlayer, null, $acceptedOnly) === null) {
                 return [$other, null];
             }
         }
@@ -139,7 +144,7 @@ class Availability
      * Busy blocks of many fields on one local day, with two queries in total (for lists like the home page).
      * Returns [fieldId => [[from, to, bookingId|null], …]], the same shape as busy().
      */
-    public function busyMany(Collection $fields, CarbonImmutable $day): array
+    public function busyMany(Collection $fields, CarbonImmutable $day, bool $acceptedOnly = false): array
     {
         $from = $day->startOfDay();
         $to = $from->addDay();
@@ -148,7 +153,7 @@ class Availability
             return [];
         }
         $span = fn ($a, $b) => [max(0, LocalTime::hourOf($a->toImmutable(), $from)), min(24, LocalTime::hourOf($b->toImmutable(), $from))];
-        Booking::query()->holding()->whereIn('field_id', array_keys($out))
+        Booking::query()->when($acceptedOnly, fn ($q) => $q->where('status', BookingStatus::Accepted->value), fn ($q) => $q->holding())->whereIn('field_id', array_keys($out))
             ->where('starts_at', '<', $to->utc())->where('ends_at', '>', $from->utc())
             ->get(['id', 'field_id', 'starts_at', 'ends_at'])
             ->each(function ($b) use (&$out, $span) {
@@ -309,7 +314,7 @@ class Availability
             $out[] = [$at, $hours[1]];
         }
 
-        return array_values(array_map(fn ($g) => [round($g[0], 2), round($g[1], 2)], array_filter($out, fn ($g) => $g[1] - $g[0] >= $step - 1e-9)));
+        return array_values(array_map(fn ($g) => [round($g[0], 2), round($g[1], 2)], array_filter($out, fn ($g) => $step - 1e-9 <= $g[1] - $g[0])));
     }
 
     /**

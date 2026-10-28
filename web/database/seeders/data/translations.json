@@ -1234,6 +1234,11 @@
         "hy": "Այս հեռախոսն արդեն գրանցված է։",
         "ru": "Этот телефон уже зарегистрирован."
     },
+    "booking.error.already_requested": {
+        "en": "You already asked for this time here.",
+        "hy": "Դուք արդեն հայտ եք ուղարկել այս ժամի համար։",
+        "ru": "Вы уже отправили заявку на это время."
+    },
     "booking.error.already_started": {
         "en": "Matches are already played: the bracket can't change here.",
         "hy": "Խաղերն արդեն անցկացվել են․ սխեման այստեղ փոխել հնարավոր չէ։",
@@ -6169,15 +6174,60 @@
         "hy": "Այս ժամին դաշտը զբաղված է",
         "ru": "Поле в это время занято"
     },
+    "owner.record.good": {
+        "en": "played :n, always came",
+        "hy": "խաղացել է :n, միշտ եկել է",
+        "ru": "играл :n, всегда приходил"
+    },
+    "owner.record.late_cancels": {
+        "en": "cancelled late :n",
+        "hy": "ուշ չեղարկել է :n",
+        "ru": "поздняя отмена :n"
+    },
+    "owner.record.lates": {
+        "en": "came late :n",
+        "hy": "ուշացել է :n",
+        "ru": "опаздывал :n"
+    },
+    "owner.record.new": {
+        "en": "new here",
+        "hy": "նոր է այստեղ",
+        "ru": "новый здесь"
+    },
+    "owner.record.no_shows": {
+        "en": "didn't come :n",
+        "hy": "չի եկել :n",
+        "ru": "не пришёл :n"
+    },
+    "owner.record.played": {
+        "en": "played :n",
+        "hy": "խաղացել է :n",
+        "ru": "играл :n"
+    },
     "owner.requests.all": {
         "en": "All on Today",
         "hy": "Բոլորը «Այսօր»-ում",
         "ru": "Все на «Сегодня»"
     },
+    "owner.requests.given_to_other": {
+        "en": "This time went to another player.",
+        "hy": "Այս ժամը տրվեց մեկ այլ խաղացողի։",
+        "ru": "Это время отдали другому игроку."
+    },
     "owner.requests.none": {
         "en": "No requests are waiting.",
         "hy": "Սպասող հայտեր չկան։",
         "ru": "Нет заявок, ждущих ответа."
+    },
+    "owner.requests.preferred": {
+        "en": "Preferred",
+        "hy": "Նախընտրելի",
+        "ru": "Предпочтительно"
+    },
+    "owner.requests.same_time": {
+        "en": "Same time as :names",
+        "hy": "Նույն ժամին, ինչ :names-ը",
+        "ru": "То же время, что у :names"
     },
     "owner.requests.title": {
         "en": "Requests waiting: :n",

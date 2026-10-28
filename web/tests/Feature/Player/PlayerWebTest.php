@@ -1,11 +1,11 @@
 <?php
 
+use App\Domain\Booking\Actions\DecideBooking;
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -57,7 +57,7 @@ it('shows the place page with both fields and free times', function () {
 });
 
 it('returns free times as JSON for live updates', function () {
-    app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20), 60);
+    app(DecideBooking::class)->accept(app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20), 60), User::factory()->create());   // accepted: the time is taken
 
     $res = $this->getJson("/places/{$this->venue->slug}/slots?date={$this->date}&field={$this->small->id}&minutes=60")->assertOk()
         ->assertJsonPath('date', $this->date)
@@ -92,7 +92,7 @@ it('sends a request for a logged-in player', function () {
 
 it('shows booking rule errors nicely', function () {
     $player = User::factory()->create(['registered_at' => now(), 'name' => 'Aram']);
-    app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20), 60);
+    app(DecideBooking::class)->accept(app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20), 60), User::factory()->create());   // accepted: the time is taken
 
     $this->actingAs($player)->from("/places/{$this->venue->slug}")->post('/bookings', [
         'field_id' => $this->small->id, 'date' => $this->date, 'start' => '20:30', 'minutes' => 60,

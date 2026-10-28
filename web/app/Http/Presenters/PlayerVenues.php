@@ -105,7 +105,8 @@ class PlayerVenues
             $groups = $groups->filter(fn ($g) => $g->contains('id', $fieldId));
         }
         $all = $groups->flatten(1);
-        $busy = $this->availability->busyMany($all, $day);
+        // a time others only asked for is still open to ask (the place picks); accepted bookings block it
+        $busy = $this->availability->busyMany($all, $day, acceptedOnly: true);
         $hours = $this->availability->hours($venue, $day);
         $key = fn ($h) => (string) round($h, 2);
 

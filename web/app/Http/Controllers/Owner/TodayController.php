@@ -53,7 +53,11 @@ class TodayController extends OwnerController
                 'revenueToday' => (int) $todays->filter(fn ($b) => in_array($b->status->value, $paid, true))->sum('price'),
                 'revenueWeek' => $revenueWeek,
             ],
-            'requests' => $requests->map(fn ($b) => [...BookingPresenter::row($b), 'conflicts' => $this->conflicts($b, $open)])->values(),
+            'requests' => (function () use ($requests, $open, $venue) {
+                $choose = BookingPresenter::choosing($requests, $venue);
+
+                return $requests->map(fn ($b) => [...BookingPresenter::row($b), 'conflicts' => $this->conflicts($b, $open)] + ($choose[$b->id] ?? []))->values();
+            })(),
             // the today strip: what holds time on each field today (expired requests left out)
             'lanes' => $todays->filter(fn (Booking $b) => in_array(BookingPresenter::kind($b), ['pending', 'accepted', 'owner', 'noshow'], true))
                 ->map(fn ($b) => BookingPresenter::row($b))->values(),
@@ -85,6 +89,8 @@ class TodayController extends OwnerController
         $rows = Booking::where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now())
             ->with('user', 'field')->orderBy('starts_at')->limit(30)->get();
 
-        return response()->json(['requests' => $rows->map(fn ($b) => BookingPresenter::row($b) + ['field' => BookingPresenter::fieldLabel($b->field)])->values()]);
+        $choose = BookingPresenter::choosing($rows, $venue);
+
+        return response()->json(['requests' => $rows->map(fn ($b) => BookingPresenter::row($b) + ['field' => BookingPresenter::fieldLabel($b->field)] + ($choose[$b->id] ?? []))->values()]);
     }
 }

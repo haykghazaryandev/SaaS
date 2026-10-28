@@ -61,6 +61,8 @@ class OwnerBooking
                 'decided_at' => now(),
             ]);
             $this->log($booking, 'created_by_owner', $by);
+            // the place booked it itself: requests waiting for that time are answered
+            DecideBooking::declineCompeting($booking, $by);
 
             return $booking;
         });

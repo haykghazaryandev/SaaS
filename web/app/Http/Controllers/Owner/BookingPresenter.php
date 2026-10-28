@@ -7,14 +7,17 @@ use App\Domain\Club\Checkout;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\FieldSize;
+use App\Enums\Sport;
 use App\Models\Booking;
 use App\Models\BookingEvent;
 use App\Models\Field;
 use App\Models\OpeningHour;
+use App\Models\SportRating;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use App\Support\Phone;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 /** Turns bookings into the arrays the owner pages use. Times are local decimal hours of the booking's local day. */
 final class BookingPresenter
@@ -72,6 +75,8 @@ final class BookingPresenter
                 && $b->starts_at->lessThanOrEqualTo(now()->addMinutes(Checkout::EARLY_MINUTES)) && $b->ends_at->isFuture(),
             // how often this player did not come to THIS place (the place sees only its own)
             'no_shows_here' => $b->user_id ? self::noShowsHere($b->venue_id, $b->user_id) : 0,
+            // their record at this place: played, didn't come, cancelled late, came late (the owner decides who gets a time)
+            'history' => $b->user_id ? self::history($b->venue_id, $b->user_id) : null,
             'past' => $b->ends_at->isPast(),
             // at the field: "Arrived ✓" (optional), "about 10 min late", "Didn't come" until 12:00 the next day
             'arrived' => $b->arrived_at !== null,
@@ -100,6 +105,65 @@ final class BookingPresenter
     public static function noShowsHere(int $venueId, int $userId): int
     {
         return self::venueNoShows($venueId)[$userId] ?? 0;
+    }
+
+    /**
+     * Requests waiting, with what helps to choose when several asked for the same court and time: each player's rating
+     * (the place's sport), the competing requests and the preferred one — the best record here (played, minus no-shows
+     * ×3, late cancels ×2, late ×1), then the higher rating, then whoever asked first.
+     *
+     * @param  Collection<int, Booking>  $requests
+     * @return array<int, array{rating: ?int, competing: int[], preferred: bool}>
+     */
+    public static function choosing($requests, Venue $venue): array
+    {
+        $sport = ($venue->sports()[0] ?? Sport::Football)->value;
+        $ratings = SportRating::whereIn('user_id', $requests->pluck('user_id')->filter()->unique())->where('sport', $sport)->pluck('rating', 'user_id');
+        $score = function (Booking $b) use ($ratings, $venue) {
+            $h = $b->user_id ? self::history($venue->id, $b->user_id) : ['played' => 0, 'no_shows' => 0, 'late_cancels' => 0, 'lates' => 0];
+
+            return [$h['played'] - 3 * $h['no_shows'] - 2 * $h['late_cancels'] - $h['lates'], (int) ($ratings[$b->user_id] ?? 0), -$b->created_at->getTimestamp()];
+        };
+        $out = [];
+        foreach ($requests as $b) {
+            $competing = $requests->filter(fn (Booking $o) => $o->id !== $b->id && $o->field_id === $b->field_id && $o->starts_at < $b->ends_at && $o->ends_at > $b->starts_at);
+            $best = $competing->isEmpty() || $competing->every(fn (Booking $o) => $score($b) > $score($o));
+            $out[$b->id] = ['rating' => isset($ratings[$b->user_id]) ? (int) $ratings[$b->user_id] : null, 'competing' => $competing->pluck('id')->values()->all(),
+                'preferred' => $competing->isNotEmpty() && $best];
+        }
+
+        return $out;
+    }
+
+    /** A player's record at this place: ['played', 'no_shows', 'late_cancels', 'lates']. */
+    public static function history(int $venueId, int $userId): array
+    {
+        return self::venueHistory($venueId)[$userId] ?? ['played' => 0, 'no_shows' => 0, 'late_cancels' => 0, 'lates' => 0];
+    }
+
+    /**
+     * Every player's record at the place, counted once per request: games played (started at the desk or completed),
+     * no-shows, cancels less than 2 h before the start (Penalties), late (they said so, or the game started 10+ min late).
+     */
+    public static function venueHistory(int $venueId): array
+    {
+        return once(function () use ($venueId) {
+            $rows = Booking::where('venue_id', $venueId)->whereNotNull('user_id')->groupBy('user_id')->selectRaw("user_id,
+                count(*) filter (where status = 'completed' or started_at is not null) as played,
+                count(*) filter (where status = 'no_show') as no_shows,
+                count(*) filter (where late_minutes is not null or (started_at is not null and started_at > starts_at + interval '10 minutes')) as lates")
+                ->get()->keyBy('user_id');
+            $short = BookingEvent::where('type', 'cancelled')->where('changes->short', true)
+                ->join('bookings', 'bookings.id', '=', 'booking_events.booking_id')->where('bookings.venue_id', $venueId)->whereNotNull('bookings.user_id')
+                ->groupBy('bookings.user_id')->selectRaw('bookings.user_id, count(*) as n')->pluck('n', 'bookings.user_id');
+            $out = [];
+            foreach ($rows->keys()->merge($short->keys())->unique() as $uid) {
+                $r = $rows[$uid] ?? null;
+                $out[$uid] = ['played' => (int) ($r->played ?? 0), 'no_shows' => (int) ($r->no_shows ?? 0), 'late_cancels' => (int) ($short[$uid] ?? 0), 'lates' => (int) ($r->lates ?? 0)];
+            }
+
+            return $out;
+        });
     }
 
     /** user id => no-shows at the place, counted once per request (once(): fresh for every request, also on long-running servers). */

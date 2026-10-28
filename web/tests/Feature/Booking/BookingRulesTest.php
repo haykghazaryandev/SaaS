@@ -10,6 +10,8 @@ use App\Domain\Venues\PriceCalculator;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->venue = makeVenue();
@@ -32,14 +34,20 @@ it('creates a pending request and the owner accepts it', function () {
     expect($b->fresh()->status)->toBe(BookingStatus::Accepted)->and($b->events()->count())->toBe(2);
 });
 
-it('never lets two bookings of one field overlap (database guard)', function () {
-    app(RequestBooking::class)->handle($this->player, $this->small, at(20), 60);
+it('never lets two accepted bookings of one field overlap (database guard); requests may compete', function () {
+    $b = app(RequestBooking::class)->handle($this->player, $this->small, at(20), 60);
+    // another player may still ask for the same time (the place picks)
+    $rival = app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20.5), 60);
+    expect($rival->status)->toBe(BookingStatus::Pending);
+    // the place accepts one: the other is declined, the time went to another player
+    app(DecideBooking::class)->accept($b, $this->owner);
+    expect($rival->fresh()->status)->toBe(BookingStatus::Declined)->and($rival->fresh()->decline_reason)->toBe(__('owner.requests.given_to_other'));
     // bypass the app check and insert directly: Postgres must refuse it
-    expect(fn () => Illuminate\Support\Facades\DB::transaction(fn () => Booking::create([
+    expect(fn () => DB::transaction(fn () => Booking::create([
         'code' => 'BB-1', 'venue_id' => $this->venue->id, 'field_id' => $this->small->id,
         'starts_at' => at(20.5)->utc(), 'ends_at' => at(21.5)->utc(), 'status' => 'accepted', 'source' => 'owner',
         'contact_name' => 'X', 'price' => 1,
-    ])))->toThrow(Illuminate\Database\QueryException::class);
+    ])))->toThrow(QueryException::class);
     // through the app: a clear "taken" error
     expect(fn () => app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20.5), 60))
         ->toThrow(BookingException::class, __('booking.error.taken'));

@@ -42,12 +42,21 @@ class RequestBooking
         if ($purpose === 'training' && $venue->trainingPrice($field->size->value) === null) {
             throw new BookingException('feature_off');
         }
-        // "a table at 10:00": the asked court, or any free one of the same kind (ping-pong tables)
+        // "a table at 10:00": the asked court, or any free one of the same kind (ping-pong tables); none free: one that
+        // only others asked for (still waiting) — the place picks who gets it
         [$free, $problem] = $this->availability->freeInGroup($field, $start, $minutes);
+        if ($problem === 'taken') {
+            [$free, $problem] = $this->availability->freeInGroup($field, $start, $minutes, acceptedOnly: true);
+        }
         if ($problem) {
             throw new BookingException($problem);
         }
         $field = $free;
+        // never two of my own requests for the same court and time
+        if (Booking::where('user_id', $player->id)->whereIn('status', BookingStatus::HOLDING)->where('field_id', $field->id)
+            ->where('starts_at', '<', $start->addMinutes($minutes)->utc())->where('ends_at', '>', $start->utc())->exists()) {
+            throw new BookingException('already_requested');
+        }
 
         return $this->guarded(function () use ($player, $field, $venue, $start, $minutes, $extra, $purpose) {
             $booking = Booking::create([

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import PlayerRecord from '@/components/owner/PlayerRecord.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import { ask } from '@/composables/useConfirm';
 import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
@@ -109,9 +110,7 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
                     <Icon name="user" size="sm" /><span>{{ $t('owner.booking.player') }}</span>
                     <b
                         >{{ b.user.name || '—'
-                        }}<span v-if="b.no_shows_here" class="pill hot" style="margin-left: 6px">⚠ {{
-                            $t('owner.booking.no_shows_here', { n: b.no_shows_here })
-                        }}</span></b
+                        }}<PlayerRecord :history="b.history" style="margin-left: 6px; vertical-align: middle" /></b
                     >
                 </div>
                 <div v-if="b.note_player" class="kv">

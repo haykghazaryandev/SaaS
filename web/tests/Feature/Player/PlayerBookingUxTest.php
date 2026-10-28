@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Booking\Actions\DecideBooking;
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Domain\Booking\Alerts\SlotAlerts;
 use App\Models\Closure;
@@ -38,7 +39,7 @@ it('shows up to 4 free times per field on home cards and the next free time when
 });
 
 it('sends taken start times next to the free ones', function () {
-    app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20), 60);
+    app(DecideBooking::class)->accept(app(RequestBooking::class)->handle(User::factory()->create(), $this->small, at(20), 60), User::factory()->create());   // accepted: the time is taken
 
     $res = $this->getJson("/places/{$this->venue->slug}/slots?date={$this->date}&field={$this->small->id}&minutes=60")->assertOk();
     expect($res->json('fields.0.taken.60'))->toBe([19.5, 20, 20.5])

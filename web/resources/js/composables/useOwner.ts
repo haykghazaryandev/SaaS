@@ -78,6 +78,12 @@ export interface BookingRow {
     can_start?: boolean;
     /** how often this player did not come to this place */
     no_shows_here?: number;
+    /** requests: the player's rating, the requests for the same court and time, the preferred one of them */
+    rating?: number | null;
+    competing?: number[];
+    preferred?: boolean;
+    /** their record at this place (null: booked without an account) */
+    history?: { played: number; no_shows: number; late_cancels: number; lates: number } | null;
 }
 
 /** A request on Today, with the other open requests it clashes with. */

@@ -15,9 +15,12 @@ use App\Domain\Club\Shop;
 use App\Domain\Club\Tournaments;
 use App\Domain\Venues\Availability;
 use App\Enums\Sport;
+use App\Models\Booking;
+use App\Models\BookingEvent;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\RatingChange;
+use App\Models\SportRating;
 use App\Models\Tournament;
 use App\Models\User;
 use App\Models\Venue;
@@ -309,4 +312,46 @@ it('frees the time of a team that did not come', function () {
     app(OwnerBooking::class)->noShow($this->owner, $b->fresh());
     expect($b->fresh()->status->value)->toBe('no_show')
         ->and(app(Availability::class)->problem($club->fields[0], $start->addMinutes(30), 30, forPlayer: false))->toBeNull();
+});
+
+it("shows a player's record at this place on their requests: played, didn't come, cancelled late, came late", function () {
+    $club = makeClub(1, ['rules' => ['min_notice_min' => 0], 'features' => ['booking']]);
+    $club->staff()->attach($this->owner->id, ['role' => 'owner']);
+    $t = $club->fields[0];
+    $mk = fn ($days, $status, array $x = []) => Booking::create(['code' => Booking::newCode(), 'venue_id' => $club->id, 'field_id' => $t->id, 'user_id' => $this->player->id,
+        'starts_at' => now()->subDays($days), 'ends_at' => now()->subDays($days)->addHour(), 'status' => $status, 'source' => 'player', 'contact_name' => 'Aram', 'price' => 1000] + $x);
+    $mk(10, 'completed');
+    $mk(9, 'completed', ['started_at' => now()->subDays(9)->addMinutes(20)]);   // started 20 min late
+    $mk(8, 'no_show');
+    $c = $mk(7, 'cancelled');
+    BookingEvent::create(['booking_id' => $c->id, 'type' => 'cancelled', 'changes' => ['short' => true]]);
+    $mk(6, 'completed', ['late_minutes' => 10]);   // said "10 min late"
+    // another place: does not count here
+    $other = makeClub(1);
+    Booking::create(['code' => 'BB-x9', 'venue_id' => $other->id, 'field_id' => $other->fields[0]->id, 'user_id' => $this->player->id,
+        'starts_at' => now()->subDays(5), 'ends_at' => now()->subDays(5)->addHour(), 'status' => 'no_show', 'source' => 'player', 'contact_name' => 'Aram', 'price' => 1]);
+    $req = app(RequestBooking::class)->handle($this->player, $t, LocalTime::at(LocalTime::now()->startOfDay()->addDays(2), 12), 60);
+    $this->actingAs($this->owner)->withSession(['venue_id' => $club->id])->getJson(route('owner.requests'))
+        ->assertJsonPath('requests.0.id', $req->id)
+        ->assertJsonPath('requests.0.history', ['played' => 3, 'no_shows' => 1, 'late_cancels' => 1, 'lates' => 2]);
+});
+
+it('marks the preferred one of two requests for the same time: the better record here, then the rating', function () {
+    $club = makeClub(1, ['rules' => ['min_notice_min' => 0], 'features' => ['booking', 'rating']]);
+    $club->staff()->attach($this->owner->id, ['role' => 'owner']);
+    $t = $club->fields[0];
+    $good = User::factory()->create();
+    $bad = User::factory()->create();
+    // the second one didn't come here once
+    Booking::create(['code' => Booking::newCode(), 'venue_id' => $club->id, 'field_id' => $t->id, 'user_id' => $bad->id,
+        'starts_at' => now()->subDays(3), 'ends_at' => now()->subDays(3)->addHour(), 'status' => 'no_show', 'source' => 'player', 'contact_name' => 'B', 'price' => 1]);
+    SportRating::create(['user_id' => $bad->id, 'sport' => 'pingpong', 'rating' => 1600]);
+    SportRating::create(['user_id' => $good->id, 'sport' => 'pingpong', 'rating' => 1200]);
+    $at = LocalTime::at(LocalTime::now()->startOfDay()->addDays(2), 18);
+    $a = app(RequestBooking::class)->handle($bad, $t, $at, 60);
+    $b = app(RequestBooking::class)->handle($good, $t, $at, 60);
+    $res = $this->actingAs($this->owner)->withSession(['venue_id' => $club->id])->getJson(route('owner.requests'))->json('requests');
+    $byId = collect($res)->keyBy('id');
+    expect($byId[$b->id]['preferred'])->toBeTrue()->and($byId[$a->id]['preferred'])->toBeFalse()
+        ->and($byId[$a->id]['competing'])->toBe([$b->id])->and($byId[$a->id]['rating'])->toBe(1600);
 });
