@@ -144,7 +144,7 @@ const chartDays = computed(() =>
             <TelegramConnect compact />
         </div>
 
-        <div class="kpis">
+        <div :class="['kpis', { n3: kpi.revenueToday == null }]">
             <div class="card kpi">
                 <div class="lbl">
                     <Icon name="calendar" size="sm" /><span>{{ $t('common.bookings') }}</span>

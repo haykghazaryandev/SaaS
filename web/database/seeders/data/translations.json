@@ -6489,6 +6489,66 @@
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
     },
+    "owner.sched.ends": {
+        "en": "ends :t",
+        "hy": "ավարտ՝ :t",
+        "ru": "до :t"
+    },
+    "owner.sched.free_until": {
+        "en": "free until :t",
+        "hy": "ազատ է մինչև :t",
+        "ru": "свободен до :t"
+    },
+    "owner.sched.in_h": {
+        "en": "in :h h :m",
+        "hy": ":h ժ :m րոպեից",
+        "ru": "через :h ч :m"
+    },
+    "owner.sched.in_min": {
+        "en": "in :m min",
+        "hy": ":m րոպեից",
+        "ru": "через :m мин"
+    },
+    "owner.sched.later_today": {
+        "en": "Later today",
+        "hy": "Այսօր ավելի ուշ",
+        "ru": "Позже сегодня"
+    },
+    "owner.sched.later_week": {
+        "en": "Later this week",
+        "hy": "Այս շաբաթ ավելի ուշ",
+        "ru": "Позже на этой неделе"
+    },
+    "owner.sched.live": {
+        "en": "Playing",
+        "hy": "Խաղում են",
+        "ru": "Играют"
+    },
+    "owner.sched.n_bookings": {
+        "en": ":n bookings",
+        "hy": ":n ամրագրում",
+        "ru": "броней: :n"
+    },
+    "owner.sched.next_hour": {
+        "en": "In the next hour",
+        "hy": "Հաջորդ ժամում",
+        "ru": "В ближайший час"
+    },
+    "owner.sched.nothing": {
+        "en": "Nothing booked.",
+        "hy": "Ամրագրում չկա։",
+        "ru": "Броней нет."
+    },
+    "owner.sched.playing_now": {
+        "en": "Playing now",
+        "hy": "Հիմա խաղում են",
+        "ru": "Сейчас играют"
+    },
+    "owner.sched.request": {
+        "en": "Request",
+        "hy": "Հայտ",
+        "ru": "Заявка"
+    },
     "owner.schedule.all_free": {
         "en": "All tables free",
         "hy": "Բոլոր սեղաններն ազատ են",
@@ -6628,6 +6688,11 @@
         "en": "Nothing found",
         "hy": "Ոչինչ չի գտնվել",
         "ru": "Ничего не найдено"
+    },
+    "owner.schedule.now": {
+        "en": "From now",
+        "hy": "Հիմանից",
+        "ru": "С сейчас"
     },
     "owner.schedule.past_day": {
         "en": "This day has passed",

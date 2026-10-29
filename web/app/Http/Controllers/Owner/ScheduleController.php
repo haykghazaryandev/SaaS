@@ -12,17 +12,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
-/** Schedule: day (two fields side by side), week (7 days × 2 fields) or list (search + status filter). */
+/**
+ * Schedule: from now on (the default, the easiest: playing now, the next hour, later today, tomorrow, later this week),
+ * day (an hour grid, every court a column), week (7 days × courts) or list (search + status filter).
+ */
 class ScheduleController extends OwnerController
 {
     public function __invoke(Request $request, Availability $availability, VenueStats $stats)
     {
         $data = $request->validate([
             'date' => 'nullable|date_format:Y-m-d',
-            'view' => 'nullable|in:day,week,list',
+            'view' => 'nullable|in:now,day,week,list',
         ]);
         $venue = $this->venue($request)->load(['fields', 'openingHours']);
-        $view = $data['view'] ?? 'day';
+        // a link to a date (Today's 7 days, a notification) opens that day; else from now on
+        $view = $data['view'] ?? (isset($data['date']) ? 'day' : 'now');
         $today = VenueStats::today();
         $date = isset($data['date']) ? LocalTime::day($data['date']) : $today;
 
@@ -42,7 +46,12 @@ class ScheduleController extends OwnerController
             'pendingDays' => $pendingDays,
         ];
 
-        if ($view === 'day') {
+        if ($view === 'now') {
+            // this week from today: what holds time or waits for an answer (declined / cancelled / expired left out)
+            $rows = $stats->bookings($venue, $today, $today->addDays(7))->map(fn ($b) => BookingPresenter::row($b))
+                ->filter(fn ($r) => in_array($r['kind'], ['pending', 'accepted', 'owner'], true))->values();
+            $props['upcoming'] = ['rows' => $rows, 'hours' => $availability->hours($venue, $today)];
+        } elseif ($view === 'day') {
             $props['day'] = $this->day($venue, $date, $availability, $stats);
         } elseif ($view === 'week') {
             $props['week'] = $this->week($venue, $date, $availability, $stats);

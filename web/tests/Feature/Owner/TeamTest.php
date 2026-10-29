@@ -1,9 +1,12 @@
 <?php
 
+use App\Domain\Booking\Actions\CancelBooking;
+use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\BookingException;
 use App\Domain\Venues\Team;
 use App\Models\User;
 use App\Notifications\Notice;
+use App\Support\LocalTime;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -58,4 +61,16 @@ it('switches between the place panel, the panel as staff, the player app and the
     $this->actingAs($this->owner)->get(route('switch', ['to' => 'admin']))->assertForbidden();
     $this->owner->forceFill(['is_admin' => true])->save();
     $this->actingAs($this->owner->fresh())->get(route('switch', ['to' => 'admin']))->assertRedirect('/admin');
+});
+
+it('opens the schedule from now on by default: this week from today, no declined ones; staff look at it', function () {
+    $field = $this->venue->fields->first();
+    $at = LocalTime::at(LocalTime::now()->startOfDay()->addDay(), 18);
+    $ok = app(OwnerBooking::class)->create($this->owner, $field, $at, 60, ['name' => 'Tomorrow team']);
+    $gone = app(OwnerBooking::class)->create($this->owner, $field, $at->addHours(2), 60, ['name' => 'Cancelled']);
+    app(CancelBooking::class)->handle($gone, $this->owner, 'owner');
+    $this->actingAs($this->owner)->get(route('owner.schedule'))->assertInertia(fn (Assert $p) => $p->where('view', 'now')
+        ->has('upcoming.rows', 1)->where('upcoming.rows.0.id', $ok->id)->has('upcoming.hours'));
+    // the grid views stay
+    $this->actingAs($this->owner)->get(route('owner.schedule', ['view' => 'day']))->assertInertia(fn (Assert $p) => $p->where('view', 'day')->has('day'));
 });

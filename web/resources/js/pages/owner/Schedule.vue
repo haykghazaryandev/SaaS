@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import ScheduleNow from '@/components/owner/ScheduleNow.vue';
 import HourGrid, { type Cell, type Col, type GridClosure } from '@/components/owner/HourGrid.vue';
 import {
     accept,
@@ -38,7 +39,7 @@ interface Lane {
     courts: number[];
 }
 const props = defineProps<{
-    view: 'day' | 'week' | 'list';
+    view: 'now' | 'day' | 'week' | 'list';
     date: string;
     today: string;
     nowHour: number;
@@ -68,12 +69,14 @@ const props = defineProps<{
         step: number;
     };
     list?: { from: string; to: string; rows: BookingRow[] };
+    /** from now on: this week's bookings from today, today's opening hours */
+    upcoming?: { rows: BookingRow[]; hours: [number, number] | null };
 }>();
 const owner = useOwner();
 // courts in use (a table switched off in Settings disappears from the schedule)
 const fields = computed(() => owner.value.fields.filter((f) => f.active));
 
-usePoll(30000, { only: ['day', 'week', 'list', 'pendingDays', 'owner', 'nowHour'] });
+usePoll(30000, { only: ['day', 'week', 'list', 'upcoming', 'pendingDays', 'owner', 'nowHour'] });
 
 const read = (k: string, d: string) => {
     try {
@@ -281,6 +284,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
             <div class="seg" role="group">
                 <button
                     v-for="v in [
+                        ['now', 'clock'],
                         ['day', 'calendar'],
                         ['week', 'grid'],
                         ['list', 'filter'],
@@ -298,7 +302,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
         </div>
 
         <!-- date bar: day strip, one calendar button, "Now" -->
-        <div v-if="view !== 'list'" class="datebar">
+        <div v-if="view !== 'list' && view !== 'now'" class="datebar">
             <div ref="chips" class="chips fade">
                 <button v-for="d in strip" :key="d" type="button" class="chip dchip" :aria-pressed="d === date" @click="go({ date: d })">
                     <small>{{ d === today ? $t('common.today') : fdate(d, { weekday: 'short' }) }}</small
@@ -329,6 +333,9 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                 <Icon name="clock" size="sm" />{{ $t('common.now') }}
             </button>
         </div>
+
+        <!-- from now on: playing now, the next hour, later today, tomorrow, later this week -->
+        <ScheduleNow v-if="view === 'now' && upcoming" :rows="upcoming.rows" :today="today" :now="now" :hours="upcoming.hours" />
 
         <!-- day: the hour grid, every table / field a column -->
         <template v-if="view === 'day' && day">
