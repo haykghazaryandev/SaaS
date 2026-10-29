@@ -8,6 +8,7 @@ export interface AuthUser {
     telegram: boolean;
     isAdmin: boolean;
     isOwner: boolean;
+    playerMode?: boolean;
     /** a sound for new notices and chat messages (Profile → Notifications) */
     sound?: boolean;
 }

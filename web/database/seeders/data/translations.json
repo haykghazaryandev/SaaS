@@ -564,11 +564,6 @@
         "hy": "Մշտական խաղացողներին ընդունել ավտոմատ",
         "ru": "Автоматически принимать постоянных игроков"
     },
-    "admin.rule.free_cancel_hours": {
-        "en": "Free cancellation (hours before)",
-        "hy": "Անվճար չեղարկում (քանի ժամ առաջ)",
-        "ru": "Бесплатная отмена (за сколько часов)"
-    },
     "admin.rule.horizon_days": {
         "en": "Book ahead (days)",
         "hy": "Ամրագրել առաջ (օր)",
@@ -1424,6 +1419,16 @@
         "hy": "Այս դաշտի համար թիմը լրացված է։",
         "ru": "Команда для этого поля уже полная."
     },
+    "booking.error.team_last_owner": {
+        "en": "A place needs at least one owner.",
+        "hy": "Վայրը պետք է ունենա առնվազն մեկ սեփականատեր։",
+        "ru": "У места должен быть хотя бы один владелец."
+    },
+    "booking.error.team_self": {
+        "en": "You can't take yourself off the team.",
+        "hy": "Չեք կարող ինքներդ ձեզ հեռացնել թիմից։",
+        "ru": "Нельзя убрать себя из команды."
+    },
     "booking.error.too_far": {
         "en": "You can book up to 14 days ahead.",
         "hy": "Կարելի է ամրագրել առավելագույնը 14 օր առաջ։",
@@ -1753,6 +1758,11 @@
         "en": "Top-up",
         "hy": "Լիցքավորում",
         "ru": "Пополнение"
+    },
+    "club.entry_fee": {
+        "en": "Entry fee",
+        "hy": "Մասնակցության վճար",
+        "ru": "Взнос за участие"
     },
     "club.first_name": {
         "en": "First name",
@@ -2634,6 +2644,11 @@
         "hy": "Նոր ամրագրում",
         "ru": "Новая бронь"
     },
+    "common.next": {
+        "en": "Next",
+        "hy": "Հաջորդ",
+        "ru": "Далее"
+    },
     "common.next_free_t": {
         "en": "Next free: :t",
         "hy": "Մոտակա ազատը՝ :t",
@@ -2669,6 +2684,11 @@
         "hy": "Սեփականատերեր և աշխատակիցներ",
         "ru": "Владельцы и персонал"
     },
+    "common.pages": {
+        "en": "Pages",
+        "hy": "Էջեր",
+        "ru": "Страницы"
+    },
     "common.per_hour": {
         "en": "/ hour",
         "hy": "/ ժամ",
@@ -2693,6 +2713,11 @@
         "en": ":n players",
         "hy": ":n խաղացող",
         "ru": "Игроков: :n"
+    },
+    "common.prev": {
+        "en": "Previous",
+        "hy": "Նախորդ",
+        "ru": "Назад"
     },
     "common.price": {
         "en": "Price",
@@ -2733,6 +2758,11 @@
         "en": "Role",
         "hy": "Դեր",
         "ru": "Роль"
+    },
+    "common.rows_total": {
+        "en": ":n in all",
+        "hy": "Ընդամենը՝ :n",
+        "ru": "Всего: :n"
     },
     "common.save": {
         "en": "Save",
@@ -4539,6 +4569,11 @@
         "hy": "🔔 :venue :field, :date :time-ն այժմ ազատ է։ Ամրագրեք, քանի դեռ ուրիշը չի զբաղեցրել։",
         "ru": "🔔 :venue :field, :date в :time освободилось! Бронируйте, пока не заняли."
     },
+    "notice.team_added": {
+        "en": "You were added to :venue as :role. Open the place's panel.",
+        "hy": "Ձեզ ավելացրել են :venue վայրում որպես :role։ Բացեք վայրի վահանակը։",
+        "ru": "Вас добавили в :venue как :role. Откройте панель места."
+    },
     "notice.tournament_accepted": {
         "en": "🏆 You're in :title at :venue (:when). The tournament chat is open for you.",
         "hy": "🏆 Դուք ընդունված եք :title մրցաշարին :venue-ում (:when)։ Մրցաշարի չատը բաց է ձեզ համար։",
@@ -4803,11 +4838,6 @@
         "en": "by :name",
         "hy": "ընդունել է՝ :name",
         "ru": "принял: :name"
-    },
-    "owner.club.by_day": {
-        "en": "By day",
-        "hy": "Ըստ օրերի",
-        "ru": "По дням"
     },
     "owner.club.by_kind": {
         "en": "By kind",
@@ -5173,26 +5203,6 @@
         "en": "Open the card",
         "hy": "Բացել քարտը",
         "ru": "Открыть карту"
-    },
-    "owner.club.option_ph_0": {
-        "en": "e.g. Free",
-        "hy": "օր․՝ Անվճար",
-        "ru": "например, Бесплатно"
-    },
-    "owner.club.option_ph_1": {
-        "en": "e.g. Standard",
-        "hy": "օր․՝ Ստանդարտ",
-        "ru": "например, Стандарт"
-    },
-    "owner.club.option_ph_2": {
-        "en": "e.g. With prize pool",
-        "hy": "օր․՝ Մրցանակային ֆոնդով",
-        "ru": "например, С призовым фондом"
-    },
-    "owner.club.options": {
-        "en": "Entry options (up to 3)",
-        "hy": "Մասնակցության տարբերակներ (մինչև 3)",
-        "ru": "Варианты участия (до 3)"
     },
     "owner.club.out_of_stock": {
         "en": "Out of stock",
@@ -5774,10 +5784,15 @@
         "hy": "Սա կարող է փոխել միայն ակումբի սեփականատերը։",
         "ru": "Это может изменить только владелец клуба."
     },
-    "owner.fee.base": {
-        "en": "counted",
-        "hy": "հաշվարկված",
-        "ru": "учтено"
+    "owner.fee.example": {
+        "en": "Example: a booking paid :a → :f to ZoneSpot.",
+        "hy": "Օրինակ՝ վճարված :a ամրագրում → :f ZoneSpot-ին։",
+        "ru": "Пример: оплаченная бронь :a → :f для ZoneSpot."
+    },
+    "owner.fee.intro": {
+        "en": "ZoneSpot takes this part of the money your place takes for:",
+        "hy": "ZoneSpot-ը վերցնում է ձեր վայրի ստացած գումարի այս մասը՝",
+        "ru": "ZoneSpot берёт эту часть денег, которые получает ваше место, за:"
     },
     "owner.fee.kind_booking": {
         "en": "Bookings",
@@ -5794,30 +5809,20 @@
         "hy": "Մարզումներ",
         "ru": "Тренировки"
     },
-    "owner.fee.kind_unpaid": {
-        "en": "Played bookings",
-        "hy": "Խաղացված ամրագրումներ",
-        "ru": "Сыгранные брони"
-    },
-    "owner.fee.note": {
-        "en": "Counted: bookings, trainings and tournament fees, from cards or in cash, minus refunds. Not counted: the shop and card top-ups (top-up money counts when the card pays for a game). A place that takes no money in the app counts its played bookings at their price.",
-        "hy": "Հաշվվում են՝ ամրագրումները, մարզումները և մրցաշարային վճարները՝ քարտով կամ կանխիկ, հանած վերադարձները։ Չեն հաշվվում՝ խանութը և քարտի լիցքավորումները (լիցքավորված գումարը հաշվվում է, երբ քարտով վճարվում է խաղի համար)։ Եթե վայրը հավելվածում գումար չի ընդունում, հաշվվում են խաղացված ամրագրումները՝ իրենց գնով։",
-        "ru": "Учитываются: брони, тренировки и турнирные взносы — с карты или наличными, за вычетом возвратов. Не учитываются: магазин и пополнения карт (деньги пополнения учитываются, когда картой платят за игру). Если заведение не принимает деньги в приложении, учитываются сыгранные брони по их цене."
-    },
-    "owner.fee.of": {
-        "en": "of :a",
-        "hy": ":a-ից",
-        "ru": "от :a"
+    "owner.fee.not_taken": {
+        "en": "Not counted",
+        "hy": "Չի հաշվվում",
+        "ru": "Не считается"
     },
     "owner.fee.prev_month": {
         "en": "Last month",
         "hy": "Անցյալ ամիս",
         "ru": "Прошлый месяц"
     },
-    "owner.fee.title": {
-        "en": "ZoneSpot fee :p%",
-        "hy": "ZoneSpot-ի վճար :p%",
-        "ru": "Комиссия ZoneSpot :p%"
+    "owner.fee.who_sets": {
+        "en": "The % is agreed with ZoneSpot. To change it, write to the ZoneSpot team.",
+        "hy": "Տոկոսը համաձայնեցվում է ZoneSpot-ի հետ։ Փոխելու համար գրեք ZoneSpot-ի թիմին։",
+        "ru": "Процент согласуется с ZoneSpot. Чтобы изменить его, напишите команде ZoneSpot."
     },
     "owner.field.big": {
         "en": "Big field",
@@ -6119,10 +6124,55 @@
         "hy": "ZoneSpot",
         "ru": "ZoneSpot"
     },
+    "owner.money.all_products": {
+        "en": "All products",
+        "hy": "Բոլոր ապրանքները",
+        "ru": "Все товары"
+    },
+    "owner.money.by_card": {
+        "en": "Card",
+        "hy": "Քարտով",
+        "ru": "Картой"
+    },
+    "owner.money.everything": {
+        "en": "Everything",
+        "hy": "Բոլորը",
+        "ru": "Всё"
+    },
+    "owner.money.in_cash": {
+        "en": "Cash",
+        "hy": "Կանխիկ",
+        "ru": "Наличные"
+    },
+    "owner.money.kind": {
+        "en": "What",
+        "hy": "Ինչ",
+        "ru": "Что"
+    },
+    "owner.money.method": {
+        "en": "How paid",
+        "hy": "Ինչպես է վճարվել",
+        "ru": "Как оплачено"
+    },
+    "owner.money.no_sales": {
+        "en": "No sales here.",
+        "hy": "Այստեղ վաճառքներ չկան։",
+        "ru": "Здесь нет продаж."
+    },
+    "owner.money.product": {
+        "en": "Product",
+        "hy": "Ապրանք",
+        "ru": "Товар"
+    },
     "owner.nav.cards": {
         "en": "Cards",
         "hy": "Քարտեր",
         "ru": "Карты"
+    },
+    "owner.nav.fee": {
+        "en": "ZoneSpot fee",
+        "hy": "ZoneSpot-ի վճար",
+        "ru": "Комиссия ZoneSpot"
     },
     "owner.nav.messages": {
         "en": "Chats",
@@ -6163,6 +6213,11 @@
         "en": "Shop",
         "hy": "Խանութ",
         "ru": "Магазин"
+    },
+    "owner.nav.team": {
+        "en": "Team",
+        "hy": "Թիմ",
+        "ru": "Команда"
     },
     "owner.nav.tournaments": {
         "en": "Tournaments",
@@ -6659,16 +6714,6 @@
         "hy": "Անպատասխան հայտի ժամկետը լրանում է այսքան ժամանակ անց",
         "ru": "Заявка без ответа истекает через это время"
     },
-    "owner.settings.free_cancel": {
-        "en": "Free cancellation",
-        "hy": "Անվճար չեղարկում",
-        "ru": "Бесплатная отмена"
-    },
-    "owner.settings.free_cancel_help": {
-        "en": "Players can cancel for free until this time before the game",
-        "hy": "Խաղացողները կարող են անվճար չեղարկել մինչև խաղից այսքան առաջ",
-        "ru": "Игроки могут отменить бесплатно не позднее чем за это время до игры"
-    },
     "owner.settings.grace": {
         "en": "Wait for late teams",
         "hy": "Սպասել ուշացող թիմերին",
@@ -6714,10 +6759,15 @@
         "hy": "Ավելացնել տևողություն",
         "ru": "Добавить длительность"
     },
-    "owner.settings.length_note": {
-        "en": "Players book these lengths. Longer games are made of them (75 min = 1 h + 15 min). Empty evening or weekend: the day price.",
-        "hy": "Խաղացողներն ամրագրում են այս տևողությունները։ Ավելի երկար խաղը կազմվում է դրանցից (75 րոպե = 1 ժ + 15 րոպե)։ Դատարկ երեկո կամ հանգստյան օր՝ ցերեկային գինը։",
-        "ru": "Игроки бронируют эти длительности. Более долгая игра складывается из них (75 мин = 1 ч + 15 мин). Пустые вечер или выходные: дневная цена."
+    "owner.settings.length_rule": {
+        "en": "A length on the list costs its price. Any other length goes at the rate of the longest listed length below it: with 30 min = 2 500 ֏, 45 min = 3 750 ֏. Empty evening or weekend: the day price.",
+        "hy": "Ցանկի տևողությունն արժե իր գինը։ Այլ տևողությունը հաշվվում է իրենից կարճ ամենաերկար տևողության դրույքով՝ եթե 30 րոպեն 2 500 ֏ է, 45 րոպեն՝ 3 750 ֏։ Դատարկ երեկո կամ հանգստյան օր՝ ցերեկային գինը։",
+        "ru": "Длительность из списка стоит свою цену. Любая другая считается по ставке самой длинной из списка, что короче неё: если 30 мин = 2 500 ֏, то 45 мин = 3 750 ֏. Пустой вечер или выходные: дневная цена."
+    },
+    "owner.settings.length_rule_training": {
+        "en": "One price at any time. A length on the list costs its price; any other length goes at the rate of the longest listed length below it (with 30 min = 3 000 ֏, 45 min = 4 500 ֏).",
+        "hy": "Մեկ գին՝ ցանկացած ժամի։ Ցանկի տևողությունն արժե իր գինը, այլ տևողությունը՝ իրենից կարճ ամենաերկար տևողության դրույքով (եթե 30 րոպեն 3 000 ֏ է, 45 րոպեն՝ 4 500 ֏)։",
+        "ru": "Одна цена в любое время. Длительность из списка стоит свою цену; любая другая — по ставке самой длинной из списка, что короче неё (если 30 мин = 3 000 ֏, то 45 мин = 4 500 ֏)."
     },
     "owner.settings.minutes_count": {
         "en": ":n min",
@@ -6944,6 +6994,86 @@
         "hy": "Հայտ",
         "ru": "Заявка"
     },
+    "owner.team.add": {
+        "en": "Add a person",
+        "hy": "Ավելացնել մարդ",
+        "ru": "Добавить человека"
+    },
+    "owner.team.add_btn": {
+        "en": "Add to the team",
+        "hy": "Ավելացնել թիմին",
+        "ru": "Добавить в команду"
+    },
+    "owner.team.ask_remove": {
+        "en": "Take :name off the team?",
+        "hy": "Հեռացնե՞լ :name-ին թիմից։",
+        "ru": "Убрать :name из команды?"
+    },
+    "owner.team.ask_remove_text": {
+        "en": "They will not be able to open this place's panel any more.",
+        "hy": "Նա այլևս չի կարողանա բացել այս վայրի վահանակը։",
+        "ru": "Он больше не сможет открыть панель этого места."
+    },
+    "owner.team.name": {
+        "en": "Name (if new)",
+        "hy": "Անուն (եթե նոր է)",
+        "ru": "Имя (если новый)"
+    },
+    "owner.team.no_telegram": {
+        "en": "Telegram not linked yet",
+        "hy": "Telegram-ը դեռ կապված չէ",
+        "ru": "Telegram ещё не привязан"
+    },
+    "owner.team.online": {
+        "en": "Online now",
+        "hy": "Հիմա առցանց է",
+        "ru": "Сейчас в сети"
+    },
+    "owner.team.owner_can": {
+        "en": "everything: also money, cards, the shop's products, settings, the team and new tournaments.",
+        "hy": "ամեն ինչ՝ նաև գումար, քարտեր, խանութի ապրանքներ, կարգավորումներ, թիմ և նոր մրցաշարեր։",
+        "ru": "всё: ещё деньги, карты, товары магазина, настройки, команда и новые турниры."
+    },
+    "owner.team.remove": {
+        "en": "Take off the team",
+        "hy": "Հեռացնել թիմից",
+        "ru": "Убрать из команды"
+    },
+    "owner.team.removed": {
+        "en": "Taken off the team.",
+        "hy": "Հեռացվեց թիմից։",
+        "ru": "Удалён из команды."
+    },
+    "owner.team.role": {
+        "en": "Role",
+        "hy": "Դեր",
+        "ru": "Роль"
+    },
+    "owner.team.role_owner": {
+        "en": "Owner",
+        "hy": "Սեփականատեր",
+        "ru": "Владелец"
+    },
+    "owner.team.role_staff": {
+        "en": "Staff",
+        "hy": "Աշխատակից",
+        "ru": "Сотрудник"
+    },
+    "owner.team.saved": {
+        "en": "Team saved.",
+        "hy": "Թիմը պահպանվեց։",
+        "ru": "Команда сохранена."
+    },
+    "owner.team.staff_can": {
+        "en": "the daily work: Now, Today, Schedule, players, a scanned card, running tournaments, chats. No money, no settings.",
+        "hy": "ամենօրյա աշխատանքը՝ Հիմա, Այսօր, Ժամանակացույց, խաղացողներ, սկանավորված քարտ, մրցաշարերի անցկացում, զրույցներ։ Առանց գումարի և կարգավորումների։",
+        "ru": "ежедневная работа: Сейчас, Сегодня, Расписание, игроки, отсканированная карта, проведение турниров, чаты. Без денег и настроек."
+    },
+    "owner.team.you": {
+        "en": "you",
+        "hy": "դուք",
+        "ru": "вы"
+    },
     "owner.tournament.announce": {
         "en": "News to the players",
         "hy": "Լուր խաղացողներին",
@@ -7149,6 +7279,11 @@
         "hy": ":a · բավարար չէ",
         "ru": ":a · не хватает"
     },
+    "owner.tournament.create": {
+        "en": "Create the tournament",
+        "hy": "Ստեղծել մրցաշարը",
+        "ru": "Создать турнир"
+    },
     "owner.tournament.division_add": {
         "en": "Add a division",
         "hy": "Ավելացնել խումբ",
@@ -7183,6 +7318,11 @@
         "en": "Divisions",
         "hy": "Խմբեր",
         "ru": "Дивизионы"
+    },
+    "owner.tournament.divisions_hint": {
+        "en": "One row: a single tournament. Split by rating: each division gets its own bracket, fee and chat.",
+        "hy": "Մեկ տող՝ մեկ մրցաշար։ Բաժանել ըստ վարկանիշի՝ յուրաքանչյուր խումբ կունենա իր սխեման, վճարը և զրույցը։",
+        "ru": "Одна строка: один турнир. Разделить по рейтингу: у каждого дивизиона своя сетка, взнос и чат."
     },
     "owner.tournament.draw": {
         "en": "Make the draw",
@@ -7228,6 +7368,11 @@
         "en": "Not paid",
         "hy": "Չվճարած",
         "ru": "Не оплатили"
+    },
+    "owner.tournament.fee": {
+        "en": "Fee",
+        "hy": "Վճար",
+        "ru": "Взнос"
     },
     "owner.tournament.fee_later": {
         "en": "Fee :a · after registration",
@@ -7314,6 +7459,11 @@
         "hy": "Խաղացողներ",
         "ru": "Игроки"
     },
+    "owner.tournament.players_price": {
+        "en": "Who plays and the fee",
+        "hy": "Ով է խաղում և վճարը",
+        "ru": "Кто играет и взнос"
+    },
     "owner.tournament.rating_short": {
         "en": "Rating :range",
         "hy": "Ռեյթինգ :range",
@@ -7389,20 +7539,20 @@
         "hy": "Ուղարկվեց :n խաղացողի։",
         "ru": "Отправлено :n игрокам."
     },
-    "owner.tournament.split": {
-        "en": "Divisions by rating",
-        "hy": "Խմբեր ըստ ռեյթինգի",
-        "ru": "Дивизионы по рейтингу"
-    },
-    "owner.tournament.split_hint": {
-        "en": "One tournament, 2–6 divisions under it: each with its own rating range, players, bracket and chat.",
-        "hy": "Մեկ մրցաշար, դրա տակ 2–6 խումբ․ յուրաքանչյուրն իր ռեյթինգով, խաղացողներով, սխեմայով և չատով։",
-        "ru": "Один турнир, под ним 2–6 дивизионов: у каждого свой рейтинг, игроки, сетка и чат."
+    "owner.tournament.split_by_rating": {
+        "en": "Split by rating (divisions)",
+        "hy": "Բաժանել ըստ վարկանիշի (խմբեր)",
+        "ru": "Разделить по рейтингу (дивизионы)"
     },
     "owner.tournament.tap_match": {
         "en": "Tap a match to mark the winner: the bracket updates for everybody and both players are told.",
         "hy": "Սեղմեք խաղի վրա՝ հաղթողին նշելու համար․ սխեման կթարմանա բոլորի համար, և երկու խաղացողներին կտեղեկացվի։",
         "ru": "Нажмите на матч, чтобы отметить победителя: сетка обновится у всех, игрокам придёт уведомление."
+    },
+    "owner.tournament.this_division": {
+        "en": "This division",
+        "hy": "Այս խումբը",
+        "ru": "Этот дивизион"
     },
     "owner.tournament.walkover": {
         "en": "Technical loss",
@@ -7909,15 +8059,15 @@
         "hy": "Չեղարկված է։ Վայրը կստանա հաղորդագրություն։",
         "ru": "Отменено. Место получит сообщение."
     },
-    "player.my_bookings.cancel_free": {
-        "en": "Free cancellation: more than :h hours to go.",
-        "hy": "Անվճար չեղարկում․ մինչև խաղը :h ժամից ավելի կա։",
-        "ru": "Бесплатная отмена: до начала больше :h ч."
+    "player.my_bookings.cancel_early": {
+        "en": "Thanks for cancelling early: someone else can book this time.",
+        "hy": "Շնորհակալություն վաղ չեղարկելու համար․ ուրիշը կկարողանա ամրագրել այս ժամը։",
+        "ru": "Спасибо, что отменяете заранее: это время сможет забронировать кто-то другой."
     },
-    "player.my_bookings.cancel_late": {
-        "en": "Less than :h hours to go. This is a late cancellation: the place may ask you to pay, and late cancellations are remembered.",
-        "hy": "Մինչև խաղը :h ժամից պակաս է մնացել։ Սա ուշ չեղարկում է․ վայրը կարող է վճար պահանջել, և ուշ չեղարկումները հաշվի են առնվում։",
-        "ru": "До начала меньше :h ч. Это поздняя отмена: место может попросить оплату, а поздние отмены учитываются."
+    "player.my_bookings.cancel_late_2h": {
+        "en": "Less than 2 hours to go: this is a late cancellation, and the place sees it in your record.",
+        "hy": "Մինչև խաղը 2 ժամից պակաս է մնացել․ սա ուշ չեղարկում է, և վայրը դա տեսնում է ձեր պատմության մեջ։",
+        "ru": "До начала меньше 2 часов: это поздняя отмена, и место увидит её в вашей истории."
     },
     "player.my_bookings.cancel_request": {
         "en": "The place has not confirmed it yet, so it is free to withdraw.",
@@ -7953,11 +8103,6 @@
         "en": "Finish your profile",
         "hy": "Լրացնել պրոֆիլը",
         "ru": "Заполнить профиль"
-    },
-    "player.my_bookings.free_until": {
-        "en": "Free cancellation until :t",
-        "hy": "Անվճար չեղարկում՝ մինչև :t",
-        "ru": "Бесплатная отмена до :t"
     },
     "player.my_bookings.group.later": {
         "en": "Later",
@@ -8038,11 +8183,6 @@
         "en": "Add team name or a note (optional)",
         "hy": "Ավելացնել թիմի անուն կամ նշում (ըստ ցանկության)",
         "ru": "Добавить название команды или заметку (необязательно)"
-    },
-    "player.place.badge_free_cancel": {
-        "en": "Free cancellation ≥:h h",
-        "hy": "Անվճար չեղարկում՝ ≥:h ժ",
-        "ru": "Бесплатная отмена за ≥:h ч"
     },
     "player.place.badge_pay": {
         "en": "Pay at the field",
@@ -9009,6 +9149,56 @@
         "hy": "Այսօր չափազանց շատ ընկերության հայտեր։ Փորձեք վաղը։",
         "ru": "Слишком много заявок в друзья сегодня. Попробуйте завтра."
     },
+    "switch.admin": {
+        "en": "Admin panel",
+        "hy": "Ադմին վահանակ",
+        "ru": "Панель админа"
+    },
+    "switch.now_owner": {
+        "en": "owner",
+        "hy": "սեփականատեր",
+        "ru": "владелец"
+    },
+    "switch.now_player": {
+        "en": "player",
+        "hy": "խաղացող",
+        "ru": "игрок"
+    },
+    "switch.now_staff": {
+        "en": "as staff",
+        "hy": "աշխատակից",
+        "ru": "сотрудник"
+    },
+    "switch.owner": {
+        "en": "Place panel (owner)",
+        "hy": "Վայրի վահանակ (սեփականատեր)",
+        "ru": "Панель места (владелец)"
+    },
+    "switch.panel": {
+        "en": "Place panel",
+        "hy": "Վայրի վահանակ",
+        "ru": "Панель места"
+    },
+    "switch.player": {
+        "en": "Player app",
+        "hy": "Խաղացողի հավելված",
+        "ru": "Приложение игрока"
+    },
+    "switch.seeing_as_staff": {
+        "en": "You see it as staff",
+        "hy": "Տեսնում եք որպես աշխատակից",
+        "ru": "Вы видите как сотрудник"
+    },
+    "switch.staff": {
+        "en": "Place panel as staff",
+        "hy": "Վայրի վահանակ՝ որպես աշխատակից",
+        "ru": "Панель места как сотрудник"
+    },
+    "switch.title": {
+        "en": "Switch",
+        "hy": "Փոխել",
+        "ru": "Переключить"
+    },
     "telegram.after.arrived_done": {
         "en": "✅ :name arrived (:field, :time). Marked by :by.",
         "hy": "✅ :name-ը եկել է (:field, :time)։ Նշեց՝ :by։",
@@ -9019,10 +9209,10 @@
         "hy": "Չեղարկե՞լ ամրագրումը՝ :venue :field, :date :time։",
         "ru": "Отменить бронь :venue :field, :date :time?"
     },
-    "telegram.after.cancel_late": {
-        "en": "It is close to the start: the place may ask you to pay. A cancel less than 2 hours before counts as half a missed game.",
-        "hy": "Մինչև սկիզբը քիչ է մնացել․ դաշտը կարող է վճար խնդրել։ Սկզբից 2 ժամից պակաս առաջ չեղարկումը հաշվվում է որպես կես բաց թողնված խաղ։",
-        "ru": "До начала осталось мало времени: площадка может попросить оплату. Отмена меньше чем за 2 часа считается как половина пропущенной игры."
+    "telegram.after.cancel_late_2h": {
+        "en": "It is less than 2 hours to the start: a late cancellation is remembered in your record at this place.",
+        "hy": "Մինչև սկիզբը 2 ժամից պակաս է մնացել․ ուշ չեղարկումը կմնա ձեր պատմության մեջ այս վայրում։",
+        "ru": "До начала меньше 2 часов: поздняя отмена останется в вашей истории в этом месте."
     },
     "telegram.after.cancelled": {
         "en": "🚫 Cancelled: :venue :field, :date :time.",

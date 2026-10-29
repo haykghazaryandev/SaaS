@@ -24,6 +24,12 @@ class Commission
 
     public const DEFAULT_PCT = 5.0;
 
+    /** The place's %: set by the admin, else the default. */
+    public static function pct(Venue $venue): float
+    {
+        return (float) ($venue->commission_pct ?? self::DEFAULT_PCT);
+    }
+
     /** One place for [$from, $to): the base by kind, the %, the fee, and the same per day. */
     public function between(Venue $venue, CarbonImmutable $from, CarbonImmutable $to): array
     {

@@ -51,7 +51,6 @@ it('shows the place page with both fields and free times', function () {
         ->where('initial.start', '19:00')
         ->where('slots.date', $this->date)
         ->has('slots.fields', 2)
-        ->where('venue.rules.freeCancelHours', 12)
         ->where('booked', null)
     );
 });

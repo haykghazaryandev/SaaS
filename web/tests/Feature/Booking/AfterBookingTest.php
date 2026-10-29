@@ -36,9 +36,9 @@ beforeEach(function () {
 /** An accepted booking 8 days ahead at 21:00 (made now, so all reminders apply). */
 function acceptedBooking($test, ?User $player = null, float $hour = 21): Booking
 {
-    // a week after next Wednesday; on a Wednesday that is past the 14 days one can book ahead: a week earlier
-    $when = at($hour, 7);
-    $when = $when->greaterThan(now()->addDays(13)) ? $when->subDays(7) : $when;
+    // a week after next Wednesday; when that day is too near the 14 days one can book ahead: a week earlier (the day
+    // decides, not the hour, so all the games of a test stay on the same day)
+    $when = at(0, 7)->greaterThan(now()->addDays(12)) ? at($hour) : at($hour, 7);
     $b = app(RequestBooking::class)->handle($player ?? $test->player, $test->small, $when, 60);
 
     return app(DecideBooking::class)->accept($b, $test->owner)->fresh();

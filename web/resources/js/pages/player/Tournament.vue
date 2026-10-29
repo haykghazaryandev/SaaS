@@ -267,7 +267,11 @@ function send() {
                         ><span>{{ $t('club.level') }}</span
                         ><input v-model="form.level" class="input" inputmode="numeric" :required="ranged" :placeholder="$t('club.level_ph')"
                     /></label>
-                    <div class="field">
+                    <!-- one price: just the entry fee; older tournaments may still have several options to pick from -->
+                    <div v-if="tournament.options.length === 1" class="fee1">
+                        <span>{{ $t('club.entry_fee') }}</span><b>{{ tournament.options[0].price ? amd(tournament.options[0].price) : $t('club.free') }}</b>
+                    </div>
+                    <div v-else class="field">
                         <span>{{ $t('club.option') }}</span>
                         <div class="opts">
                             <button v-for="(o, i) in tournament.options" :key="i" type="button" class="opt" :aria-pressed="form.option === i" @click="form.option = i">
@@ -313,6 +317,8 @@ function send() {
 </template>
 
 <style scoped>
+.fee1 { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-weight: 700; }
+.fee1 span { color: var(--muted); }
 .pg { max-width: 560px; margin: 0 auto; padding-top: 18px; }
 .pg.wide { max-width: 980px; margin-top: 14px; }
 .tfull { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; background: #070908; color: #eef5ec; }

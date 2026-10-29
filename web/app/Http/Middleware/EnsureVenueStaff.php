@@ -32,13 +32,17 @@ class EnsureVenueStaff
         $request->session()->put('venue_id', $venue->id);
         // back in the dashboard: the home page brings them here again (not the player app)
         $request->session()->forget('player_mode');
+        // an owner may look at the panel the way their staff see it (the switch); staff are always staff
+        $real = $venue->pivot->role;
+        $role = $real === 'owner' && $request->session()->get('as_staff') ? 'staff' : $real;
         $request->attributes->set('venue', $venue);
-        $request->attributes->set('venueRole', $venue->pivot->role);
+        $request->attributes->set('venueRole', $role);
 
         // shared with every owner page: the layout (place switcher, pending badge) and the booking form (fields, hours)
         Inertia::share('owner', fn () => [
             'venue' => ['id' => $venue->id, 'name' => $venue->name, 'slug' => $venue->slug],
-            'role' => $venue->pivot->role,
+            'role' => $role,
+            'realRole' => $real,
             'venues' => $venues->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->values(),
             'pending' => Booking::query()->where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now())->count(),
             'fields' => BookingPresenter::fields($venue->loadMissing(['fields', 'openingHours'])),

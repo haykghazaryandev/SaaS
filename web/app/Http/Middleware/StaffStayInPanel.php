@@ -21,6 +21,10 @@ class StaffStayInPanel
     {
         $user = $request->user();
         $name = (string) $request->route()?->getName();
+        // they chose the player app (the switch): let them use it until they go back to the panel
+        if ($request->hasSession() && $request->session()->get('player_mode')) {
+            return $next($request);
+        }
         // the chat pages: in the panel (its menu stays)
         if ($user && in_array($name, ['messages.index', 'messages.show'], true) && $request->isMethod('GET') && $user->venues()->exists()) {
             return $name === 'messages.index' ? redirect()->route('owner.messages') : redirect()->route('owner.messages.show', $request->route('conversation'));

@@ -49,9 +49,9 @@ it('takes the % of bookings, trainings and tournaments only — not the shop, no
     $this->club->update(['commission_pct' => 2]);
     expect(app(Commission::class)->between($this->club->fresh(), $from, $to)['fee'])->toBe(200);
 
-    // the owner sees it on Money, the admin on ZoneSpot fee
-    $this->actingAs($this->owner)->get(route('owner.money', ['period' => 'month']))->assertOk()
-        ->assertInertia(fn (Assert $p) => $p->where('fee.fee', 200)->where('fee.base', 10000));
+    // the owner sees only the % (Owner → ZoneSpot fee, no history; Money is the place's own money), the admin the sums
+    $this->actingAs($this->owner)->get(route('owner.fee'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('owner/Fee')->where('pct', 2));
+    $this->actingAs($this->owner)->get(route('owner.money', ['period' => 'month']))->assertOk()->assertInertia(fn (Assert $p) => $p->missing('fee'));
     $admin = User::factory()->create();
     $admin->forceFill(['is_admin' => true])->save();
     $this->actingAs($admin);
@@ -102,8 +102,9 @@ it('cuts the periods in Yerevan time and rounds the fee', function () {
 it('shows the fee to the owner of a place without the money feature', function () {
     $park = makeVenue();
     $park->staff()->attach($this->owner->id, ['role' => 'owner']);
-    $this->actingAs($this->owner)->withSession(['venue_id' => $park->id])->get(route('owner.money'))->assertOk()
-        ->assertInertia(fn (Assert $p) => $p->where('report', null)->where('fee.pct', 5));
+    // no money feature: Money is the fee page
+    $this->actingAs($this->owner)->withSession(['venue_id' => $park->id])->get(route('owner.money'))->assertRedirect(route('owner.fee'));
+    $this->actingAs($this->owner)->get(route('owner.fee'))->assertOk()->assertInertia(fn (Assert $p) => $p->where('pct', 5));
 });
 
 it('lets the owner message a player and make a card that takes money at once (back to the page it came from)', function () {

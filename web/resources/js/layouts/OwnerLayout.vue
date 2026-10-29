@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ChatDock from '@/components/owner/ChatDock.vue';
+import RoleSwitch from '@/components/RoleSwitch.vue';
 import RequestsBell from '@/components/owner/RequestsBell.vue';
 import { ping } from '@/lib/sound';
 import '../../css/owner.css';
@@ -26,15 +27,17 @@ const owner = useOwner();
 const page = usePage();
 const { user } = useShared();
 const has = (f: string) => (owner.value.features ?? []).includes(f);
-// the club pages show only where the admin switched them on (admin → place → features)
+// the club pages show only where the admin switched them on (admin → place → features); some are the owner's only
+// (money, all cards, ZoneSpot's fee, team, settings): staff get a short menu for the daily work
+const isOwner = computed(() => owner.value.role === 'owner');
 const club = computed(() =>
     [
         { name: 'owner.now', label: 'owner.nav.now', icon: 'clock', on: has('wallet') || has('shop') },
         { name: 'owner.players', label: 'owner.nav.players', icon: 'users', on: has('wallet') || has('rating') },
-        { name: 'owner.cards', label: 'owner.nav.cards', icon: 'wallet', on: has('wallet') },
+        { name: 'owner.cards', label: 'owner.nav.cards', icon: 'wallet', on: has('wallet') && isOwner.value },
         { name: 'owner.shop', label: 'owner.nav.shop', icon: 'cube', on: has('shop') },
         { name: 'owner.tournaments', label: 'owner.nav.tournaments', icon: 'trophy', on: has('tournaments') },
-        { name: 'owner.money', label: 'owner.nav.money', icon: 'chart', on: has('money') && owner.value.role === 'owner' },
+        { name: 'owner.money', label: 'owner.nav.money', icon: 'chart', on: has('money') && isOwner.value },
     ]
         .filter((n) => n.on)
         .map((n) => ({ ...n, badge: 0 })),
@@ -52,9 +55,14 @@ const nav = computed(() => [
         icon: 'chat',
         badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0),
     },
-    // every owner sees ZoneSpot's fee (Money: the whole report where the money feature is on)
-    ...(owner.value.role === 'owner' && !has('money') ? [{ name: 'owner.money', label: 'owner.nav.money', icon: 'chart', badge: 0 }] : []),
-    { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
+    // the owner: ZoneSpot's fee (just its %), who works here, the place's settings
+    ...(isOwner.value
+        ? [
+              { name: 'owner.fee', label: 'owner.nav.fee', icon: 'percent', badge: 0 },
+              { name: 'owner.team', label: 'owner.nav.team', icon: 'team', badge: 0 },
+              { name: 'owner.settings', label: 'owner.nav.settings', icon: 'settings', badge: 0 },
+          ]
+        : []),
 ]);
 // phones: a club: Now · Schedule · Scan · More (Today and the rest); others: the three tabs as before
 const canScan = computed(() => has('wallet'));
@@ -121,7 +129,9 @@ watch(
                     <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>
                 </select>
                 <div v-else id="vs1" class="vname">{{ owner.venue.name }}</div>
-                <span v-if="owner.role === 'staff'" class="faint" style="font-size: 11.5px">{{ $t('owner.role_staff') }}</span>
+                <span v-if="owner.role === 'staff'" :class="['rolepill', { preview: owner.realRole === 'owner' }]">{{
+                    owner.realRole === 'owner' ? $t('switch.seeing_as_staff') : $t('owner.role_staff')
+                }}</span>
             </div>
             <nav class="onav">
                 <Link v-for="n in nav" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">
@@ -133,7 +143,8 @@ watch(
                 <LangSwitch />
                 <!-- the account (photo, Telegram, language); the player app is not for people who run a place -->
                 <Link class="olink" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                <a v-if="user?.isAdmin" class="olink" href="/admin"><Icon name="settings" size="sm" />{{ $t('admin.nav.admin_panel') }}</a>
+                <!-- admin / owner / as staff / player app -->
+                <RoleSwitch />
                 <div class="ome">
                     <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
                     <span
@@ -186,10 +197,13 @@ watch(
                     <Link v-for="n in more" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined" @click="moreOpen = false">
                         <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span>
                     </Link>
-                    <!-- the account; the admin panel for admins (not part of this app: a full page load) -->
+                    <!-- the account; switching: admin panel / owner / as staff / player app (full page loads) -->
                     <Link :href="route('me.profile')"><Icon name="user" /><span>{{ $t('profile.title') }}</span></Link>
-                    <a v-if="user?.isAdmin" href="/admin"><Icon name="settings" /><span>{{ $t('admin.nav.admin_panel') }}</span></a>
                 </nav>
+                <div class="more-sw">
+                    <small>{{ $t('switch.title') }}</small>
+                    <RoleSwitch inline />
+                </div>
             </div>
         </div>
         <QrScanner v-if="scanOpen" @close="scanOpen = false" />

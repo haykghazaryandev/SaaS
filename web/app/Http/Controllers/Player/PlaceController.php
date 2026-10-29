@@ -68,7 +68,7 @@ class PlaceController extends Controller
                 // "Message": a chat with the place (its staff answer); not for the place's own staff
                 'canMessage' => DB::table('venue_users')->where('venue_id', $venue->id)->exists()
                     && ! ($request->user() && DB::table('venue_users')->where('venue_id', $venue->id)->where('user_id', $request->user()->id)->exists()),
-                'rules' => ['freeCancelHours' => (int) $venue->rule('free_cancel_hours'), 'minNoticeMin' => (int) $venue->rule('min_notice_min'), 'horizonDays' => (int) $venue->rule('horizon_days')],
+                'rules' => ['minNoticeMin' => (int) $venue->rule('min_notice_min'), 'horizonDays' => (int) $venue->rule('horizon_days')],
             ],
             'fields' => $fields->map(fn ($f) => [...$present->field($f), 'count' => $groups[$f->id]->count()])->values()->all(),
             'sport' => $field?->sport()->value ?? 'football',

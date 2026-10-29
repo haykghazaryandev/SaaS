@@ -12,9 +12,10 @@ use App\Support\LocalTime;
 use Illuminate\Console\Command;
 
 /**
- * Local / staging only: puts games on the demo club's tables right now (any hour), to try Owner → Now:
- * table 1 Aram playing 50 min with 2 colas, table 2 Davit's training , table 3 a phone-only
- * booking already stopped and waiting to be paid. Run again: the previous demo games go first.
+ * Local / staging only: puts games on the place's courts right now (any hour), to try Owner → Now, with real lengths:
+ * court 1 Aram's 60 min game, 15 min left (2 colas), the next team 5 min after it; court 2 Davit's 90 min training,
+ * started 20 min ago; court 3 a 45 min phone booking already stopped and waiting to be paid; a 4th court (if any):
+ * a 15 min game, 6 min left. Run again: the previous demo games go first.
  */
 class ClubDemoNow extends Command
 {
@@ -42,10 +43,12 @@ class ClubDemoNow extends Command
         $now = LocalTime::now()->second(0);
         $aram = User::where('phone', '+37493000100')->first();
         $davit = User::where('phone', '+37493000101')->first();
+        // [court, player, purpose, started minutes ago, length, items]
         $games = [
-            [$tables[0] ?? null, $aram, 'play', 50, 60, ['Cola' => 2]],
-            [$tables[1] ?? null, $davit, 'training', 25, 90, ['Water' => 1]],
-            [$tables[2] ?? null, null, 'play', 65, 60, ['Cola' => 1, 'Water' => 2]],
+            [$tables[0] ?? null, $aram, 'play', 45, 60, ['Cola' => 2]],
+            [$tables[1] ?? null, $davit, 'training', 20, 90, ['Water' => 1]],
+            [$tables[2] ?? null, null, 'play', 50, 45, ['Cola' => 1, 'Water' => 2]],
+            [$tables[3] ?? null, null, 'play', 9, 15, []],
         ];
         foreach ($games as $i => [$table, $player, $purpose, $ago, $minutes, $items]) {
             if (! $table) {
@@ -59,7 +62,7 @@ class ClubDemoNow extends Command
             $b = Booking::create([
                 'code' => Booking::newCode(), 'venue_id' => $venue->id, 'field_id' => $table->id, 'user_id' => $player?->id,
                 'starts_at' => $start->utc(), 'ends_at' => $start->addMinutes($minutes)->utc(), 'status' => 'accepted', 'source' => $player ? 'player' : 'owner',
-                'contact_name' => $player?->name ?? 'Gor (phone booking)', 'contact_phone' => $player?->phone ?? '+37491555444',
+                'contact_name' => $player?->name ?? ($i === 3 ? 'Walk-in' : 'Gor (phone booking)'), 'contact_phone' => $player?->phone ?? ($i === 3 ? null : '+37491555444'),
                 'price' => $full, 'purpose' => $purpose, 'note_owner' => 'demo-now',
                 // started at the desk when they came
                 'started_at' => $start->utc(), 'arrived_at' => $start->utc(),
@@ -74,10 +77,10 @@ class ClubDemoNow extends Command
             }
             $this->line(sprintf('%s: %s, %s, started %d min ago', $table->name, $player?->name ?? 'phone booking', $purpose, $ago));
         }
-        // the next team on the first table, 20 min after its game ends: Now shows "can extend +15", then "Start game"
+        // the next team on the first court, 5 min after its game ends: Now shows "+5 min" only, then "Start game"
         if ($t = $tables[0] ?? null) {
-            $at = $now->addMinutes(30);
-            Booking::where('field_id', $t->id)->whereIn('status', ['pending', 'accepted'])->where('note_owner', '!=', 'demo-now')
+            $at = $now->addMinutes(20);
+            Booking::where('field_id', $t->id)->whereIn('status', ['pending', 'accepted'])
                 ->where('starts_at', '<', $at->addHour()->utc())->where('ends_at', '>', $at->utc())->update(['status' => 'cancelled']);
             Booking::create(['code' => Booking::newCode(), 'venue_id' => $venue->id, 'field_id' => $t->id, 'starts_at' => $at->utc(), 'ends_at' => $at->addHour()->utc(),
                 'status' => 'accepted', 'source' => 'owner', 'contact_name' => "Narek's team", 'contact_phone' => '+37491555777',

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Owner\Club;
 
+use App\Domain\Club\Commission;
 use App\Domain\Club\Shop;
 use App\Http\Controllers\Owner\OwnerController;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Support\LocalTime;
+use App\Support\Paged;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -17,18 +19,24 @@ class ShopController extends OwnerController
     {
         $venue = $this->venue($request);
         $this->ensureAny($venue, ['shop']);
+        $period = in_array($request->query('period'), ['today', 'week', 'month'], true) ? $request->query('period') : 'all';
+        $product = $request->integer('product') ?: null;
 
         return Inertia::render('owner/Shop', [
             'products' => Product::where('venue_id', $venue->id)->orderByDesc('active')->orderBy('sort')->orderBy('name')->get()->map(fn (Product $p) => [
                 'id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
                 'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'active' => $p->active, 'photo' => $p->photoUrl(),
             ])->values(),
-            'sales' => Sale::where('venue_id', $venue->id)->with('user:id,name', 'payment:id,amount,method')->latest('id')->limit(60)->get()->map(fn (Sale $s) => [
-                // sold on a booking's bill: paid with the bill (no payment of its own)
-                'id' => $s->id, 'what' => $s->qty.' × '.$s->product_name, 'who' => $s->user?->name,
-                'amount' => $s->payment?->amount ?? $s->qty * $s->price_each, 'method' => $s->payment?->method ?? 'bill',
-                'at' => $s->created_at->setTimezone(LocalTime::tz())->format('d.m H:i'),
-            ])->values(),
+            // the sales, filtered (period, product) a page at a time
+            'salesFilter' => ['period' => $period, 'product' => $product],
+            'sales' => Paged::of(Sale::where('venue_id', $venue->id)->with('user:id,name', 'payment:id,amount,method')
+                ->when($period !== 'all', fn ($q) => $q->where('created_at', '>=', Commission::period($period)[0]->utc()))
+                ->when($product, fn ($q) => $q->where('product_id', $product))->latest('id')->paginate(20)->withQueryString(), fn (Sale $s) => [
+                    // sold on a booking's bill: paid with the bill (no payment of its own)
+                    'id' => $s->id, 'what' => $s->qty.' × '.$s->product_name, 'who' => $s->user?->name,
+                    'amount' => $s->payment?->amount ?? $s->qty * $s->price_each, 'method' => $s->payment?->method ?? 'bill',
+                    'at' => $s->created_at->setTimezone(LocalTime::tz())->format('d.m H:i'),
+                ]),
         ]);
     }
 

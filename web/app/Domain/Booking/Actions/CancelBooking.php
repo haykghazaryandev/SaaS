@@ -2,6 +2,7 @@
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\AfterBooking\Penalties;
 use App\Domain\Booking\BookingException;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
@@ -22,10 +23,10 @@ class CancelBooking
             if ($booking->starts_at->isPast()) {
                 throw new BookingException('past');
             }
+            // a player cancelling an accepted game less than 2 h before: a late cancel, half a no-show (Penalties)
             $late = $by === 'player' && $booking->status === BookingStatus::Accepted
-                && $booking->starts_at->lessThan(now()->addHours($booking->venue->rule('free_cancel_hours')));
-            // less than 2 h before an accepted game: counts as half a no-show (Penalties)
-            $short = $late && $booking->starts_at->lessThan(now()->addHours(\App\Domain\Booking\AfterBooking\Penalties::SHORT_CANCEL_HOURS));
+                && $booking->starts_at->lessThan(now()->addHours(Penalties::SHORT_CANCEL_HOURS));
+            $short = $late;
             $booking->update(['status' => BookingStatus::Cancelled, 'cancelled_by' => $by, 'cancel_reason' => $reason]);
             $this->log($booking, 'cancelled', $actor, array_filter(['by' => $by, 'reason' => $reason, 'late' => $late ?: null, 'short' => $short ?: null]));
 

@@ -2,12 +2,15 @@
 
 namespace App\Domain\Notifications;
 
-use App\Domain\Booking\AfterBooking;
 use App\Domain\Auth\TelegramLoginFlow;
+use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\DecideBooking;
+use App\Domain\Booking\AfterBooking;
 use App\Domain\Booking\BookingException;
 use App\Models\Booking;
+use App\Models\BookingPlayer;
 use App\Models\User;
+use App\Support\Phone;
 
 /**
  * Handles updates from the Telegram webhook:
@@ -90,7 +93,7 @@ class TelegramUpdateHandler
             return;
         }
         // a "Connect Telegram" waiting for this chat: link only if this Telegram's number is the account's number
-        if ((int) ($m['contact']['user_id'] ?? 0) === (int) ($m['from']['id'] ?? -1) && ($phone = \App\Support\Phone::normalize($m['contact']['phone_number'] ?? ''))) {
+        if ((int) ($m['contact']['user_id'] ?? 0) === (int) ($m['from']['id'] ?? -1) && ($phone = Phone::normalize($m['contact']['phone_number'] ?? ''))) {
             [$linked, $owner] = $this->linker->finish($chatId, $phone);
             if ($linked !== 'none') {
                 $locale = $owner->preferredLocale();
@@ -99,7 +102,7 @@ class TelegramUpdateHandler
                 }
                 $linked === 'linked'
                     ? $this->bot->sendMessage($chatId, __('telegram.bot.linked', ['name' => $owner->name ? ', '.e($owner->name) : ''], $locale))
-                    : $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_mismatch', ['phone' => \App\Support\Phone::format($owner->phone)], $locale));
+                    : $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_mismatch', ['phone' => Phone::format($owner->phone)], $locale));
 
                 return;
             }
@@ -190,7 +193,7 @@ class TelegramUpdateHandler
     {
         // an invite to a friend's booking: teamyes:{booking_players.id} / teamno:{id}
         if (preg_match('/^team(yes|no):(\d+)$/', (string) ($q['data'] ?? ''), $t)) {
-            $row = \App\Models\BookingPlayer::with('booking.venue', 'booking.field', 'booking.user')->find((int) $t[2]);
+            $row = BookingPlayer::with('booking.venue', 'booking.field', 'booking.user')->find((int) $t[2]);
             if (! $user || ! $row || $row->user_id !== $user->id) {
                 $this->bot->answerCallbackQuery($q['id'], __('telegram.bot.not_allowed'), true);
 
@@ -251,15 +254,15 @@ class TelegramUpdateHandler
     private function askCancel(Booking $b, int $chatId): string
     {
         $text = __('telegram.after.cancel_ask', $this->esc(AfterBooking\BookingPeople::params($b)));
-        $free = $b->starts_at->greaterThan(now()->addHours((int) $b->venue->rule('free_cancel_hours')));
-        $this->bot->sendMessage($chatId, $text.($free ? '' : "\n\n".__('telegram.after.cancel_late')), [[[__('common.yes_cancel'), "cancelyes:{$b->id}"]]]);
+        $late = $b->status->value === 'accepted' && $b->starts_at->lessThan(now()->addHours(AfterBooking\Penalties::SHORT_CANCEL_HOURS));
+        $this->bot->sendMessage($chatId, $text.($late ? "\n\n".__('telegram.after.cancel_late_2h') : ''), [[[__('common.yes_cancel'), "cancelyes:{$b->id}"]]]);
 
         return '';
     }
 
     private function cancelFromBot(Booking $b, User $user, int $chatId, int $messageId): string
     {
-        app(\App\Domain\Booking\Actions\CancelBooking::class)->handle($b, $user, 'player');
+        app(CancelBooking::class)->handle($b, $user, 'player');
         if ($messageId) {
             $this->bot->editMessageText($chatId, $messageId, __('telegram.after.cancelled', $this->esc(AfterBooking\BookingPeople::params($b))));
         }

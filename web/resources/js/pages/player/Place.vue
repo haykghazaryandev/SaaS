@@ -44,7 +44,7 @@ interface VenueInfo {
     lng: number | null;
     phone: string | null;
     phoneLabel: string | null;
-    rules: { freeCancelHours: number; minNoticeMin: number; horizonDays: number };
+    rules: { minNoticeMin: number; horizonDays: number };
 }
 const props = defineProps<{
     venue: VenueInfo;
@@ -784,7 +784,6 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                         <button type="button" class="btn block bookbtn" :disabled="form.processing || !!blocked" @click="book">{{ $t('player.place.book_button') }}</button>
                         <ul class="perks">
                             <li><Icon name="wallet" size="sm" />{{ $t('player.place.badge_pay') }}</li>
-                            <li><Icon name="check" size="sm" />{{ $t('player.place.badge_free_cancel', { h: String(venue.rules.freeCancelHours) }) }}</li>
                             <li><Icon name="send" size="sm" />{{ $t('player.place.badge_telegram') }}</li>
                         </ul>
                         <p v-if="user && user.name" class="hint as"><Icon name="user" size="sm" />{{ $t('player.place.booking_as', { name: user.name, phone: user.phone }) }}</p>

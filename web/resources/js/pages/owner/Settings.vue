@@ -23,6 +23,7 @@ interface PriceRow {
     evening: number;
     weekend: number;
     lengths?: LengthPrice[];
+    training_lengths?: LengthPrice[];
 }
 // a price by length: 15 min 1 200 ֏ (evening / weekend empty = the day price)
 interface LengthPrice {
@@ -58,7 +59,7 @@ const props = defineProps<{
     prices: (PriceRow & { count?: number })[];
     courts: CourtKind[];
     hours: HourRow[];
-    rules: { free_cancel_hours: number; min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number; cashback_tiers: Tier[] };
+    rules: { min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number; cashback_tiers: Tier[] };
     closures: ClosureRow[];
 }>();
 const owner = useOwner();
@@ -93,7 +94,7 @@ const num = (v: string | number) => Number(digits(v)) || 0;
 const fmtPhone = (d: string) => [d.slice(0, 2), d.slice(2, 5), d.slice(5, 8)].filter(Boolean).join(' ');
 
 // ---------- editable state ----------
-type Prices = { field_id: number; day: string; evening: string; weekend: string; training: string; byLength: boolean; lengths: LengthRow[] }[];
+type Prices = { field_id: number; day: string; evening: string; weekend: string; training: string; byLength: boolean; lengths: LengthRow[]; trainingByLength: boolean; trainingLengths: LengthRow[] }[];
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monday first
 const priceOf = (id: number) => props.prices.find((p) => p.field_id === id)!;
 const state = reactive({
@@ -113,7 +114,7 @@ const allSame = (hs: HourRow[]) => hs.every((h) => h.open !== null && h.open ===
 /** What "Save changes" sends, per part. */
 function payload() {
     return {
-        prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend), training: digits(p.training) === '' ? null : num(p.training), lengths: p.byLength ? p.lengths.map((l) => ({ min: l.min, day: num(l.day), evening: opt(l.evening), weekend: opt(l.weekend) })) : [] })),
+        prices: state.prices.map((p) => ({ field_id: p.field_id, day: num(p.day), evening: num(p.evening), weekend: num(p.weekend), training: p.trainingByLength || digits(p.training) === '' ? null : num(p.training), lengths: p.byLength ? p.lengths.map((l) => ({ min: l.min, day: num(l.day), evening: opt(l.evening), weekend: opt(l.weekend) })) : [], training_lengths: p.trainingByLength ? p.trainingLengths.map((l) => ({ min: l.min, day: num(l.day), evening: null as number | null, weekend: null as number | null })) : [] })),
         hours: state.same ? state.hours.map((h) => ({ weekday: h.weekday, ...state.every })) : state.hours.map((h) => ({ ...h })),
         rules: copyRules(state.rules),
         phone: state.phoneOpen && digits(state.phone) ? `+374${digits(state.phone).slice(-8)}` : null,
@@ -129,6 +130,8 @@ function load(p: Payload) {
         training: x.training == null ? '' : sep(x.training),
         byLength: x.lengths.length > 0,
         lengths: x.lengths.map((l) => ({ min: l.min, day: sep(l.day), evening: l.evening == null ? '' : sep(l.evening), weekend: l.weekend == null ? '' : sep(l.weekend) })),
+        trainingByLength: x.training_lengths.length > 0,
+        trainingLengths: x.training_lengths.map((l) => ({ min: l.min, day: sep(l.day), evening: '', weekend: '' })),
     }));
     state.hours = p.hours.map((h) => ({ ...h }));
     state.same = allSame(state.hours);
@@ -138,7 +141,7 @@ function load(p: Payload) {
     state.phone = p.phone ? fmtPhone(p.phone.slice(4)) : '';
 }
 const initial: Payload = {
-    prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend, training: p.training ?? null, lengths: p.lengths ?? [] })),
+    prices: props.prices.map((p) => ({ field_id: p.field_id, day: p.day, evening: p.evening, weekend: p.weekend, training: p.training ?? null, lengths: p.lengths ?? [], training_lengths: (p.training_lengths ?? []).map((l) => ({ min: l.min, day: l.day, evening: null as number | null, weekend: null as number | null })) })),
     hours: ORDER.map((wd) => ({ ...props.hours.find((h) => h.weekday === wd)! })),
     rules: copyRules(props.rules),
     phone: props.place.tel,
@@ -198,10 +201,18 @@ function setByLength(p: Prices[number], on: boolean) {
         p.lengths = [15, 30, 60].map((m) => ({ min: m, day: sep(Math.round((h * m) / 60 / 100) * 100), evening: '', weekend: '' }));
     }
 }
-function addLength(p: Prices[number]) {
-    const next = LENGTHS.find((m) => !p.lengths.some((l) => l.min === m)) ?? 60;
-    p.lengths.push({ min: next, day: '', evening: '', weekend: '' });
-    p.lengths.sort((a, b) => a.min - b.min);
+function addLength(p: Prices[number], rows: LengthRow[] = p.lengths) {
+    const next = LENGTHS.find((m) => !rows.some((l) => l.min === m)) ?? 60;
+    rows.push({ min: next, day: '', evening: '', weekend: '' });
+    rows.sort((a, b) => a.min - b.min);
+}
+// a training: per hour, or by length (one price, any time); a start from the hourly training price
+function setTrainingByLength(p: Prices[number], on: boolean) {
+    p.trainingByLength = on;
+    if (on && !p.trainingLengths.length) {
+        const h = num(p.training) || num(p.day);
+        p.trainingLengths = [30, 60, 90].map((m) => ({ min: m, day: sep(Math.round((h * m) / 60 / 100) * 100), evening: '', weekend: '' }));
+    }
 }
 function onLength(l: LengthRow, key: 'day' | 'evening' | 'weekend', e: Event) {
     const d = digits((e.target as HTMLInputElement).value).slice(0, 7);
@@ -255,7 +266,6 @@ function removePhone() {
 }
 
 // rules
-const CANCEL_H = [0, 2, 6, 12, 24, 48];
 const NOTICE = [0, 30, 60, 120, 240];
 const EXPIRE = [30, 60, 120, 240, 720];
 const GRACE = [5, 10, 15, 20, 30];
@@ -413,7 +423,7 @@ const fmtRange = (c: ClosureRow) =>
                                     <span v-else class="rm" />
                                 </div>
                                 <button v-if="canEdit && p.lengths.length < 10" type="button" class="btn ghost sm" @click="addLength(p)">+ {{ $t('owner.settings.length_add') }}</button>
-                                <small class="faint">{{ $t('owner.settings.length_note') }}</small>
+                                <small class="faint">{{ $t('owner.settings.length_rule') }}</small>
                             </div>
                             <div v-for="k in p.byLength ? [] : (['day', 'evening', 'weekend'] as const)" :key="k" class="field">
                                 <label :for="`p${k}${i}`">{{ $t(`owner.settings.price_${k}`) }}</label>
@@ -429,12 +439,34 @@ const fmtRange = (c: ClosureRow) =>
                                     /><span aria-hidden="true">֏</span></span
                                 >
                             </div>
-                            <!-- a training on this kind: one price per hour; empty = no trainings to book -->
-                            <div v-if="(owner.features ?? []).includes('trainings')" class="field">
-                                <label :for="`ptr${i}`">{{ $t('owner.settings.price_training') }}</label>
-                                <span class="money"
-                                    ><input :id="`ptr${i}`" class="input" inputmode="numeric" :value="p.training" :disabled="!canEdit" :placeholder="$t('owner.settings.no_training')" data-test="price-training" @input="onPrice(p, 'training', $event)" /><span aria-hidden="true">֏</span></span
-                                >
+                            <!-- a training on this kind: per hour or by length (one price, any time); empty = no trainings to book -->
+                            <div v-if="(owner.features ?? []).includes('trainings')" class="ptrain">
+                                <div class="ptrain-h">
+                                    <b>🎓 {{ $t('club.training') }}</b>
+                                    <div class="seg sm" role="group">
+                                        <button type="button" :aria-pressed="!p.trainingByLength" :disabled="!canEdit" @click="setTrainingByLength(p, false)">{{ $t('owner.settings.price_per_hour') }}</button>
+                                        <button type="button" :aria-pressed="p.trainingByLength" :disabled="!canEdit" data-test="training-by-length" @click="setTrainingByLength(p, true)">{{ $t('owner.settings.price_by_length') }}</button>
+                                    </div>
+                                </div>
+                                <div v-if="p.trainingByLength" class="plen tlen">
+                                    <div v-for="(l, j) in p.trainingLengths" :key="j" class="tlen-row">
+                                        <select v-model.number="l.min" class="input" :disabled="!canEdit" :aria-label="$t('owner.settings.length')">
+                                            <option v-for="m in [...new Set([...LENGTHS, l.min])].sort((a, b) => a - b)" :key="m" :value="m">{{ lenName(m) }}</option>
+                                        </select>
+                                        <span class="money"
+                                            ><input class="input" inputmode="numeric" :value="l.day" :disabled="!canEdit" data-test="tlen-price" @input="onLength(l, 'day', $event)" /><span aria-hidden="true">֏</span></span
+                                        >
+                                        <button v-if="canEdit && p.trainingLengths.length > 1" type="button" class="btn ghost sm rm" :aria-label="$t('common.remove')" @click="p.trainingLengths.splice(j, 1)">✕</button>
+                                        <span v-else class="rm" />
+                                    </div>
+                                    <button v-if="canEdit && p.trainingLengths.length < 10" type="button" class="btn ghost sm" @click="addLength(p, p.trainingLengths)">+ {{ $t('owner.settings.length_add') }}</button>
+                                    <small class="faint">{{ $t('owner.settings.length_rule_training') }}</small>
+                                </div>
+                                <div v-else class="field">
+                                    <span class="money"
+                                        ><input :id="`ptr${i}`" class="input" inputmode="numeric" :value="p.training" :disabled="!canEdit" :placeholder="$t('owner.settings.no_training')" :aria-label="$t('owner.settings.price_training')" data-test="price-training" @input="onPrice(p, 'training', $event)" /><span aria-hidden="true">֏</span></span
+                                    >
+                                </div>
                             </div>
                         </div>
                         <p v-if="state.prices.some((p) => !p.byLength)" class="faint" style="font-size: 12px; margin: 10px 0 0">{{ $t('owner.settings.per_hour') }}</p>
@@ -607,22 +639,6 @@ const fmtRange = (c: ClosureRow) =>
                                     :disabled="!canEdit"
                                     :aria-label="$t('owner.settings.auto_accept')"
                             /></label>
-                        </div>
-                        <div class="srow stack">
-                            <div>
-                                <b>{{ $t('owner.settings.free_cancel') }}</b
-                                ><small>{{ $t('owner.settings.free_cancel_help') }}</small>
-                            </div>
-                            <select
-                                v-model.number="state.rules.free_cancel_hours"
-                                class="input"
-                                :disabled="!canEdit"
-                                :aria-label="$t('owner.settings.free_cancel')"
-                            >
-                                <option v-for="n in withCurrent(CANCEL_H, state.rules.free_cancel_hours)" :key="n" :value="n">
-                                    {{ n ? $t('owner.settings.hours_before', { n }) : $t('owner.settings.no_limit') }}
-                                </option>
-                            </select>
                         </div>
                         <div class="srow stack">
                             <div>

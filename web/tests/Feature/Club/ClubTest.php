@@ -29,6 +29,7 @@ use App\Notifications\Notice;
 use App\Support\LocalTime;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->club = makeVenue(['cashback_tiers' => [['from' => 0, 'pct' => 5]]]);   // 5% from the first payment
@@ -225,7 +226,24 @@ it('sums the money: sales by kind, cash and top-ups apart', function () {
     $today = LocalTime::now()->startOfDay();
     $r = app(Report::class)->between($this->club, $today, $today->addDay());
     expect($r['sales'])->toBe(5000)->and($r['byKind']['shop'])->toBe(2000)->and($r['byKind']['training'])->toBe(3000)
-        ->and($r['cash'])->toBe(13000)->and($r['fromCards'])->toBe(2000)->and($r['topups'])->toBe(10000)->and($r['rows'])->toHaveCount(3);
+        ->and($r['cash'])->toBe(13000)->and($r['fromCards'])->toBe(2000)->and($r['topups'])->toBe(10000)
+        ->and(app(Report::class)->query($this->club, $today, $today->addDay())->count())->toBe(3);
+
+    // the Money page: the payments of the period, filtered (kind, card / cash), 20 a page; no ZoneSpot fee there
+    $this->club->staff()->attach($this->owner->id, ['role' => 'owner']);
+    foreach (range(1, 21) as $i) {
+        $this->money->charge($this->club, $this->owner, 'shop', 100, 'cash');
+    }
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id])->get(route('owner.money'))
+        ->assertInertia(fn (Assert $p) => $p->where('payments.total', 24)->where('payments.pages', 2)->has('payments.data', 20)->missing('fee'));
+    $this->actingAs($this->owner)->get(route('owner.money', ['kind' => 'training']))
+        ->assertInertia(fn (Assert $p) => $p->where('payments.total', 1)->where('payments.data.0.amount', 3000)->where('filters.kind', 'training'));
+    $this->actingAs($this->owner)->get(route('owner.money', ['method' => 'card', 'page' => 1]))
+        ->assertInertia(fn (Assert $p) => $p->where('payments.total', 1)->where('payments.data.0.method', 'card'));
+    // staff never see the money
+    $staff = User::factory()->create();
+    $this->club->staff()->attach($staff->id, ['role' => 'staff']);
+    $this->actingAs($staff)->withSession(['venue_id' => $this->club->id])->get(route('owner.money'))->assertRedirect(route('owner.start'));
 });
 
 it('tells the owner pages and the player at once: items, top-ups, payments, registrations', function () {

@@ -2,6 +2,7 @@
 
 use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\Actions\RequestBooking;
+use App\Domain\Booking\Events\ScheduleChanged;
 use App\Domain\Venues\Availability;
 use App\Domain\Venues\PriceCalculator;
 use App\Enums\BookingStatus;
@@ -10,6 +11,8 @@ use App\Models\Closure;
 use App\Models\OpeningHour;
 use App\Models\PriceRule;
 use App\Models\User;
+use App\Support\LocalTime;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -57,8 +60,11 @@ it('shows Today with KPIs, requests and the 7-day chart', function () {
 });
 
 it('lets staff work with bookings but not change settings', function () {
-    $this->actingAs($this->staff)->get('/owner/settings')->assertOk()->assertInertia(fn (Assert $p) => $p->component('owner/Settings')->where('canEdit', false));
-    $this->actingAs($this->staff)->put('/owner/settings/rules', ['free_cancel_hours' => 6, 'min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => true])->assertForbidden();
+    // the settings, team, money and ZoneSpot fee pages are the owner's: staff go back to their start page
+    foreach (['/owner/settings', '/owner/team', '/owner/fee', '/owner/cards', '/owner/tournaments/new'] as $url) {
+        $this->actingAs($this->staff)->get($url)->assertRedirect(route('owner.start'));
+    }
+    $this->actingAs($this->staff)->put('/owner/settings/rules', ['min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => true])->assertForbidden();
     $this->actingAs($this->staff)->put('/owner/settings/prices', ['prices' => []])->assertForbidden();
     $this->actingAs($this->staff)->post('/owner/closures', ['from' => '2030-01-01T10:00', 'to' => '2030-01-01T12:00'])->assertForbidden();
     $b = pendingRequest($this);
@@ -236,9 +242,9 @@ it('saves opening hours (24:00 allowed, closed days) and rules', function () {
     $hours[1] = ['weekday' => 1, 'open' => '20:00', 'close' => '10:00'];
     $this->actingAs($this->owner)->put('/owner/settings/hours', ['hours' => $hours])->assertSessionHasErrors('hours.1.close');
 
-    $this->actingAs($this->owner)->put('/owner/settings/rules', ['free_cancel_hours' => 6, 'min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => true])->assertSessionHasNoErrors();
+    $this->actingAs($this->owner)->put('/owner/settings/rules', ['min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => true])->assertSessionHasNoErrors();
     $v = $this->venue->fresh();
-    expect($v->rule('free_cancel_hours'))->toBe(6)->and($v->rule('min_notice_min'))->toBe(30)->and($v->rule('auto_accept_regulars'))->toBeTrue()->and($v->rule('horizon_days'))->toBe(14);
+    expect($v->rule('min_notice_min'))->toBe(30)->and($v->rule('auto_accept_regulars'))->toBeTrue()->and($v->rule('horizon_days'))->toBe(14);
 });
 
 it('adds and removes closures, which block the time', function () {
@@ -299,7 +305,7 @@ it('shows unanswered requests whose time has passed as expired, before the job r
         'code' => 'BB-902', 'venue_id' => $this->venue->id, 'field_id' => $this->small->id, 'user_id' => $this->player->id,
         'starts_at' => now()->subMinutes(10), 'ends_at' => now()->addMinutes(50), 'status' => 'pending', 'source' => 'player', 'contact_name' => 'Late', 'price' => 1,
     ]);
-    $date = $late->starts_at->setTimezone(App\Support\LocalTime::tz())->toDateString();
+    $date = $late->starts_at->setTimezone(LocalTime::tz())->toDateString();
     $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
         ->where('day.bookings', fn ($rows) => collect($rows)->firstWhere('id', $late->id)['kind'] === 'expired'));
     $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p->has('requests', 0)->where('kpi.pending', 0)
@@ -311,12 +317,12 @@ it('shows unanswered requests whose time has passed as expired, before the job r
 it('saves prices, hours, rules and the place phone with one "Save changes"', function () {
     $prices = $this->venue->fields->map(fn ($f) => ['field_id' => $f->id, 'day' => 12000, 'evening' => 18000, 'weekend' => 21000])->all();
     $hours = collect(range(0, 6))->map(fn ($wd) => ['weekday' => $wd, 'open' => '10:00', 'close' => '23:00'])->all();
-    $rules = ['free_cancel_hours' => 12, 'min_notice_min' => 60, 'request_expire_min' => 120, 'auto_accept_regulars' => false];
+    $rules = ['min_notice_min' => 60, 'request_expire_min' => 120, 'auto_accept_regulars' => false];
     $this->actingAs($this->owner)->put('/owner/settings', ['prices' => $prices, 'hours' => $hours, 'rules' => $rules, 'phone' => '+374 99 12 34 56'])
         ->assertSessionHasNoErrors()->assertSessionHas('success', __('owner.flash.settings_saved'));
     $v = $this->venue->fresh();
     expect($v->phone)->toBe('+37499123456')
-        ->and($v->rule('free_cancel_hours'))->toBe(12)->and($v->rule('request_expire_min'))->toBe(120)->and($v->rule('auto_accept_regulars'))->toBeFalse()
+        ->and($v->rule('min_notice_min'))->toBe(60)->and($v->rule('request_expire_min'))->toBe(120)->and($v->rule('auto_accept_regulars'))->toBeFalse()
         ->and(app(PriceCalculator::class)->price($this->small->fresh(), at(10), 60))->toBe(12000)
         ->and(substr(OpeningHour::where('venue_id', $v->id)->where('weekday', 3)->value('opens_at'), 0, 5))->toBe('10:00');
     $this->actingAs($this->owner)->get('/owner/settings')->assertInertia(fn (Assert $p) => $p->where('place.tel', '+37499123456')->where('place.phone', '+374 99 123 456'));
@@ -330,10 +336,10 @@ it('saves prices, hours, rules and the place phone with one "Save changes"', fun
     // nothing is saved when one part is wrong
     $bad = $hours;
     $bad[2] = ['weekday' => 2, 'open' => '22:00', 'close' => '10:00'];
-    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => [...$rules, 'free_cancel_hours' => 2], 'hours' => $bad])->assertSessionHasErrors('hours.2.close');
+    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => [...$rules, 'min_notice_min' => 0], 'hours' => $bad])->assertSessionHasErrors('hours.2.close');
     $this->actingAs($this->owner)->put('/owner/settings', ['phone' => '12345'])->assertSessionHasErrors(['phone' => __('owner.settings.bad_phone')]);
-    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => ['free_cancel_hours' => 2]])->assertSessionHasErrors('rules.min_notice_min');
-    expect($v->fresh()->rule('free_cancel_hours'))->toBe(12)->and($v->fresh()->phone)->toBeNull();
+    $this->actingAs($this->owner)->put('/owner/settings', ['rules' => ['request_expire_min' => 30]])->assertSessionHasErrors('rules.min_notice_min');
+    expect($v->fresh()->rule('min_notice_min'))->toBe(60)->and($v->fresh()->phone)->toBeNull();
 
     // staff can't
     $this->actingAs($this->staff)->put('/owner/settings', ['phone' => '091000000'])->assertForbidden();
@@ -343,7 +349,7 @@ it('saves prices, hours, rules and the place phone with one "Save changes"', fun
 
 it('lets the place book the half hour that has already begun, but not earlier', function () {
     [$day, $t2000, $t2030] = [at(0), at(20), at(20.5)];
-    $this->travelTo(App\Support\LocalTime::at($day, 20 + 40 / 60)); // 20:40
+    $this->travelTo(LocalTime::at($day, 20 + 40 / 60)); // 20:40
     $avail = app(Availability::class);
     expect($avail->problem($this->small, $t2030, 60, forPlayer: false))->toBeNull()
         ->and($avail->problem($this->small, $t2000, 60, forPlayer: false))->toBe('past')
@@ -352,20 +358,19 @@ it('lets the place book the half hour that has already begun, but not earlier', 
 });
 
 it('tells owner pages and the booking page at once when the times change', function () {
-    Illuminate\Support\Facades\Event::fake([App\Domain\Booking\Events\ScheduleChanged::class]);
+    Event::fake([ScheduleChanged::class]);
     $b = pendingRequest($this, 20);
     $day = at(20)->toDateString();
-    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Booking\Events\ScheduleChanged::class,
+    Event::assertDispatched(ScheduleChanged::class,
         fn ($e) => $e->venueId === $this->venue->id && $e->dates === [$day]
             && collect($e->broadcastOn())->map->name->all() === ["private-venue.{$this->venue->id}", "place.{$this->venue->id}"]);
     // a moved booking updates both days; a reminder written to the row does not count
-    Illuminate\Support\Facades\Event::fake([App\Domain\Booking\Events\ScheduleChanged::class]);
+    Event::fake([ScheduleChanged::class]);
     $b->update(['reminded_day_at' => now()]);
-    Illuminate\Support\Facades\Event::assertNotDispatched(App\Domain\Booking\Events\ScheduleChanged::class);
+    Event::assertNotDispatched(ScheduleChanged::class);
     $b->update(['starts_at' => at(20, 1)->utc(), 'ends_at' => at(21, 1)->utc()]);
-    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Booking\Events\ScheduleChanged::class, fn ($e) => $e->dates === [at(20, 1)->toDateString(), $day]);
+    Event::assertDispatched(ScheduleChanged::class, fn ($e) => $e->dates === [at(20, 1)->toDateString(), $day]);
 });
-
 
 it('lists the free time of each field the way players see it, also where a request expired', function () {
     pendingRequest($this, 20);

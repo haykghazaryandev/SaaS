@@ -105,7 +105,6 @@ export interface PlayerBooking {
     cancelReason: string | null;
     cancelledBy: string | null;
     canCancel: boolean;
-    freeCancelHours: number;
     lateCancel: boolean;
     // My bookings only: the team, "running late", arrival
     role?: 'booker' | 'member' | 'invited';

@@ -38,7 +38,7 @@ class VenueResource extends Resource
     protected static ?string $model = Venue::class;
 
     /** The booking rules this form edits; other keys of venues.rules belong to the owner's settings. */
-    public const FORM_RULES = ['horizon_days', 'min_notice_min', 'free_cancel_hours', 'request_expire_min', 'max_pending_per_phone', 'step_min', 'auto_accept_regulars'];
+    public const FORM_RULES = ['horizon_days', 'min_notice_min', 'request_expire_min', 'max_pending_per_phone', 'step_min', 'auto_accept_regulars'];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 

@@ -333,15 +333,17 @@ it('lets the owner take a player off before the start: the fee goes back, the dr
     expect(fn () => $this->tt->remove($b->fresh(), $this->owner))->toThrow(BookingException::class);
 });
 
-it('makes a tournament with divisions by rating: its page lists them, each is a tournament of its own', function () {
+it('makes a tournament with divisions by rating: its page lists them, each is a tournament of its own with its price', function () {
     $this->actingAs($this->owner)->post(route('owner.tournaments.store'), ['title' => 'Winter Cup', 'date' => now()->addDays(9)->toDateString(), 'time' => '11:00',
-        'options' => [['label' => 'Standard', 'price' => 3000]],
-        'divisions' => [['name' => 'Amateur', 'max_rating' => 1199], ['name' => 'Middle', 'min_rating' => 1200, 'max_rating' => 1499], ['name' => 'Pro', 'min_rating' => 1500]]])
+        'price' => 3000,
+        'divisions' => [['name' => 'Amateur', 'max_rating' => 1199, 'price' => 3000], ['name' => 'Middle', 'min_rating' => 1200, 'max_rating' => 1499], ['name' => 'Pro', 'min_rating' => 1500, 'price' => 5000]]])
         ->assertSessionHasNoErrors();
     $cup = Tournament::where('title', 'Winter Cup')->firstOrFail();
     expect($cup->divisions()->pluck('title')->all())->toBe(['Winter Cup · Amateur', 'Winter Cup · Middle', 'Winter Cup · Pro']);
     $middle = $cup->divisions()->where('division', 'Middle')->first();
-    expect($middle->min_rating)->toBe(1200)->and($middle->options[0]['price'])->toBe(3000);
+    // no price of its own: the tournament's; Pro: its own; one price, no options to pick
+    expect($middle->min_rating)->toBe(1200)->and($middle->options)->toBe([['label' => '', 'price' => 3000]])
+        ->and($cup->divisions()->where('division', 'Pro')->first()->options[0]['price'])->toBe(5000);
     // nobody registers on the tournament itself; a player picks the division of their rating
     $u = User::factory()->create(['phone' => '+37493009901']);
     SportRating::create(['user_id' => $u->id, 'sport' => 'pingpong', 'rating' => 1300]);

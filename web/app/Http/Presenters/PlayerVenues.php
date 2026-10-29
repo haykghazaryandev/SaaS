@@ -4,6 +4,7 @@ namespace App\Http\Presenters;
 
 use App\Domain\Booking\AfterBooking\Attendance;
 use App\Domain\Booking\AfterBooking\BookingTeam;
+use App\Domain\Booking\AfterBooking\Penalties;
 use App\Domain\Venues\Availability;
 use App\Domain\Venues\PriceCalculator;
 use App\Models\Booking;
@@ -193,7 +194,6 @@ class PlayerVenues
         $end = $b->ends_at->toImmutable()->setTimezone(LocalTime::tz());
         $venue = $b->venue;
         $holding = $b->status->holdsTime();
-        $freeHours = (int) $venue->rule('free_cancel_hours');
 
         $row = [
             'id' => $b->id, 'code' => $b->code, 'status' => $b->status->value,
@@ -208,9 +208,9 @@ class PlayerVenues
             'teamName' => $b->team_name, 'note' => $b->note_player,
             'declineReason' => $b->decline_reason, 'cancelReason' => $b->cancel_reason, 'cancelledBy' => $b->cancelled_by,
             'canCancel' => $holding && $b->starts_at->isFuture(),
-            'freeCancelHours' => $freeHours,
             // accepted and inside the free-cancellation window: the place may ask to pay
-            'lateCancel' => $b->status->value === 'accepted' && $b->starts_at->lessThan(now()->addHours($freeHours)),
+            // less than 2 h before an accepted game: a late cancel (remembered in the player's record here)
+            'lateCancel' => $b->status->value === 'accepted' && $b->starts_at->lessThan(now()->addHours(Penalties::SHORT_CANCEL_HOURS)),
         ];
 
         // My bookings: team, "running late", arrival (overrides canCancel for team members)

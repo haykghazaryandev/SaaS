@@ -46,7 +46,7 @@ const has = (name: string) => {
 // label: desktop nav (wide screens); short: narrow desktop nav; tab (or short): the phone tab bar (5 must fit in 390px)
 type NavItem = { key: string; href: string; label: string; short: string; tab?: string; icon: string; match: string[]; badge?: number; warn?: boolean };
 // people who run a place: only Messages and the profile are open to them here (the rest is the owner panel)
-const staff = computed(() => !!user.value?.isOwner);
+const staff = computed(() => !!user.value?.isOwner && !user.value?.playerMode);
 const nav = computed<NavItem[]>(() => {
     const c = social.counts;
     if (staff.value)
@@ -156,7 +156,8 @@ watch(() => page.url, () => (menu.value = false));
                                     ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }}</Link
                                 >
                                 <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my_bookings.finish_profile') }}</Link>
-                                <Link v-if="user.isOwner" role="menuitem" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
+                                <Link v-if="user.isOwner" role="menuitem" :href="route('owner.start')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
+                                <a v-if="user.isAdmin" role="menuitem" href="/admin"><Icon name="settings" size="sm" />{{ $t('switch.admin') }}</a>
                                 <hr />
                                 <Link role="menuitem" :href="route('logout')" method="post" as="button" class="out"><Icon name="logout" size="sm" />{{ $t('common.log_out') }}</Link>
                             </div>

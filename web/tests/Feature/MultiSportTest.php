@@ -180,7 +180,7 @@ it('books in quarter hours where the place starts every 15 minutes', function ()
         ->and($b->starts_at->setTimezone('Asia/Yerevan')->format('H:i'))->toBe('18:15');
 });
 
-it('prices tables by length: 15 min 1 200, 30 min 2 000, 1 h 5 000; longer games are made of them', function () {
+it('prices tables by length: 15 min 1 200, 30 min 2 000, 1 h 5 000; other lengths at the rate of the longest listed below', function () {
     $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15]]);
     $owner = User::factory()->create();
     $club->staff()->attach($owner->id, ['role' => 'owner']);
@@ -204,8 +204,10 @@ it('prices tables by length: 15 min 1 200, 30 min 2 000, 1 h 5 000; longer games
     $at = fn ($h) => LocalTime::at($weekday, $h);
     expect($prices->price($t, $at(12), 15))->toBe(1200)
         ->and($prices->price($t, $at(12), 60))->toBe(5000)
-        ->and($prices->price($t, $at(12), 75))->toBe(6200)         // 1 h + 15 min
-        ->and($prices->price($t, $at(12), 50))->toBe(2000 + 1200 + 1200)   // 30 + 15 + the rest as 15
+        ->and($prices->price($t, $at(12), 45))->toBe(3000)         // 30 min 2 000 + 15 min at that rate (1 000), not + the 15 min price
+        ->and($prices->price($t, $at(12), 75))->toBe(6250)         // 1 h 5 000 × 75 / 60
+        ->and($prices->price($t, $at(12), 50))->toBe(3333)         // 30 min's rate
+        ->and($prices->price($t, $at(12), 10))->toBe(1200)         // shorter than every length: the shortest one
         ->and($prices->price($t, $at(19), 60))->toBe(6000)         // evening price
         ->and($prices->price($t, $at(19), 15))->toBe(1200)         // no evening price: the day one
         ->and($prices->price($t, LocalTime::at($weekday->next(CarbonInterface::SATURDAY), 12), 60))->toBe(5000);
@@ -221,4 +223,24 @@ it('prices tables by length: 15 min 1 200, 30 min 2 000, 1 h 5 000; longer games
     // back to per hour
     $this->actingAs($owner)->put('/owner/settings', ['prices' => [['field_id' => $first->id, 'day' => 3000, 'evening' => 4000, 'weekend' => 4000, 'lengths' => []]]]);
     expect($club->fresh()->lengthPrices('table'))->toBe([])->and($prices->price(Field::find($first->id), $at(12), 60))->toBe(3000);
+});
+
+it('prices trainings by length too (one price, any time), else per hour', function () {
+    $club = makeClub(1, ['rules' => ['min_notice_min' => 0], 'features' => ['booking', 'trainings']]);
+    $owner = User::factory()->create();
+    $club->staff()->attach($owner->id, ['role' => 'owner']);
+    $t = $club->fields->first();
+    $this->actingAs($owner)->put('/owner/settings', ['prices' => [['field_id' => $t->id, 'day' => 3000, 'evening' => 4000, 'weekend' => 4000, 'training' => null,
+        'training_lengths' => [['min' => 30, 'day' => 2500], ['min' => 60, 'day' => 4500]]]]])->assertSessionHasNoErrors();
+    $club->refresh();
+    $prices = app(PriceCalculator::class);
+    $at = LocalTime::at(LocalTime::now()->next(CarbonInterface::WEDNESDAY), 19);
+    $f = Field::find($t->id);
+    expect($club->trainingLengths('table'))->toHaveCount(2)
+        ->and($club->trainingPrice('table'))->toBe(4500)                    // trainings are on (the 1 h price)
+        ->and($prices->price($f, $at, 30, 'training'))->toBe(2500)
+        ->and($prices->price($f, $at, 45, 'training'))->toBe(3750)          // 30 min's rate
+        ->and($prices->price($f, $at, 90, 'training'))->toBe(6750)          // 1 h's rate
+        ->and($prices->price($f, $at, 60))->toBe(4000);                     // a game: the evening hourly price
+    $this->actingAs($owner)->get('/owner/settings')->assertInertia(fn (Assert $p) => $p->where('prices.0.training_lengths.1.day', 4500));
 });

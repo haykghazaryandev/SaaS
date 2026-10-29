@@ -70,7 +70,7 @@ class TournamentDemoSeeder extends Seeder
 
     private function autumnCup(Venue $club, User $admin, Collection $players): void
     {
-        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demoautm', 'Autumn Cup', [['label' => 'Standard', 'price' => 3000]])) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demoautm', 'Autumn Cup', [['label' => '', 'price' => 3000]])) {
             return;
         }
         $this->fill($am, null, $this->inRange($am, $players)->take(7), accepted: true);
@@ -101,7 +101,7 @@ class TournamentDemoSeeder extends Seeder
 
     private function weekendOpen(Venue $club, User $admin, Collection $players): void
     {
-        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demowkd2', 'Weekend Open', [['label' => 'Standard', 'price' => 5000]])) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demowkd2', 'Weekend Open', [['label' => '', 'price' => 5000]])) {
             return;
         }
         foreach ([[$am, null, 9], [$mid, null, 6], [$pro, $admin, 3]] as [$d, $who, $n]) {
@@ -120,7 +120,7 @@ class TournamentDemoSeeder extends Seeder
 
     private function championship(Venue $club, User $admin, Collection $players): void
     {
-        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demochm2', 'Club Championship', [['label' => 'Standard', 'price' => 4000]])) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demochm2', 'Club Championship', [['label' => '', 'price' => 4000]])) {
             return;
         }
         $this->fill($am, null, $this->inRange($am, $players)->take(5), accepted: true);
@@ -132,18 +132,18 @@ class TournamentDemoSeeder extends Seeder
 
     private function winterCup(Venue $club, User $admin, Collection $players): void
     {
-        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demowin2', 'Winter Cup', [['label' => 'Standard', 'price' => 4000], ['label' => 'With a T-shirt', 'price' => 7000]])) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demowin2', 'Winter Cup', [['label' => '', 'price' => 4000]])) {
             return;
         }
         $this->fill($am, null, $this->inRange($am, $players)->take(6), accepted: true);
         $this->fill($mid, null, $this->inRange($mid, $players)->take(4), accepted: true);
-        $this->fill($pro, $admin, $this->inRange($pro, $players)->take(2), accepted: true, option: 1);
+        $this->fill($pro, $admin, $this->inRange($pro, $players)->take(2), accepted: true);
         $this->dates($cup, $this->at(20, 11));
     }
 
     private function octoberCup(Venue $club, User $admin, Collection $players): void
     {
-        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demooct2', 'October Cup', [['label' => 'Standard', 'price' => 3000]])) {
+        if (! [$cup, $am, $mid, $pro] = $this->cup($club, 'demooct2', 'October Cup', [['label' => '', 'price' => 3000]])) {
             return;
         }
         $this->fill($am, null, $this->inRange($am, $players)->take(4), accepted: true);

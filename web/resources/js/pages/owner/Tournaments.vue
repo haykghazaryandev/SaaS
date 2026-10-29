@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
-import TournamentForm from '@/components/owner/TournamentForm.vue';
 import { useOwner } from '@/composables/useOwner';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
 import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
 
 // Tournaments: the list (each opens its own page: players, bracket, news, chat) and "New tournament".
 interface Row {
@@ -39,7 +37,6 @@ const range = (d: Row) =>
 const sum = (t: Row, k: 'entries' | 'waiting' | 'accepted' | 'unpaid') => (t.divisions?.length ? t.divisions.reduce((n, d) => n + d[k], 0) : t[k]);
 const owner = useOwner();
 const canEdit = owner.value.role === 'owner';
-const creating = ref(false);
 </script>
 
 <template>
@@ -50,16 +47,11 @@ const creating = ref(false);
                 <h1>{{ $t('owner.nav.tournaments') }}</h1>
             </div>
             <div class="phead-r">
-                <button v-if="canEdit && !creating" type="button" class="btn" data-test="new-tournament" @click="creating = true">
+                <Link v-if="canEdit" :href="route('owner.tournaments.create')" class="btn" data-test="new-tournament">
                     <Icon name="plus" size="sm" />{{ $t('owner.club.new_tournament') }}
-                </button>
+                </Link>
             </div>
         </div>
-
-        <section v-if="creating" class="card panel" style="margin-bottom: 14px">
-            <div class="sec-h"><h2>{{ $t('owner.club.new_tournament') }}</h2></div>
-            <TournamentForm @done="creating = false" />
-        </section>
 
         <div class="tlist">
             <div v-for="t in tournaments" :key="t.id" :class="['card', 'tcard', 'ph-' + t.phase, { done: t.status === 'done' || t.status === 'cancelled' }]">
@@ -113,7 +105,7 @@ const creating = ref(false);
                 </div>
             </div>
         </div>
-        <p v-if="!tournaments.length && !creating" class="faint">{{ $t('owner.club.no_tournaments') }}</p>
+        <p v-if="!tournaments.length" class="faint">{{ $t('owner.club.no_tournaments') }}</p>
     </OwnerLayout>
 </template>
 

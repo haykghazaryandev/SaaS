@@ -4,9 +4,9 @@ namespace App\Providers\Filament;
 
 use App\Http\Middleware\AdminAuthenticate;
 use App\Http\Middleware\AdminLocale;
+use Filament\Actions\Action;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Actions\Action;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
@@ -74,14 +74,16 @@ class AdminPanelProvider extends PanelProvider
             // back to the app (phones, the Telegram Mini App: no browser back button): the player app, the owner panel
             ->navigationItems([
                 NavigationItem::make('player_app')->label(fn () => __('admin.nav.player_app'))->icon('heroicon-o-device-phone-mobile')
-                    ->url(fn () => url('/?as=player'))->sort(-20),
+                    ->url(fn () => route('switch', ['to' => 'player']))->sort(-20),
                 NavigationItem::make('owner_panel')->label(fn () => __('admin.nav.owner_panel'))->icon('heroicon-o-building-storefront')
-                    ->url(fn () => url('/owner'))->visible(fn () => (bool) auth()->user()?->venues()->exists())->sort(-19),
+                    ->url(fn () => route('switch', ['to' => 'owner']))->visible(fn () => (bool) auth()->user()?->venues()->exists())->sort(-19),
             ])
             ->userMenuItems([
-                Action::make('player_app')->label(fn () => __('admin.nav.player_app'))->icon('heroicon-o-device-phone-mobile')->url(fn () => url('/?as=player')),
+                Action::make('player_app')->label(fn () => __('admin.nav.player_app'))->icon('heroicon-o-device-phone-mobile')->url(fn () => route('switch', ['to' => 'player'])),
                 Action::make('owner_panel')->label(fn () => __('admin.nav.owner_panel'))->icon('heroicon-o-building-storefront')
-                    ->url(fn () => url('/owner'))->visible(fn () => (bool) auth()->user()?->venues()->exists()),
+                    ->url(fn () => route('switch', ['to' => 'owner']))->visible(fn () => (bool) auth()->user()?->venues()->exists()),
+                Action::make('staff_view')->label(fn () => __('switch.staff'))->icon('heroicon-o-identification')
+                    ->url(fn () => route('switch', ['to' => 'staff']))->visible(fn () => (bool) auth()->user()?->venues()->wherePivot('role', 'owner')->exists()),
             ])
             ->navigationGroups([
                 NavigationGroup::make()->label(fn () => __('admin.nav.places')),

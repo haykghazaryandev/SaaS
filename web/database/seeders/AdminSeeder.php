@@ -9,13 +9,13 @@ use Illuminate\Database\Seeder;
 
 /**
  * The admins of the Filament panel: ADMIN_PHONE, one number or several separated by commas (set it before seeding).
- * Local / staging: each admin also owns demo places to try the owner panel: the first Zangak (football),
- * the second Masis (football); their ping-pong clubs come in PingpongSeeder. Safe to run again.
+ * Local / staging: each admin also owns demo places to try the owner panel: a football place each (Zangak, Masis,
+ * Davtashen, …, in the order of ADMIN_PHONE); their ping-pong clubs come in PingpongSeeder. Safe to run again.
  */
 class AdminSeeder extends Seeder
 {
     /** The football place each admin owns on local / staging, by their place in ADMIN_PHONE. */
-    public const FOOTBALL = ['zangak', 'masis'];
+    public const FOOTBALL = ['zangak', 'masis', 'davtashen', 'avan', 'nork', 'ajapnyak', 'kentron', 'malatia'];
 
     public function run(): void
     {

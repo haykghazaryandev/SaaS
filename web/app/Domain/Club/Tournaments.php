@@ -37,8 +37,9 @@ class Tournaments
         if (! $t->exists && ! $t->venue?->hasFeature('tournaments')) {
             throw new BookingException('feature_off');
         }
-        $options = array_values(array_filter(array_map(fn ($o) => ['label' => trim((string) ($o['label'] ?? '')), 'price' => max(0, (int) ($o['price'] ?? 0))],
-            $data['options'] ?? []), fn ($o) => $o['label'] !== ''));
+        // one price (no name: the entry fee), or up to 3 named options (older tournaments)
+        $rows = array_map(fn ($o) => ['label' => trim((string) ($o['label'] ?? '')), 'price' => max(0, (int) ($o['price'] ?? 0))], $data['options'] ?? []);
+        $options = array_values(array_filter($rows, fn ($o) => $o['label'] !== '')) ?: array_slice($rows, 0, 1);
         if (! $options || count($options) > 3) {
             throw new BookingException('bad_options');
         }
@@ -63,14 +64,15 @@ class Tournaments
 
     /**
      * A tournament with divisions by rating: the parent (its link lists the divisions; nobody registers on it) and one
-     * full tournament per division ({name, min_rating, max_rating, max_players, id?}) with the parent's date, note,
-     * prices and status; the division's title is "Cup · Amateur". A division left out is removed when nobody is in it.
+     * full tournament per division ({name, min_rating, max_rating, max_players, price, id?}) with the parent's date,
+     * note and status, and its own price; the division's title is "Cup · Amateur". A division left out is removed when nobody is in it.
      */
     public function saveWithDivisions(Tournament $parent, array $data, array $divisions): Tournament
     {
         $rows = array_values(array_filter(array_map(fn ($d) => [
             'id' => isset($d['id']) ? (int) $d['id'] : null, 'name' => trim((string) ($d['name'] ?? '')),
             'min_rating' => $d['min_rating'] ?? null, 'max_rating' => $d['max_rating'] ?? null, 'max_players' => $d['max_players'] ?? null,
+            'price' => isset($d['price']) ? (int) $d['price'] : null,
         ], $divisions), fn ($d) => $d['name'] !== ''));
         if (count($rows) < 2 || count($rows) > self::MAX_DIVISIONS) {
             throw new BookingException('bad_divisions');
@@ -87,8 +89,10 @@ class Tournaments
                 $child ??= new Tournament(['venue_id' => $parent->venue_id]);
                 $child->setRelation('venue', $parent->venue);
                 $child->forceFill(['parent_id' => $parent->id, 'division' => mb_substr($d['name'], 0, 40)]);
+                // each division its own price (else the tournament's)
+                $options = $d['price'] !== null ? [['label' => '', 'price' => $d['price']]] : ($data['options'] ?? [['label' => '', 'price' => 0]]);
                 $this->save($child, ['title' => $parent->title.' · '.$child->division, 'status' => $child->exists ? $child->status : $parent->status,
-                    'min_rating' => $d['min_rating'], 'max_rating' => $d['max_rating'], 'max_players' => $d['max_players']] + $data);
+                    'min_rating' => $d['min_rating'], 'max_rating' => $d['max_rating'], 'max_players' => $d['max_players'], 'options' => $options] + $data);
                 $keep[] = $child->id;
             }
             foreach ($parent->divisions()->whereNotIn('id', $keep)->get() as $gone) {

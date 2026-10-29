@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureVenueOwner;
 use App\Http\Middleware\EnsureVenueStaff;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
@@ -36,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         // behind ngrok / a load balancer: trust X-Forwarded-* so links use https and the right host
         $middleware->trustProxies(at: '*');
-        $middleware->alias(['venue.staff' => EnsureVenueStaff::class]);
+        $middleware->alias(['venue.staff' => EnsureVenueStaff::class, 'venue.owner' => EnsureVenueOwner::class]);
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {

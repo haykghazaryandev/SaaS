@@ -31,7 +31,6 @@ class SettingsController extends OwnerController
 {
     /** Rules the owner can change (venues.rules) with their limits. */
     public const RULES = [
-        'free_cancel_hours' => 'required|integer|min:0|max:168',
         'min_notice_min' => 'required|integer|min:0|max:2880',
         'request_expire_min' => 'required|integer|min:15|max:2880',
         'auto_accept_regulars' => 'required|boolean',
@@ -78,8 +77,9 @@ class SettingsController extends OwnerController
                     'day' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 12)),
                     'evening' => $prices->hourlyAt($f->priceRules, LocalTime::at($wed, 20)),
                     'weekend' => $prices->hourlyAt($f->priceRules, LocalTime::at($sat, 12)),
-                    // a training on this kind: one price per hour (empty: no trainings)
+                    // a training on this kind: one price per hour, or prices by length (empty: no trainings)
                     'training' => ($venue->rules['training_prices'] ?? [])[$f->size->value] ?? null,
+                    'training_lengths' => $venue->trainingLengths($f->size->value),
                     // prices by length (15 min / 30 min / 1 h …): when set, they replace the hourly prices of this kind
                     'lengths' => $venue->lengthPrices($f->size->value),
                 ];
@@ -224,6 +224,9 @@ class SettingsController extends OwnerController
             'prices.*.lengths.*.day' => 'required|integer|min:0|max:1000000',
             'prices.*.lengths.*.evening' => 'nullable|integer|min:0|max:1000000',
             'prices.*.lengths.*.weekend' => 'nullable|integer|min:0|max:1000000',
+            'prices.*.training_lengths' => 'sometimes|array|max:10',
+            'prices.*.training_lengths.*.min' => 'required|integer|min:5|max:720',
+            'prices.*.training_lengths.*.day' => 'required|integer|min:0|max:1000000',
         ];
     }
 
@@ -237,6 +240,7 @@ class SettingsController extends OwnerController
     {
         $training = $venue->rules['training_prices'] ?? [];
         $lengths = $venue->rules['length_prices'] ?? [];
+        $trainingLengths = $venue->rules['training_lengths'] ?? [];
         foreach ($prices as $p) {
             $size = $venue->fields->firstWhere('id', (int) $p['field_id'])->size;
             if (array_key_exists('lengths', $p)) {
@@ -251,6 +255,9 @@ class SettingsController extends OwnerController
                     }
                 }
             }
+            if (array_key_exists('training_lengths', $p)) {
+                $trainingLengths[$size->value] = Venue::cleanLengths($p['training_lengths'] ?? []);
+            }
             if (array_key_exists('training', $p)) {
                 $training[$size->value] = $p['training'] === null || $p['training'] === '' ? null : (int) $p['training'];
             }
@@ -263,7 +270,7 @@ class SettingsController extends OwnerController
             }
         }
         $venue->forceFill(['rules' => [...($venue->rules ?? []), 'training_prices' => array_filter($training, fn ($v) => $v !== null),
-            'length_prices' => array_filter($lengths)]])->save();
+            'length_prices' => array_filter($lengths), 'training_lengths' => array_filter($trainingLengths)]])->save();
     }
 
     // ---------- courts: add / rename / switch off / remove (owner only) ----------
@@ -338,7 +345,7 @@ class SettingsController extends OwnerController
         if (array_key_exists('cashback_tiers', $data)) {
             $data['cashback_tiers'] = Cards::cleanTiers($data['cashback_tiers']);
         }
-        foreach (['free_cancel_hours', 'min_notice_min', 'request_expire_min', 'late_grace_min'] as $k) {
+        foreach (['min_notice_min', 'request_expire_min', 'late_grace_min'] as $k) {
             if (array_key_exists($k, $data)) {
                 $data[$k] = (int) $data[$k];
             }

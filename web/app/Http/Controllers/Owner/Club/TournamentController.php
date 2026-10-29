@@ -45,6 +45,14 @@ class TournamentController extends OwnerController
         ]);
     }
 
+    /** A new tournament: its own page (the owner). */
+    public function create(Request $request)
+    {
+        $this->ensureAny($this->venue($request), ['tournaments']);
+
+        return Inertia::render('owner/TournamentNew');
+    }
+
     /** One tournament: its settings, the players (filters: waiting / accepted / paid …), the bracket, news, chat. */
     public function show(Request $request, Tournament $tournament)
     {
@@ -224,8 +232,11 @@ class TournamentController extends OwnerController
             'title' => 'required|string|max:100', 'division' => 'nullable|string|max:40', 'date' => 'required|date_format:Y-m-d', 'time' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'description' => 'nullable|string|max:1000', 'status' => 'nullable|in:open,closed,done',
             'min_rating' => 'nullable|integer|min:0|max:4000', 'max_rating' => 'nullable|integer|min:0|max:4000', 'max_players' => 'nullable|integer|min:2|max:256',
-            'options' => 'required|array|min:1|max:3', 'options.*.label' => 'nullable|string|max:40', 'options.*.price' => 'nullable|integer|min:0|max:10000000',
+            'price' => 'nullable|integer|min:0|max:10000000',
         ]);
+        // one price (entry options are gone): the tournament's, or each division's own
+        $data['options'] = [['label' => '', 'price' => (int) ($data['price'] ?? 0)]];
+        unset($data['price']);
         [$h, $m] = array_map('intval', explode(':', $data['time']));
         $venue = $this->venue($request);
 
@@ -235,13 +246,14 @@ class TournamentController extends OwnerController
         ];
     }
 
-    /** Divisions by rating (2–6 rows: name, rating range, places); empty = one tournament. */
+    /** Divisions by rating (2–6 rows: name, rating range, places, price); empty = one tournament. */
     private function divisions(Request $request): array
     {
         $data = $request->validate([
             'divisions' => 'nullable|array|max:'.Tournaments::MAX_DIVISIONS, 'divisions.*.id' => 'nullable|integer',
             'divisions.*.name' => 'nullable|string|max:40', 'divisions.*.min_rating' => 'nullable|integer|min:0|max:4000',
             'divisions.*.max_rating' => 'nullable|integer|min:0|max:4000', 'divisions.*.max_players' => 'nullable|integer|min:2|max:256',
+            'divisions.*.price' => 'nullable|integer|min:0|max:10000000',
         ]);
 
         return array_values(array_filter($data['divisions'] ?? [], fn ($d) => trim((string) ($d['name'] ?? '')) !== ''));

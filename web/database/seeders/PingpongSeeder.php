@@ -91,20 +91,22 @@ class PingpongSeeder extends Seeder
         if ($first = $admins->get(0)) {
             $venue->staff()->syncWithoutDetaching([$first->id => ['role' => 'owner']]);
         }
-        if ($second = $admins->get(1)) {
-            $this->spinClub()->staff()->syncWithoutDetaching([$second->id => ['role' => 'owner']]);
+        // every other admin: a club of their own (Spin Club, Smash Club, then "Ping-pong club N")
+        foreach ($admins->slice(1) as $i => $admin) {
+            [$slug, $name] = [1 => ['spin-club', 'Spin Club'], 2 => ['smash-club', 'Smash Club']][$i] ?? ['pp-club-'.($i + 1), 'Ping-pong club '.($i + 1)];
+            $this->spinClub($slug, $name)->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
         }
     }
 
-    /** A second demo club (only made when there is a second admin to own it). */
-    private function spinClub(): Venue
+    /** Another demo club with two tables (only made when there is an admin to own it). */
+    private function spinClub(string $slug = 'spin-club', string $name = 'Spin Club'): Venue
     {
-        if ($club = Venue::where('slug', 'spin-club')->first()) {
+        if ($club = Venue::where('slug', $slug)->first()) {
             return $club;
         }
         $L = fn ($en, $hy, $ru) => compact('en', 'hy', 'ru');
         $club = Venue::create([
-            'slug' => 'spin-club', 'name' => 'Spin Club', 'district' => 'arabkir',
+            'slug' => $slug, 'name' => $name, 'district' => 'arabkir',
             'address' => $L('5 Baghramyan Ave', 'Բաղրամյան պող. 5', 'пр. Баграмяна, 5'),
             'description' => $L('A small table tennis club with two tables.', 'Սեղանի թենիսի փոքր ակումբ՝ երկու սեղանով։', 'Небольшой клуб настольного тенниса с двумя столами.'),
             'lat' => 40.1950, 'lng' => 44.5040, 'amenities' => ['cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15, 'training_prices' => ['table' => 5000]],

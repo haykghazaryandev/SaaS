@@ -58,6 +58,7 @@ const props = defineProps<{
     };
 }>();
 const owner = useOwner();
+// the owner changes the settings and cancels; staff run it too (players, fees, the draw, results, news)
 const canEdit = owner.value.role === 'owner';
 const has = (f: string) => (owner.value.features ?? []).includes(f);
 const t = computed(() => props.tournament);
@@ -364,7 +365,7 @@ async function copy() {
                 </template>
                 <!-- take the player off: only before the start -->
                 <button
-                    v-if="canEdit && !started"
+                    v-if="!started"
                     type="button"
                     class="btn ghost sm rm"
                     :aria-label="$t('common.remove')"
@@ -386,7 +387,7 @@ async function copy() {
         <section v-if="!tournament.divisions.length" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.bracket') }}</h2>
-                <button v-if="canEdit && !over" type="button" :class="['btn', 'sm', { ghost: tournament.drawn }]" :disabled="accepted < 2" data-test="draw" @click="draw">
+                <button v-if="!over" type="button" :class="['btn', 'sm', { ghost: tournament.drawn }]" :disabled="accepted < 2" data-test="draw" @click="draw">
                     <Icon name="trophy" size="sm" />{{ tournament.drawn ? $t('owner.tournament.redraw') : $t('owner.tournament.draw') }}
                 </button>
             </div>
@@ -398,14 +399,14 @@ async function copy() {
                 <Icon name="wallet" size="sm" />{{ $t('owner.tournament.pay_after_registration') }}
             </p>
             <template v-if="tournament.bracket">
-                <p v-if="canEdit && !over" class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
-                <Bracket :bracket="tournament.bracket" :editable="canEdit" :title="tournament.title" :when="when" :players="accepted" @pick="pick" />
+                <p v-if="!over" class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.tournament.tap_match') }}</p>
+                <Bracket :bracket="tournament.bracket" :editable="true" :title="tournament.title" :when="when" :players="accepted" @pick="pick" />
             </template>
             <p v-else class="faint" style="font-size: 13px; margin: 0">{{ $t('owner.tournament.draw_hint') }}</p>
         </section>
 
         <!-- news to the players, and the chat (not after the end: the chat stays readable in Messages) -->
-        <section v-if="canEdit && !over" class="card panel" style="margin-top: 14px">
+        <section v-if="!over" class="card panel" style="margin-top: 14px">
             <div class="sec-h">
                 <h2>{{ $t('owner.tournament.announce') }}</h2>
                 <button v-if="!tournament.divisions.length" type="button" class="btn ghost sm" data-test="t-chat" @click="openChat">

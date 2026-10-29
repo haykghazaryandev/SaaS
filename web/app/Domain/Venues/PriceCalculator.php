@@ -10,17 +10,24 @@ use Carbon\CarbonImmutable;
 /**
  * Price of a booking: every quarter hour is charged by the price rule that matches its weekday and time
  * (e.g. day hours cheaper than evenings and weekends). The highest-priority rule wins.
- * A kind of court with prices by length (ping-pong: 15 min 1 200, 30 min 2 000, 1 h 5 000) is charged by those instead:
- * the longest lengths that fit first (75 min = 1 h + 15 min), a rest shorter than every length as the shortest one;
- * the band (day / evening / weekend) is the one at the start.
+ * A kind of court with prices by length (ping-pong: 15 min 1 500, 30 min 2 500, 1 h 4 000) is charged by those instead:
+ * a length on the list costs its own price; any other length goes at the rate of the longest listed length below it
+ * (45 min = 30 min's 2 500 + 15 min at that rate, 1 250 = 3 750 — not 2 500 + the 15 min price); shorter than every
+ * length: the shortest one's price. The band (day / evening / weekend) is the one at the start.
  */
 class PriceCalculator
 {
-    /** $purpose training: the place's training price per hour for the whole time (no day / evening bands). */
+    /**
+     * $purpose training: the place's training prices by length (same rule as games), else its price per hour for the
+     * whole time (no day / evening bands).
+     */
     public function price(Field $field, CarbonImmutable $start, int $minutes, string $purpose = 'play'): int
     {
         if ($purpose === 'training') {
-            $hourly = $field->loadMissing('venue')->venue->trainingPrice($field->size->value);
+            if ($rows = $field->loadMissing('venue')->venue->trainingLengths($field->size->value)) {
+                return $this->byLengthPrice($rows, 'day', $minutes);
+            }
+            $hourly = $field->venue->trainingPrice($field->size->value);
             if ($hourly !== null) {
                 return (int) round($hourly * $minutes / 60);
             }
@@ -42,17 +49,23 @@ class PriceCalculator
 
     private function byLength(array $lengths, CarbonImmutable $start, int $minutes): int
     {
-        $band = self::band($start);
-        $desc = array_reverse($lengths);
-        $sum = 0;
-        $left = $minutes;
-        while ($left > 0) {
-            $row = collect($desc)->first(fn ($r) => $r['min'] <= $left) ?? $lengths[0];
-            $sum += $row[$band] ?? $row['day'];
-            $left -= $row['min'];
+        return $this->byLengthPrice($lengths, self::band($start), $minutes);
+    }
+
+    /** A length's price from a list of [min, day, evening, weekend] rows (see the class comment). */
+    public function byLengthPrice(array $lengths, string $band, int $minutes): int
+    {
+        $price = fn (array $r) => (int) ($r[$band] ?? $r['day']);
+        $exact = collect($lengths)->firstWhere('min', $minutes);
+        if ($exact) {
+            return $price($exact);
+        }
+        $below = collect($lengths)->filter(fn ($r) => $r['min'] < $minutes)->last();
+        if (! $below) {
+            return $price($lengths[0]);
         }
 
-        return $sum;
+        return (int) round($price($below) * $minutes / $below['min']);
     }
 
     /** day (weekdays before 18:00), evening (weekdays from 18:00) or weekend (Saturday, Sunday), at a local moment. */

@@ -34,6 +34,8 @@ class HandleInertiaRequests extends Middleware
                     'telegram' => $user->hasTelegram(),
                     'isAdmin' => (bool) $user->is_admin,
                     'isOwner' => fn () => $user->venues()->exists(),
+                    // someone who runs a place chose the player app (the switch): its full menu
+                    'playerMode' => $request->hasSession() && (bool) $request->session()->get('player_mode'),
                     'sound' => $user->wantsSound(),   // a sound for new notices and chat messages (Profile → Notifications)
                 ] : null,
             ],

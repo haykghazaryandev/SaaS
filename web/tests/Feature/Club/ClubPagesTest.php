@@ -32,8 +32,9 @@ it('opens every club page for the owner, and none where the feature is off', fun
     foreach (['/owner/players', '/owner/cards', '/owner/shop', '/owner/tournaments'] as $url) {
         $this->actingAs($this->owner)->get($url)->assertNotFound();
     }
-    // Money stays: ZoneSpot's fee (without the club report)
-    $this->actingAs($this->owner)->get('/owner/money')->assertOk()->assertInertia(fn ($p) => $p->where('report', null)->has('fee'));
+    // no money feature: Money is ZoneSpot's fee page
+    $this->actingAs($this->owner)->get('/owner/money')->assertRedirect(route('owner.fee'));
+    $this->actingAs($this->owner)->get('/owner/fee')->assertOk()->assertInertia(fn ($p) => $p->has('pct'));
 });
 
 it('opens a card only for the staff of its own club', function () {
@@ -123,10 +124,20 @@ it('puts demo games on the club tables at any hour (not in production)', functio
     $club = makeClub(3, ['slug' => 'demo-club', 'features' => ['booking', 'wallet', 'shop']]);
     $club->staff()->attach($this->owner->id, ['role' => 'owner']);
     $this->travelTo(LocalTime::now()->startOfDay()->addMinutes(20));   // 00:20, the club is closed
+    // a booking (no note) where the next team goes: it makes way (it used to break the overlap rule: a 500)
+    $t1 = $club->fields()->orderBy('sort')->orderBy('id')->first();
+    $at = LocalTime::now()->second(0)->addMinutes(30);
+    Booking::create(['code' => Booking::newCode(), 'venue_id' => $club->id, 'field_id' => $t1->id, 'starts_at' => $at->utc(), 'ends_at' => $at->addHour()->utc(),
+        'status' => 'accepted', 'source' => 'owner', 'contact_name' => 'Someone', 'price' => 1000]);
     $this->artisan('club:demo-now', ['venue' => 'demo-club'])->assertSuccessful();
     $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $club->id]);
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p
         ->where('courts.0.state', 'playing')->where('courts.1.state', 'playing')->where('courts.2.state', 'to_pay'));
+
+    // real lengths: table 1's game ends in 15 min, its next team 5 min after
+    $game = Booking::where('field_id', $t1->id)->where('note_owner', 'demo-now')->whereNotNull('started_at')->first();
+    expect($game->starts_at->diffInMinutes($game->ends_at))->toEqual(60)
+        ->and((int) round(now()->diffInMinutes($game->ends_at)))->toBe(15);
 });
 
 it('shows the player their card with its QR, and the club page their balance', function () {
@@ -163,7 +174,7 @@ it('lets the owner add test games from the Now page outside production', functio
 });
 
 it('lets the owner set the cashback levels in Settings: sorted, one per amount, within limits', function () {
-    $rules = ['free_cancel_hours' => 6, 'min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => false];
+    $rules = ['min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => false];
     $this->actingAs($this->owner)->put('/owner/settings', ['rules' => $rules + ['cashback_tiers' => [['from' => 200000, 'pct' => 6], ['from' => 80000, 'pct' => 2], ['from' => 80000, 'pct' => 4]]]])
         ->assertSessionHasNoErrors();
     expect($this->club->fresh()->rule('cashback_tiers'))->toEqual([['from' => 80000, 'pct' => 2], ['from' => 200000, 'pct' => 6]]);

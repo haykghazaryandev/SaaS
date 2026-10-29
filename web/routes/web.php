@@ -11,6 +11,7 @@ use App\Http\Controllers\Player\MyBookingsController;
 use App\Http\Controllers\Player\MyTournamentsController;
 use App\Http\Controllers\Player\PlaceController;
 use App\Http\Controllers\Player\RateController;
+use App\Http\Controllers\RoleSwitchController;
 use Illuminate\Support\Facades\Route;
 
 // interface texts for the browser (resources/js/lib/i18n.ts), versioned in the URL; see LangController
@@ -73,4 +74,6 @@ Route::middleware('auth')->group(function () {
     Route::get('welcome', [AuthController::class, 'welcome'])->name('welcome');
     Route::post('welcome', [AuthController::class, 'register'])->name('welcome.store');
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    // admin / owner / owner as staff / player app
+    Route::match(['get', 'post'], 'switch', RoleSwitchController::class)->name('switch');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Venues\PriceCalculator;
 use App\Enums\Sport;
 use App\Models\Concerns\Translatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -18,7 +19,6 @@ class Venue extends HasFactoryModel
         'horizon_days' => 14,          // how far ahead players can book
         'min_notice_min' => 60,        // no requests closer than this to the start
         'step_min' => 30,              // start times every 30 minutes
-        'free_cancel_hours' => 12,     // players cancel for free until this many hours before
         'request_expire_min' => 120,   // a request nobody answered expires after this
         'max_pending_per_phone' => 2,  // open requests per phone at the same time
         'auto_accept_regulars' => false,
@@ -124,14 +124,24 @@ class Venue extends HasFactoryModel
             ->sortBy('min')->unique('min')->take(10)->values()->all();
     }
 
+    /** A training's price per hour on this kind (null: no trainings); with training prices by length: the 1 h one. */
     public function trainingPrice(string $size): ?int
     {
         if (! $this->hasFeature('trainings')) {
             return null;
         }
+        if ($rows = $this->trainingLengths($size)) {
+            return app(PriceCalculator::class)->byLengthPrice($rows, 'day', 60);
+        }
         $p = ($this->rules['training_prices'] ?? [])[$size] ?? null;
 
         return $p === null || $p === '' ? null : (int) $p;
+    }
+
+    /** A training's prices by length on this kind (15 min / 30 min / 1 h …; one price, any time of day). */
+    public function trainingLengths(string $size): array
+    {
+        return $this->hasFeature('trainings') ? self::cleanLengths((array) (($this->rules['training_lengths'] ?? [])[$size] ?? [])) : [];
     }
 
     /** What a place has while the admin never set its features (new features start off). */

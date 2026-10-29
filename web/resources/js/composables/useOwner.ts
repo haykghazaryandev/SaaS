@@ -21,6 +21,8 @@ export interface OwnerField {
 export interface OwnerShared {
     venue: { id: number; name: string; slug: string };
     role: 'owner' | 'staff';
+    /** the role at the place (an owner may look at the panel as staff: role staff, realRole owner) */
+    realRole?: 'owner' | 'staff';
     venues: { id: number; name: string }[];
     pending: number;
     fields: OwnerField[];

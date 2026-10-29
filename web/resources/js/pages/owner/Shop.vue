@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pager from '@/components/Pager.vue';
 import Icon from '@/components/Icon.vue';
 import { ask } from '@/composables/useConfirm';
 import { useOwner } from '@/composables/useOwner';
@@ -23,8 +24,14 @@ interface Product {
 }
 const props = defineProps<{
     products: Product[];
-    sales: { id: number; what: string; who: string | null; amount: number | null; method: string | null; at: string }[];
+    sales: { data: { id: number; what: string; who: string | null; amount: number | null; method: string | null; at: string }[]; page: number; pages: number; total: number };
+    salesFilter: { period: string; product: number | null };
 }>();
+// the sales list: a new filter starts on its first page
+function filterSales(change: Record<string, string | number | null>) {
+    const q = { period: props.salesFilter.period, product: props.salesFilter.product, ...change };
+    router.get(route('owner.shop'), Object.fromEntries(Object.entries(q).filter(([k, v]) => v && !(k === 'period' && v === 'all'))), { preserveScroll: true, preserveState: true, replace: true, only: ['sales', 'salesFilter'] });
+}
 const owner = useOwner();
 const canEdit = owner.value.role === 'owner';
 const editing = ref<number | 'new' | null>(null);
@@ -121,17 +128,32 @@ async function sell(id: number) {
         </div>
         <p v-if="!products.length" class="faint">{{ $t('owner.club.no_products') }}</p>
 
-        <section v-if="sales.length" class="card panel">
+        <section class="card panel" data-test="sales">
             <div class="sec-h"><h2>{{ $t('owner.club.sales') }}</h2></div>
-            <div v-for="s in sales" :key="s.id" class="srow">
+            <div class="sfil">
+                <div class="seg sm" role="group">
+                    <button v-for="p in ['all', 'today', 'week', 'month']" :key="p" type="button" :aria-pressed="salesFilter.period === p" @click="filterSales({ period: p })">
+                        {{ $t(p === 'all' ? 'common.all' : 'owner.club.period_' + p) }}
+                    </button>
+                </div>
+                <select class="input sm" :value="salesFilter.product ?? ''" :aria-label="$t('owner.money.product')" @change="filterSales({ product: Number(($event.target as HTMLSelectElement).value) || null })">
+                    <option value="">{{ $t('owner.money.all_products') }}</option>
+                    <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
+                </select>
+            </div>
+            <div v-for="s in sales.data" :key="s.id" class="srow">
                 <span class="mono faint">{{ s.at }}</span><span class="w">{{ s.what }}<small v-if="s.who"> · {{ s.who }}</small></span
                 ><span class="mono">{{ amd(s.amount ?? 0) }} · {{ $t('owner.club.m_' + s.method) }}</span>
             </div>
+            <p v-if="!sales.data.length" class="faint" style="margin: 4px 0">{{ $t('owner.money.no_sales') }}</p>
+            <Pager :page="sales.page" :pages="sales.pages" :total="sales.total" :only="['sales', 'salesFilter']" />
         </section>
     </OwnerLayout>
 </template>
 
 <style scoped>
+.sfil { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 6px; }
+.sfil select { max-width: 220px; }
 .pform { display: flex; gap: 16px; flex-wrap: wrap; }
 .ph { width: 140px; height: 140px; border-radius: 16px; border: 1px dashed var(--line-2); display: grid; place-items: center; overflow: hidden; cursor: pointer; color: var(--muted); font-weight: 700; font-size: 13px; text-align: center; }
 .ph img { width: 100%; height: 100%; object-fit: cover; }

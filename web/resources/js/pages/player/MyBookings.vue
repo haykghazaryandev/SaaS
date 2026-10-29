@@ -70,15 +70,6 @@ function soon(b: PlayerBooking): string | null {
     const h = Math.floor(m / 60);
     return h ? `${h} ${trans('common.hour_short')}${m % 60 ? ` ${m % 60} ${trans('common.minute_short')}` : ''}` : `${m} ${trans('common.minute_short')}`;
 }
-const yerevanTime = (ms: number) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Yerevan', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
-/** "Free cancellation until Thu 18:00": only for confirmed bookings, within 24 h of that deadline */
-function freeUntil(b: PlayerBooking): string | null {
-    if (b.status !== 'accepted' || !b.canCancel || !b.freeCancelHours) return null;
-    const deadline = new Date(b.startsAt).getTime() - b.freeCancelHours * 3600e3;
-    const left = deadline - now.value;
-    if (left <= 0 || left >= 24 * 3600e3) return null;
-    return nextLabel(yerevanToday(deadline), todayIso.value, yerevanTime(deadline), true);
-}
 const directions = (b: PlayerBooking) => directionLinks({ ...b.venue });
 const placeUrl = (b: PlayerBooking) => route('places.show', { venue: b.venue.slug, field: b.field.id, minutes: b.minutes });
 const alertUrl = (a: AlertRow) => route('places.show', { venue: a.slug, date: a.date, field: a.field, minutes: a.minutes, start: a.start });
@@ -258,7 +249,6 @@ const canLinkTelegram = computed(() => {
                             <button type="button" class="chip" :aria-label="$t('common.close')" @click="lateOpen = null"><Icon name="x" size="sm" /></button>
                         </div>
                     </div>
-                    <div v-if="freeUntil(b)" class="rule"><Icon name="check" size="sm" />{{ $t('player.my_bookings.free_until', { t: freeUntil(b) ?? '' }) }}</div>
                     <div class="acts">
                         <div v-if="directions(b).google" class="menu-wrap">
                             <button type="button" class="btn outline sm" aria-haspopup="menu" :aria-expanded="menuFor === `dir-${b.id}`" @click="toggle(`dir-${b.id}`)">
@@ -320,8 +310,8 @@ const canLinkTelegram = computed(() => {
                 <div :class="['policy', cancelling.lateCancel ? 'late' : 'ok']">
                     <Icon :name="cancelling.lateCancel ? 'clock' : 'check'" size="sm" />
                     <span v-if="cancelling.status === 'pending'">{{ $t('player.my_bookings.cancel_request') }}</span>
-                    <span v-else-if="cancelling.lateCancel">{{ $t('player.my_bookings.cancel_late', { h: String(cancelling.freeCancelHours) }) }}</span>
-                    <span v-else>{{ $t('player.my_bookings.cancel_free', { h: String(cancelling.freeCancelHours) }) }}</span>
+                    <span v-else-if="cancelling.lateCancel">{{ $t('player.my_bookings.cancel_late_2h') }}</span>
+                    <span v-else>{{ $t('player.my_bookings.cancel_early') }}</span>
                 </div>
                 <div class="row">
                     <button type="button" class="btn ghost" style="flex: 1" @click="cancelling = null">{{ $t('common.keep_it') }}</button>
