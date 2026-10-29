@@ -51,7 +51,7 @@ Route::get('t/{code}', [ClubPublicController::class, 'tournament'])->where('code
 // registering needs an account (log in with Telegram, then back to the tournament)
 Route::post('t/{code}', [ClubPublicController::class, 'register'])->where('code', '[a-z0-9]{8}')->middleware(['auth', 'throttle:10,1'])->name('tournament.register');
 
-// ---------- login / registration (phone + Telegram code) ----------
+// ---------- login / registration (Telegram, email / phone code, username + password, Google) ----------
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'show'])->name('login');
     Route::post('login/code', [AuthController::class, 'sendCode'])->name('login.code');
@@ -64,6 +64,14 @@ Route::middleware('guest')->group(function () {
     Route::post('login/telegram/{token}/simulate', [AuthController::class, 'telegramSimulate'])->middleware('throttle:20,1')->name('login.telegram.simulate');
     Route::post('login/email', [AuthController::class, 'emailSend'])->name('login.email');
     Route::post('login/email/verify', [AuthController::class, 'emailVerify'])->name('login.email.verify');
+    // email + password (and "Forgot password?"), and "Continue with Google" (both add the phone on the welcome page)
+    Route::post('login/password', [AuthController::class, 'passwordLogin'])->middleware('throttle:30,1')->name('login.password');
+    Route::post('login/register', [AuthController::class, 'passwordRegister'])->middleware('throttle:10,1')->name('login.register');
+    Route::post('login/forgot', [AuthController::class, 'passwordForgot'])->middleware('throttle:5,1')->name('login.forgot');
+    Route::get('login/reset/{token}', [AuthController::class, 'passwordResetForm'])->name('login.reset');
+    Route::post('login/reset', [AuthController::class, 'passwordReset'])->middleware('throttle:10,1')->name('login.reset.store');
+    Route::get('login/google', [AuthController::class, 'googleRedirect'])->middleware('throttle:30,1')->name('login.google');
+    Route::get('login/google/callback', [AuthController::class, 'googleCallback'])->middleware('throttle:30,1')->name('login.google.callback');
 });
 // Telegram Mini App: log in with Telegram's signed initData (works logged in or not)
 Route::post('tg/app/login', [AuthController::class, 'telegramApp'])->middleware('throttle:30,1')->name('login.telegram.app');

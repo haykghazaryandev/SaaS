@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Domain\Social\Presence;
 use App\Enums\VenueRole;
+use App\Support\Phone;
+use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
@@ -15,11 +18,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * One phone number = one user. A user can be a player and also owner/staff of places (venue_users).
+ * One phone number = one user. Logged in by Telegram, email code, username + password or Google;
+ * accounts without a phone must add one on the welcome page (RequirePhone). A user can be a player and also owner/staff of places (venue_users).
  */
 class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasName
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
@@ -27,12 +31,13 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         'telegram_chat_id', 'telegram_linked_at', 'phone_verified_at', 'registered_at', 'last_seen_at',
     ];
 
-    protected $hidden = ['remember_token', 'telegram_chat_id'];
+    protected $hidden = ['remember_token', 'telegram_chat_id', 'password', 'google_id'];
 
     protected function casts(): array
     {
         return [
             'is_admin' => 'boolean',
+            'password' => 'hashed',
             'telegram_chat_id' => 'integer',
             'telegram_linked_at' => 'datetime',
             'telegram_verified_at' => 'datetime',
@@ -98,7 +103,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     /** ADMIN_PHONE is always the admin, also after the account was deleted and registered again. */
     public function syncAdmin(): void
     {
-        $admin = \App\Support\Phone::normalize((string) config('app.admin_phone'));
+        $admin = Phone::normalize((string) config('app.admin_phone'));
         if ($admin && $this->phone === $admin && ! $this->is_admin) {
             $this->forceFill(['is_admin' => true])->save();
         }
@@ -122,7 +127,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function isActiveNow(): bool
     {
         // the live list of open apps (closing the app = offline at once); without Reverb: seen in the last 2 minutes
-        $online = app(\App\Domain\Social\Presence::class)->onlineIds();
+        $online = app(Presence::class)->onlineIds();
         if ($online !== null) {
             return in_array($this->id, $online, true);
         }
@@ -172,7 +177,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
 
     public function getFilamentName(): string
     {
-        return $this->name ?: \App\Support\Phone::format($this->phone);
+        return $this->name ?: Phone::format($this->phone);
     }
 
     /** Notifications (Telegram) are written in the user's language. */

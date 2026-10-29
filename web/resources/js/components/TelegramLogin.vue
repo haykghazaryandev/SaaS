@@ -3,13 +3,19 @@ import Icon from '@/components/Icon.vue';
 import { xsrf } from '@/lib/echo';
 import { router } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
-import { onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 
 // "Log in with Telegram" (free): opens our bot, the user shares their phone there, this page waits and logs in.
 // context 'login'  → goes to the next page (welcome / home / owner)
 // context 'booking' → stays on the page and emits "done" (the booking request is sent right after)
-const props = withDefaults(defineProps<{ context?: 'login' | 'booking'; to?: string | null }>(), { context: 'login', to: null });
-const emit = defineEmits<{ done: [] }>();
+// "active" tells the page a Telegram login is in progress (the login page then shows only it, with its own Back
+// button: cancelButton false hides the Cancel here, the page calls cancel())
+const props = withDefaults(defineProps<{ context?: 'login' | 'booking'; to?: string | null; cancelButton?: boolean }>(), {
+    context: 'login',
+    to: null,
+    cancelButton: true,
+});
+const emit = defineEmits<{ done: []; active: [boolean] }>();
 
 type State = 'idle' | 'waiting' | 'done' | 'expired';
 const state = ref<State>('idle');
@@ -101,6 +107,9 @@ function cancel() {
     state.value = 'idle';
 }
 
+watch(state, (v) => emit('active', v !== 'idle'));
+defineExpose({ cancel });
+
 onBeforeUnmount(() => clearTimeout(timer));
 </script>
 
@@ -114,7 +123,7 @@ onBeforeUnmount(() => clearTimeout(timer));
             <div class="row" style="gap: 10px"><span class="spinner" aria-hidden="true"></span><b>{{ trans('auth.telegram.waiting') }}</b></div>
             <div class="row" style="gap: 8px; margin-top: 12px; flex-wrap: wrap">
                 <a v-if="!simulate" class="btn ghost sm" :href="url" target="_blank" rel="noopener"><Icon name="send" size="sm" />{{ trans('auth.telegram.open') }}</a>
-                <button type="button" class="btn ghost sm" @click="cancel">{{ trans('common.cancel') }}</button>
+                <button v-if="cancelButton" type="button" class="btn ghost sm" @click="cancel">{{ trans('common.cancel') }}</button>
             </div>
             <!-- development without a bot token: pretend Telegram shared this phone -->
             <form v-if="simulate" class="sim" @submit.prevent="simulateConfirm">

@@ -899,11 +899,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
         <div v-if="sheet" class="scrim" @click.self="closeSheets">
             <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="vt">
                 <template v-if="sheet === 'login'">
-                    <div class="row" style="margin-bottom: 6px">
+                    <div class="row" style="margin-bottom: 16px">
                         <h3 id="vt">{{ $t('player.verify.title') }}</h3>
                         <button type="button" class="x" :aria-label="$t('common.close')" @click="closeSheets"><Icon name="x" /></button>
                     </div>
-                    <p class="muted" style="margin: 0 0 18px; font-size: 14px">{{ $t('auth.sub2') }}</p>
                     <TelegramLogin context="booking" @done="onLoggedIn" />
                     <div v-if="form.processing" class="muted" style="text-align: center; font-size: 13px; margin-top: 10px">{{ $t('player.verify.sending') }}</div>
                     <Link :href="loginUrl" class="email-alt">{{ $t('auth.with_email') }}</Link>

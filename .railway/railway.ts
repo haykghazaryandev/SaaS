@@ -96,6 +96,9 @@ export default defineRailway((ctx) => {
       ...viteEnv,
       // Where Caddy forwards WebSocket traffic: the reverb service on the private network.
       REVERB_UPSTREAM: "reverb.railway.internal:8080",
+      // "Continue with Google" (empty = button hidden). Google Console redirect URI: https://<web domain>/login/google/callback
+      GOOGLE_CLIENT_ID: preserve(),
+      GOOGLE_CLIENT_SECRET: preserve(),
     },
   });
 
