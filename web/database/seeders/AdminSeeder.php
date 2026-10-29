@@ -45,6 +45,7 @@ class AdminSeeder extends Seeder
     {
         $raw = (string) (config('app.admin_phone') ?: '+37499000000');
 
-        return array_values(array_unique(array_filter(array_map(fn ($p) => Phone::normalize(trim($p)), explode(',', $raw)))));
+        // commas (or semicolons, new lines) between the numbers; spaces inside a number are fine ("099 000 002")
+        return array_values(array_unique(array_filter(array_map(fn ($p) => Phone::normalize(trim($p)), preg_split('/[,;\n]+/', $raw)))));
     }
 }

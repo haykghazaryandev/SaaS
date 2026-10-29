@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\OpeningHour;
 use App\Models\User;
 use App\Models\Venue;
+use Database\Seeders\AdminSeeder;
 use Database\Seeders\DatabaseSeeder;
 
 it('seeds again without losing or doubling anything', function () {
@@ -58,4 +59,9 @@ it('makes every ADMIN_PHONE number an admin; on staging each owns their own foot
         // a third admin gets places too (the next football place and a club of their own)
         ->and($c->venues()->pluck('slug')->sort()->values()->all())->toBe(['davtashen', 'smash-club']);
     expect(Venue::where('slug', 'spin-club')->first()->fields()->count())->toBe(2);
+});
+
+it('reads ADMIN_PHONE with commas, semicolons or new lines between the numbers', function () {
+    config(['app.admin_phone' => "+374 99 000 001;099 000 002\n+37499000003, "]);
+    expect(AdminSeeder::phones())->toBe(['+37499000001', '+37499000002', '+37499000003']);
 });
