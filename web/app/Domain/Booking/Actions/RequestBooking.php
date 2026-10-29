@@ -30,6 +30,10 @@ class RequestBooking
         if ($player->isBookingBanned()) {
             throw new BookingException('banned');
         }
+        // only a phone confirmed with Telegram books (never an unconfirmed email / Google account: one person, one number)
+        if (! $player->phone || ! $player->phone_verified_at) {
+            throw new BookingException('phone_unconfirmed');
+        }
         $venue = $field->loadMissing('venue')->venue;
         if (! $venue->hasFeature('booking')) {
             throw new BookingException('feature_off');

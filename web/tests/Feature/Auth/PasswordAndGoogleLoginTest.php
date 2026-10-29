@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\Booking\Actions\RequestBooking;
+use App\Domain\Booking\BookingException;
 use App\Domain\Notifications\TelegramLinker;
 use App\Mail\PasswordResetMail;
 use App\Models\Booking;
@@ -201,4 +203,14 @@ it('does not let a blocked account in with Google', function () {
     Socialite::fake('google', googleUser());
     $this->get('/login/google/callback')->assertRedirect(route('login'))->assertSessionHas('error', __('auth.blocked'));
     $this->assertGuest();
+});
+
+it('never books for an account without a confirmed phone, whatever the way in', function () {
+    $field = makeVenue()->fields->first();
+    foreach ([['phone' => null, 'phone_verified_at' => null], ['phone' => '+37491777666', 'phone_verified_at' => null]] as $attrs) {
+        $u = User::factory()->create($attrs + ['email' => uniqid().'@mail.am']);
+        expect(fn () => app(RequestBooking::class)->handle($u, $field, at(20), 60))
+            ->toThrow(BookingException::class);
+    }
+    expect(Booking::count())->toBe(0);
 });
