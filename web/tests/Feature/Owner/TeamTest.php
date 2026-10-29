@@ -7,6 +7,7 @@ use App\Domain\Venues\Team;
 use App\Models\User;
 use App\Notifications\Notice;
 use App\Support\LocalTime;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -31,7 +32,7 @@ it('lets the one owner add staff by name and phone and take them off; staff get 
 
     // Ani logs in: the staff panel only (no owner / staff toggle for her, no settings)
     $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->get(route('owner.today'))
-        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff')->where('kpi.revenueToday', null)->where('kpi.revenueWeek', null));
+        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff')->missing('kpi.revenueToday'));
     $this->actingAs($ani)->get(route('switch', ['to' => 'owner']));
     $this->actingAs($ani)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
     $this->actingAs($ani)->post(route('owner.team.store'), ['phone' => '+37493000999', 'name' => 'X'])->assertForbidden();
@@ -63,14 +64,22 @@ it('switches between the place panel, the panel as staff, the player app and the
     $this->actingAs($this->owner->fresh())->get(route('switch', ['to' => 'admin']))->assertRedirect('/admin');
 });
 
-it('opens the schedule from now on by default: this week from today, no declined ones; staff look at it', function () {
+it('opens the schedule from now on by default: this week from today, no declined ones; a date opens that day', function () {
     $field = $this->venue->fields->first();
     $at = LocalTime::at(LocalTime::now()->startOfDay()->addDay(), 18);
     $ok = app(OwnerBooking::class)->create($this->owner, $field, $at, 60, ['name' => 'Tomorrow team']);
     $gone = app(OwnerBooking::class)->create($this->owner, $field, $at->addHours(2), 60, ['name' => 'Cancelled']);
     app(CancelBooking::class)->handle($gone, $this->owner, 'owner');
     $this->actingAs($this->owner)->get(route('owner.schedule'))->assertInertia(fn (Assert $p) => $p->where('view', 'now')
-        ->has('upcoming.rows', 1)->where('upcoming.rows.0.id', $ok->id)->has('upcoming.hours'));
-    // the grid views stay
-    $this->actingAs($this->owner)->get(route('owner.schedule', ['view' => 'day']))->assertInertia(fn (Assert $p) => $p->where('view', 'day')->has('day'));
+        ->has('upcoming.rows', 1)->where('upcoming.rows.0.id', $ok->id)->has('upcoming.hours')
+        ->where('days.1.count', 1));
+    $this->actingAs($this->owner)->get(route('owner.schedule', ['date' => $at->toDateString()]))
+        ->assertInertia(fn (Assert $p) => $p->where('view', 'day')->has('day.rows', 1));
+});
+
+it('adds the test requests again outside production (they expire unanswered)', function () {
+    $this->actingAs($this->owner)->post(route('owner.requests.demo'))->assertRedirect();
+    $this->app['env'] = 'production';
+    $this->withoutMiddleware(ValidateCsrfToken::class)
+        ->actingAs($this->owner)->post(route('owner.requests.demo'))->assertNotFound();
 });

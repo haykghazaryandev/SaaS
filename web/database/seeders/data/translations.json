@@ -5564,45 +5564,25 @@
         "hy": "Սեղաններ և դաշտեր",
         "ru": "Столы и поля"
     },
-    "owner.dashboard.chart": {
-        "en": "Occupancy, next 7 days",
-        "hy": "Զբաղվածություն, հաջորդ 7 օր",
-        "ru": "Загрузка, следующие 7 дней"
-    },
-    "owner.dashboard.chart_sub": {
-        "en": "Share of opening hours that are booked or requested",
-        "hy": "Աշխատանքային ժամերի բաժինը, որ ամրագրված կամ հայցված է",
-        "ru": "Доля рабочих часов с бронями и заявками"
-    },
-    "owner.dashboard.closed_today": {
-        "en": "Closed today",
-        "hy": "Այսօր փակ է",
-        "ru": "Сегодня закрыто"
+    "owner.dashboard.chart_week": {
+        "en": "Next 7 days",
+        "hy": "Հաջորդ 7 օրը",
+        "ru": "Следующие 7 дней"
     },
     "owner.dashboard.conflict": {
         "en": "Conflicts with :name :time",
         "hy": "Համընկնում է՝ :name :time",
         "ru": "Пересекается с :name :time"
     },
-    "owner.dashboard.ends": {
-        "en": "until :t",
-        "hy": "մինչև :t",
-        "ru": "до :t"
-    },
-    "owner.dashboard.free_rest": {
-        "en": "Free until closing",
-        "hy": "Ազատ է մինչև փակվելը",
-        "ru": "Свободно до закрытия"
-    },
     "owner.dashboard.hello": {
         "en": "Hello, :name",
         "hy": "Բարև, :name",
         "ru": "Здравствуйте, :name"
     },
-    "owner.dashboard.kpi_bookings_sub": {
-        "en": ":a confirmed · :p waiting",
-        "hy": ":a հաստատված · :p սպասող",
-        "ru": "подтверждено: :a · ждут: :p"
+    "owner.dashboard.kpi_booked_sub": {
+        "en": ":a confirmed",
+        "hy": ":a հաստատված",
+        "ru": "подтверждено: :a"
     },
     "owner.dashboard.kpi_occupancy": {
         "en": "Occupancy",
@@ -5619,50 +5599,25 @@
         "hy": "Սպասում են ձեր պատասխանին",
         "ru": "Ждут вашего ответа"
     },
-    "owner.dashboard.kpi_revenue": {
-        "en": "Revenue",
-        "hy": "Եկամուտ",
-        "ru": "Выручка"
+    "owner.dashboard.kpi_trainings": {
+        "en": "Trainings",
+        "hy": "Մարզումներ",
+        "ru": "Тренировки"
     },
-    "owner.dashboard.kpi_revenue_sub": {
-        "en": "This week: :sum",
-        "hy": "Այս շաբաթ՝ :sum",
-        "ru": "За неделю: :sum"
-    },
-    "owner.dashboard.lane_sub": {
-        "en": ":p% booked · :n bookings",
-        "hy": "զբաղված՝ :p% · :n ամրագրում",
-        "ru": "занято :p% · броней: :n"
-    },
-    "owner.dashboard.more": {
-        "en": "+:n more in the schedule",
-        "hy": "+:n ևս ժամանակացույցում",
-        "ru": "+ещё :n в расписании"
-    },
-    "owner.dashboard.more_later": {
-        "en": "+:n more later today",
-        "hy": "Եվս :n՝ ավելի ուշ",
-        "ru": "Ещё :n позже"
+    "owner.dashboard.kpi_trainings_sub": {
+        "en": "today",
+        "hy": "այսօր",
+        "ru": "сегодня"
     },
     "owner.dashboard.no_requests": {
         "en": "No requests waiting. New ones from ZoneSpot show up here.",
         "hy": "Սպասող հայտեր չկան։ ZoneSpot-ի նոր հայտերը կերևան այստեղ։",
         "ru": "Нет заявок. Новые из ZoneSpot появятся здесь."
     },
-    "owner.dashboard.requests": {
-        "en": "Requests waiting",
-        "hy": "Սպասող հայտեր",
-        "ru": "Заявки ждут ответа"
-    },
     "owner.dashboard.sent": {
         "en": "sent :ago",
         "hy": "ուղարկվել է :ago",
         "ru": "отправлена :ago"
-    },
-    "owner.dashboard.strip": {
-        "en": "Today on the fields",
-        "hy": "Այսօր դաշտերում",
-        "ru": "Сегодня на полях"
     },
     "owner.dashboard.telegram_sub": {
         "en": "New requests come to Telegram with Accept and Decline buttons, so players don’t wait.",
@@ -6139,6 +6094,11 @@
         "hy": "Խաղացողներ",
         "ru": "Игроки"
     },
+    "owner.nav.requests": {
+        "en": "Requests",
+        "hy": "Հայտեր",
+        "ru": "Заявки"
+    },
     "owner.nav.schedule": {
         "en": "Schedule",
         "hy": "Ժամանակացույց",
@@ -6439,10 +6399,20 @@
         "hy": "խաղացել է :n",
         "ru": "играл :n"
     },
-    "owner.requests.all": {
-        "en": "All on Today",
-        "hy": "Բոլորը «Այսօր»-ում",
-        "ru": "Все на «Сегодня»"
+    "owner.requests.all_page": {
+        "en": "All requests",
+        "hy": "Բոլոր հայտերը",
+        "ru": "Все заявки"
+    },
+    "owner.requests.demo": {
+        "en": "Add test requests",
+        "hy": "Ավելացնել փորձնական հայտեր",
+        "ru": "Добавить тестовые заявки"
+    },
+    "owner.requests.demo_added": {
+        "en": "Test requests added.",
+        "hy": "Փորձնական հայտերն ավելացվեցին։",
+        "ru": "Тестовые заявки добавлены."
     },
     "owner.requests.given_to_other": {
         "en": "This time went to another player.",
@@ -6474,6 +6444,11 @@
         "hy": "Նույն ժամին, ինչ :names-ը",
         "ru": "То же время, что у :names"
     },
+    "owner.requests.same_time_h": {
+        "en": "Same time · :n players",
+        "hy": "Նույն ժամը · :n խաղացող",
+        "ru": "Одно время · игроков: :n"
+    },
     "owner.requests.title": {
         "en": "Requests waiting: :n",
         "hy": "Սպասող հայտեր՝ :n",
@@ -6489,15 +6464,30 @@
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
     },
+    "owner.sched.back_now": {
+        "en": "Back to now",
+        "hy": "Վերադառնալ հիմային",
+        "ru": "Назад к сейчас"
+    },
     "owner.sched.ends": {
         "en": "ends :t",
         "hy": "ավարտ՝ :t",
         "ru": "до :t"
     },
+    "owner.sched.free": {
+        "en": "free",
+        "hy": "ազատ",
+        "ru": "свободно"
+    },
     "owner.sched.free_until": {
         "en": "free until :t",
         "hy": "ազատ է մինչև :t",
         "ru": "свободен до :t"
+    },
+    "owner.sched.full": {
+        "en": "No free time",
+        "hy": "Ազատ ժամ չկա",
+        "ru": "Свободного времени нет"
     },
     "owner.sched.in_h": {
         "en": "in :h h :m",
@@ -6539,6 +6529,11 @@
         "hy": "Ամրագրում չկա։",
         "ru": "Броней нет."
     },
+    "owner.sched.other_day": {
+        "en": "Other day",
+        "hy": "Այլ օր",
+        "ru": "Другой день"
+    },
     "owner.sched.playing_now": {
         "en": "Playing now",
         "hy": "Հիմա խաղում են",
@@ -6549,215 +6544,15 @@
         "hy": "Հայտ",
         "ru": "Заявка"
     },
-    "owner.schedule.all_free": {
-        "en": "All tables free",
-        "hy": "Բոլոր սեղաններն ազատ են",
-        "ru": "Все столы свободны"
-    },
-    "owner.schedule.all_taken": {
-        "en": "All tables taken",
-        "hy": "Բոլոր սեղանները զբաղված են",
-        "ru": "Все столы заняты"
-    },
-    "owner.schedule.book": {
-        "en": "Book",
-        "hy": "Ամրագրել",
-        "ru": "Забронировать"
-    },
-    "owner.schedule.booked": {
-        "en": ":h h booked · :n bookings",
-        "hy": ":h ժ ամրագրված · :n ամրագրում",
-        "ru": "занято :h ч · броней: :n"
-    },
-    "owner.schedule.bookings_n": {
-        "en": "Bookings: :n",
-        "hy": "Ամրագրումներ՝ :n",
-        "ru": "Брони: :n"
-    },
-    "owner.schedule.calendar": {
-        "en": "Pick a date",
-        "hy": "Ընտրել ամսաթիվ",
-        "ru": "Выбрать дату"
-    },
     "owner.schedule.closed_day": {
         "en": "The place is closed on this day (opening hours).",
         "hy": "Այս օրը ակումբը փակ է (աշխատանքային ժամեր)։",
         "ru": "В этот день клуб закрыт (часы работы)."
     },
-    "owner.schedule.closed_short": {
-        "en": "closed",
-        "hy": "փակ է",
-        "ru": "закрыто"
-    },
-    "owner.schedule.day": {
-        "en": "Day",
-        "hy": "Օր",
-        "ru": "День"
-    },
-    "owner.schedule.earlier": {
-        "en": "Earlier today",
-        "hy": "Այսօր ավելի վաղ",
-        "ru": "Раньше сегодня"
-    },
-    "owner.schedule.earlier_n": {
-        "en": "Bookings: :n",
-        "hy": "Ամրագրումներ՝ :n",
-        "ru": "Брони: :n"
-    },
-    "owner.schedule.expired": {
-        "en": "Expired",
-        "hy": "Ժամկետանց",
-        "ru": "Истекла"
-    },
-    "owner.schedule.filter_accepted": {
-        "en": "Confirmed",
-        "hy": "Հաստատված",
-        "ru": "Подтверждённые"
-    },
-    "owner.schedule.filter_all": {
-        "en": "All",
-        "hy": "Բոլորը",
-        "ru": "Все"
-    },
-    "owner.schedule.filter_cancelled": {
-        "en": "Cancelled",
-        "hy": "Չեղարկված",
-        "ru": "Отменённые"
-    },
-    "owner.schedule.filter_pending": {
-        "en": "Pending",
-        "hy": "Սպասող",
-        "ru": "Ожидают"
-    },
-    "owner.schedule.free_len": {
-        "en": ":d free",
-        "hy": ":d ազատ",
-        "ru": ":d свободно"
-    },
-    "owner.schedule.free_row": {
-        "en": "Free",
-        "hy": "Ազատ",
-        "ru": "Свободно"
-    },
-    "owner.schedule.free_tables": {
-        "en": "Free: :list",
-        "hy": "Ազատ՝ :list",
-        "ru": "Свободны: :list"
-    },
-    "owner.schedule.hint": {
-        "en": "Tap an empty time to add a booking",
-        "hy": "Հպեք ազատ ժամին՝ ամրագրում ավելացնելու համար",
-        "ru": "Нажмите на свободное время, чтобы добавить бронь"
-    },
-    "owner.schedule.legend_booked": {
-        "en": "Booked",
-        "hy": "Ամրագրված",
-        "ru": "Забронировано"
-    },
-    "owner.schedule.legend_done": {
-        "en": "Finished",
-        "hy": "Ավարտված",
-        "ru": "Завершено"
-    },
-    "owner.schedule.legend_inactive": {
-        "en": "Expired, declined or cancelled",
-        "hy": "Ժամկետանց, մերժված կամ չեղարկված",
-        "ru": "Истекшие, отклонённые и отменённые"
-    },
-    "owner.schedule.list": {
-        "en": "List",
-        "hy": "Ցանկ",
-        "ru": "Список"
-    },
-    "owner.schedule.more_n": {
-        "en": "+:n more",
-        "hy": "+ևս :n",
-        "ru": "ещё :n"
-    },
-    "owner.schedule.next": {
-        "en": "Forward",
-        "hy": "Առաջ",
-        "ru": "Вперёд"
-    },
-    "owner.schedule.no_free_left": {
-        "en": "No free time left",
-        "hy": "Ազատ ժամ չի մնացել",
-        "ru": "Свободного времени не осталось"
-    },
     "owner.schedule.none": {
         "en": "Nothing found",
         "hy": "Ոչինչ չի գտնվել",
         "ru": "Ничего не найдено"
-    },
-    "owner.schedule.now": {
-        "en": "From now",
-        "hy": "Հիմանից",
-        "ru": "С сейчас"
-    },
-    "owner.schedule.past_day": {
-        "en": "This day has passed",
-        "hy": "Այս օրն անցել է",
-        "ru": "Этот день прошёл"
-    },
-    "owner.schedule.pending_count": {
-        "en": ":n waiting",
-        "hy": ":n սպասող",
-        "ru": "ждут ответа: :n"
-    },
-    "owner.schedule.playing": {
-        "en": "Playing now",
-        "hy": "Հիմա խաղում են",
-        "ru": "Сейчас играют"
-    },
-    "owner.schedule.prev": {
-        "en": "Back",
-        "hy": "Հետ",
-        "ru": "Назад"
-    },
-    "owner.schedule.range": {
-        "en": "Past week and the next 30 days",
-        "hy": "Անցած շաբաթը և հաջորդ 30 օրը",
-        "ru": "Прошедшая неделя и ближайшие 30 дней"
-    },
-    "owner.schedule.request": {
-        "en": "Request",
-        "hy": "Հայտ",
-        "ru": "Заявка"
-    },
-    "owner.schedule.search": {
-        "en": "Search name, phone, team or code",
-        "hy": "Որոնել անուն, հեռախոս, թիմ կամ կոդ",
-        "ru": "Поиск по имени, телефону, команде или коду"
-    },
-    "owner.schedule.show_inactive": {
-        "en": "Show expired, declined and cancelled",
-        "hy": "Ցույց տալ ժամկետանցները, մերժվածներն ու չեղարկվածները",
-        "ru": "Показать истёкшие, отклонённые и отменённые"
-    },
-    "owner.schedule.shown": {
-        "en": "Showing :n of :m",
-        "hy": "Ցուցադրված է :n՝ :m-ից",
-        "ru": "Показано :n из :m"
-    },
-    "owner.schedule.tables_free": {
-        "en": ":n free",
-        "hy": ":n ազատ",
-        "ru": "свободно: :n"
-    },
-    "owner.schedule.taken_of": {
-        "en": ":n of :m taken",
-        "hy": ":m-ից :n-ը զբաղված է",
-        "ru": "занято :n из :m"
-    },
-    "owner.schedule.week": {
-        "en": "Week",
-        "hy": "Շաբաթ",
-        "ru": "Неделя"
-    },
-    "owner.schedule.week_hint": {
-        "en": "Tap a day to open it",
-        "hy": "Հպեք օրվան՝ բացելու համար",
-        "ru": "Нажмите на день, чтобы открыть"
     },
     "owner.schedule.weekly": {
         "en": "every week",
@@ -6843,61 +6638,6 @@
         "en": "Close a field or the whole place for a time. Players can’t book it.",
         "hy": "Փակեք դաշտը կամ ամբողջ ակումբը որոշ ժամանակով։ Խաղացողները չեն կարող այն ամրագրել։",
         "ru": "Закройте поле или весь клуб на время. Игроки не смогут его забронировать."
-    },
-    "owner.settings.color_booked": {
-        "en": "Booked",
-        "hy": "Ամրագրված",
-        "ru": "Забронировано"
-    },
-    "owner.settings.color_done": {
-        "en": "Finished",
-        "hy": "Ավարտված",
-        "ru": "Завершено"
-    },
-    "owner.settings.color_free": {
-        "en": "Free",
-        "hy": "Ազատ",
-        "ru": "Свободно"
-    },
-    "owner.settings.color_live": {
-        "en": "Playing now",
-        "hy": "Հիմա խաղում են",
-        "ru": "Сейчас играют"
-    },
-    "owner.settings.color_reg": {
-        "en": "Every week",
-        "hy": "Ամեն շաբաթ",
-        "ru": "Каждую неделю"
-    },
-    "owner.settings.color_req": {
-        "en": "Request",
-        "hy": "Հայտ",
-        "ru": "Заявка"
-    },
-    "owner.settings.color_reset": {
-        "en": "Back to the default colour",
-        "hy": "Վերադարձնել լռելյայն գույնը",
-        "ru": "Вернуть цвет по умолчанию"
-    },
-    "owner.settings.color_reset_all": {
-        "en": "Default colours",
-        "hy": "Լռելյայն գույներ",
-        "ru": "Цвета по умолчанию"
-    },
-    "owner.settings.color_train": {
-        "en": "Training",
-        "hy": "Մարզում",
-        "ru": "Тренировка"
-    },
-    "owner.settings.colors": {
-        "en": "Schedule colours",
-        "hy": "Ժամանակացույցի գույներ",
-        "ru": "Цвета расписания"
-    },
-    "owner.settings.colors_hint": {
-        "en": "The colour of each state in the schedule, for everybody of your place.",
-        "hy": "Ժամանակացույցում յուրաքանչյուր վիճակի գույնը՝ ձեր վայրի բոլորի համար։",
-        "ru": "Цвет каждого состояния в расписании — для всех сотрудников заведения."
     },
     "owner.settings.discard": {
         "en": "Discard",

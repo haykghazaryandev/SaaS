@@ -58,7 +58,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
         <div v-if="open" class="rpanel" role="dialog" :aria-label="$t('owner.requests.title', { n: count })">
             <header>
                 <b>{{ $t('owner.requests.title', { n: count }) }}</b>
-                <Link :href="route('owner.today')" class="rall" @click="open = false">{{ $t('owner.requests.all') }}</Link>
+                <Link :href="route('owner.requests')" class="rall" @click="open = false">{{ $t('owner.requests.all_page') }}</Link>
             </header>
             <div class="rlist">
                 <p v-if="loading && !shown.length" class="rnone">…</p>

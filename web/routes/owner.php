@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(function () {
     Route::get('/', TodayController::class)->name('today');
     Route::get('requests', [TodayController::class, 'requests'])->name('requests');
+    // local / staging: test requests again (they expire after 2 h unanswered)
+    Route::post('requests/demo', [TodayController::class, 'demoRequests'])->name('requests.demo');
     // chats in the panel (the JSON of a chat stays under /messages)
     Route::get('messages', [OwnerChatController::class, 'index'])->name('messages');
     Route::get('messages/{conversation}', [OwnerChatController::class, 'show'])->whereNumber('conversation')->name('messages.show');
@@ -92,7 +94,6 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
         Route::put('settings/prices', [SettingsController::class, 'prices'])->name('settings.prices');
         Route::put('settings/hours', [SettingsController::class, 'hours'])->name('settings.hours');
         Route::put('settings/rules', [SettingsController::class, 'rules'])->name('settings.rules');
-        Route::put('settings/colors', [SettingsController::class, 'colors'])->name('settings.colors');
         Route::put('settings', [SettingsController::class, 'save'])->name('settings.save');
         Route::post('courts', [SettingsController::class, 'storeCourt'])->name('courts.store');
         Route::patch('courts/{field}', [SettingsController::class, 'updateCourt'])->whereNumber('field')->name('courts.update');

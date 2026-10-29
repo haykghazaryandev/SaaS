@@ -44,15 +44,14 @@ it('sends guests to the owner login and refuses players', function () {
     $this->actingAs($this->player)->post('/owner/bookings', [])->assertForbidden();
 });
 
-it('shows Today with KPIs, requests and the 7-day chart', function () {
-    $req = pendingRequest($this);
+it('shows Today with four numbers: bookings, requests waiting, trainings, how full', function () {
+    pendingRequest($this);
     $this->actingAs($this->owner)->get('/owner')->assertOk()->assertInertia(fn (Assert $p) => $p
         ->component('owner/Today')
         ->where('kpi.pending', 1)
-        ->has('requests', 1)
-        ->where('requests.0.id', $req->id)
-        ->where('requests.0.tel', $this->player->phone)
-        ->has('chart', 7)
+        ->where('kpi.trainings', 0)
+        ->has('kpi.occupancy', 2)
+        ->missing('requests')->missing('lanes')->missing('chart')
         ->where('owner.venue.id', $this->venue->id)
         ->where('owner.role', 'owner')
         ->where('owner.pending', 1)
@@ -196,28 +195,19 @@ it('quotes the price, the free time and the player behind a phone', function () 
 
 // ---------- schedule ----------
 
-it('gives the schedule day, week and list data', function () {
-    $req = pendingRequest($this, 20);
+it('gives the schedule from now on, a day picked and the next 7 days, without open requests', function () {
+    pendingRequest($this, 20);
+    $ok = app(OwnerBooking::class)->create($this->owner, $this->small, at(10), 90, ['name' => 'Morning']);
     $date = at(0)->toDateString();
     $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertOk()->assertInertia(fn (Assert $p) => $p
         ->component('owner/Schedule')
         ->where('view', 'day')
         ->where('date', $date)
-        ->where('day.open', 8)
-        ->where('day.close', 24)
-        ->has('day.bookings', 1)
-        ->where('day.bookings.0.id', $req->id)
-        ->where('day.bookings.0.kind', 'pending')
-        ->where('day.bookings.0.start', 20)
-        ->has('strip', 35)
-        ->where('pendingDays', [$date]));
-    $this->actingAs($this->owner)->get("/owner/schedule?date={$date}&view=week")->assertInertia(fn (Assert $p) => $p
-        ->where('view', 'week')
-        ->has('week.days', 7)
-        ->where("week.days.0.fields.{$this->small->id}.pending", 1)
-        ->where("week.days.0.fields.{$this->small->id}.free", [[8, 20], [21, 24]]));
-    $this->actingAs($this->owner)->get('/owner/schedule?view=list')->assertInertia(fn (Assert $p) => $p->where('view', 'list')->has('list.rows', 1));
-    $this->actingAs($this->owner)->get('/owner/schedule?view=nope')->assertSessionHasErrors('view');
+        // the request waits on Requests: only the accepted booking here
+        ->has('day.rows', 1)->where('day.rows.0.id', $ok->id)->where('day.rows.0.start', 10)
+        ->where('day.hours', [8, 24])
+        ->has('days', 7));
+    $this->actingAs($this->owner)->get('/owner/schedule')->assertInertia(fn (Assert $p) => $p->where('view', 'now')->has('upcoming.rows')->has('days', 7)->missing('day'));
 });
 
 // ---------- settings ----------
@@ -265,28 +255,25 @@ it('adds and removes closures, which block the time', function () {
 
 // ---------- UX review 2026-10-22: Today strip, conflicts, undo-friendly answers, expired, one "Save changes" ----------
 
-it('gives Today the lanes of today and flags requests that clash', function () {
+it('lists the requests on their own page and flags requests that clash', function () {
     // the same player asks for both fields at overlapping times, and once more later
     $a = pendingRequest($this, 20);
     $b = app(RequestBooking::class)->handle($this->player, $this->big, at(20.5), 90);
-    $now = Booking::create([
-        'code' => 'BB-901', 'venue_id' => $this->venue->id, 'field_id' => $this->big->id, 'starts_at' => now()->subMinutes(20), 'ends_at' => now()->addMinutes(40),
-        'status' => 'accepted', 'source' => 'owner', 'contact_name' => 'Walk-in', 'price' => 1000,
-    ]);
-    $this->actingAs($this->owner)->get('/owner')->assertOk()->assertInertia(fn (Assert $p) => $p
-        ->component('owner/Today')
+    $this->actingAs($this->owner)->get(route('owner.requests'))->assertOk()->assertInertia(fn (Assert $p) => $p
+        ->component('owner/Requests')
         ->has('requests', 2)
         ->where('requests.0.id', $a->id)
+        ->where('requests.0.tel', $this->player->phone)
         ->where('requests.0.conflicts.0.id', $b->id)
         ->where('requests.0.conflicts.0.field_id', $this->big->id)
-        ->where('requests.1.conflicts.0.id', $a->id)
-        ->where('lanes', fn ($lanes) => collect($lanes)->contains(fn ($r) => $r['id'] === $now->id && $r['kind'] === 'owner'))
-        ->missing('next'));
+        ->where('requests.1.conflicts.0.id', $a->id));
     // a request of another player at another time does not clash
     $other = User::factory()->create();
     $c = app(RequestBooking::class)->handle($other, $this->small, at(10, 1), 60);
-    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p
+    $this->actingAs($this->owner)->get(route('owner.requests'))->assertInertia(fn (Assert $p) => $p
         ->where('requests', fn ($r) => collect($r)->firstWhere('id', $c->id)['conflicts'] === []));
+    // the bell still gets JSON
+    $this->actingAs($this->owner)->getJson(route('owner.requests'))->assertOk()->assertJsonCount(3, 'requests');
 });
 
 it('answers requests with JSON for the Undo toast and refuses a second answer', function () {
@@ -305,12 +292,8 @@ it('shows unanswered requests whose time has passed as expired, before the job r
         'code' => 'BB-902', 'venue_id' => $this->venue->id, 'field_id' => $this->small->id, 'user_id' => $this->player->id,
         'starts_at' => now()->subMinutes(10), 'ends_at' => now()->addMinutes(50), 'status' => 'pending', 'source' => 'player', 'contact_name' => 'Late', 'price' => 1,
     ]);
-    $date = $late->starts_at->setTimezone(LocalTime::tz())->toDateString();
-    $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
-        ->where('day.bookings', fn ($rows) => collect($rows)->firstWhere('id', $late->id)['kind'] === 'expired'));
-    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p->has('requests', 0)->where('kpi.pending', 0)
-        ->where('lanes', fn ($lanes) => ! collect($lanes)->contains('id', $late->id)));
-    $late->update(['status' => 'expired']);
+    $this->actingAs($this->owner)->get(route('owner.requests'))->assertInertia(fn (Assert $p) => $p->has('requests', 0));
+    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p->where('kpi.pending', 0));
     $this->actingAs($this->owner)->getJson("/owner/bookings/{$late->id}")->assertJsonPath('kind', 'expired');
 });
 
@@ -370,21 +353,6 @@ it('tells owner pages and the booking page at once when the times change', funct
     Event::assertNotDispatched(ScheduleChanged::class);
     $b->update(['starts_at' => at(20, 1)->utc(), 'ends_at' => at(21, 1)->utc()]);
     Event::assertDispatched(ScheduleChanged::class, fn ($e) => $e->dates === [at(20, 1)->toDateString(), $day]);
-});
-
-it('lists the free time of each field the way players see it, also where a request expired', function () {
-    pendingRequest($this, 20);
-    app(OwnerBooking::class)->create($this->owner, $this->small, at(10), 90, ['name' => 'Morning']);
-    Booking::create([
-        'code' => 'BB-903', 'venue_id' => $this->venue->id, 'field_id' => $this->small->id, 'user_id' => $this->player->id,
-        'starts_at' => at(14)->utc(), 'ends_at' => at(15)->utc(), 'status' => 'expired', 'source' => 'player', 'contact_name' => 'Nobody answered', 'price' => 1,
-    ]);
-    Closure::create(['venue_id' => $this->venue->id, 'field_id' => null, 'starts_at' => at(22)->utc(), 'ends_at' => at(23)->utc(), 'reason' => 'Lights']);
-    $date = at(0)->toDateString();
-    $this->actingAs($this->owner)->get("/owner/schedule?date={$date}")->assertInertia(fn (Assert $p) => $p
-        // [from, to, how many courts taken]: the expired request (14:00) does not take the time
-        ->where("day.load.{$this->small->id}", [[8, 10, 0, []], [10, 11.5, 1, [$s = $this->small->id]], [11.5, 20, 0, []], [20, 21, 1, [$s]], [21, 22, 0, []], [22, 23, 1, [$s]], [23, 24, 0, []]])
-        ->where("day.load.{$this->big->id}", [[8, 22, 0, []], [22, 23, 1, [$this->big->id]], [23, 24, 0, []]]));
 });
 
 it('gives the booking form the free and taken start times of the day', function () {

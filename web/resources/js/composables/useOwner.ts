@@ -34,11 +34,7 @@ export interface OwnerShared {
     /** its main sport (ratings are per sport) */
     sport?: string;
     /** the schedule's colours chosen by the place (missing ones: the default) */
-    colors?: Partial<Record<'free' | 'booked' | 'live' | 'req' | 'reg' | 'train' | 'done', string>> | null;
 }
-
-/** The schedule's default colours per state (Settings → Schedule colours changes them for the place). */
-export const GRID_COLORS = { free: '#5ef0a8', booked: '#5cc8ff', live: '#c8ff3d', req: '#ffb547', reg: '#b69cff', train: '#ff7ad9', done: '#6f7a70' } as const;
 
 /** Visual kind of booking (BookingPresenter::kind): colors come from the --st-* tokens. */
 export type Kind = 'pending' | 'accepted' | 'owner' | 'noshow' | 'expired' | 'off';

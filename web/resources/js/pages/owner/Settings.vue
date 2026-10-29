@@ -3,7 +3,7 @@ import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { ask } from '@/composables/useConfirm';
-import { GRID_COLORS, fdate, useOwner } from '@/composables/useOwner';
+import { fdate, useOwner } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
@@ -280,18 +280,6 @@ function addTier() {
 
 // closures (added and removed right away: they are actions, not settings)
 const today = owner.value.today;
-// ---------- the schedule's colours ----------
-const COLOR_KEYS = ['free', 'booked', 'live', 'req', 'reg', 'train', 'done'] as const;
-const colors = reactive<Record<string, string>>(Object.fromEntries(COLOR_KEYS.map((k) => [k, owner.value.colors?.[k] || GRID_COLORS[k]])));
-function saveColors() {
-    // only what differs from the default is kept
-    const changed = Object.fromEntries(COLOR_KEYS.filter((k) => colors[k].toLowerCase() !== GRID_COLORS[k]).map((k) => [k, colors[k]]));
-    router.put(route('owner.settings.colors'), { colors: changed }, { preserveScroll: true, preserveState: true });
-}
-function resetColors() {
-    COLOR_KEYS.forEach((k) => (colors[k] = GRID_COLORS[k]));
-    saveColors();
-}
 const closure = useForm({ field_id: null as number | null, from: `${today}T09:00`, to: `${today}T12:00`, reason: '' });
 function addClosure() {
     closure.post(route('owner.closures.store'), { ...opts, onSuccess: () => closure.reset('reason') });
@@ -718,27 +706,6 @@ const fmtRange = (c: ClosureRow) =>
                             </div>
                         </div>
                         <span v-if="errOf('rules')" class="err">{{ errOf('rules') }}</span>
-                    </section>
-
-                    <!-- the schedule's colours: one per state, any staff can see them; owners change them (empty: the default) -->
-                    <section v-if="canEdit" class="card panel" data-test="colors">
-                        <div class="sec-h">
-                            <h2>{{ $t('owner.settings.colors') }}</h2>
-                        </div>
-                        <p class="faint" style="font-size: 12.5px; margin: 0 0 10px">{{ $t('owner.settings.colors_hint') }}</p>
-                        <div class="colgrid">
-                            <label v-for="k in COLOR_KEYS" :key="k" class="colrow">
-                                <input v-model="colors[k]" type="color" :aria-label="$t('owner.settings.color_' + k)" />
-                                <span>{{ $t('owner.settings.color_' + k) }}</span>
-                                <button v-if="colors[k] !== GRID_COLORS[k]" type="button" class="x" :title="$t('owner.settings.color_reset')" @click.prevent="colors[k] = GRID_COLORS[k]">
-                                    <Icon name="x" size="sm" />
-                                </button>
-                            </label>
-                        </div>
-                        <div class="row" style="gap: 8px; margin-top: 10px">
-                            <button type="button" class="btn sm" data-test="colors-save" @click="saveColors">{{ $t('common.save') }}</button>
-                            <button type="button" class="btn ghost sm" @click="resetColors">{{ $t('owner.settings.color_reset_all') }}</button>
-                        </div>
                     </section>
 
                     <section class="card panel">

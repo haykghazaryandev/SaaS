@@ -20,7 +20,8 @@ use Illuminate\Database\Seeder;
  * - in 2 days 17:00, Table 3: a training request (a player who came late once) and a game request for the same time
  * - tomorrow 12:00: an accepted training (pink on the schedule); yesterday 18:00: a game started and extended +15 min
  *   (its history: "Game started", "Game extended")
- * Made again when none of these is ahead any more (so the dates stay right on staging).
+ * Made again when no request of these is waiting any more (requests expire after 2 h unanswered): on every deploy,
+ * and from Requests → "Add test requests" (local / staging).
  */
 class RequestCasesSeeder extends Seeder
 {
@@ -29,9 +30,11 @@ class RequestCasesSeeder extends Seeder
     public function run(): void
     {
         $club = Venue::where('slug', 'pingpong-land')->first();
-        if (app()->isProduction() || ! $club || Booking::where('venue_id', $club->id)->where('note_owner', self::NOTE)->where('starts_at', '>', now())->exists()) {
+        if (app()->isProduction() || ! $club || Booking::where('venue_id', $club->id)->where('note_owner', self::NOTE)->where('status', 'pending')->where('starts_at', '>', now())->exists()) {
             return;
         }
+        // the earlier cases ahead go first (their requests expired)
+        Booking::where('venue_id', $club->id)->where('note_owner', self::NOTE)->where('starts_at', '>', now()->subDays(2))->delete();
         $tables = $club->fields()->where('active', true)->orderBy('sort')->orderBy('id')->get()->each->setRelation('venue', $club)->values();
         $p = User::whereIn('phone', collect(range(130, 136))->map(fn ($n) => '+37493000'.$n)->all())->orderBy('phone')->get()->values();
         if ($tables->count() < 3 || $p->count() < 7) {
