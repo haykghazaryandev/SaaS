@@ -98,6 +98,7 @@ class Commission
 
         return match ($period) {
             'week' => [$today->startOfWeek(), $today->startOfWeek()->addWeek()],
+            'prev_week' => [$today->startOfWeek()->subWeek(), $today->startOfWeek()],
             'month' => [$today->startOfMonth(), $today->startOfMonth()->addMonth()],
             'prev_month' => [$today->startOfMonth()->subMonth(), $today->startOfMonth()],
             default => [$today, $today->addDay()],

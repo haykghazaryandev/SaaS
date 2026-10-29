@@ -82,15 +82,16 @@ class Checkout
     }
 
     /**
-     * A walk-in at a free table: a game started now, charged for the time played (open end); it holds the table for
-     * $minutes (players can't book over it) and stopping gives the rest back.
+     * A new game at a free table (Now → New game): started now for the $minutes chosen, charged that length like a
+     * booked game; it holds the table (players can't book over it) and stopping gives the rest of the time back.
      */
     public function walkIn(Field $field, User $by, int $minutes, ?string $name = null): Booking
     {
         $minutes = max($this->stepOf($field), min(240, $minutes));
         $start = self::nextMinute();
         $b = app(OwnerBooking::class)->create($by, $field, $start, $minutes, ['name' => $name ?: __('owner.club.walk_in')]);
-        $b->update(['open_end' => true, 'started_at' => now(), 'arrived_at' => now()]);
+        // a game of the length chosen (it counts down like a booked one, at its price-list price)
+        $b->update(['started_at' => now(), 'arrived_at' => now()]);
 
         return $b;
     }

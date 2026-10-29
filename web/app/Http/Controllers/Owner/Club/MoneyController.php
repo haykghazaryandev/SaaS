@@ -18,6 +18,8 @@ class MoneyController extends OwnerController
 {
     public const KINDS = ['booking', 'training', 'shop', 'tournament', 'topup'];
 
+    public const FEE_PERIODS = ['today', 'week', 'prev_week', 'month', 'prev_month'];
+
     public function __invoke(Request $request, Report $report)
     {
         $venue = $this->venue($request);
@@ -40,11 +42,24 @@ class MoneyController extends OwnerController
         ]);
     }
 
-    /** ZoneSpot's fee: the % of each kind it is taken from (bookings, trainings, tournament fees; never the shop). */
-    public function fee(Request $request)
+    /**
+     * ZoneSpot's fee for a period (today / this week / last week / this month / last month): what the place took for
+     * bookings, trainings and tournament fees, ZoneSpot's part of each, and the total to give (never the shop or top-ups).
+     */
+    public function fee(Request $request, Commission $commission)
     {
         $venue = $this->venue($request);
+        $period = in_array($request->query('period'), self::FEE_PERIODS, true) ? $request->query('period') : 'month';
+        [$from, $to] = Commission::period($period);
+        $r = $commission->between($venue, $from, $to);
+        $pct = Commission::pct($venue);
+        // a place without the desk counts its played bookings ('unpaid'): they are bookings too
+        $kinds = ['booking' => $r['byKind']['booking'] + ($r['byKind']['unpaid'] ?? 0), 'training' => $r['byKind']['training'], 'tournament' => $r['byKind']['tournament']];
 
-        return Inertia::render('owner/Fee', ['pct' => Commission::pct($venue)]);
+        return Inertia::render('owner/Fee', [
+            'pct' => $pct, 'period' => $period, 'from' => $from->toDateString(), 'to' => $to->subDay()->toDateString(),
+            'base' => $r['base'], 'fee' => $r['fee'],
+            'kinds' => collect($kinds)->map(fn ($base, $k) => ['kind' => $k, 'base' => $base, 'fee' => Commission::fee($base, $pct)])->values(),
+        ]);
     }
 }

@@ -50,8 +50,9 @@ class TodayController extends OwnerController
                 'todayPending' => $holding->where('status.value', 'pending')->count(),
                 'pending' => $pendingCount,
                 'occupancy' => $venue->fields->mapWithKeys(fn ($f) => [$f->id => $stats->occupancy($venue, $f->id, $today, $todays)])->all(),
-                'revenueToday' => (int) $todays->filter(fn ($b) => in_array($b->status->value, $paid, true))->sum('price'),
-                'revenueWeek' => $revenueWeek,
+                // the money: the owner only
+                'revenueToday' => $this->isOwner($request) ? (int) $todays->filter(fn ($b) => in_array($b->status->value, $paid, true))->sum('price') : null,
+                'revenueWeek' => $this->isOwner($request) ? $revenueWeek : null,
             ],
             'requests' => (function () use ($requests, $open, $venue) {
                 $choose = BookingPresenter::choosing($requests, $venue);

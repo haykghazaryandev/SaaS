@@ -80,7 +80,6 @@ function save() {
         },
     });
 }
-const toggle = (key: 'position', v: string) => (form[key] = form[key] === v ? null : v);
 const unblocking = ref<number | null>(null);
 function unblock(p: PlayerCard) {
     unblocking.value = p.id;
@@ -135,13 +134,7 @@ function unblock(p: PlayerCard) {
                 </div>
 
 
-                <div class="field">
-                    <label>{{ $t('profile.position') }}</label>
-                    <div class="chips wrapchips">
-                        <button v-for="p in options.positions" :key="p" type="button" class="chip" :aria-pressed="form.position === p" @click="toggle('position', p)">{{ $t('profile.positions.' + p) }}</button>
-                    </div>
-                    <div v-if="form.errors.position" class="err">{{ form.errors.position }}</div>
-                </div>
+                <!-- the football position (goalkeeper …) is hidden for now: ZoneSpot is not only football -->
 
                 <div class="two">
                     <div class="field">

@@ -37,8 +37,9 @@ const props = defineProps<{
         todayPending: number;
         pending: number;
         occupancy: Record<number, number>;
-        revenueToday: number;
-        revenueWeek: number;
+        /** the owner only (staff don't see the money) */
+        revenueToday: number | null;
+        revenueWeek: number | null;
     };
     requests: RequestRow[];
     lanes: BookingRow[];
@@ -46,6 +47,8 @@ const props = defineProps<{
     nowHour: number;
 }>();
 const owner = useOwner();
+// staff: the day's work (requests, today's tables); no money, no 7-day chart; new bookings start on Now
+const staff = computed(() => owner.value.role === 'staff');
 const { user } = useShared();
 usePoll(30000, { only: ['kpi', 'requests', 'lanes', 'chart', 'owner', 'nowHour'] });
 
@@ -119,14 +122,14 @@ const chartDays = computed(() =>
 </script>
 
 <template>
-    <OwnerLayout :title="$t('common.today')" :new-booking="{}">
+    <OwnerLayout :title="$t('common.today')" :new-booking="staff ? undefined : {}">
         <div class="phead">
             <div>
                 <div class="kicker">{{ longDate(date) }} · {{ owner.venue.name }}</div>
                 <h1>{{ first ? $t('owner.dashboard.hello', { name: first }) : $t('common.today') }}</h1>
             </div>
             <div class="phead-r">
-                <button type="button" class="btn new" data-test="new" @click="openForm({})">
+                <button v-if="!staff" type="button" class="btn new" data-test="new" @click="openForm({})">
                     <Icon name="plus" size="sm" />{{ $t('common.new_booking') }}
                 </button>
             </div>
@@ -167,12 +170,12 @@ const chartDays = computed(() =>
                     >
                 </div>
             </div>
-            <div class="card kpi">
+            <div v-if="kpi.revenueToday != null" class="card kpi">
                 <div class="lbl">
                     <Icon name="wallet" size="sm" /><span>{{ $t('owner.dashboard.kpi_revenue') }}</span>
                 </div>
-                <div class="val money">{{ amd(kpi.revenueToday) }}</div>
-                <div class="sub">{{ $t('owner.dashboard.kpi_revenue_sub', { sum: amd(kpi.revenueWeek) }) }}</div>
+                <div class="val money">{{ amd(kpi.revenueToday ?? 0) }}</div>
+                <div class="sub">{{ $t('owner.dashboard.kpi_revenue_sub', { sum: amd(kpi.revenueWeek ?? 0) }) }}</div>
             </div>
         </div>
 
@@ -288,7 +291,7 @@ const chartDays = computed(() =>
             </section>
         </div>
 
-        <section class="card panel week7">
+        <section v-if="!staff" class="card panel week7">
             <div class="sec-h" style="margin-bottom: 2px">
                 <h2>{{ $t('owner.dashboard.chart') }}</h2>
             </div>

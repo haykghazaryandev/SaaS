@@ -5704,16 +5704,6 @@
         "hy": "Սա կարող է փոխել միայն ակումբի սեփականատերը։",
         "ru": "Это может изменить только владелец клуба."
     },
-    "owner.fee.example": {
-        "en": "Example: a booking paid :a → :f to ZoneSpot.",
-        "hy": "Օրինակ՝ վճարված :a ամրագրում → :f ZoneSpot-ին։",
-        "ru": "Пример: оплаченная бронь :a → :f для ZoneSpot."
-    },
-    "owner.fee.intro": {
-        "en": "ZoneSpot takes this part of the money your place takes for:",
-        "hy": "ZoneSpot-ը վերցնում է ձեր վայրի ստացած գումարի այս մասը՝",
-        "ru": "ZoneSpot берёт эту часть денег, которые получает ваше место, за:"
-    },
     "owner.fee.kind_booking": {
         "en": "Bookings",
         "hy": "Ամրագրումներ",
@@ -5729,20 +5719,50 @@
         "hy": "Մարզումներ",
         "ru": "Тренировки"
     },
-    "owner.fee.not_taken": {
-        "en": "Not counted",
-        "hy": "Չի հաշվվում",
-        "ru": "Не считается"
+    "owner.fee.not_counted": {
+        "en": "The shop and card top-ups are not counted.",
+        "hy": "Խանութը և քարտերի համալրումները չեն հաշվվում։",
+        "ru": "Магазин и пополнения карт не считаются."
+    },
+    "owner.fee.p_month": {
+        "en": "This month",
+        "hy": "Այս ամիս",
+        "ru": "Этот месяц"
+    },
+    "owner.fee.p_prev_month": {
+        "en": "Last month",
+        "hy": "Անցյալ ամիս",
+        "ru": "Прошлый месяц"
+    },
+    "owner.fee.p_prev_week": {
+        "en": "Last week",
+        "hy": "Անցյալ շաբաթ",
+        "ru": "Прошлая неделя"
+    },
+    "owner.fee.p_today": {
+        "en": "Today",
+        "hy": "Այսօր",
+        "ru": "Сегодня"
+    },
+    "owner.fee.p_week": {
+        "en": "This week",
+        "hy": "Այս շաբաթ",
+        "ru": "Эта неделя"
     },
     "owner.fee.prev_month": {
         "en": "Last month",
         "hy": "Անցյալ ամիս",
         "ru": "Прошлый месяц"
     },
-    "owner.fee.who_sets": {
-        "en": "The % is agreed with ZoneSpot. To change it, write to the ZoneSpot team.",
-        "hy": "Տոկոսը համաձայնեցվում է ZoneSpot-ի հետ։ Փոխելու համար գրեք ZoneSpot-ի թիմին։",
-        "ru": "Процент согласуется с ZoneSpot. Чтобы изменить его, напишите команде ZoneSpot."
+    "owner.fee.taken": {
+        "en": "The place took",
+        "hy": "Վայրը ստացել է",
+        "ru": "Место получило"
+    },
+    "owner.fee.to_give": {
+        "en": "To give ZoneSpot",
+        "hy": "Տալ ZoneSpot-ին",
+        "ru": "Отдать ZoneSpot"
     },
     "owner.field.big": {
         "en": "Big field",
@@ -9274,35 +9294,15 @@
         "hy": "Ադմին վահանակ",
         "ru": "Панель админа"
     },
-    "switch.now_owner": {
-        "en": "owner",
-        "hy": "սեփականատեր",
-        "ru": "владелец"
-    },
-    "switch.now_player": {
-        "en": "player",
-        "hy": "խաղացող",
-        "ru": "игрок"
-    },
     "switch.owner_panel": {
         "en": "Owner panel",
         "hy": "Սեփականատիրոջ",
         "ru": "Владелец"
     },
-    "switch.panel": {
-        "en": "Place panel",
-        "hy": "Վայրի վահանակ",
-        "ru": "Панель места"
-    },
     "switch.panels": {
         "en": "Panel",
         "hy": "Վահանակ",
         "ru": "Панель"
-    },
-    "switch.player": {
-        "en": "Player app",
-        "hy": "Խաղացողի հավելված",
-        "ru": "Приложение игрока"
     },
     "switch.staff_panel": {
         "en": "Staff panel",
@@ -9313,11 +9313,6 @@
         "en": "Staff",
         "hy": "Աշխատակից",
         "ru": "Сотрудник"
-    },
-    "switch.title": {
-        "en": "Switch",
-        "hy": "Փոխել",
-        "ru": "Переключить"
     },
     "telegram.after.arrived_done": {
         "en": "✅ :name arrived (:field, :time). Marked by :by.",

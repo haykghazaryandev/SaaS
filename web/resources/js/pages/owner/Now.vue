@@ -2,7 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { ask } from '@/composables/useConfirm';
-import { useOwner } from '@/composables/useOwner';
+import { openForm, useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
@@ -198,6 +198,8 @@ watch(upIds, (ids) => {
                 <h1>{{ $t('owner.nav.now') }}</h1>
             </div>
             <div class="phead-r">
+                <!-- a booking for later (staff book here, the schedule is for looking) -->
+                <button type="button" class="btn sm" data-test="new-booking" @click="openForm({})"><Icon name="plus" size="sm" />{{ $t('common.new_booking') }}</button>
                 <button type="button" :class="['btn', 'ghost', 'sm', { on: sound }]" data-test="sound" @click="setSound(!sound)">
                     {{ sound ? '🔊 ' + $t('owner.now.sound_on') : '🔇 ' + $t('owner.now.sound_off') }}
                 </button>
@@ -340,7 +342,7 @@ watch(upIds, (ids) => {
 </template>
 
 <style scoped>
-.a-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+.a-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: start; }
 .a-card { background: var(--surface); border: 1px solid var(--line-2); border-radius: 22px; padding: 16px; border-top: 4px solid var(--line-2); min-width: 0; }
 .a-card.play { border-top-color: var(--accent); }
 .a-card.train { border-top-color: #ff7ad9; }

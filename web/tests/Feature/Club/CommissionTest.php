@@ -50,7 +50,12 @@ it('takes the % of bookings, trainings and tournaments only — not the shop, no
     expect(app(Commission::class)->between($this->club->fresh(), $from, $to)['fee'])->toBe(200);
 
     // the owner sees only the % (Owner → ZoneSpot fee, no history; Money is the place's own money), the admin the sums
-    $this->actingAs($this->owner)->get(route('owner.fee'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('owner/Fee')->where('pct', 2));
+    $this->actingAs($this->owner)->get(route('owner.fee'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('owner/Fee')->where('pct', 2)
+        ->where('period', 'month')->where('base', 10000)->where('fee', 200)->has('kinds', 3)->where('kinds.0.kind', 'booking'));
+    // the other periods: today … last month (last week too)
+    foreach (['today', 'week', 'prev_week', 'prev_month'] as $p) {
+        $this->actingAs($this->owner)->get(route('owner.fee', ['period' => $p]))->assertInertia(fn (Assert $x) => $x->where('period', $p));
+    }
     $this->actingAs($this->owner)->get(route('owner.money', ['period' => 'month']))->assertOk()->assertInertia(fn (Assert $p) => $p->missing('fee'));
     $admin = User::factory()->create();
     $admin->forceFill(['is_admin' => true])->save();

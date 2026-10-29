@@ -306,14 +306,14 @@ it('runs the desk: start a booked game in its window, extend it while the table 
     $checkout->extend($b->fresh(), 15, $this->owner);
     expect($b->fresh()->ends_at->equalTo($start->addMinutes(75)))->toBeTrue()
         ->and(fn () => $checkout->extend($b->fresh(), 30, $this->owner))->toThrow(BookingException::class);
-    // a walk-in on the free table: started now, holds 60 min, charged for the time played
+    // a new game on the free table: started now, a 60 min game (counts down like a booked one, charged its length)
     $w = $checkout->walkIn($t2->setRelation('venue', $club), $this->owner, 60);
-    expect($w->open_end)->toBeTrue()->and($w->started_at)->not->toBeNull()
+    expect((bool) $w->fresh()->open_end)->toBeFalse()->and($w->started_at)->not->toBeNull()
         ->and(app(Availability::class)->problem($t2, $start, 30))->not->toBeNull();
     $this->travelTo($start->subMinutes(10)->addMinutes(20));
     $checkout->stop($w->fresh(), $this->owner);
-    // 20 min played: charged 30 (two 15-min steps); the table is free again from the stop
-    expect($w->fresh()->charged_minutes)->toBe(30)->and($checkout->bill($w->fresh())['minutes'])->toBe(30)
+    // they stop after 20 min: charged the 60 chosen; the table is free again from the stop
+    expect($w->fresh()->charged_minutes)->toBe(60)->and($checkout->bill($w->fresh())['minutes'])->toBe(60)
         ->and($w->fresh()->ends_at->lessThanOrEqualTo(now()->addMinute()))->toBeTrue();
     // paid, and a new game on the same table at once (1 hour): not "taken"
     $checkout->pay($w->fresh(), 0, $checkout->bill($w->fresh())['total'], $this->owner);

@@ -2,7 +2,6 @@
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ChatDock from '@/components/owner/ChatDock.vue';
 import PanelToggle from '@/components/owner/PanelToggle.vue';
-import RoleSwitch from '@/components/RoleSwitch.vue';
 import RequestsBell from '@/components/owner/RequestsBell.vue';
 import { ping } from '@/lib/sound';
 import '../../css/owner.css';
@@ -144,8 +143,8 @@ watch(
                 <LangSwitch />
                 <!-- the account (photo, Telegram, language); the player app is not for people who run a place -->
                 <Link class="olink" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                <!-- admin / owner / as staff / player app -->
-                <RoleSwitch />
+                <!-- admins: their panel (owner / staff: the toggle at the top) -->
+                <a v-if="user?.isAdmin" class="olink" href="/admin"><Icon name="settings" size="sm" />{{ $t('switch.admin') }}</a>
                 <div class="ome">
                     <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
                     <span
@@ -203,10 +202,7 @@ watch(
                     <!-- the account; switching: admin panel / owner / as staff / player app (full page loads) -->
                     <Link :href="route('me.profile')"><Icon name="user" /><span>{{ $t('profile.title') }}</span></Link>
                 </nav>
-                <div class="more-sw">
-                    <small>{{ $t('switch.title') }}</small>
-                    <RoleSwitch inline />
-                </div>
+                <a v-if="user?.isAdmin" class="more-admin" href="/admin"><Icon name="settings" /><span>{{ $t('switch.admin') }}</span></a>
             </div>
         </div>
         <QrScanner v-if="scanOpen" @close="scanOpen = false" />

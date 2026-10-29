@@ -28,7 +28,7 @@ it('lets the one owner add staff by name and phone and take them off; staff get 
 
     // Ani logs in: the staff panel only (no owner / staff toggle for her, no settings)
     $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->get(route('owner.today'))
-        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff'));
+        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff')->where('kpi.revenueToday', null)->where('kpi.revenueWeek', null));
     $this->actingAs($ani)->get(route('switch', ['to' => 'owner']));
     $this->actingAs($ani)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
     $this->actingAs($ani)->post(route('owner.team.store'), ['phone' => '+37493000999', 'name' => 'X'])->assertForbidden();

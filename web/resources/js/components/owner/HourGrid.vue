@@ -41,6 +41,8 @@ const props = defineProps<{
     /** px per hour */
     pxh: number;
     compact?: boolean;
+    /** staff look at the schedule: free time is shown, not a button to book (they book on Now) */
+    readonly?: boolean;
     stateOf: (b: BookingRow) => Cell;
     label: (b: BookingRow) => string;
     /** the place's colours (Settings); missing ones: the default */
@@ -190,19 +192,19 @@ defineExpose({ scrollToNow });
                             type="button"
                             :class="['hg-free', { past: p.past, tiny: p.h < 26 }]"
                             :style="{ top: p.top + 1 + 'px', height: p.h - 2 + 'px' }"
-                            :disabled="p.past"
+                            :disabled="p.past || readonly"
                             :aria-label="`${$t('owner.schedule.free_row')} ${hhmm(p.start)}–${hhmm(p.end)}`"
                             data-test="free"
                             @click="freeAt(c, p)"
                         >
                             <template v-if="p.h >= 40 && !compact"
-                                ><b>+ {{ $t('owner.schedule.free_row') }}</b><small>{{ hhmm(p.start) }}–{{ hhmm(p.end) }}</small></template
+                                ><b>{{ readonly ? '' : '+ ' }}{{ $t('owner.schedule.free_row') }}</b><small>{{ hhmm(p.start) }}–{{ hhmm(p.end) }}</small></template
                             >
                             <!-- a short free time (15 / 30 min): its start and length on one line -->
                             <template v-else-if="!compact"
-                                ><small class="one">+ {{ hhmm(p.start) }} · {{ dur(p.end - p.start) }}</small></template
+                                ><small class="one">{{ readonly ? '' : '+ ' }}{{ hhmm(p.start) }} · {{ dur(p.end - p.start) }}</small></template
                             >
-                            <b v-else>+</b>
+                            <b v-else-if="!readonly">+</b>
                         </button>
                         <div
                             v-else
@@ -288,6 +290,7 @@ defineExpose({ scrollToNow });
 .hg-free small.one { white-space: nowrap; font-size: 10px; }
 .hg-free.tiny { border-width: 1px; }
 .hg-free.past { opacity: 0.28; cursor: default; }
+.hg-free:disabled:not(.past) { cursor: default; }
 .hg-past { position: absolute; top: 0; background: rgba(0, 0, 0, 0.35); z-index: 4; pointer-events: none; border-bottom: 1px dashed rgba(255, 107, 107, 0.45); }
 .hg-nowt { position: absolute; left: calc(-1 * var(--gut)); transform: translateY(-50%); z-index: 6; background: #ff6b6b; color: #fff; font: 700 10px var(--mono); padding: 2px 4px; border-radius: 5px; pointer-events: none; }
 .hg-b.split { padding: 2px 4px; }

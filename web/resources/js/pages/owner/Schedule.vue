@@ -256,21 +256,23 @@ const weekRange = computed<[number, number]>(() => {
     const hi = Math.max(...hs.map((h) => h[1]), ...bs.map((b) => b.end), hs.length || bs.length ? 0 : 24);
     return [Math.floor(lo), Math.min(24, Math.ceil(hi))];
 });
-const newFree = (field: number, date: string, start: number) => openForm({ field_id: field, date, start, any: false });
+// staff look here and book on Now; the owner books from a free time too
+const staff = computed(() => owner.value.role === 'staff');
+const newFree = (field: number, date: string, start: number) => !staff.value && openForm({ field_id: field, date, start, any: false });
 
 const fieldOf = (id: number) => fields.value.find((f) => f.id === id);
 const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.hidden[b.id] ?? b.status });
 </script>
 
 <template>
-    <OwnerLayout :title="$t('owner.nav.schedule')" :new-booking="{ date: daysBetween(today, date) >= 0 ? date : today }">
+    <OwnerLayout :title="$t('owner.nav.schedule')" :new-booking="staff ? undefined : { date: daysBetween(today, date) >= 0 ? date : today }">
         <div class="phead">
             <div>
                 <div class="kicker">{{ $t('common.bookings') }} · {{ owner.venue.name }}</div>
                 <h1>{{ $t('owner.nav.schedule') }}</h1>
             </div>
             <div class="phead-r">
-                <button type="button" class="btn new" data-test="new" @click="openForm({ date: daysBetween(today, date) >= 0 ? date : today })">
+                <button v-if="!staff" type="button" class="btn new" data-test="new" @click="openForm({ date: daysBetween(today, date) >= 0 ? date : today })">
                     <Icon name="plus" size="sm" />{{ $t('common.new_booking') }}
                 </button>
             </div>
@@ -352,6 +354,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                     :label="nameOf"
                     :colors="owner.colors"
                     @open="openBooking"
+                    :readonly="staff"
                     @free="newFree"
                 />
             </div>
@@ -392,6 +395,7 @@ const rowPill = (b: BookingRow) => pillOf({ kind: kindOf(b), status: decisions.h
                     :label="nameOf"
                     :colors="owner.colors"
                     @open="openBooking"
+                    :readonly="staff"
                     @free="newFree"
                 />
             </div>

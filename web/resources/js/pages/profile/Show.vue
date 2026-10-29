@@ -64,7 +64,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
                     <h1>{{ player.name }}</h1>
                     <div v-if="player.username" class="muted uname">@{{ player.username }}</div>
                     <div class="row wrapflex" style="gap: 6px; margin-top: 10px">
-                        <span v-if="player.position" class="pill blue"><Icon name="user" size="sm" />{{ $t('profile.positions.' + player.position) }}</span>
                         <span v-if="player.district" class="pill"><Icon name="pin" size="sm" />{{ $t('common.districts.' + player.district) }}</span>
                         <!-- a rating per sport: 🏓 1450 is the ping-pong one, football has its own -->
                         <span v-for="(r, sp) in player.ratings ?? {}" :key="sp" class="pill lime" :title="$t('club.rating_of', { sport: $t(`common.sports.${sp}`) })"
