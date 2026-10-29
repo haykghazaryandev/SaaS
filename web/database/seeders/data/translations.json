@@ -5579,11 +5579,6 @@
         "hy": "Բարև, :name",
         "ru": "Здравствуйте, :name"
     },
-    "owner.dashboard.kpi_booked_sub": {
-        "en": ":a confirmed",
-        "hy": ":a հաստատված",
-        "ru": "подтверждено: :a"
-    },
     "owner.dashboard.kpi_occupancy": {
         "en": "Occupancy",
         "hy": "Զբաղվածություն",
@@ -5603,11 +5598,6 @@
         "en": "Trainings",
         "hy": "Մարզումներ",
         "ru": "Тренировки"
-    },
-    "owner.dashboard.kpi_trainings_sub": {
-        "en": "today",
-        "hy": "այսօր",
-        "ru": "сегодня"
     },
     "owner.dashboard.no_requests": {
         "en": "No requests waiting. New ones from ZoneSpot show up here.",
@@ -6464,11 +6454,6 @@
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
     },
-    "owner.sched.back_now": {
-        "en": "Back to now",
-        "hy": "Վերադառնալ հիմային",
-        "ru": "Назад к сейчас"
-    },
     "owner.sched.ends": {
         "en": "ends :t",
         "hy": "ավարտ՝ :t",
@@ -6488,11 +6473,6 @@
         "en": "Later today",
         "hy": "Այսօր ավելի ուշ",
         "ru": "Позже сегодня"
-    },
-    "owner.sched.later_week": {
-        "en": "Later this week",
-        "hy": "Այս շաբաթ ավելի ուշ",
-        "ru": "Позже на этой неделе"
     },
     "owner.sched.live": {
         "en": "Playing",
@@ -9085,8 +9065,8 @@
         "ru": "Панель админа"
     },
     "switch.owner_panel": {
-        "en": "Owner panel",
-        "hy": "Սեփականատիրոջ",
+        "en": "Owner",
+        "hy": "Սեփականատեր",
         "ru": "Владелец"
     },
     "switch.panels": {
@@ -9095,8 +9075,8 @@
         "ru": "Панель"
     },
     "switch.staff_panel": {
-        "en": "Staff panel",
-        "hy": "Աշխատակցի",
+        "en": "Staff",
+        "hy": "Աշխատակից",
         "ru": "Сотрудник"
     },
     "switch.staff_short": {

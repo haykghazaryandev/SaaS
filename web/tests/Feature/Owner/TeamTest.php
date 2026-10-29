@@ -31,7 +31,7 @@ it('lets the one owner add staff by name and phone and take them off; staff get 
         ->and(fn () => $team->remove($this->venue, $this->owner, $this->owner))->toThrow(BookingException::class);
 
     // Ani logs in: the staff panel only (no owner / staff toggle for her, no settings)
-    $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->get(route('owner.today'))
+    $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->get(route('owner.schedule'))
         ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff')->missing('kpi.revenueToday'));
     $this->actingAs($ani)->get(route('switch', ['to' => 'owner']));
     $this->actingAs($ani)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
@@ -53,7 +53,7 @@ it('switches between the place panel, the panel as staff, the player app and the
 
     // as staff: the staff menu and rights, the real role kept for the way back
     $this->actingAs($this->owner)->get(route('switch', ['to' => 'staff']));
-    $this->actingAs($this->owner)->get(route('owner.today'))->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'owner'));
+    $this->actingAs($this->owner)->get(route('owner.schedule'))->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'owner'));
     $this->actingAs($this->owner)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
     $this->actingAs($this->owner)->get(route('switch', ['to' => 'owner']));
     $this->actingAs($this->owner)->get(route('owner.settings'))->assertOk();
@@ -64,15 +64,15 @@ it('switches between the place panel, the panel as staff, the player app and the
     $this->actingAs($this->owner->fresh())->get(route('switch', ['to' => 'admin']))->assertRedirect('/admin');
 });
 
-it('opens the schedule from now on by default: this week from today, no declined ones; a date opens that day', function () {
+it('opens the schedule on today by default; a date opens that day, without declined ones', function () {
     $field = $this->venue->fields->first();
     $at = LocalTime::at(LocalTime::now()->startOfDay()->addDay(), 18);
     $ok = app(OwnerBooking::class)->create($this->owner, $field, $at, 60, ['name' => 'Tomorrow team']);
     $gone = app(OwnerBooking::class)->create($this->owner, $field, $at->addHours(2), 60, ['name' => 'Cancelled']);
     app(CancelBooking::class)->handle($gone, $this->owner, 'owner');
+    // today: only today's (tomorrow is on the day strip: 1 booking)
     $this->actingAs($this->owner)->get(route('owner.schedule'))->assertInertia(fn (Assert $p) => $p->where('view', 'now')
-        ->has('upcoming.rows', 1)->where('upcoming.rows.0.id', $ok->id)->has('upcoming.hours')
-        ->where('days.1.count', 1));
+        ->has('upcoming.rows', 0)->has('upcoming.hours')->where('days.1.count', 1));
     $this->actingAs($this->owner)->get(route('owner.schedule', ['date' => $at->toDateString()]))
         ->assertInertia(fn (Assert $p) => $p->where('view', 'day')->has('day.rows', 1));
 });

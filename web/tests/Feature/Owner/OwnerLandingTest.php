@@ -23,7 +23,7 @@ it('sends an owner to the dashboard instead of the player app, unless they open 
     // a football place lands at Today; players are not redirected
     $other = User::factory()->create();
     $field->staff()->attach($other->id, ['role' => 'owner']);
-    $this->actingAs($other)->get('/owner/start')->assertRedirect(route('owner.today'));
+    $this->actingAs($other)->get('/owner/start')->assertRedirect(route('owner.schedule'));
     $this->actingAs(User::factory()->create())->get('/')->assertOk();
 
     // an admin who also runs a place: the same (the admin panel stays open)

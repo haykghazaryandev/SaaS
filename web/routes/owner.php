@@ -29,7 +29,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::get('messages/{conversation}', [OwnerChatController::class, 'show'])->whereNumber('conversation')->name('messages.show');
     // where an owner lands (login, the app's home): a club at its desk ("Now"), a field at Today
     Route::get('start', fn (Request $request) => redirect()->route(
-        collect(['wallet', 'shop'])->contains(fn ($f) => $request->attributes->get('venue')->hasFeature($f)) ? 'owner.now' : 'owner.today'
+        collect(['wallet', 'shop'])->contains(fn ($f) => $request->attributes->get('venue')->hasFeature($f)) ? 'owner.now' : 'owner.schedule'
     ))->name('start');
     Route::post('venue', VenueSwitchController::class)->name('venue');
     Route::get('schedule', ScheduleController::class)->name('schedule');

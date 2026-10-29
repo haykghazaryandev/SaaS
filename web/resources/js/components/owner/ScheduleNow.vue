@@ -4,8 +4,9 @@ import { hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
 import { computed } from 'vue';
 
-// The schedule from now on (style A): no grid, the bookings in time order under "Playing now", "In the next hour", "Later today", "Tomorrow" and "Later this week". A row: the start (big), when
-// (in 35 min / ends 18:40 / until 19:00), who, marks (request, training, weekly), the court. A tap opens the booking.
+// Today on the schedule (style A): no grid, the bookings in time order under "Playing now", "In the next hour" and
+// "Later today" (other days: the day strip on top). A row: the start (big), when (in 35 min / ends 18:40), who, marks
+// (training, weekly), the court. A tap opens the booking.
 const props = defineProps<{ rows: BookingRow[]; today: string; now: number; hours: [number, number] | null }>();
 const owner = useOwner();
 const fields = computed(() => owner.value.fields.filter((f) => f.active));
@@ -14,16 +15,11 @@ const courtName = (id: number) => {
     const f = courtOf(id);
     return f ? f.short || f.label : '';
 };
-const day = (d: string) => Math.round((Date.parse(d) - Date.parse(props.today)) / 864e5);
 const sorted = computed(() => [...props.rows].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.field_id - b.field_id));
 const todays = computed(() => sorted.value.filter((b) => b.date === props.today));
 const live = computed(() => todays.value.filter((b) => b.kind !== 'pending' && b.start <= props.now && b.end > props.now));
 const hour = computed(() => todays.value.filter((b) => b.start > props.now && b.start <= props.now + 1));
 const later = computed(() => todays.value.filter((b) => b.start > props.now + 1));
-const tomorrow = computed(() => sorted.value.filter((b) => day(b.date) === 1));
-const week = computed(() => sorted.value.filter((b) => day(b.date) >= 2));
-// later this week: a small date header before each new day
-const weekDays = computed(() => [...new Set(week.value.map((b) => b.date))].map((d) => ({ date: d, rows: week.value.filter((b) => b.date === d) })));
 const when = (b: BookingRow) => {
     if (b.date !== props.today) return '–' + hhmm(b.end);
     if (b.start > props.now) {
@@ -33,7 +29,6 @@ const when = (b: BookingRow) => {
     return trans('owner.sched.ends', { t: hhmm(b.end) });
 };
 const cls = (b: BookingRow) => (b.kind === 'pending' ? 'req' : b.purpose === 'training' ? 'train' : b.start <= props.now && b.end > props.now && b.date === props.today ? 'live' : b.weekly ? 'week' : '');
-const dayTitle = (d: string) => (day(d) === 1 ? trans('common.tomorrow') : fdate(d, { weekday: 'long' })) + ', ' + fdate(d, { day: 'numeric', month: 'short' });
 const sections = computed(() => [
     { key: 'now', title: trans('owner.sched.playing_now'), sub: fdate(props.today, { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + hhmm(props.now), rows: live.value },
     { key: 'hour', title: trans('owner.sched.next_hour'), sub: `${hhmm(props.now)}–${hhmm(Math.min(24, props.now + 1))}`, rows: hour.value },
@@ -66,47 +61,6 @@ const sections = computed(() => [
             <div v-if="!s.rows.length" class="a-empty">{{ $t('owner.sched.nothing') }}</div>
         </template>
 
-        <div class="a-sec">
-            <h4>{{ $t('common.tomorrow') }}</h4>
-            <small>{{ tomorrow.length ? $t('owner.sched.n_bookings', { n: tomorrow.length }) : '' }}</small>
-        </div>
-        <button v-for="b in tomorrow" :key="b.id" type="button" :class="['a-row', cls(b)]" @click="openBooking(b.id)">
-            <span class="t"
-                ><b>{{ hhmm(b.start) }}</b><small>{{ when(b) }}</small></span
-            >
-            <span class="w"
-                ><b>{{ b.team || b.name }}</b
-                ><small class="marks"
-                    ><span v-if="b.kind === 'pending'" class="mk req">{{ $t('owner.sched.request') }}</span
-                    ><span v-if="b.purpose === 'training'" class="mk train">🎓 {{ $t('club.training') }}</span
-                    ><span v-if="b.weekly" class="mk week">↻ {{ $t('owner.schedule.weekly') }}</span></small
-                ></span
-            >
-            <span class="tb">{{ courtName(b.field_id) }}</span>
-        </button>
-        <div v-if="!tomorrow.length" class="a-empty">{{ $t('owner.sched.nothing') }}</div>
-
-        <div class="a-sec">
-            <h4>{{ $t('owner.sched.later_week') }}</h4>
-        </div>
-        <template v-for="d in weekDays" :key="d.date">
-            <div class="dayh">{{ dayTitle(d.date) }} · {{ $t('owner.sched.n_bookings', { n: d.rows.length }) }}</div>
-            <button v-for="b in d.rows" :key="b.id" type="button" :class="['a-row', cls(b)]" @click="openBooking(b.id)">
-                <span class="t"
-                    ><b>{{ hhmm(b.start) }}</b><small>{{ when(b) }}</small></span
-                >
-                <span class="w"
-                    ><b>{{ b.team || b.name }}</b
-                    ><small class="marks"
-                        ><span v-if="b.kind === 'pending'" class="mk req">{{ $t('owner.sched.request') }}</span
-                        ><span v-if="b.purpose === 'training'" class="mk train">🎓 {{ $t('club.training') }}</span
-                        ><span v-if="b.weekly" class="mk week">↻ {{ $t('owner.schedule.weekly') }}</span></small
-                    ></span
-                >
-                <span class="tb">{{ courtName(b.field_id) }}</span>
-            </button>
-        </template>
-        <div v-if="!weekDays.length" class="a-empty">{{ $t('owner.sched.nothing') }}</div>
     </div>
 </template>
 
@@ -115,7 +69,6 @@ const sections = computed(() => [
 .a-sec { margin: 18px 0 8px; display: flex; align-items: baseline; gap: 10px; }
 .a-sec h4 { margin: 0; font: 600 17px var(--display); }
 .a-sec small { color: var(--muted); font-weight: 700; font-size: 12.5px; }
-.dayh { margin: 10px 0 6px; color: var(--muted); font-weight: 800; font-size: 13px; }
 .a-row { width: 100%; display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line-2); border-left: 4px solid #5cc8ff; margin-bottom: 6px; cursor: pointer; color: var(--ink); font: inherit; text-align: left; }
 .a-row:hover { border-color: var(--line-2); background: var(--surface-2); }
 .a-row.req { border-left-color: var(--warn); }

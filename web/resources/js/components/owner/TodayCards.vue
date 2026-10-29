@@ -1,32 +1,27 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
-import { decisions, longDate, openForm, useOwner } from '@/composables/useOwner';
+import { decisions, fdate, useOwner } from '@/composables/useOwner';
+import { trans } from '@/lib/i18n';
 import { useShared } from '@/composables/useShared';
-import OwnerLayout from '@/layouts/OwnerLayout.vue';
-import { Link, usePoll } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-// Today: four numbers of the day — the bookings, the requests waiting (a tap opens Requests), the trainings and how
-// full the courts are (each court as its icon). What is on the tables now: Now; who comes later: Schedule.
-const props = defineProps<{
+// The four numbers of the day shown on the schedule (today, or the day picked): its bookings, the requests waiting
+// for it (a tap opens Requests), its trainings and how full the courts are (each court as its icon). And a reminder to
+// connect Telegram.
+export interface TodayNumbers {
     date: string;
-    me: string;
-    kpi: {
-        today: number;
-        todayAccepted: number;
-        todayPending: number;
-        pending: number;
-        trainings: number;
-        occupancy: Record<number, number>;
-    };
-}>();
+    today: number;
+    pending: number;
+    trainings: number;
+    occupancy: Record<number, number>;
+}
+const props = defineProps<{ kpi: TodayNumbers; today: string }>();
+// "today" / "Sat 31 Oct" under each number
+const dayLabel = computed(() => (props.kpi.date === props.today ? trans('common.today') : fdate(props.kpi.date, { weekday: 'short', day: 'numeric', month: 'short' })));
 const owner = useOwner();
-// staff: new bookings start on Now
-const staff = computed(() => owner.value.role === 'staff');
 const { user } = useShared();
-usePoll(30000, { only: ['kpi'] });
-const first = computed(() => (props.me || '').split(' ')[0]);
 // answered on this device but still inside the Undo window
 const pendingCount = computed(() => Math.max(0, props.kpi.pending - Object.keys(decisions.hidden).length));
 const avg = (m: Record<number, number>) => {
@@ -38,19 +33,6 @@ const occToday = computed(() => avg(props.kpi.occupancy));
 </script>
 
 <template>
-    <OwnerLayout :title="$t('common.today')" :new-booking="staff ? undefined : {}">
-        <div class="phead">
-            <div>
-                <div class="kicker">{{ longDate(date) }} · {{ owner.venue.name }}</div>
-                <h1>{{ first ? $t('owner.dashboard.hello', { name: first }) : $t('common.today') }}</h1>
-            </div>
-            <div class="phead-r">
-                <button v-if="!staff" type="button" class="btn new" data-test="new" @click="openForm({})">
-                    <Icon name="plus" size="sm" />{{ $t('common.new_booking') }}
-                </button>
-            </div>
-        </div>
-
         <div v-if="user && !user.telegram" class="tg-banner" data-test="tg-banner">
             <Icon name="send" />
             <div class="tgb-t">
@@ -61,12 +43,12 @@ const occToday = computed(() => avg(props.kpi.occupancy));
         </div>
 
         <div class="kpis">
-            <Link class="card kpi" :href="route('owner.schedule')">
+            <Link class="card kpi" :href="route('owner.schedule', kpi.date === today ? {} : { date: kpi.date })" preserve-scroll>
                 <div class="lbl">
                     <Icon name="calendar" size="sm" /><span>{{ $t('common.bookings') }}</span>
                 </div>
                 <div class="val" data-test="kpi-today">{{ kpi.today }}</div>
-                <div class="sub">{{ $t('owner.dashboard.kpi_booked_sub', { a: kpi.todayAccepted }) }}</div>
+                <div class="sub">{{ dayLabel }}</div>
             </Link>
             <Link :class="['card kpi', { warn: pendingCount }]" :href="route('owner.requests')" data-test="kpi-requests">
                 <div class="lbl">
@@ -75,14 +57,14 @@ const occToday = computed(() => avg(props.kpi.occupancy));
                 <div class="val">{{ pendingCount }}</div>
                 <div class="sub">{{ $t(pendingCount ? 'owner.dashboard.kpi_requests_sub' : 'owner.dashboard.kpi_requests_none') }}</div>
             </Link>
-            <Link class="card kpi" :href="route('owner.schedule')" data-test="kpi-trainings">
+            <Link class="card kpi" :href="route('owner.schedule', kpi.date === today ? {} : { date: kpi.date })" preserve-scroll data-test="kpi-trainings">
                 <div class="lbl">
                     <span class="tico">🎓</span><span>{{ $t('owner.dashboard.kpi_trainings') }}</span>
                 </div>
                 <div class="val">{{ kpi.trainings }}</div>
-                <div class="sub">{{ $t('owner.dashboard.kpi_trainings_sub') }}</div>
+                <div class="sub">{{ dayLabel }}</div>
             </Link>
-            <Link class="card kpi" :href="route('owner.schedule')" data-test="kpi-occupancy">
+            <Link class="card kpi" :href="route('owner.schedule', kpi.date === today ? {} : { date: kpi.date })" preserve-scroll data-test="kpi-occupancy">
                 <div class="lbl">
                     <Icon name="chart" size="sm" /><span>{{ $t('owner.dashboard.kpi_occupancy') }}</span>
                 </div>
@@ -94,11 +76,11 @@ const occToday = computed(() => avg(props.kpi.occupancy));
                 </div>
             </Link>
         </div>
-    </OwnerLayout>
 </template>
 
 <style scoped>
 a.kpi { text-decoration: none; color: inherit; }
 a.kpi:hover { border-color: var(--line-2); }
 .tico { font-size: 14px; }
+.kpis { margin-bottom: 14px; }
 </style>

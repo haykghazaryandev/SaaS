@@ -45,10 +45,10 @@ const club = computed(() =>
 const nav = computed(() => [
     // a club starts at the desk ("Now")
     ...club.value.filter((n) => n.name === 'owner.now'),
-    { name: 'owner.today', label: 'common.today', icon: 'home', badge: 0 },
+    // the schedule is also the home (today's numbers on top)
+    { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
     // the requests waiting for an answer (several for the same time: together, the best first)
     { name: 'owner.requests', label: 'owner.nav.requests', icon: 'bell', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
-    { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
     ...club.value.filter((n) => n.name !== 'owner.now'),
     // the players' messages to the place (and the tournament chats): the chat list, unread on the badge
     {
@@ -124,7 +124,7 @@ watch(
     <Head :title="title || $t('owner.brand')" />
     <div class="oapp">
         <aside class="oside">
-            <Link :href="route('owner.today')"><Logo :sub="$t('owner.brand_short')" /></Link>
+            <Link :href="route('owner.start')"><Logo :sub="$t('owner.brand_short')" /></Link>
             <div class="field vbox">
                 <label for="vs1">{{ $t('owner.place') }}</label>
                 <select v-if="owner.venues.length > 1" id="vs1" class="input vsel" :value="owner.venue.id" @change="switchVenue">
@@ -160,7 +160,7 @@ watch(
             </div>
         </aside>
         <header class="otop">
-            <Link class="logo-mark" :href="route('owner.today')" :aria-label="$t('owner.brand')">
+            <Link class="logo-mark" :href="route('owner.start')" :aria-label="$t('owner.brand')">
                 <i class="logo-glyph" aria-hidden="true" />
             </Link>
             <select v-if="owner.venues.length > 1" class="input vsel" :value="owner.venue.id" :aria-label="$t('owner.place')" @change="switchVenue">

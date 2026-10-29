@@ -347,9 +347,9 @@ h3 { font-size: 17px; margin: 0; }
 .c-big { color: var(--field-big); }
 
 /* segmented control: <div class="seg" role="group"><button aria-pressed="true">Friends</button><button>Requests</button></div> */
-.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line-2); max-width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line-2); max-width: 100%; }
 .seg.block { display: flex; width: 100%; }
-.seg > button, .seg > a { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: none; color: var(--muted); font-weight: 700; font-size: 13.5px; padding: 7px 14px; min-height: 34px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background-color .15s, color .15s; }
+.seg > button, .seg > a { flex: 1 0 auto; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: none; color: var(--muted); font-weight: 700; font-size: 13.5px; padding: 7px 14px; min-height: 34px; border-radius: 999px; white-space: nowrap; transition: background-color .15s, color .15s; }
 .seg > button:hover, .seg > a:hover { color: var(--ink); }
 .seg > [aria-pressed="true"], .seg > [aria-selected="true"], .seg > [aria-current="page"] { background: var(--surface-3); color: var(--ink); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 2px 8px -4px rgba(0, 0, 0, 0.6); }
 .seg > button:focus-visible, .seg > a:focus-visible { outline-offset: -2px; border-radius: 999px; }

@@ -136,7 +136,7 @@ watch(() => page.url, () => (menu.value = false));
                         <Link class="btn sm" :href="route('login')">{{ $t('nav.login') }}</Link>
                     </template>
                     <template v-else>
-                        <Link v-if="user.isOwner" class="btn outline sm owner-btn" :href="route('owner.today')"><Icon name="chart" size="sm" /><span>{{ $t('nav.owner') }}</span></Link>
+                        <Link v-if="user.isOwner" class="btn outline sm owner-btn" :href="route('owner.start')"><Icon name="chart" size="sm" /><span>{{ $t('nav.owner') }}</span></Link>
                         <NotifyBell />
                         <div ref="menuEl" class="umenu">
                             <button type="button" class="ubtn" :aria-expanded="menu" aria-haspopup="menu" :aria-label="$t('common.account')" :title="who" @click="menu = !menu">

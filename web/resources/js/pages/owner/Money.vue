@@ -92,8 +92,7 @@ function go(change: Record<string, string | null>) {
 </template>
 
 <style scoped>
-.mseg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.mseg button { padding-inline: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.mseg button { padding-inline: 10px; font-size: 13px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
 .kp { padding: 14px 16px; }
 .kp small { display: block; color: var(--muted); font-weight: 700; font-size: 12.5px; }

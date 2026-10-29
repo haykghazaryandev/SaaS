@@ -10,28 +10,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 
-/** Today: today's bookings, the requests waiting, today's trainings and how full the courts are. Requests: their own page. */
+/** Requests: their own page (and the bell's JSON). The old Today page: the schedule (its numbers are on top of it). */
 class TodayController extends OwnerController
 {
-    public function __invoke(Request $request, VenueStats $stats)
+    /** Today is on top of the schedule now: the old address opens it. */
+    public function __invoke()
     {
-        $venue = $this->venue($request)->load(['fields', 'openingHours']);
-        $today = VenueStats::today();
-        $todays = $stats->bookings($venue, $today, $today->addDay());
-        $holding = $todays->filter(fn (Booking $b) => $b->status->holdsTime());
-
-        return Inertia::render('owner/Today', [
-            'date' => $today->toDateString(),
-            'me' => $request->user()->name,
-            'kpi' => [
-                'today' => $holding->count(),
-                'todayAccepted' => $holding->where('status.value', 'accepted')->count(),
-                'todayPending' => $holding->where('status.value', 'pending')->count(),
-                'pending' => $stats->pendingQuery($venue)->count(),
-                'trainings' => $holding->where('status.value', 'accepted')->where('purpose', 'training')->count(),
-                'occupancy' => $venue->fields->mapWithKeys(fn ($f) => [$f->id => $stats->occupancy($venue, $f->id, $today, $todays)])->all(),
-            ],
-        ]);
+        return redirect()->route('owner.schedule');
     }
 
     /**

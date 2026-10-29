@@ -51,6 +51,26 @@ final class VenueStats
         return Booking::query()->where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now());
     }
 
+    /**
+     * A day's four numbers on top of the schedule (today, or the day picked): its bookings, the requests waiting for it,
+     * its trainings, how full each court is.
+     */
+    public function dayNumbers(Venue $venue, ?CarbonImmutable $day = null): array
+    {
+        $day ??= self::today();
+        $list = $this->bookings($venue, $day, $day->addDay());
+        // what the schedule lists that day: the place said yes (to come, playing or played)
+        $said = $list->filter(fn (Booking $b) => in_array(BookingPresenter::kind($b), ['accepted', 'owner'], true));
+
+        return [
+            'date' => $day->toDateString(),
+            'today' => $said->count(),
+            'pending' => $this->pendingQuery($venue)->where('starts_at', '>=', $day->utc())->where('starts_at', '<', $day->addDay()->utc())->count(),
+            'trainings' => $said->where('purpose', 'training')->count(),
+            'occupancy' => $venue->fields->mapWithKeys(fn ($f) => [$f->id => $this->occupancy($venue, $f->id, $day, $list)])->all(),
+        ];
+    }
+
     public static function today(): CarbonImmutable
     {
         return LocalTime::now()->startOfDay();

@@ -165,7 +165,7 @@ async function sell(id: number) {
 .pedit { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(10, 13, 11, 0.7); color: #fff; display: grid; place-items: center; cursor: pointer; backdrop-filter: blur(6px); }
 .pedit:hover { border-color: var(--accent); color: var(--accent); }
 .pact { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px; margin-top: 8px; }
-.pact .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: 10px; }
+.pact .btn { min-width: 0; white-space: normal; line-height: 1.15; padding-inline: 10px; }
 .pact .qty { width: 100%; min-width: 0; }
 .prod .img { aspect-ratio: 4 / 3; background: var(--surface-2); display: grid; place-items: center; color: var(--faint); }
 .prod .img img { width: 100%; height: 100%; object-fit: cover; }

@@ -13,6 +13,6 @@ class VenueSwitchController extends OwnerController
         abort_unless($request->user()->venues()->where('venues.id', $data['venue_id'])->exists(), 403);
         $request->session()->put('venue_id', (int) $data['venue_id']);
 
-        return redirect()->route('owner.today');
+        return redirect()->route('owner.start');
     }
 }

@@ -2,13 +2,15 @@
 import Icon from '@/components/Icon.vue';
 import ScheduleDay from '@/components/owner/ScheduleDay.vue';
 import ScheduleNow from '@/components/owner/ScheduleNow.vue';
-import WeekCandles from '@/components/owner/WeekCandles.vue';
+import TodayCards, { type TodayNumbers } from '@/components/owner/TodayCards.vue';
+import DayStrip from '@/components/owner/DayStrip.vue';
 import { openForm, useOwner, type BookingRow } from '@/composables/useOwner';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { router, usePoll } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// Schedule, easy to read: on top the next 7 days (how full, how many bookings; tap one) and a calendar for any other
+// Schedule, easy to read (it is also the place's home: Today's numbers are on top): today's bookings, requests
+// waiting, trainings, how full; then the next 7 days (how full, how many bookings; tap one) and a calendar for any other
 // day. Below: from now on (default: playing now, the next hour, later today, tomorrow, later this week) or the day
 // picked (its bookings and each court's free time). Only accepted bookings: requests are on Requests.
 const props = defineProps<{
@@ -16,14 +18,15 @@ const props = defineProps<{
     date: string;
     today: string;
     nowHour: number;
-    days: { date: string; occupancy: Record<number, number>; count: number }[];
+    days: { date: string; count: number }[];
+    kpi: TodayNumbers;
     upcoming?: { rows: BookingRow[]; hours: [number, number] | null };
     day?: { rows: BookingRow[]; hours: [number, number] | null };
 }>();
 const owner = useOwner();
 // staff look here and book on Now
 const staff = computed(() => owner.value.role === 'staff');
-usePoll(30000, { only: ['upcoming', 'day', 'days', 'nowHour'] });
+usePoll(30000, { only: ['upcoming', 'day', 'days', 'kpi', 'nowHour'] });
 
 // the time now, moving on while the page is open
 const loadedAt = Date.now();
@@ -48,7 +51,8 @@ function openPicker() {
         el.click();
     }
 }
-const pick = (d: string) => router.get(route('owner.schedule'), d === props.today ? {} : { date: d }, { preserveScroll: true });
+const pick = (d: string) =>
+    router.get(route('owner.schedule'), d === props.today ? {} : { date: d }, { preserveScroll: true, preserveState: true, only: ['view', 'date', 'day', 'upcoming', 'kpi'] });
 </script>
 
 <template>
@@ -76,10 +80,8 @@ const pick = (d: string) => router.get(route('owner.schedule'), d === props.toda
             </div>
         </div>
 
-        <WeekCandles :days="days" :today="today" :picked="view === 'day' ? date : null" />
-        <button v-if="view === 'day'" type="button" class="btn ghost sm back" data-test="from-now" @click="pick(today)">
-            <Icon name="clock" size="sm" />{{ $t('owner.sched.back_now') }}
-        </button>
+        <DayStrip :days="days" :today="today" :picked="view === 'day' ? date : null" />
+        <TodayCards :kpi="kpi" :today="today" />
 
         <ScheduleNow v-if="view === 'now' && upcoming" :rows="upcoming.rows" :today="today" :now="now" :hours="upcoming.hours" />
         <ScheduleDay v-else-if="day" :date="date" :today="today" :now="now" :rows="day.rows" :hours="day.hours" />
@@ -90,5 +92,4 @@ const pick = (d: string) => router.get(route('owner.schedule'), d === props.toda
 .phead-r { display: flex; gap: 8px; flex-wrap: wrap; }
 .calbtn { position: relative; }
 .calbtn input { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
-.back { margin-bottom: 6px; }
 </style>

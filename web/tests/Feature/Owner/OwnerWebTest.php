@@ -6,6 +6,7 @@ use App\Domain\Booking\Events\ScheduleChanged;
 use App\Domain\Venues\Availability;
 use App\Domain\Venues\PriceCalculator;
 use App\Enums\BookingStatus;
+use App\Http\Controllers\Owner\VenueStats;
 use App\Models\Booking;
 use App\Models\Closure;
 use App\Models\OpeningHour;
@@ -44,18 +45,24 @@ it('sends guests to the owner login and refuses players', function () {
     $this->actingAs($this->player)->post('/owner/bookings', [])->assertForbidden();
 });
 
-it('shows Today with four numbers: bookings, requests waiting, trainings, how full', function () {
-    pendingRequest($this);
-    $this->actingAs($this->owner)->get('/owner')->assertOk()->assertInertia(fn (Assert $p) => $p
-        ->component('owner/Today')
-        ->where('kpi.pending', 1)
+it('shows the four numbers of the day shown on top of the schedule: bookings, requests waiting, trainings, how full', function () {
+    $req = pendingRequest($this);
+    $day = $req->starts_at->setTimezone(LocalTime::tz())->toDateString();
+    // the old Today address opens the schedule
+    $this->actingAs($this->owner)->get('/owner')->assertRedirect(route('owner.schedule'));
+    // today: the request is for another day
+    $this->actingAs($this->owner)->get('/owner/schedule')->assertOk()->assertInertia(fn (Assert $p) => $p
+        ->component('owner/Schedule')
+        ->where('kpi.date', VenueStats::today()->toDateString())
+        ->where('kpi.pending', 0)
         ->where('kpi.trainings', 0)
         ->has('kpi.occupancy', 2)
-        ->missing('requests')->missing('lanes')->missing('chart')
         ->where('owner.venue.id', $this->venue->id)
         ->where('owner.role', 'owner')
         ->where('owner.pending', 1)
         ->has('owner.fields', 2));
+    // the request's day picked: its numbers
+    $this->actingAs($this->owner)->get("/owner/schedule?date={$day}")->assertInertia(fn (Assert $p) => $p->where('kpi.date', $day)->where('kpi.pending', 1));
 });
 
 it('lets staff work with bookings but not change settings', function () {
@@ -73,8 +80,8 @@ it('lets staff work with bookings but not change settings', function () {
 
 it('switches between places the user works at, and only those', function () {
     $this->other->staff()->attach($this->owner->id, ['role' => 'staff']);
-    $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $this->other->id])->assertRedirect(route('owner.today'));
-    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p->where('owner.venue.id', $this->other->id)->where('owner.role', 'staff')->has('owner.venues', 2));
+    $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $this->other->id])->assertRedirect(route('owner.start'));
+    $this->actingAs($this->owner)->get('/owner/schedule')->assertInertia(fn (Assert $p) => $p->where('owner.venue.id', $this->other->id)->where('owner.role', 'staff')->has('owner.venues', 2));
     $third = makeVenue();
     $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $third->id])->assertForbidden();
 });
@@ -293,7 +300,7 @@ it('shows unanswered requests whose time has passed as expired, before the job r
         'starts_at' => now()->subMinutes(10), 'ends_at' => now()->addMinutes(50), 'status' => 'pending', 'source' => 'player', 'contact_name' => 'Late', 'price' => 1,
     ]);
     $this->actingAs($this->owner)->get(route('owner.requests'))->assertInertia(fn (Assert $p) => $p->has('requests', 0));
-    $this->actingAs($this->owner)->get('/owner')->assertInertia(fn (Assert $p) => $p->where('kpi.pending', 0));
+    $this->actingAs($this->owner)->get('/owner/schedule')->assertInertia(fn (Assert $p) => $p->where('kpi.pending', 0));
     $this->actingAs($this->owner)->getJson("/owner/bookings/{$late->id}")->assertJsonPath('kind', 'expired');
 });
 

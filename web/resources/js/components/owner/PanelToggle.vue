@@ -19,6 +19,6 @@ const href = (to: 'owner' | 'staff') => `${route('switch')}?to=${to}`;
 
 <style scoped>
 .ptog { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
-.ptog a { text-align: center; text-decoration: none; color: inherit; font-size: 13px; font-weight: 700; padding: 8px 4px; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ptog a { text-align: center; text-decoration: none; color: inherit; font-size: 13px; font-weight: 700; padding: 8px 4px; border-radius: 10px; line-height: 1.2; }
 .ptog a[aria-pressed='true'] { background: var(--accent); color: #0b0f0c; }
 </style>

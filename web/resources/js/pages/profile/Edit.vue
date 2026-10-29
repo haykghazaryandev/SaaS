@@ -222,7 +222,7 @@ function unblock(p: PlayerCard) {
         <!-- owners and the admin: their panels (on phones and in the Telegram Mini App there is no other way in) -->
         <section v-if="user?.isOwner || user?.isAdmin" class="card pad panels">
             <h2>{{ $t('profile.panels') }}</h2>
-            <Link v-if="user?.isOwner" class="btn ghost block" :href="route('owner.today')"><Icon name="chart" size="sm" />{{ $t('profile.owner_panel') }}</Link>
+            <Link v-if="user?.isOwner" class="btn ghost block" :href="route('owner.start')"><Icon name="chart" size="sm" />{{ $t('profile.owner_panel') }}</Link>
             <!-- the admin panel is not part of this app (Filament): a full page load -->
             <a v-if="user?.isAdmin" class="btn ghost block" href="/admin"><Icon name="settings" size="sm" />{{ $t('profile.admin_panel') }}</a>
         </section>

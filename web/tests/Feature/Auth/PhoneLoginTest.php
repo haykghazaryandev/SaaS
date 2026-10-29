@@ -40,7 +40,7 @@ it('sends owners to the owner app after login', function () {
     $venue->staff()->attach($owner->id, ['role' => 'owner']);
     $this->post('/login/code', ['phone' => '+37491000001']);
     $this->post('/login/verify', ['code' => Cache::get('dev-otp:+37491000001'), 'to' => 'owner'])->assertRedirect('/owner/start');
-    $this->get('/owner')->assertOk();
+    $this->get('/owner/schedule')->assertOk();
 });
 
 it('keeps players out of the owner app', function () {
