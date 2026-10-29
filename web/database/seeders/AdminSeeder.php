@@ -25,9 +25,18 @@ class AdminSeeder extends Seeder
             $admin->forceFill(['is_admin' => true])->save();
             $place = app()->isProduction() ? null : Venue::where('slug', self::FOOTBALL[$i] ?? '')->first();
             if ($place) {
-                $place->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+                self::ownBy($place, $admin);
             }
             $this->command?->info("Admin: {$admin->phone}");
+        }
+    }
+
+    /** The admin is the place's one owner; anyone else who owned it works there as staff (local / staging). */
+    public static function ownBy(Venue $place, User $admin): void
+    {
+        $place->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+        foreach ($place->staff()->wherePivot('role', 'owner')->whereKeyNot($admin->id)->pluck('users.id') as $id) {
+            $place->staff()->updateExistingPivot($id, ['role' => 'staff']);
         }
     }
 

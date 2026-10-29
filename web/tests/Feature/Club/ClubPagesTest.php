@@ -132,7 +132,10 @@ it('puts demo games on the club tables at any hour (not in production)', functio
     $this->artisan('club:demo-now', ['venue' => 'demo-club'])->assertSuccessful();
     $this->actingAs($this->owner)->post('/owner/venue', ['venue_id' => $club->id]);
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p
-        ->where('courts.0.state', 'playing')->where('courts.1.state', 'playing')->where('courts.2.state', 'to_pay'));
+        ->where('courts.0.state', 'playing')->where('courts.1.state', 'playing')->where('courts.2.state', 'to_pay')
+        // the countdown's end; Add time: only +5 fits before the next team (and what it adds to the bill)
+        ->where('courts.0.game.endsAt', fn ($ts) => $ts > now()->getTimestamp())
+        ->where('courts.0.game.canExtend', 5)->where('courts.0.game.limit.by', 'next')->has('courts.0.game.addPrices.5'));
 
     // real lengths: table 1's game ends in 15 min, its next team 5 min after
     $game = Booking::where('field_id', $t1->id)->where('note_owner', 'demo-now')->whereNotNull('started_at')->first();

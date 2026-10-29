@@ -39,8 +39,8 @@ staging and production log in with Telegram. Without a bot token the login page 
 | Who | Phone | Where |
 |---|---|---|
 | Admin | `ADMIN_PHONE` from `.env` (default `99000000`) | `/admin` |
-| Owner of Zangak Football Park | `91000001` (other places `91000002` … `91000008`) | `/login?to=owner`, then `/owner` |
-| Owner of Pingpong.land (ping-pong club: tables, Now, cards, shop) | `91000009` | `/owner` (lands on Now) |
+| Staff of Zangak Football Park (the first admin owns it) | `91000001` (owners of other places `91000002` … `91000008`) | `/login?to=owner`, then `/owner` |
+| Staff of Pingpong.land (ping-pong club: tables, Now, cards, shop; the first admin owns it) | `91000009` | `/owner` (lands on Now) |
 | Player Aram Petrosyan (friends, games, chats) | `93000100` | `/` |
 | Player Davit Harutyunyan (Aram's friend, same game chat) | `93000101` | |
 | More players / a new player | `93000102` … `93000159` / any other Armenian mobile | new numbers go through the welcome page |
@@ -68,7 +68,10 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
 - Club package: `Domain/Club/*`. Cards are per player per place (QR = `/c/{code}`); a top-up needs the QR scanned,
   money comes off a card only on a game's check (`Checkout`: time + items, card / cash / both). Owners land on Now.
 - `ADMIN_PHONE` may list several numbers (commas). On local / staging each admin owns demo places
-  (first: Zangak + Pingpong.land, second: Masis + Spin Club). `php artisan club:demo-now` puts test games on the tables.
+  (first: Zangak + Pingpong.land, second: Masis + Spin Club, then Davtashen + Smash Club …); a place has one owner, the
+  others who ran it become staff. `php artisan club:demo-now` puts test games on the tables.
+- Roles: the owner (everything; also works in the staff panel via the Owner / Staff toggle) and staff (the daily work,
+  no money or settings), added by the owner on Owner → Team. `EnsureVenueOwner` (`venue.owner`) guards owner-only routes.
 
 ## Architecture
 

@@ -8,7 +8,7 @@ use App\Support\Phone;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-/** Owner → Team: who works at the place (owner / staff), add by phone, change the role, take off. */
+/** Owner → Team: the owner and the staff; add staff by name and phone, take them off. */
 class TeamController extends OwnerController
 {
     public function index(Request $request)
@@ -26,9 +26,9 @@ class TeamController extends OwnerController
 
     public function store(Request $request, Team $team)
     {
-        $data = $request->validate(['phone' => 'required|string|max:30', 'name' => 'nullable|string|max:80', 'role' => 'required|in:owner,staff']);
+        $data = $request->validate(['phone' => 'required|string|max:30', 'name' => 'required|string|max:80']);
 
-        $this->attempt(fn () => $team->add($this->venue($request), $data['phone'], $data['role'], $data['name'] ?? null, $request->user()));
+        $this->attempt(fn () => $team->add($this->venue($request), $data['phone'], $data['name'], $request->user()));
 
         return back()->with('success', __('owner.team.saved'));
     }

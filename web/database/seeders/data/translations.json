@@ -1419,10 +1419,10 @@
         "hy": "Այս դաշտի համար թիմը լրացված է։",
         "ru": "Команда для этого поля уже полная."
     },
-    "booking.error.team_last_owner": {
-        "en": "A place needs at least one owner.",
-        "hy": "Վայրը պետք է ունենա առնվազն մեկ սեփականատեր։",
-        "ru": "У места должен быть хотя бы один владелец."
+    "booking.error.team_is_owner": {
+        "en": "This is the owner of the place.",
+        "hy": "Սա վայրի սեփականատերն է։",
+        "ru": "Это владелец места."
     },
     "booking.error.team_self": {
         "en": "You can't take yourself off the team.",
@@ -4739,11 +4739,6 @@
         "hy": "Հաստատեք, երբ կանխիկը ձեր ձեռքում է։",
         "ru": "Подтвердите, когда наличные у вас."
     },
-    "owner.club.ask_extend": {
-        "en": ":name: +:n min?",
-        "hy": ":name․ +:n րոպե՞",
-        "ru": ":name: +:n мин?"
-    },
     "owner.club.ask_noshow": {
         "en": ":name didn't come?",
         "hy": ":name-ը չեկա՞վ",
@@ -4939,16 +4934,6 @@
         "hy": "Պատրաստ է",
         "ru": "Готово"
     },
-    "owner.club.extend_hint": {
-        "en": "free after it for :t",
-        "hy": "դրանից հետո ազատ է :t",
-        "ru": "после свободно :t"
-    },
-    "owner.club.extend_none": {
-        "en": "the next booking comes right after",
-        "hy": "հաջորդ ամրագրումն անմիջապես հետո է",
-        "ru": "следующая бронь сразу после"
-    },
     "owner.club.extended": {
         "en": "+:n min: the table is held longer.",
         "hy": "+:n րոպե․ սեղանը պահվում է ավելի երկար։",
@@ -4974,21 +4959,6 @@
         "hy": "զբաղված է վերջին խաղով մինչև :t",
         "ru": "занято прошлой игрой до :t"
     },
-    "owner.club.free_now": {
-        "en": "Free",
-        "hy": "Ազատ",
-        "ru": "Свободен"
-    },
-    "owner.club.free_until_close": {
-        "en": "free until :t (closing)",
-        "hy": "ազատ է մինչև :t (փակում)",
-        "ru": "свободно до :t (закрытие)"
-    },
-    "owner.club.free_until_next": {
-        "en": "free until :t (the next booking)",
-        "hy": "ազատ է մինչև :t (հաջորդ ամրագրումը)",
-        "ru": "свободно до :t (следующая бронь)"
-    },
     "owner.club.from_card": {
         "en": "From card",
         "hy": "Քարտից",
@@ -4998,11 +4968,6 @@
         "en": "Paid from cards",
         "hy": "Վճարված քարտերից",
         "ru": "Оплачено с карт"
-    },
-    "owner.club.held_until": {
-        "en": "Held until :t",
-        "hy": "Պահված է մինչև :t",
-        "ru": "Занято до :t"
     },
     "owner.club.history": {
         "en": "Card history",
@@ -5028,11 +4993,6 @@
         "en": "items: :n · :a",
         "hy": "ապրանքներ՝ :n · :a",
         "ru": "товаров: :n · :a"
-    },
-    "owner.club.late_by": {
-        "en": "Late :n min: not started",
-        "hy": "Ուշանում են :n րոպե․ չի սկսվել",
-        "ru": "Опаздывают на :n мин: не начато"
     },
     "owner.club.len_h": {
         "en": ":h h:m",
@@ -5093,11 +5053,6 @@
         "en": "Next: :t · :name",
         "hy": "Հաջորդը՝ :t · :name",
         "ru": "Следующая: :t · :name"
-    },
-    "owner.club.next_in": {
-        "en": "Next: :name at :t (in :in)",
-        "hy": "Հաջորդը՝ :name :t-ին (:in հետո)",
-        "ru": "Следующие: :name в :t (через :in)"
     },
     "owner.club.no_account": {
         "en": "booked without an account",
@@ -5284,20 +5239,10 @@
         "hy": ":n խաղացել են այստեղ",
         "ru": "играли здесь: :n"
     },
-    "owner.club.playing": {
-        "en": "Playing",
-        "hy": "Խաղում են",
-        "ru": "Играют"
-    },
     "owner.club.price": {
         "en": "Price, ֏",
         "hy": "Գին, ֏",
         "ru": "Цена, ֏"
-    },
-    "owner.club.price_until": {
-        "en": "This price until :t · then +:a per :m min",
-        "hy": "Այս գինը մինչև :t · հետո +:a ամեն :m րոպեի համար",
-        "ru": "Эта цена до :t · дальше +:a за каждые :m мин"
     },
     "owner.club.qty": {
         "en": "How many",
@@ -5439,20 +5384,10 @@
         "hy": "Խաղը սկսվեց․ ժամանակը հաշվվում է։",
         "ru": "Игра началась: время идёт."
     },
-    "owner.club.starts_in": {
-        "en": "Starts in :t",
-        "hy": "Սկսվում է :t-ից",
-        "ru": "Начало через :t"
-    },
     "owner.club.state_booked": {
         "en": "Booked",
         "hy": "Ամրագրված",
         "ru": "Забронировано"
-    },
-    "owner.club.stop_check": {
-        "en": "Stop · check",
-        "hy": "Ավարտել · հաշիվ",
-        "ru": "Завершить · счёт"
     },
     "owner.club.stop_game": {
         "en": "Stop the game now",
@@ -5494,11 +5429,6 @@
         "hy": "Ստանալ :a կանխիկ",
         "ru": "Принять :a наличными"
     },
-    "owner.club.take_money": {
-        "en": "Take :a",
-        "hy": "Ստանալ :a",
-        "ru": "Принять :a"
-    },
     "owner.club.take_split": {
         "en": "Take :a from the card + :b cash",
         "hy": "Գանձել :a քարտից + :b կանխիկ",
@@ -5508,11 +5438,6 @@
         "en": "Time",
         "hy": "Ժամանակ",
         "ru": "Время"
-    },
-    "owner.club.to_pay": {
-        "en": "To pay",
-        "hy": "Վճարման",
-        "ru": "К оплате"
     },
     "owner.club.topped_up": {
         "en": "Topped up",
@@ -5543,11 +5468,6 @@
         "en": "Walk-in",
         "hy": "Առանց ամրագրման",
         "ru": "Без брони"
-    },
-    "owner.club.walk_in_hint": {
-        "en": "Players without a booking: start a game now for",
-        "hy": "Առանց ամրագրման խաղացողներ․ սկսել խաղ հիմա՝",
-        "ru": "Игроки без брони: начать игру сейчас на"
     },
     "owner.courts.active_hint": {
         "en": "Switched off: players can not book it",
@@ -6228,6 +6148,206 @@
         "en": "You don't have access to any place. Ask ZoneSpot to add you.",
         "hy": "Դուք որևէ ակումբի հասանելիություն չունեք։ Դիմեք ZoneSpot-ին։",
         "ru": "У вас нет доступа ни к одному клубу. Обратитесь в ZoneSpot."
+    },
+    "owner.now.add_time": {
+        "en": "Add time",
+        "hy": "Ավելացնել ժամանակ",
+        "ru": "Добавить время"
+    },
+    "owner.now.add_title": {
+        "en": "Add time to :t",
+        "hy": "Ավելացնել ժամանակ՝ :t",
+        "ru": "Добавить время: :t"
+    },
+    "owner.now.booked_for": {
+        "en": "Booked :a–:b",
+        "hy": "Ամրագրված է :a–:b",
+        "ru": "Бронь :a–:b"
+    },
+    "owner.now.chip_due": {
+        "en": "Booked",
+        "hy": "Ամրագրված",
+        "ru": "Забронировано"
+    },
+    "owner.now.chip_free": {
+        "en": "Free",
+        "hy": "Ազատ",
+        "ru": "Свободно"
+    },
+    "owner.now.chip_play": {
+        "en": "Playing",
+        "hy": "Խաղում են",
+        "ru": "Играют"
+    },
+    "owner.now.chip_soon": {
+        "en": "Ending soon",
+        "hy": "Շուտով ավարտվում է",
+        "ru": "Скоро конец"
+    },
+    "owner.now.chip_topay": {
+        "en": "To pay",
+        "hy": "Վճարելու",
+        "ru": "К оплате"
+    },
+    "owner.now.chip_up": {
+        "en": "Time is up",
+        "hy": "Ժամանակը լրացավ",
+        "ru": "Время вышло"
+    },
+    "owner.now.closing_at": {
+        "en": "closing at :t",
+        "hy": "փակվում է :t-ին",
+        "ru": "закрытие в :t"
+    },
+    "owner.now.comes_in": {
+        "en": "Comes in :m min",
+        "hy": "Կգա :m րոպեից",
+        "ru": "Придёт через :m мин"
+    },
+    "owner.now.comes_late": {
+        "en": ":m min late",
+        "hy": "Ուշանում է :m րոպե",
+        "ru": "Опаздывает на :m мин"
+    },
+    "owner.now.ends_at": {
+        "en": "Ends at",
+        "hy": "Ավարտը՝",
+        "ru": "Конец в"
+    },
+    "owner.now.finished_at": {
+        "en": "Finished at :t · waiting for the money",
+        "hy": "Ավարտվեց :t-ին · սպասում է վճարմանը",
+        "ru": "Закончили в :t · ждёт оплаты"
+    },
+    "owner.now.free_until": {
+        "en": "Free until :t",
+        "hy": "Ազատ է մինչև :t",
+        "ru": "Свободно до :t"
+    },
+    "owner.now.free_until_close": {
+        "en": "Free until closing (:t)",
+        "hy": "Ազատ է մինչև փակվելը (:t)",
+        "ru": "Свободно до закрытия (:t)"
+    },
+    "owner.now.item": {
+        "en": "Item",
+        "hy": "Ապրանք",
+        "ru": "Товар"
+    },
+    "owner.now.min": {
+        "en": "min",
+        "hy": "րոպե",
+        "ru": "мин"
+    },
+    "owner.now.min_late": {
+        "en": "min late",
+        "hy": "րոպե ուշանում է",
+        "ru": "мин опоздание"
+    },
+    "owner.now.min_left": {
+        "en": "min left",
+        "hy": "րոպե մնաց",
+        "ru": "мин осталось"
+    },
+    "owner.now.min_played": {
+        "en": "min played",
+        "hy": "րոպե խաղացել են",
+        "ru": "мин сыграно"
+    },
+    "owner.now.new_game": {
+        "en": "New game",
+        "hy": "Նոր խաղ",
+        "ru": "Новая игра"
+    },
+    "owner.now.new_title": {
+        "en": "New game on :t",
+        "hy": "Նոր խաղ՝ :t",
+        "ru": "Новая игра: :t"
+    },
+    "owner.now.new_why": {
+        "en": "Free until :t. Pick how long they play: the price comes from your price list.",
+        "hy": "Ազատ է մինչև :t։ Ընտրեք որքան են խաղալու՝ գինը ձեր գնացուցակից է։",
+        "ru": "Свободно до :t. Выберите, сколько будут играть: цена из вашего прайса."
+    },
+    "owner.now.next_at": {
+        "en": "next booking at :t",
+        "hy": "հաջորդ ամրագրումը՝ :t",
+        "ru": "следующая бронь в :t"
+    },
+    "owner.now.next_booking": {
+        "en": "Next booking",
+        "hy": "Հաջորդ ամրագրումը",
+        "ru": "Следующая бронь"
+    },
+    "owner.now.no_move": {
+        "en": "Adding time never moves other bookings. You only see what fits.",
+        "hy": "Ժամանակ ավելացնելը երբեք չի տեղափոխում այլ ամրագրումներ։ Տեսնում եք միայն այն, ինչ տեղավորվում է։",
+        "ru": "Добавленное время никогда не сдвигает другие брони. Вы видите только то, что помещается."
+    },
+    "owner.now.no_next": {
+        "en": "No more bookings today",
+        "hy": "Այսօր այլ ամրագրում չկա",
+        "ru": "Сегодня больше броней нет"
+    },
+    "owner.now.open_time": {
+        "en": "Open time · started :s",
+        "hy": "Բաց ժամանակ · սկիզբը՝ :s",
+        "ru": "Открытое время · начало :s"
+    },
+    "owner.now.over": {
+        "en": ":m min over",
+        "hy": ":m րոպե ավել",
+        "ru": "на :m мин дольше"
+    },
+    "owner.now.price_list": {
+        "en": "your price list",
+        "hy": "ձեր գնացուցակից",
+        "ru": "из вашего прайса"
+    },
+    "owner.now.so_far": {
+        "en": "To pay so far",
+        "hy": "Վճարելու է առայժմ",
+        "ru": "К оплате сейчас"
+    },
+    "owner.now.sound_off": {
+        "en": "Turn sound on",
+        "hy": "Միացնել ձայնը",
+        "ru": "Включить звук"
+    },
+    "owner.now.sound_on": {
+        "en": "Sound is on",
+        "hy": "Ձայնը միացված է",
+        "ru": "Звук включён"
+    },
+    "owner.now.started": {
+        "en": "Started :s",
+        "hy": "Սկիզբը՝ :s",
+        "ru": "Начало :s"
+    },
+    "owner.now.take_money": {
+        "en": "Take money",
+        "hy": "Վերցնել գումարը",
+        "ru": "Принять оплату"
+    },
+    "owner.now.to_pay": {
+        "en": "to pay",
+        "hy": "վճարելու",
+        "ru": "к оплате"
+    },
+    "owner.now.until": {
+        "en": "until :t",
+        "hy": "մինչև :t",
+        "ru": "до :t"
+    },
+    "owner.now.up_line": {
+        "en": "Ended at :t. The bill does not grow.",
+        "hy": "Ավարտվեց :t-ին։ Հաշիվը չի աճում։",
+        "ru": "Закончилось в :t. Счёт не растёт."
+    },
+    "owner.now.with_items": {
+        "en": "items :a",
+        "hy": "ապրանքներ՝ :a",
+        "ru": "товары :a"
     },
     "owner.panel_only": {
         "en": "People who run a place work in their owner panel.",
@@ -6994,15 +7114,15 @@
         "hy": "Հայտ",
         "ru": "Заявка"
     },
-    "owner.team.add": {
-        "en": "Add a person",
-        "hy": "Ավելացնել մարդ",
-        "ru": "Добавить человека"
-    },
     "owner.team.add_btn": {
         "en": "Add to the team",
         "hy": "Ավելացնել թիմին",
         "ru": "Добавить в команду"
+    },
+    "owner.team.add_staff": {
+        "en": "Add staff",
+        "hy": "Ավելացնել աշխատակից",
+        "ru": "Добавить сотрудника"
     },
     "owner.team.ask_remove": {
         "en": "Take :name off the team?",
@@ -7014,10 +7134,10 @@
         "hy": "Նա այլևս չի կարողանա բացել այս վայրի վահանակը։",
         "ru": "Он больше не сможет открыть панель этого места."
     },
-    "owner.team.name": {
-        "en": "Name (if new)",
-        "hy": "Անուն (եթե նոր է)",
-        "ru": "Имя (если новый)"
+    "owner.team.login_hint": {
+        "en": "They log in with this phone number and see the staff panel only.",
+        "hy": "Նա մուտք կգործի այս հեռախոսահամարով և կտեսնի միայն աշխատակցի վահանակը։",
+        "ru": "Он входит с этим номером и видит только панель сотрудника."
     },
     "owner.team.no_telegram": {
         "en": "Telegram not linked yet",
@@ -7044,11 +7164,6 @@
         "hy": "Հեռացվեց թիմից։",
         "ru": "Удалён из команды."
     },
-    "owner.team.role": {
-        "en": "Role",
-        "hy": "Դեր",
-        "ru": "Роль"
-    },
     "owner.team.role_owner": {
         "en": "Owner",
         "hy": "Սեփականատեր",
@@ -7068,6 +7183,11 @@
         "en": "the daily work: Now, Today, Schedule, players, a scanned card, running tournaments, chats. No money, no settings.",
         "hy": "ամենօրյա աշխատանքը՝ Հիմա, Այսօր, Ժամանակացույց, խաղացողներ, սկանավորված քարտ, մրցաշարերի անցկացում, զրույցներ։ Առանց գումարի և կարգավորումների։",
         "ru": "ежедневная работа: Сейчас, Сегодня, Расписание, игроки, отсканированная карта, проведение турниров, чаты. Без денег и настроек."
+    },
+    "owner.team.staff_name": {
+        "en": "Name",
+        "hy": "Անուն",
+        "ru": "Имя"
     },
     "owner.team.you": {
         "en": "you",
@@ -9164,35 +9284,35 @@
         "hy": "խաղացող",
         "ru": "игрок"
     },
-    "switch.now_staff": {
-        "en": "as staff",
-        "hy": "աշխատակից",
-        "ru": "сотрудник"
-    },
-    "switch.owner": {
-        "en": "Place panel (owner)",
-        "hy": "Վայրի վահանակ (սեփականատեր)",
-        "ru": "Панель места (владелец)"
+    "switch.owner_panel": {
+        "en": "Owner panel",
+        "hy": "Սեփականատիրոջ",
+        "ru": "Владелец"
     },
     "switch.panel": {
         "en": "Place panel",
         "hy": "Վայրի վահանակ",
         "ru": "Панель места"
     },
+    "switch.panels": {
+        "en": "Panel",
+        "hy": "Վահանակ",
+        "ru": "Панель"
+    },
     "switch.player": {
         "en": "Player app",
         "hy": "Խաղացողի հավելված",
         "ru": "Приложение игрока"
     },
-    "switch.seeing_as_staff": {
-        "en": "You see it as staff",
-        "hy": "Տեսնում եք որպես աշխատակից",
-        "ru": "Вы видите как сотрудник"
+    "switch.staff_panel": {
+        "en": "Staff panel",
+        "hy": "Աշխատակցի",
+        "ru": "Сотрудник"
     },
-    "switch.staff": {
-        "en": "Place panel as staff",
-        "hy": "Վայրի վահանակ՝ որպես աշխատակից",
-        "ru": "Панель места как сотрудник"
+    "switch.staff_short": {
+        "en": "Staff",
+        "hy": "Աշխատակից",
+        "ru": "Сотрудник"
     },
     "switch.title": {
         "en": "Switch",

@@ -4,21 +4,20 @@ import { useShared } from '@/composables/useShared';
 import { usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-// One switch for people with several roles: the admin panel, the place panel (as owner), the same panel as the staff
-// see it (owners: to check what staff can do), the player app. Plain links (full page loads: the admin panel is not
-// part of this app). Shown only when there is something to switch to.
+// One switch for people with several roles: the admin panel, the place panel, the player app. Plain links (full page
+// loads: the admin panel is not part of this app). Shown only when there is something to switch to. (Owner panel /
+// staff panel: PanelToggle.)
 const props = defineProps<{ inline?: boolean }>();
 const { user } = useShared();
 const page = usePage();
 const owner = computed(() => (page.props.owner as { role?: string; realRole?: string } | undefined) ?? null);
 const open = ref(false);
-const now = computed(() => (owner.value ? (owner.value.role === 'staff' && owner.value.realRole === 'owner' ? 'staff' : 'owner') : 'player'));
+const now = computed(() => (owner.value ? 'owner' : 'player'));
 const items = computed(() => {
     const out: { to: string; label: string; icon: string }[] = [];
     if (user.value?.isAdmin) out.push({ to: 'admin', label: 'switch.admin', icon: 'settings' });
     if (user.value?.isOwner) {
-        out.push({ to: 'owner', label: owner.value?.realRole === 'staff' ? 'switch.panel' : 'switch.owner', icon: 'home' });
-        if (owner.value?.realRole !== 'staff') out.push({ to: 'staff', label: 'switch.staff', icon: 'team' });
+        out.push({ to: 'owner', label: 'switch.panel', icon: 'home' });
     }
     out.push({ to: 'player', label: 'switch.player', icon: 'user' });
     return out;

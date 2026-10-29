@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner\Club;
 use App\Domain\Booking\AfterBooking\Attendance;
 use App\Domain\Club\Checkout;
 use App\Domain\Venues\Availability;
+use App\Domain\Venues\PriceCalculator;
 use App\Http\Controllers\Owner\BookingPresenter;
 use App\Http\Controllers\Owner\OwnerController;
 use App\Models\Booking;
@@ -18,13 +19,14 @@ use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 
 /**
- * Owner → Now: the desk of a club. Every table: the booked game playing on it (who, since when, its check live:
- * time + items, the total, the player's card), a finished game waiting to be paid, or free (and
- * its next booking). Add a cola to the check, "Stop" → the check → card / cash / both. Games come from bookings.
+ * Owner → Now: the desk of a club, a big card per table. A game: its time counting down to its end (then "time is up":
+ * the bill does not grow; take the money or add time), the check (time + items), the next booking; "Add time" offers
+ * only what fits before the next booking or the closing, each with what it adds to the bill. A booked team due: Start
+ * game / Didn't come. A free table: for how long, and a new game of a length that fits, with its price.
  */
 class NowController extends OwnerController
 {
-    public function index(Request $request, Checkout $checkout, Availability $availability)
+    public function index(Request $request, Checkout $checkout, Availability $availability, PriceCalculator $prices)
     {
         $venue = $this->venue($request);
         $this->ensureAny($venue, ['wallet', 'shop']);
@@ -40,7 +42,8 @@ class NowController extends OwnerController
             ->with('user', 'field', 'items', 'venue')->orderBy('starts_at')->get();
         $minsTo = fn ($t) => max(0, (int) round(($t->getTimestamp() - $now->getTimestamp()) / 60));
 
-        $courts = $venue->fields->where('active', true)->sortBy(fn (Field $f) => [$f->sort, $f->id])->values()->map(function (Field $f) use ($bookings, $checkout, $now, $close, $hm, $minsTo) {
+        $courts = $venue->fields->where('active', true)->sortBy(fn (Field $f) => [$f->sort, $f->id])->values()->map(function (Field $f) use ($bookings, $checkout, $now, $close, $hm, $minsTo, $prices, $venue) {
+            $f->setRelation('venue', $venue);
             $mine = $bookings->where('field_id', $f->id);
             // a game: started at the desk and not paid yet (playing, or stopped and waiting for the money)
             $game = $mine->first(fn (Booking $b) => $b->started_at && ! $b->paid_at);
@@ -60,6 +63,8 @@ class NowController extends OwnerController
             }
             $until = $next ? $next->starts_at->toImmutable() : $close;
             $gap = max(0, (int) round(($until->getTimestamp() - max($from->getTimestamp(), $now->getTimestamp())) / 60));
+            // what stops more time: the next booking or the closing
+            $limit = ['by' => $next ? 'next' : 'close', 'at' => $hm($until)];
 
             return [
                 'id' => $f->id, 'label' => BookingPresenter::fieldLabel($f), 'size' => $f->size->value,
@@ -68,12 +73,17 @@ class NowController extends OwnerController
                     'id' => $game->id, 'name' => $game->team_name ?: BookingPresenter::contactName($game), 'purpose' => $game->purpose,
                     'player' => $game->user ? ['id' => $game->user->id, 'name' => $game->user->name, 'phone' => $game->user->phone ? Phone::format($game->user->phone) : null] : null,
                     'startedAt' => $game->started_at->getTimestamp(),
+                    'endsAt' => $game->ends_at->getTimestamp(),
+                    'stoppedAt' => $game->stopped_at ? $hm($game->stopped_at) : null,
                     'start' => $hm($game->started_at),
                     'bookedEnd' => $game->open_end ? null : $hm($game->ends_at),
                     'holdsUntil' => $hm($game->ends_at),
                     'openEnd' => (bool) $game->open_end,
                     // how many minutes the game may still be held for (the next booking is never moved)
                     'canExtend' => $game->stopped_at ? 0 : min(120, $gap),
+                    // Add time: what each choice adds to the bill (open-ended games pay what they play)
+                    'addPrices' => $game->stopped_at || $game->open_end ? (object) [] : collect([5, 15, 30, 60])->mapWithKeys(fn ($m) => [$m => $checkout->addPrice($game, $m)]),
+                    'limit' => $limit,
                     'bill' => $checkout->bill($game),
                 ] : null,
                 // booked, due now, not started yet (late: minutes since its start)
@@ -86,6 +96,9 @@ class NowController extends OwnerController
                 'freeMin' => $game || $due ? null : $gap,
                 'freeFrom' => ! $game && ! $due && $held ? $hm($from) : null,
                 'freeUntil' => $game || $due ? null : ($next ? $hm($next->starts_at) : $hm($close)),
+                'limit' => $limit,
+                // New game: the lengths with their price now (the place's price list)
+                'walkPrices' => $game || $due ? [] : collect([15, 30, 45, 60, 90, 120])->map(fn ($m) => ['min' => $m, 'price' => $prices->price($f, $now, $m), 'fits' => $m <= $gap])->values(),
             ];
         });
 

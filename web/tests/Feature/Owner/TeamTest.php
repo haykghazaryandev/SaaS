@@ -13,27 +13,28 @@ beforeEach(function () {
     $this->venue->staff()->attach($this->owner->id, ['role' => 'owner']);
 });
 
-it('lets the owner add staff by phone, change the role and take them off; a place keeps an owner', function () {
+it('lets the one owner add staff by name and phone and take them off; staff get the staff panel only', function () {
     Notification::fake();
-    $this->actingAs($this->owner)->post(route('owner.team.store'), ['phone' => '093 55 44 33', 'name' => 'Ani', 'role' => 'staff'])->assertSessionHasNoErrors();
+    $this->actingAs($this->owner)->post(route('owner.team.store'), ['phone' => '093 55 44 33', 'name' => 'Ani'])->assertSessionHasNoErrors();
     $ani = User::where('phone', '+37493554433')->firstOrFail();
     expect($ani->name)->toBe('Ani')->and($this->venue->staff()->whereKey($ani->id)->first()->pivot->role)->toBe('staff');
     Notification::assertSentTo($ani, Notice::class, fn ($n) => $n->type === 'team_added');
     $this->actingAs($this->owner)->get(route('owner.team'))->assertInertia(fn (Assert $p) => $p->component('owner/Team')->has('people', 2));
-
-    // owner, then staff again (another owner is there)
-    $this->actingAs($this->owner)->post(route('owner.team.store'), ['phone' => '+374 93 554 433', 'role' => 'owner'])->assertSessionHasNoErrors();
-    expect($this->venue->staff()->whereKey($ani->id)->first()->pivot->role)->toBe('owner');
-    // nobody takes themselves off; the last owner stays an owner
+    // a name is needed; nobody becomes an owner from here; the owner can't be added or taken off
+    $this->actingAs($this->owner)->post(route('owner.team.store'), ['phone' => '093 11 22 33'])->assertSessionHasErrors('name');
     $team = app(Team::class);
-    expect(fn () => $team->remove($this->venue, $this->owner, $this->owner))->toThrow(BookingException::class);
-    $this->actingAs($this->owner)->delete(route('owner.team.destroy', $ani->id))->assertSessionHasNoErrors();
-    expect($this->venue->staff()->whereKey($ani->id)->exists())->toBeFalse()
-        ->and(fn () => $team->add($this->venue, '+37499111111', 'staff', null, $this->owner))->toThrow(BookingException::class);
+    expect(fn () => $team->add($this->venue, '+37499111111', 'Me', $this->owner))->toThrow(BookingException::class)
+        ->and(fn () => $team->remove($this->venue, $this->owner, $this->owner))->toThrow(BookingException::class);
 
-    // staff can't manage the team
-    $team->add($this->venue, '+37493554433', 'staff', null, $this->owner);
-    $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->post(route('owner.team.store'), ['phone' => '+37493000999', 'role' => 'owner'])->assertForbidden();
+    // Ani logs in: the staff panel only (no owner / staff toggle for her, no settings)
+    $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->get(route('owner.today'))
+        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff'));
+    $this->actingAs($ani)->get(route('switch', ['to' => 'owner']));
+    $this->actingAs($ani)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
+    $this->actingAs($ani)->post(route('owner.team.store'), ['phone' => '+37493000999', 'name' => 'X'])->assertForbidden();
+
+    $this->actingAs($this->owner)->delete(route('owner.team.destroy', $ani->id))->assertSessionHasNoErrors();
+    expect($this->venue->staff()->whereKey($ani->id)->exists())->toBeFalse();
 });
 
 it('switches between the place panel, the panel as staff, the player app and the admin panel', function () {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ChatDock from '@/components/owner/ChatDock.vue';
+import PanelToggle from '@/components/owner/PanelToggle.vue';
 import RoleSwitch from '@/components/RoleSwitch.vue';
 import RequestsBell from '@/components/owner/RequestsBell.vue';
 import { ping } from '@/lib/sound';
@@ -129,9 +130,9 @@ watch(
                     <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>
                 </select>
                 <div v-else id="vs1" class="vname">{{ owner.venue.name }}</div>
-                <span v-if="owner.role === 'staff'" :class="['rolepill', { preview: owner.realRole === 'owner' }]">{{
-                    owner.realRole === 'owner' ? $t('switch.seeing_as_staff') : $t('owner.role_staff')
-                }}</span>
+                <!-- the owner: owner panel / staff panel; staff: just their panel's name -->
+                <PanelToggle />
+                <span v-if="owner.realRole === 'staff'" class="rolepill">{{ $t('switch.staff_panel') }}</span>
             </div>
             <nav class="onav">
                 <Link v-for="n in nav" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">
@@ -165,6 +166,7 @@ watch(
                 <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>
             </select>
             <div v-else class="vname">{{ owner.venue.name }}</div>
+            <a v-if="owner.realRole === 'owner' && owner.role === 'staff'" class="staffchip" :href="`${route('switch')}?to=owner`" :title="$t('switch.owner_panel')">{{ $t('switch.staff_short') }} ⇄</a>
             <RequestsBell compact />
             <Link class="x" :href="route('me.profile')" :title="$t('profile.title')" :aria-label="$t('profile.title')"><Icon name="user" size="sm" /></Link>
             <a v-if="user?.isAdmin" class="x" href="/admin" :title="$t('admin.nav.admin_panel')" :aria-label="$t('admin.nav.admin_panel')"><Icon name="settings" size="sm" /></a>
@@ -193,6 +195,7 @@ watch(
         <!-- phones: the other pages -->
         <div v-if="moreOpen" class="scrim" @click.self="moreOpen = false">
             <div class="sheet" role="dialog" aria-modal="true">
+                <div style="margin-bottom: 10px"><PanelToggle /></div>
                 <nav class="moremenu">
                     <Link v-for="n in more" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined" @click="moreOpen = false">
                         <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span>

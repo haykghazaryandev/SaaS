@@ -145,7 +145,7 @@ it('gives a phone-only booking its player when their card is scanned at the bill
     expect(fn () => app(Checkout::class)->attachCard($b->fresh(), $other))->toThrow(BookingException::class, __('booking.error.other_card'));
 });
 
-it('stops a game: at least its booked length, longer costs more', function () {
+it('stops a game: the booked length, the time added; past the end the bill does not grow', function () {
     $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15], 'features' => ['booking', 'wallet', 'shop']]);
     $t1 = $club->fields->first();
     $checkout = app(Checkout::class);
@@ -159,13 +159,13 @@ it('stops a game: at least its booked length, longer costs more', function () {
     expect(fn () => $checkout->stop($b->fresh(), $this->owner))->toThrow(BookingException::class);
     $this->travelTo($start);
     $checkout->start($b->fresh(), $this->owner);
-    // they leave after 40 min: still the booked hour
+    // they leave after 40 min: still the booked hour; adding 15 min would add 750
     $this->travelTo($start->addMinutes(40));
-    expect($checkout->bill($b->fresh())['minutes'])->toBe(60)
-        // the price holds until the booked hour ends, then each 15 min adds 750
-        ->and($checkout->bill($b->fresh())['next'])->toBe(['until' => '13:00', 'step' => 15, 'adds' => 750]);
-    // they play 1 h 20: 1 h 30 (rounded up to 15 min)
+    expect($checkout->bill($b->fresh())['minutes'])->toBe(60)->and($checkout->addPrice($b->fresh(), 15))->toBe(750);
+    // the time is up and they still play (1 h 20): the bill does not grow — the desk takes the money or adds time
     $this->travelTo($start->addMinutes(80));
+    expect($checkout->bill($b->fresh())['minutes'])->toBe(60);
+    $checkout->extend($b->fresh(), 30, $this->owner);
     $checkout->stop($b->fresh(), $this->owner);
     $bill = $checkout->bill($b->fresh());
     expect($bill['minutes'])->toBe(90)->and($bill['time'])->toBe(4500)

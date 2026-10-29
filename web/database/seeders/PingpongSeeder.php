@@ -89,12 +89,12 @@ class PingpongSeeder extends Seeder
         }
         $admins = collect(AdminSeeder::phones())->map(fn ($p) => User::where('phone', $p)->first())->filter()->values();
         if ($first = $admins->get(0)) {
-            $venue->staff()->syncWithoutDetaching([$first->id => ['role' => 'owner']]);
+            AdminSeeder::ownBy($venue, $first);
         }
         // every other admin: a club of their own (Spin Club, Smash Club, then "Ping-pong club N")
         foreach ($admins->slice(1) as $i => $admin) {
             [$slug, $name] = [1 => ['spin-club', 'Spin Club'], 2 => ['smash-club', 'Smash Club']][$i] ?? ['pp-club-'.($i + 1), 'Ping-pong club '.($i + 1)];
-            $this->spinClub($slug, $name)->staff()->syncWithoutDetaching([$admin->id => ['role' => 'owner']]);
+            AdminSeeder::ownBy($this->spinClub($slug, $name), $admin);
         }
     }
 

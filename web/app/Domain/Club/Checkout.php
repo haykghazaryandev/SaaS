@@ -24,7 +24,8 @@ use Illuminate\Support\Facades\DB;
  * (the time charged is fixed), then the payment: from the player's card (we know it from the booking: no scan
  * needed to pay), in cash, or part each (1 450 + 50). Topping a card up is what needs the QR, not paying a bill.
  *
- * Time charged: rounded up to the place's step (15 min), at least the booked length (playing longer costs more).
+ * Time charged: the booked length (with the time added; stopping early costs the same). When the time is up the bill
+ * does not grow: the desk takes the money or adds time. An open-ended game: the minutes played, rounded up to the step.
  */
 class Checkout
 {
@@ -159,19 +160,10 @@ class Checkout
         $time = $running ? $this->timePrice($booking, $minutes) : ['full' => $this->fullPrice($booking, $minutes), 'price' => (int) $booking->price];
         $items = (int) $booking->items->sum(fn (BookingItem $i) => $i->qty * $i->price_each);
 
-        // while playing: until when the price stays, and what each next step adds ("then +1 000 ֏ per 15 min")
-        $step = $this->step($booking);
-        $next = $running ? [
-            'until' => $booking->starts_at->toImmutable()->addMinutes($minutes)->setTimezone(LocalTime::tz())->format('H:i'),
-            'step' => $step,
-            'adds' => $this->timePrice($booking, $minutes + $step)['price'] - $time['price'],
-        ] : null;
-
         return [
             'started' => $started,
             'minutes' => $minutes,
             'running' => $running,
-            'next' => $next,
             'stopped' => $booking->stopped_at !== null,
             'time' => $time['price'],
             'items' => $booking->items->map(fn (BookingItem $i) => ['id' => $i->id, 'product_id' => $i->product_id, 'name' => $i->name, 'qty' => $i->qty, 'price_each' => $i->price_each, 'sum' => $i->qty * $i->price_each])->values()->all(),
@@ -253,15 +245,25 @@ class Checkout
 
     // ---------- time ----------
 
-    /** Minutes charged if they stop at $now: played, rounded up to the step; a booked game at least its booked length. */
+    /** Minutes charged if they stop at $now: the booked length (time added included); open-ended: played, rounded up to the step. */
     public function chargedMinutes(Booking $booking, CarbonImmutable $now): int
     {
+        if (! $booking->open_end) {
+            return $booking->durationMinutes();
+        }
         $step = $this->step($booking);
         $from = ($booking->started_at ?? $booking->starts_at)->getTimestamp();
         $played = max(0, (int) ceil(($now->getTimestamp() - $from) / 60));
-        $played = max($step, (int) (ceil($played / $step) * $step));
 
-        return $booking->open_end ? $played : max($played, $booking->durationMinutes());
+        return max($step, (int) (ceil($played / $step) * $step));
+    }
+
+    /** What adding these minutes costs on top of the bill now (Now → Add time: "+15 min · +1 250 ֏"). */
+    public function addPrice(Booking $booking, int $minutes): int
+    {
+        $now = $this->chargedMinutes($booking, LocalTime::now());
+
+        return $this->timePrice($booking, $now + $minutes)['price'] - $this->timePrice($booking, $now)['price'];
     }
 
     /** ['full' => the price list for these minutes, 'price' => what it costs (the same: no card discounts)]. */
