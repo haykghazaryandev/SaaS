@@ -42,11 +42,11 @@ watch(
 </script>
 
 <template>
-    <OwnerLayout :title="$t('owner.nav.players')">
+    <OwnerLayout :title="$t('owner.nav.our_players')">
         <div class="phead">
             <div>
                 <div class="kicker">{{ $t('owner.club.players_kicker', { n: total }) }} · {{ owner.venue.name }}</div>
-                <h1>{{ $t('owner.nav.players') }}</h1>
+                <h1>{{ $t('owner.nav.our_players') }}</h1>
             </div>
         </div>
 

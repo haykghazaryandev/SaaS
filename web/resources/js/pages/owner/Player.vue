@@ -32,8 +32,8 @@ const fmtDate = (d: string) => `${d.slice(8)}.${d.slice(5, 7)}`;
 </script>
 
 <template>
-    <OwnerLayout :title="player.name || $t('owner.nav.players')">
-        <Link class="backlink" :href="route('owner.players')"><Icon name="back" size="sm" />{{ $t('owner.nav.players') }}</Link>
+    <OwnerLayout :title="player.name || $t('owner.nav.our_players')">
+        <Link class="backlink" :href="route('owner.players')"><Icon name="back" size="sm" />{{ $t('owner.nav.our_players') }}</Link>
         <section class="card panel who">
             <Avatar :id="player.id" :name="player.name" :src="player.avatar" size="lg" />
             <div style="flex: 1; min-width: 180px">

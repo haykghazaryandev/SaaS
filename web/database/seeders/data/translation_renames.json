@@ -393,6 +393,7 @@
     "owner.form.phone": "common.phone",
     "owner.history.reason": "common.reason",
     "owner.loading": "common.loading",
+    "owner.nav.players": null,
     "owner.nav.today": "common.today",
     "owner.new_booking": "common.new_booking",
     "owner.player_site": null,

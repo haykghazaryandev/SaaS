@@ -6089,10 +6089,10 @@
         "hy": "Հիմա",
         "ru": "Сейчас"
     },
-    "owner.nav.players": {
-        "en": "Players",
-        "hy": "Խաղացողներ",
-        "ru": "Игроки"
+    "owner.nav.our_players": {
+        "en": "Our players",
+        "hy": "Մեր խաղացողները",
+        "ru": "Наши игроки"
     },
     "owner.nav.requests": {
         "en": "Requests",
@@ -6473,21 +6473,6 @@
         "en": "ends :t",
         "hy": "ավարտ՝ :t",
         "ru": "до :t"
-    },
-    "owner.sched.free": {
-        "en": "free",
-        "hy": "ազատ",
-        "ru": "свободно"
-    },
-    "owner.sched.free_until": {
-        "en": "free until :t",
-        "hy": "ազատ է մինչև :t",
-        "ru": "свободен до :t"
-    },
-    "owner.sched.full": {
-        "en": "No free time",
-        "hy": "Ազատ ժամ չկա",
-        "ru": "Свободного времени нет"
     },
     "owner.sched.in_h": {
         "en": "in :h h :m",

@@ -33,7 +33,7 @@ const isOwner = computed(() => owner.value.role === 'owner');
 const club = computed(() =>
     [
         { name: 'owner.now', label: 'owner.nav.now', icon: 'clock', on: has('wallet') || has('shop') },
-        { name: 'owner.players', label: 'owner.nav.players', icon: 'users', on: has('wallet') || has('rating') },
+        { name: 'owner.players', label: 'owner.nav.our_players', icon: 'users', on: has('wallet') || has('rating') },
         { name: 'owner.cards', label: 'owner.nav.cards', icon: 'wallet', on: has('wallet') && isOwner.value },
         { name: 'owner.shop', label: 'owner.nav.shop', icon: 'cube', on: has('shop') },
         { name: 'owner.tournaments', label: 'owner.nav.tournaments', icon: 'trophy', on: has('tournaments') },

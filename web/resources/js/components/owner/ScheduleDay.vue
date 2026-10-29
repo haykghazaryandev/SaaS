@@ -3,8 +3,8 @@ import { fdate, openBooking, useOwner, type BookingRow } from '@/composables/use
 import { hhmm } from '@/composables/useShared';
 import { computed } from 'vue';
 
-// One day picked on the schedule: each court's free time ("Table 1: free 10:00–17:30, 19:00–23:00"), then the
-// bookings in time order (start, end, who, marks, the court). A tap opens the booking. Closed that day: says so.
+// One day picked on the schedule: its bookings in time order (start, end, who, marks, the court). A tap opens the
+// booking. Closed that day: says so. (Free times: New booking shows them.)
 const props = defineProps<{ date: string; today: string; now: number; rows: BookingRow[]; hours: [number, number] | null }>();
 const owner = useOwner();
 const fields = computed(() => owner.value.fields.filter((f) => f.active));
@@ -14,23 +14,6 @@ const courtName = (id: number) => {
 };
 const sorted = computed(() => [...props.rows].sort((a, b) => a.start - b.start || a.field_id - b.field_id));
 const isToday = computed(() => props.date === props.today);
-const past = computed(() => props.date < props.today);
-// the free times of each court that day (from now on, today)
-const free = computed(() => {
-    if (!props.hours || past.value) return [];
-    const [open, close] = props.hours;
-    return fields.value.map((f) => {
-        let from = isToday.value ? Math.max(open, props.now) : open;
-        const gaps: [number, number][] = [];
-        for (const b of sorted.value.filter((x) => x.field_id === f.id)) {
-            if (b.end <= from) continue;
-            if (b.start > from + 0.01) gaps.push([from, b.start]);
-            from = Math.max(from, b.end);
-        }
-        if (from < close - 0.01) gaps.push([from, close]);
-        return { name: f.short || f.label, gaps };
-    });
-});
 const cls = (b: BookingRow) =>
     b.purpose === 'training' ? 'train' : isToday.value && b.start <= props.now && b.end > props.now ? 'live' : b.past ? 'done' : b.weekly ? 'week' : '';
 </script>
@@ -42,13 +25,6 @@ const cls = (b: BookingRow) =>
             <small>{{ $t('owner.sched.n_bookings', { n: rows.length }) }}</small>
         </div>
         <p v-if="!hours" class="closed">{{ $t('owner.schedule.closed_day') }}</p>
-        <div v-else-if="free.length" class="frees">
-            <div v-for="f in free" :key="f.name" class="fr">
-                <b>{{ f.name }}</b>
-                <span v-if="f.gaps.length">🟩 {{ $t('owner.sched.free') }} {{ f.gaps.map(([a, z]) => `${hhmm(a)}–${hhmm(z)}`).join(', ') }}</span>
-                <span v-else class="faint">{{ $t('owner.sched.full') }}</span>
-            </div>
-        </div>
         <button v-for="b in sorted" :key="b.id" type="button" :class="['a-row', cls(b)]" :data-test="'srow-' + b.id" @click="openBooking(b.id)">
             <span class="t"
                 ><b>{{ hhmm(b.start) }}</b><small>–{{ hhmm(b.end) }}</small></span
@@ -73,10 +49,6 @@ const cls = (b: BookingRow) =>
 .a-sec h4 { margin: 0; font: 600 19px var(--display); }
 .a-sec small { color: var(--muted); font-weight: 700; font-size: 12.5px; }
 .closed { color: var(--hot); font-weight: 700; }
-.frees { display: grid; gap: 4px; margin-bottom: 12px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
-.fr { display: flex; gap: 10px; font-size: 13px; }
-.fr b { min-width: 64px; }
-.fr span { color: var(--free); font-weight: 700; }
 .a-row { width: 100%; display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line-2); border-left: 4px solid #5cc8ff; margin-bottom: 6px; cursor: pointer; color: var(--ink); font: inherit; text-align: left; }
 .a-row:hover { background: var(--surface-2); }
 .a-row.train { border-left-color: #ff7ad9; }
@@ -97,6 +69,5 @@ const cls = (b: BookingRow) =>
 @media (max-width: 560px) {
     .a-row { grid-template-columns: 68px minmax(0, 1fr); }
     .tb { grid-column: 2; justify-self: start; padding: 2px 8px; }
-    .fr { flex-direction: column; gap: 0; }
 }
 </style>

@@ -4,8 +4,7 @@ import { hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
 import { computed } from 'vue';
 
-// The schedule from now on (style A): no grid, the bookings in time order under "Playing now" (with which courts are
-// free until when), "In the next hour", "Later today", "Tomorrow" and "Later this week". A row: the start (big), when
+// The schedule from now on (style A): no grid, the bookings in time order under "Playing now", "In the next hour", "Later today", "Tomorrow" and "Later this week". A row: the start (big), when
 // (in 35 min / ends 18:40 / until 19:00), who, marks (request, training, weekly), the court. A tap opens the booking.
 const props = defineProps<{ rows: BookingRow[]; today: string; now: number; hours: [number, number] | null }>();
 const owner = useOwner();
@@ -25,17 +24,6 @@ const tomorrow = computed(() => sorted.value.filter((b) => day(b.date) === 1));
 const week = computed(() => sorted.value.filter((b) => day(b.date) >= 2));
 // later this week: a small date header before each new day
 const weekDays = computed(() => [...new Set(week.value.map((b) => b.date))].map((d) => ({ date: d, rows: week.value.filter((b) => b.date === d) })));
-// courts not playing now: free until their next booking (or the closing)
-const freeNow = computed(() => {
-    const close = props.hours?.[1] ?? 24;
-    if (props.now >= close) return [];
-    return fields.value
-        .filter((f) => !live.value.some((b) => b.field_id === f.id))
-        .map((f) => {
-            const next = todays.value.find((b) => b.field_id === f.id && b.kind !== 'pending' && b.start > props.now);
-            return { name: f.short || f.label, until: next ? next.start : close };
-        });
-});
 const when = (b: BookingRow) => {
     if (b.date !== props.today) return '–' + hhmm(b.end);
     if (b.start > props.now) {
@@ -47,7 +35,7 @@ const when = (b: BookingRow) => {
 const cls = (b: BookingRow) => (b.kind === 'pending' ? 'req' : b.purpose === 'training' ? 'train' : b.start <= props.now && b.end > props.now && b.date === props.today ? 'live' : b.weekly ? 'week' : '');
 const dayTitle = (d: string) => (day(d) === 1 ? trans('common.tomorrow') : fdate(d, { weekday: 'long' })) + ', ' + fdate(d, { day: 'numeric', month: 'short' });
 const sections = computed(() => [
-    { key: 'now', title: trans('owner.sched.playing_now'), sub: fdate(props.today, { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + hhmm(props.now), rows: live.value, free: true },
+    { key: 'now', title: trans('owner.sched.playing_now'), sub: fdate(props.today, { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + hhmm(props.now), rows: live.value },
     { key: 'hour', title: trans('owner.sched.next_hour'), sub: `${hhmm(props.now)}–${hhmm(Math.min(24, props.now + 1))}`, rows: hour.value },
     { key: 'later', title: trans('owner.sched.later_today'), sub: props.hours ? `${hhmm(Math.min(24, props.now + 1))}–${hhmm(props.hours[1])}` : '', rows: later.value },
 ]);
@@ -60,7 +48,6 @@ const sections = computed(() => [
                 <h4>{{ s.title }}</h4>
                 <small>{{ s.sub }}</small>
             </div>
-            <div v-if="s.free && freeNow.length" class="a-free">🟩 {{ freeNow.map((f) => `${f.name}: ${$t('owner.sched.free_until', { t: hhmm(f.until) })}`).join(' · ') }}</div>
             <button v-for="b in s.rows" :key="b.id" type="button" :class="['a-row', cls(b)]" :data-test="'srow-' + b.id" @click="openBooking(b.id)">
                 <span class="t"
                     ><b>{{ hhmm(b.start) }}</b><small>{{ when(b) }}</small></span
@@ -147,7 +134,6 @@ const sections = computed(() => [
 .mk.week { background: rgba(182, 156, 255, 0.16); color: #c9b8ff; }
 .tb { font: 700 12.5px var(--body); padding: 5px 10px; border-radius: 10px; background: var(--surface-3); white-space: nowrap; }
 .a-empty { color: var(--faint); font-size: 13px; padding: 2px 2px 8px; }
-.a-free { font-size: 13px; color: var(--free); padding: 2px 4px 10px; font-weight: 700; }
 @media (max-width: 560px) {
     .a-row { grid-template-columns: 68px minmax(0, 1fr); }
     .tb { grid-column: 2; justify-self: start; padding: 2px 8px; }
