@@ -100,9 +100,11 @@ class TelegramUpdateHandler
                 if ($linked === 'linked') {
                     $this->bot->hideKeyboard($chatId);   // the phone is shared: the "Share my phone number" button goes away
                 }
-                $linked === 'linked'
-                    ? $this->bot->sendMessage($chatId, __('telegram.bot.linked', ['name' => $owner->name ? ', '.e($owner->name) : ''], $locale))
-                    : $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_mismatch', ['phone' => Phone::format($owner->phone)], $locale));
+                match ($linked) {
+                    'linked' => $this->bot->sendMessage($chatId, __('telegram.bot.linked', ['name' => $owner->name ? ', '.e($owner->name) : ''], $locale)),
+                    'taken' => $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_taken', [], $locale)),
+                    default => $this->bot->sendAndHideKeyboard($chatId, __('telegram.bot.link_mismatch', ['phone' => Phone::format($owner->phone)], $locale)),
+                };
 
                 return;
             }

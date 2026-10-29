@@ -32,6 +32,8 @@ class HandleInertiaRequests extends Middleware
                     'username' => $user->username,
                     'registered' => $user->isRegistered(),
                     'telegram' => $user->hasTelegram(),
+                    // a phone confirmed (with Telegram): needed to book
+                    'phoneConfirmed' => $user->phone_verified_at !== null,
                     'isAdmin' => (bool) $user->is_admin,
                     'isOwner' => fn () => $user->venues()->exists(),
                     // someone who runs a place chose the player app (the switch): its full menu

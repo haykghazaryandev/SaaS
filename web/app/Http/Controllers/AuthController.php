@@ -331,11 +331,11 @@ class AuthController extends Controller
     public function welcome(Request $request)
     {
         $user = $request->user();
-        if ($user->isRegistered() && $user->phone) {
+        if ($user->isRegistered()) {
             return redirect()->route('home');
         }
 
-        return Inertia::render('auth/Welcome', ['name' => $user->name, 'username' => $user->username, 'needsPhone' => ! $user->phone]);
+        return Inertia::render('auth/Welcome', ['name' => $user->name, 'username' => $user->username]);
     }
 
     public function register(Request $request)
@@ -346,24 +346,28 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => 'required|string|min:2|max:60',
             'username' => ['nullable', 'string', 'min:3', 'max:32', 'regex:/^[a-z0-9_.]+$/i', Rule::unique('users')->ignore($user->id)],
-            'phone' => [$user->phone ? 'nullable' : 'required', 'string', 'max:20'],
         ]);
-        $phone = null;
-        if (! $user->phone) {
-            $phone = Phone::normalize($data['phone'] ?? null);
-            if (! $phone) {
-                throw ValidationException::withMessages(['phone' => __('auth.phone.invalid')]);
-            }
-            if (User::withTrashed()->where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
-                throw ValidationException::withMessages(['phone' => __('auth.phone.taken')]);
-            }
-        }
         $user->forceFill([
             'name' => $data['name'],
             'username' => $data['username'] ?? null, 'registered_at' => $user->registered_at ?? now(), 'locale' => app()->getLocale(),
-        ] + ($phone ? ['phone' => $phone] : []))->save();
+        ])->save();
+        // no confirmed phone yet (email, Google): confirm it with Telegram now, or later before booking
+        if (! $user->phone_verified_at) {
+            return redirect()->route('phone.confirm');
+        }
 
         return redirect()->intended(route('home'))->with('success', __('auth.welcome_done'));
+    }
+
+    /** "Confirm your phone": with Telegram (the bot takes the number of that Telegram account); needed to book. */
+    public function confirmPhone(Request $request)
+    {
+        $user = $request->user();
+        if ($user->phone_verified_at) {
+            return redirect()->intended(route('home'));
+        }
+
+        return Inertia::render('auth/ConfirmPhone', ['back' => $request->session()->get('url.intended')]);
     }
 
     public function logout(Request $request)

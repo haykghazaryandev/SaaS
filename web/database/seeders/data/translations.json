@@ -1029,6 +1029,36 @@
         "hy": "Սխալ կոդ, մնաց :n փորձ",
         "ru": "Неверный код, осталось попыток: :n"
     },
+    "auth.confirm.bar": {
+        "en": "Confirm your phone with Telegram.",
+        "hy": "Հաստատեք ձեր համարը Telegram-ով։",
+        "ru": "Подтвердите номер через Telegram."
+    },
+    "auth.confirm.cta": {
+        "en": "Confirm",
+        "hy": "Հաստատել",
+        "ru": "Подтвердить"
+    },
+    "auth.confirm.later": {
+        "en": "Later",
+        "hy": "Ավելի ուշ",
+        "ru": "Позже"
+    },
+    "auth.confirm.no_booking": {
+        "en": "Without a confirmed phone you can't book, join games or register for tournaments.",
+        "hy": "Առանց հաստատված համարի չեք կարող ամրագրել, միանալ խաղերին կամ գրանցվել մրցաշարերի։",
+        "ru": "Без подтверждённого номера нельзя бронировать, присоединяться к играм и записываться на турниры."
+    },
+    "auth.confirm.title": {
+        "en": "Confirm your phone",
+        "hy": "Հաստատեք ձեր հեռախոսահամարը",
+        "ru": "Подтвердите телефон"
+    },
+    "auth.confirm.why": {
+        "en": "Places call this number about your booking. Telegram confirms it in a few seconds: open the bot and share your number.",
+        "hy": "Վայրերը զանգում են այս համարով՝ ձեր ամրագրման մասին։ Telegram-ը հաստատում է այն մի քանի վայրկյանում՝ բացեք բոտը և կիսվեք ձեր համարով։",
+        "ru": "Места звонят на этот номер по вашей брони. Telegram подтверждает его за несколько секунд: откройте бота и поделитесь номером."
+    },
     "auth.dev_code": {
         "en": "Development: the code is :code",
         "hy": "Մշակում․ կոդն է :code",
@@ -1139,20 +1169,15 @@
         "hy": "Էլ. փոստը կամ գաղտնաբառը սխալ է։",
         "ru": "Неверная почта или пароль."
     },
+    "auth.phone.confirm_first": {
+        "en": "Confirm your phone with Telegram first.",
+        "hy": "Նախ հաստատեք ձեր համարը Telegram-ով։",
+        "ru": "Сначала подтвердите номер через Telegram."
+    },
     "auth.phone.invalid": {
         "en": "Enter a valid Armenian mobile number",
         "hy": "Մուտքագրեք ճիշտ հայկական բջջային համար",
         "ru": "Введите корректный армянский мобильный номер"
-    },
-    "auth.phone.required": {
-        "en": "Add your phone number to continue: the place calls it about your booking.",
-        "hy": "Շարունակելու համար ավելացրեք ձեր հեռախոսահամարը․ ամրագրման հարցով զանգում են այդ համարով։",
-        "ru": "Добавьте номер телефона, чтобы продолжить: по нему звонят насчёт брони."
-    },
-    "auth.phone.taken": {
-        "en": "This number already has an account. Log in with Telegram to use it.",
-        "hy": "Այս համարով արդեն հաշիվ կա։ Մուտք գործեք Telegram-ով։",
-        "ru": "У этого номера уже есть аккаунт. Войдите через Telegram."
     },
     "auth.phone.test_only": {
         "en": "Here only the test accounts log in with a code. Use Telegram for your own number.",
@@ -1288,11 +1313,6 @@
         "en": "Log in or sign up",
         "hy": "Մուտք կամ գրանցում",
         "ru": "Вход или регистрация"
-    },
-    "auth.welcome.phone": {
-        "en": "Phone number (the place may call you about a booking)",
-        "hy": "Հեռախոսահամար (ակումբը կարող է զանգել ամրագրման մասին)",
-        "ru": "Номер телефона (клуб может позвонить по брони)"
     },
     "auth.welcome.sub": {
         "en": "How should other players see you?",
@@ -7069,10 +7089,10 @@
         "hy": "Հիմա առցանց է",
         "ru": "Сейчас в сети"
     },
-    "owner.team.owner_can": {
-        "en": "everything: also money, cards, the shop's products, settings, the team and new tournaments.",
-        "hy": "ամեն ինչ՝ նաև գումար, քարտեր, խանութի ապրանքներ, կարգավորումներ, թիմ և նոր մրցաշարեր։",
-        "ru": "всё: ещё деньги, карты, товары магазина, настройки, команда и новые турниры."
+    "owner.team.owner_does": {
+        "en": "everything: also money, ZoneSpot fee, the shop's products, settings, the team and new tournaments.",
+        "hy": "ամեն ինչ՝ նաև գումար, ZoneSpot-ի վճար, խանութի ապրանքներ, կարգավորումներ, թիմ և նոր մրցաշարեր։",
+        "ru": "всё: ещё деньги, комиссия ZoneSpot, товары магазина, настройки, команда и новые турниры."
     },
     "owner.team.remove": {
         "en": "Take off the team",
@@ -7099,10 +7119,10 @@
         "hy": "Թիմը պահպանվեց։",
         "ru": "Команда сохранена."
     },
-    "owner.team.staff_can": {
-        "en": "the daily work: Now, Today, Schedule, players, a scanned card, running tournaments, chats. No money, no settings.",
-        "hy": "ամենօրյա աշխատանքը՝ Հիմա, Այսօր, Ժամանակացույց, խաղացողներ, սկանավորված քարտ, մրցաշարերի անցկացում, զրույցներ։ Առանց գումարի և կարգավորումների։",
-        "ru": "ежедневная работа: Сейчас, Сегодня, Расписание, игроки, отсканированная карта, проведение турниров, чаты. Без денег и настроек."
+    "owner.team.staff_does": {
+        "en": "the daily work: Now, Schedule, Requests, our players, cards (make, scan, top up), running tournaments, chats. No money, no settings.",
+        "hy": "ամենօրյա աշխատանքը՝ Հիմա, Ժամանակացույց, Հայտեր, մեր խաղացողները, քարտեր (ստեղծել, սկանավորել, համալրել), մրցաշարերի անցկացում, զրույցներ։ Առանց գումարի և կարգավորումների։",
+        "ru": "ежедневная работа: Сейчас, Расписание, Заявки, наши игроки, карты (создать, сканировать, пополнить), проведение турниров, чаты. Без денег и настроек."
     },
     "owner.team.staff_name": {
         "en": "Name",
@@ -9298,6 +9318,11 @@
         "en": "⚠️ This Telegram account has a different phone number than your ZoneSpot account (:phone), so it was not connected. Use the Telegram account with that number, or log in with Telegram to use this one.",
         "hy": "⚠️ Այս Telegram հաշվի հեռախոսահամարը տարբերվում է ձեր ZoneSpot հաշվի համարից (:phone), ուստի այն չմիացվեց։ Օգտագործեք այդ համարով Telegram հաշիվը կամ մուտք գործեք Telegram-ով՝ այս հաշիվն օգտագործելու համար։",
         "ru": "⚠️ У этого аккаунта Telegram другой номер, чем у вашего аккаунта ZoneSpot (:phone), поэтому он не подключён. Используйте Telegram с этим номером или войдите через Telegram, чтобы пользоваться этим."
+    },
+    "telegram.bot.link_taken": {
+        "en": "This number already has a ZoneSpot account. Log in with Telegram to use it.",
+        "hy": "Այս համարով արդեն կա ZoneSpot հաշիվ։ Մուտք գործեք Telegram-ով՝ այն օգտագործելու համար։",
+        "ru": "На этот номер уже есть аккаунт ZoneSpot. Войдите через Telegram, чтобы пользоваться им."
     },
     "telegram.bot.linked": {
         "en": "✅ Telegram is connected:name. Booking updates and reminders will come here.",

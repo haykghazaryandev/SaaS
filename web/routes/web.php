@@ -81,6 +81,8 @@ Route::get('l/{user}', [AuthController::class, 'loginLink'])->middleware('thrott
 Route::middleware('auth')->group(function () {
     Route::get('welcome', [AuthController::class, 'welcome'])->name('welcome');
     Route::post('welcome', [AuthController::class, 'register'])->name('welcome.store');
+    // booking needs a phone confirmed with Telegram (accounts from email / Google)
+    Route::get('confirm-phone', [AuthController::class, 'confirmPhone'])->name('phone.confirm');
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     // admin / owner / owner as staff / player app
     Route::match(['get', 'post'], 'switch', RoleSwitchController::class)->name('switch');

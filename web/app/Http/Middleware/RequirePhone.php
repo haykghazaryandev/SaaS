@@ -7,38 +7,27 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * A logged-in account without a phone (username + password, Google, email code) must add it on the welcome page
- * before anything else: booking, games, chats. The place calls this number about a booking.
- * Open: the welcome page itself, logging in / out, the interface texts, the admin panel and the Telegram webhook.
+ * Booking needs a confirmed phone (the place calls this number; no-shows are counted on it): booking, starting or
+ * joining a game, registering for a tournament, getting a club card. An account without one (email, Google) can look
+ * around freely; these actions send it to "Confirm your phone" (with Telegram), and back to the page afterwards.
  */
 class RequirePhone
 {
-    private const OPEN = ['welcome', 'welcome.store', 'logout', 'lang', 'login.', 'telegram.webhook', 'filament.', 'livewire.', 'default-livewire.'];
+    public const NEEDS = ['bookings.store', 'games.store', 'games.join', 'games.book', 'tournament.register', 'places.card'];
 
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
         $name = (string) $request->route()?->getName();
-        if (! $user || $user->phone || $name === '' || self::isOpen($name)) {
+        if (! $user || $user->phone_verified_at || ! in_array($name, self::NEEDS, true)) {
             return $next($request);
         }
         if ($request->expectsJson() && ! $request->header('X-Inertia')) {
-            return response()->json(['message' => __('auth.phone.required'), 'redirect' => route('welcome')], 409);
+            return response()->json(['message' => __('auth.phone.confirm_first'), 'redirect' => route('phone.confirm')], 409);
         }
-        // back to this page (or, after a form, to the page the form was on) once the phone is added
+        // back to the page the action was on once the phone is confirmed
         $request->session()->put('url.intended', $request->isMethod('GET') ? $request->fullUrl() : url()->previous());
 
-        return redirect()->route('welcome')->with('error', __('auth.phone.required'));
-    }
-
-    private static function isOpen(string $name): bool
-    {
-        foreach (self::OPEN as $open) {
-            if ($name === $open || (str_ends_with($open, '.') && str_starts_with($name, $open))) {
-                return true;
-            }
-        }
-
-        return false;
+        return redirect()->route('phone.confirm');
     }
 }

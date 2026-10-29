@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Notifications\TelegramLinker;
 use App\Mail\PasswordResetMail;
 use App\Models\Booking;
 use App\Models\User;
@@ -17,7 +18,7 @@ beforeEach(fn () => config(['services.google.client_id' => 'id', 'services.googl
 
 // ---------- email + password ----------
 
-it('signs up with email and password, then asks for the name and the phone before anything else', function () {
+it('signs up with email and password, then asks for the name; booking waits for a phone confirmed with Telegram', function () {
     $small = makeVenue()->fields->firstWhere('size.value', 'small');
     $booking = ['field_id' => $small->id, 'date' => at(0)->toDateString(), 'start' => '20:00', 'minutes' => 60];
     $this->post('/login/register', ['email' => ' Aram@Mail.am ', 'password' => 'secret123', 'password_confirmation' => 'secret123'])
@@ -26,21 +27,33 @@ it('signs up with email and password, then asks for the name and the phone befor
     expect($u)->not->toBeNull()->and($u->username)->toBeNull()->and($u->phone)->toBeNull()->and($u->isRegistered())->toBeFalse()
         ->and($u->password)->not->toBe('secret123');   // hashed
 
-    // no phone yet: pages and booking send the person to the welcome page
-    $this->get('/')->assertRedirect(route('welcome'));
-    $this->get('/me/bookings')->assertRedirect(route('welcome'));
-    $this->from('/places/zangak')->post('/bookings', $booking)->assertRedirect(route('welcome'));
+    // the name (the username is optional), then "Confirm your phone"
+    $this->post('/welcome', ['name' => 'Aram', 'username' => ''])->assertRedirect(route('phone.confirm'));
+    expect($u->fresh()->isRegistered())->toBeTrue();
+    // looking around is open; booking needs the confirmed phone (back to the page afterwards)
+    $this->get('/')->assertOk()->assertInertia(fn ($p) => $p->where('auth.user.phoneConfirmed', false));
+    $this->get('/me/bookings')->assertOk();
+    $this->from('/places/zangak')->post('/bookings', $booking)->assertRedirect(route('phone.confirm'));
+    $this->postJson('/bookings', $booking)->assertStatus(409)->assertJsonPath('redirect', route('phone.confirm'));
     expect(Booking::count())->toBe(0);
-    $this->getJson('/me/bookings')->assertStatus(409);
-    $this->get('/welcome')->assertOk()->assertInertia(fn ($p) => $p->where('needsPhone', true));
+    $this->get('/confirm-phone')->assertOk()->assertInertia(fn ($p) => $p->component('auth/ConfirmPhone')->where('back', url('/places/zangak')));
 
-    // the username is optional
-    $this->post('/welcome', ['name' => 'Aram', 'username' => '', 'phone' => '091 12 34 56'])->assertRedirect(url('/places/zangak'));
-    expect($u->fresh()->phone)->toBe('+37491123456')->and($u->fresh()->isRegistered())->toBeTrue();
-    $this->get('/')->assertOk();
+    // "Connect Telegram": the bot gets the number of that Telegram account: it becomes the confirmed phone
+    $linker = app(TelegramLinker::class);
+    $linker->start($linker->createToken($u->fresh())->token, 555001);
+    expect($linker->finish(555001, '+37491123456')[0])->toBe('linked')
+        ->and($u->fresh()->phone)->toBe('+37491123456')->and($u->fresh()->phone_verified_at)->not->toBeNull()->and($u->fresh()->telegram_chat_id)->toBe(555001);
     // now the booking goes through
-    $this->post('/bookings', $booking)->assertSessionHasNoErrors();
+    $this->actingAs($u->fresh())->post('/bookings', $booking)->assertSessionHasNoErrors();
     expect(Booking::where('user_id', $u->id)->count())->toBe(1);
+});
+
+it('never gives an email account a number another account already confirmed', function () {
+    User::factory()->create(['phone' => '+37491999888', 'phone_verified_at' => now()]);
+    $u = User::factory()->create(['phone' => null, 'phone_verified_at' => null, 'email' => 'x@mail.am']);
+    $linker = app(TelegramLinker::class);
+    $linker->start($linker->createToken($u)->token, 555002);
+    expect($linker->finish(555002, '+37491999888')[0])->toBe('taken')->and($u->fresh()->phone)->toBeNull();
 });
 
 it('checks the sign-up form', function () {
@@ -146,7 +159,7 @@ it('hides Google when it is not configured', function () {
     $this->get('/login/google')->assertNotFound();
 });
 
-it('creates an account with Google and asks for the phone', function () {
+it('creates an account with Google; it can look around before the phone is confirmed', function () {
     $this->get('/login')->assertInertia(fn ($p) => $p->where('google', true));
     $this->get('/login/google')->assertRedirect();
 
@@ -154,7 +167,7 @@ it('creates an account with Google and asks for the phone', function () {
     $this->get('/login/google/callback')->assertRedirect(route('welcome'));
     $u = User::where('google_id', '1001')->first();
     expect($u->email)->toBe('ani@gmail.com')->and($u->email_verified_at)->not->toBeNull()->and($u->name)->toBe('Ani Hakobyan')->and($u->phone)->toBeNull();
-    $this->get('/me/cards')->assertRedirect(route('welcome'));
+    $this->get('/me/cards')->assertOk();
 
     // the next time: the same account
     auth()->logout();

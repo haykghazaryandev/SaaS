@@ -166,7 +166,15 @@ watch(() => page.url, () => (menu.value = false));
                 </div>
             </div>
         </header>
-        <main class="wrap app-main"><slot /></main>
+        <main class="wrap app-main">
+            <!-- an account from email / Google: confirm the phone with Telegram, or booking stays closed -->
+            <Link v-if="user && user.phoneConfirmed === false && !route().current('phone.confirm')" class="phonebar" :href="route('phone.confirm')" data-test="confirm-phone-bar">
+                <Icon name="alert" size="sm" /><span
+                    ><b>{{ $t('auth.confirm.bar') }}</b> <small>{{ $t('auth.confirm.no_booking') }}</small></span
+                ><span class="go">{{ $t('auth.confirm.cta') }} →</span>
+            </Link>
+            <slot />
+        </main>
         <footer v-if="!user" class="foot">
             <div class="wrap">
                 <span>© 2026 ZoneSpot · {{ $t('common.city') }}</span>
@@ -184,6 +192,10 @@ watch(() => page.url, () => (menu.value = false));
 </template>
 
 <style scoped>
+.phonebar { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 14px; background: var(--warn-soft); color: var(--warn); text-decoration: none; font-size: 13.5px; }
+.phonebar small { color: var(--muted); }
+.phonebar .go { margin-left: auto; font-weight: 800; white-space: nowrap; }
+@media (max-width: 560px) { .phonebar { flex-wrap: wrap; } .phonebar .go { margin-left: 0; } }
 .papp { --app-top: 64px; --app-bottom: 0px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .app-main { flex: 1 0 auto; width: 100%; padding-bottom: 40px; }
 .papp.guest .app-main { padding-bottom: 0; }

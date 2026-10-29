@@ -28,6 +28,11 @@ it('opens every club page for the owner, and none where the feature is off', fun
     foreach (['/owner/players', '/owner/players/'.$this->player->id, '/owner/cards', '/owner/cards/'.$this->card->code, '/owner/shop', '/owner/tournaments', '/owner/money'] as $url) {
         $this->actingAs($this->owner)->get($url)->assertOk();
     }
+    // staff: the cards too (they make, scan and top them up at the desk); not the money
+    $staff = User::factory()->create();
+    $this->club->staff()->attach($staff->id, ['role' => 'staff']);
+    $this->actingAs($staff)->withSession(['venue_id' => $this->club->id])->get('/owner/cards')->assertOk();
+    $this->actingAs($staff)->get('/owner/money')->assertRedirect(route('owner.start'));
     $this->club->update(['features' => ['booking']]);
     foreach (['/owner/players', '/owner/cards', '/owner/shop', '/owner/tournaments'] as $url) {
         $this->actingAs($this->owner)->get($url)->assertNotFound();

@@ -63,7 +63,7 @@ Route::prefix('owner')->name('owner.')->middleware('venue.staff')->group(functio
     Route::get('players/{user}', [PlayerController::class, 'show'])->whereNumber('user')->name('players.show');
     Route::post('players/{user}/rating', [PlayerController::class, 'rating'])->whereNumber('user')->name('players.rating');
     Route::post('players/{user}/chat', [PlayerController::class, 'chat'])->whereNumber('user')->name('players.chat');
-    Route::get('cards', [CardController::class, 'index'])->name('cards')->middleware('venue.owner');
+    Route::get('cards', [CardController::class, 'index'])->name('cards');
     Route::post('cards', [CardController::class, 'store'])->name('cards.store');
     Route::get('cards/{code}', [CardController::class, 'show'])->where('code', '[a-z0-9]{20}')->name('cards.show');
     Route::prefix('cards/{code}')->where(['code' => '[a-z0-9]{20}'])->name('cards.')->group(function () {

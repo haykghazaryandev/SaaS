@@ -6,6 +6,8 @@ export interface AuthUser {
     username: string | null;
     registered: boolean;
     telegram: boolean;
+    /** a phone confirmed with Telegram: needed to book */
+    phoneConfirmed?: boolean;
     isAdmin: boolean;
     isOwner: boolean;
     playerMode?: boolean;

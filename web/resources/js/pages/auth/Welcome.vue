@@ -2,10 +2,10 @@
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
-// first login: the player tells us their name, and their phone when the account has none
-// (username + password, Google, email): nothing else opens until it is given (RequirePhone)
-const props = defineProps<{ name: string | null; username?: string | null; needsPhone?: boolean }>();
-const form = useForm({ name: props.name ?? '', username: props.username ?? '', phone: '' });
+// first login: the player tells us their name (and a username if they like). An account without a confirmed phone
+// (email, Google) is then asked to confirm it with Telegram — needed to book, everything else is open.
+const props = defineProps<{ name: string | null; username?: string | null }>();
+const form = useForm({ name: props.name ?? '', username: props.username ?? '' });
 </script>
 
 <template>
@@ -18,15 +18,6 @@ const form = useForm({ name: props.name ?? '', username: props.username ?? '', p
                 <label for="name">{{ $t('common.your_name') }}</label>
                 <input id="name" v-model="form.name" class="input" autocomplete="name" autofocus />
                 <div v-if="form.errors.name" class="err">{{ form.errors.name }}</div>
-            </div>
-            <!-- accounts without a phone give it here (not confirmed): the place may call about a booking -->
-            <div v-if="needsPhone" class="field">
-                <label for="phone">{{ $t('auth.welcome.phone') }}</label>
-                <div class="row" style="gap: 8px">
-                    <span class="input" style="width: auto; color: var(--muted)">+374</span>
-                    <input id="phone" v-model="form.phone" class="input mono" inputmode="tel" autocomplete="tel" placeholder="91 234 567" />
-                </div>
-                <div v-if="form.errors.phone" class="err">{{ form.errors.phone }}</div>
             </div>
             <div class="field">
                 <label for="username">{{ $t('auth.welcome.username') }}</label>

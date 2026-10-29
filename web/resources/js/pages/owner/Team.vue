@@ -59,8 +59,8 @@ async function remove(p: Person) {
                     <button type="submit" class="btn" :disabled="form.processing || !form.phone || !form.name" data-test="team-add">{{ $t('owner.team.add_btn') }}</button>
                 </form>
                 <div class="card panel roles">
-                    <p><b>{{ $t('owner.team.role_staff') }}</b> — {{ $t('owner.team.staff_can') }}</p>
-                    <p><b>{{ $t('owner.team.role_owner') }}</b> — {{ $t('owner.team.owner_can') }}</p>
+                    <p><b>{{ $t('owner.team.role_staff') }}</b> — {{ $t('owner.team.staff_does') }}</p>
+                    <p><b>{{ $t('owner.team.role_owner') }}</b> — {{ $t('owner.team.owner_does') }}</p>
                 </div>
             </aside>
         </div>

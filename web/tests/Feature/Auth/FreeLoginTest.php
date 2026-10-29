@@ -105,7 +105,7 @@ it('lets a guest log in with Telegram in the booking sheet and then book', funct
     expect($b->source)->toBe(BookingSource::Player)->and($b->contact_phone)->toBe('+37493556677')->and($b->contact_name)->toBe('Davit');
 });
 
-it('logs in by email and asks for a phone on the welcome page', function () {
+it('logs in by email, asks for the name, then to confirm the phone with Telegram', function () {
     Mail::fake();
     $this->post('/login/email', ['email' => 'Narek@Mail.am'])->assertSessionHasNoErrors();
     $code = Cache::get('dev-otp:narek@mail.am');
@@ -116,10 +116,9 @@ it('logs in by email and asks for a phone on the welcome page', function () {
     $u = User::where('email', 'narek@mail.am')->first();
     expect($u->phone)->toBeNull();
 
-    User::factory()->create(['phone' => '+37491555555']);
-    $this->post('/welcome', ['name' => 'Narek', 'phone' => '091 55 55 55'])->assertSessionHasErrors(['phone' => __('auth.phone.taken')]);
-    $this->post('/welcome', ['name' => 'Narek', 'phone' => '091 66 66 66'])->assertRedirect('/');
-    expect($u->fresh()->phone)->toBe('+37491666666')->and($u->fresh()->phone_verified_at)->toBeNull();
+    // no typed phone any more: the phone comes confirmed from Telegram ("Confirm your phone")
+    $this->post('/welcome', ['name' => 'Narek'])->assertRedirect(route('phone.confirm'));
+    expect($u->fresh()->name)->toBe('Narek')->and($u->fresh()->phone)->toBeNull();
 });
 
 it('simulates Telegram in development only when there is no bot token', function () {

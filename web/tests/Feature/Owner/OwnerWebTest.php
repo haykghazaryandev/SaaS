@@ -67,9 +67,10 @@ it('shows the four numbers of the day shown on top of the schedule: bookings, re
 
 it('lets staff work with bookings but not change settings', function () {
     // the settings, team, money and ZoneSpot fee pages are the owner's: staff go back to their start page
-    foreach (['/owner/settings', '/owner/team', '/owner/fee', '/owner/cards', '/owner/tournaments/new'] as $url) {
+    foreach (['/owner/settings', '/owner/team', '/owner/fee', '/owner/money', '/owner/tournaments/new'] as $url) {
         $this->actingAs($this->staff)->get($url)->assertRedirect(route('owner.start'));
     }
+
     $this->actingAs($this->staff)->put('/owner/settings/rules', ['min_notice_min' => 30, 'request_expire_min' => 60, 'auto_accept_regulars' => true])->assertForbidden();
     $this->actingAs($this->staff)->put('/owner/settings/prices', ['prices' => []])->assertForbidden();
     $this->actingAs($this->staff)->post('/owner/closures', ['from' => '2030-01-01T10:00', 'to' => '2030-01-01T12:00'])->assertForbidden();

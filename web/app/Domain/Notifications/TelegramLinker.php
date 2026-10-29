@@ -42,8 +42,9 @@ class TelegramLinker
     }
 
     /**
-     * Step 2, the person shared their own Telegram contact: link only when that number is the account's number.
-     * Returns [result, user]: result linked | mismatch | none (no "Connect Telegram" waiting for this chat).
+     * Step 2, the person shared their own Telegram contact: link when that number is the account's number, or the
+     * account has no confirmed phone yet (it gets this one, confirmed). Returns [result, user]: result linked |
+     * mismatch (another number) | taken (another account confirmed this number) | none (no link waiting).
      */
     public function finish(int $chatId, string $phone): array
     {
@@ -54,15 +55,27 @@ class TelegramLinker
                 return ['none', null];
             }
             $link->update(['used_at' => now()]);
-            if ($link->user->phone !== $phone) {
-                return ['mismatch', $link->user];   // someone else's Telegram: never attach it to this account
+            $user = $link->user;
+            if ($user->phone !== $phone) {
+                if ($user->phone_verified_at) {
+                    return ['mismatch', $user];   // someone else's Telegram: never attach it to this account
+                }
+                // an account without a confirmed phone (email, Google): this Telegram's number becomes its confirmed
+                // phone, unless another account already confirmed it (then: log in with Telegram to that one)
+                $other = User::withTrashed()->where('phone', $phone)->whereKeyNot($user->id)->lockForUpdate()->first();
+                if ($other?->phone_verified_at) {
+                    return ['taken', $user];
+                }
+                $other?->forceFill(['phone' => null])->save();
+                $user->forceFill(['phone' => $phone]);
             }
+            $user->forceFill(['phone_verified_at' => $user->phone_verified_at ?? now()]);
             // one chat = one account: a chat linked to another account moves to its real owner
             User::where('telegram_chat_id', $chatId)->where('id', '!=', $link->user_id)
                 ->update(['telegram_chat_id' => null, 'telegram_linked_at' => null, 'telegram_verified_at' => null]);
-            $link->user->forceFill(['telegram_chat_id' => $chatId, 'telegram_linked_at' => now(), 'telegram_verified_at' => now()])->save();
+            $user->forceFill(['telegram_chat_id' => $chatId, 'telegram_linked_at' => now(), 'telegram_verified_at' => now()])->save();
 
-            return ['linked', $link->user];
+            return ['linked', $user];
         });
     }
 }
