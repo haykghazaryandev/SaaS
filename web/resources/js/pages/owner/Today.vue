@@ -75,14 +75,14 @@ const occToday = computed(() => avg(props.kpi.occupancy));
                 <div class="val">{{ pendingCount }}</div>
                 <div class="sub">{{ $t(pendingCount ? 'owner.dashboard.kpi_requests_sub' : 'owner.dashboard.kpi_requests_none') }}</div>
             </Link>
-            <div class="card kpi" data-test="kpi-trainings">
+            <Link class="card kpi" :href="route('owner.schedule')" data-test="kpi-trainings">
                 <div class="lbl">
                     <span class="tico">🎓</span><span>{{ $t('owner.dashboard.kpi_trainings') }}</span>
                 </div>
                 <div class="val">{{ kpi.trainings }}</div>
                 <div class="sub">{{ $t('owner.dashboard.kpi_trainings_sub') }}</div>
-            </div>
-            <div class="card kpi">
+            </Link>
+            <Link class="card kpi" :href="route('owner.schedule')" data-test="kpi-occupancy">
                 <div class="lbl">
                     <Icon name="chart" size="sm" /><span>{{ $t('owner.dashboard.kpi_occupancy') }}</span>
                 </div>
@@ -92,7 +92,7 @@ const occToday = computed(() => avg(props.kpi.occupancy));
                         ><em :style="{ opacity: 0.4 + (kpi.occupancy[f.id] ?? 0) / 160 }">{{ f.format }}</em><small>{{ kpi.occupancy[f.id] ?? 0 }}%</small></span
                     >
                 </div>
-            </div>
+            </Link>
         </div>
     </OwnerLayout>
 </template>
