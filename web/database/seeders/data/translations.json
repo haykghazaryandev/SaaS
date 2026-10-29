@@ -1074,15 +1074,85 @@
         "hy": "Մուտքագրեք կոդը, որ ուղարկեցինք Telegram-ով :phone համարին",
         "ru": "Введите код, отправленный в Telegram для :phone"
     },
+    "auth.google.button": {
+        "en": "Continue with Google",
+        "hy": "Շարունակել Google-ով",
+        "ru": "Продолжить с Google"
+    },
+    "auth.google.failed": {
+        "en": "Could not log in with Google. Please try again.",
+        "hy": "Չհաջողվեց մուտք գործել Google-ով։ Փորձեք կրկին։",
+        "ru": "Не удалось войти через Google. Попробуйте ещё раз."
+    },
     "auth.or": {
         "en": "or",
         "hy": "կամ",
         "ru": "или"
     },
+    "auth.password.confirm": {
+        "en": "Repeat the password",
+        "hy": "Կրկնեք գաղտնաբառը",
+        "ru": "Повторите пароль"
+    },
+    "auth.password.email_taken": {
+        "en": "This email already has an account: log in with it, or restore the password.",
+        "hy": "Այս էլ. փոստով արդեն հաշիվ կա․ մուտք գործեք դրանով կամ վերականգնեք գաղտնաբառը։",
+        "ru": "С этим email уже есть аккаунт: войдите с ним или восстановите пароль."
+    },
+    "auth.password.forgot": {
+        "en": "Forgot password?",
+        "hy": "Մոռացե՞լ եք գաղտնաբառը",
+        "ru": "Забыли пароль?"
+    },
+    "auth.password.login": {
+        "en": "Log in",
+        "hy": "Մուտք գործել",
+        "ru": "Войти"
+    },
+    "auth.password.password": {
+        "en": "Password",
+        "hy": "Գաղտնաբառ",
+        "ru": "Пароль"
+    },
+    "auth.password.password_hint": {
+        "en": "At least 8 characters, letters and digits",
+        "hy": "Առնվազն 8 նիշ՝ տառեր և թվեր",
+        "ru": "Не меньше 8 символов, буквы и цифры"
+    },
+    "auth.password.register": {
+        "en": "Create account",
+        "hy": "Ստեղծել հաշիվ",
+        "ru": "Создать аккаунт"
+    },
+    "auth.password.to_login": {
+        "en": "Already have an account? Log in",
+        "hy": "Արդեն հաշիվ ունե՞ք։ Մուտք գործեք",
+        "ru": "Уже есть аккаунт? Войдите"
+    },
+    "auth.password.to_register": {
+        "en": "No account yet? Sign up",
+        "hy": "Դեռ հաշիվ չունե՞ք։ Գրանցվեք",
+        "ru": "Ещё нет аккаунта? Зарегистрируйтесь"
+    },
+    "auth.password.too_many": {
+        "en": "Too many attempts. Try again in :min min.",
+        "hy": "Չափազանց շատ փորձեր։ Փորձեք :min րոպեից։",
+        "ru": "Слишком много попыток. Попробуйте через :min мин."
+    },
+    "auth.password.wrong": {
+        "en": "Wrong email or password.",
+        "hy": "Էլ. փոստը կամ գաղտնաբառը սխալ է։",
+        "ru": "Неверная почта или пароль."
+    },
     "auth.phone.invalid": {
         "en": "Enter a valid Armenian mobile number",
         "hy": "Մուտքագրեք ճիշտ հայկական բջջային համար",
         "ru": "Введите корректный армянский мобильный номер"
+    },
+    "auth.phone.required": {
+        "en": "Add your phone number to continue: the place calls it about your booking.",
+        "hy": "Շարունակելու համար ավելացրեք ձեր հեռախոսահամարը․ ամրագրման հարցով զանգում են այդ համարով։",
+        "ru": "Добавьте номер телефона, чтобы продолжить: по нему звонят насчёт брони."
     },
     "auth.phone.taken": {
         "en": "This number already has an account. Log in with Telegram to use it.",
@@ -1104,15 +1174,65 @@
         "hy": "Կրկին ուղարկել",
         "ru": "Отправить снова"
     },
+    "auth.reset.ask_again": {
+        "en": "Ask for a new link",
+        "hy": "Ստանալ նոր հղում",
+        "ru": "Запросить новую ссылку"
+    },
+    "auth.reset.done": {
+        "en": "Password changed.",
+        "hy": "Գաղտնաբառը փոխված է։",
+        "ru": "Пароль изменён."
+    },
+    "auth.reset.invalid": {
+        "en": "This link is invalid or has expired. Ask for a new one.",
+        "hy": "Այս հղումն անվավեր է կամ ժամկետանց։ Ստացեք նորը։",
+        "ru": "Ссылка недействительна или устарела. Запросите новую."
+    },
+    "auth.reset.mail_body": {
+        "en": "Someone asked to restore the password of your ZoneSpot account. Open this link to set a new one (it works for :min minutes):",
+        "hy": "Ինչ-որ մեկը խնդրել է վերականգնել ձեր ZoneSpot հաշվի գաղտնաբառը։ Բացեք այս հղումը՝ նորը սահմանելու համար (գործում է :min րոպե)։",
+        "ru": "Кто-то запросил восстановление пароля вашего аккаунта ZoneSpot. Откройте ссылку, чтобы задать новый (она действует :min минут):"
+    },
+    "auth.reset.mail_subject": {
+        "en": "ZoneSpot: restore your password",
+        "hy": "ZoneSpot․ գաղտնաբառի վերականգնում",
+        "ru": "ZoneSpot: восстановление пароля"
+    },
+    "auth.reset.new_title": {
+        "en": "New password",
+        "hy": "Նոր գաղտնաբառ",
+        "ru": "Новый пароль"
+    },
+    "auth.reset.note": {
+        "en": "Enter your account's email: we'll send a link to set a new password.",
+        "hy": "Մուտքագրեք ձեր հաշվի էլ. փոստը․ կուղարկենք հղում՝ նոր գաղտնաբառ սահմանելու համար։",
+        "ru": "Введите email аккаунта: мы пришлём ссылку, чтобы задать новый пароль."
+    },
+    "auth.reset.save": {
+        "en": "Save and log in",
+        "hy": "Պահպանել և մուտք գործել",
+        "ru": "Сохранить и войти"
+    },
+    "auth.reset.send": {
+        "en": "Send link",
+        "hy": "Ուղարկել հղումը",
+        "ru": "Отправить ссылку"
+    },
+    "auth.reset.sent": {
+        "en": "If an account has this email, we've sent it a link. Check your inbox and the spam folder.",
+        "hy": "Եթե այս էլ. փոստով հաշիվ կա, մենք հղում ենք ուղարկել։ Ստուգեք մուտքային նամակները և սպամը։",
+        "ru": "Если с этим email есть аккаунт, мы отправили на него ссылку. Проверьте входящие и папку «Спам»."
+    },
+    "auth.reset.title": {
+        "en": "Restore password",
+        "hy": "Գաղտնաբառի վերականգնում",
+        "ru": "Восстановление пароля"
+    },
     "auth.sub": {
         "en": "Enter your phone number. We send a 4-digit code to your Telegram.",
         "hy": "Մուտքագրեք ձեր հեռախոսահամարը։ 4-նիշ կոդը կուղարկենք ձեր Telegram-ին։",
         "ru": "Введите номер телефона. Мы отправим 4-значный код в ваш Telegram."
-    },
-    "auth.sub2": {
-        "en": "Free and fast: Telegram confirms your phone number, no codes to type.",
-        "hy": "Անվճար և արագ․ Telegram-ը հաստատում է ձեր հեռախոսահամարը, կոդ մուտքագրել պետք չէ։",
-        "ru": "Бесплатно и быстро: Telegram подтверждает ваш номер, коды вводить не нужно."
     },
     "auth.telegram.app_bad": {
         "en": "Telegram could not confirm who you are. Close ZoneSpot and open it again from the bot.",
@@ -2364,6 +2484,11 @@
         "hy": "Եկել են",
         "ru": "Пришли"
     },
+    "common.back": {
+        "en": "Back",
+        "hy": "Հետ",
+        "ru": "Назад"
+    },
     "common.block": {
         "en": "Block",
         "hy": "Արգելափակել",
@@ -2428,6 +2553,11 @@
         "en": "Code",
         "hy": "Կոդ",
         "ru": "Код"
+    },
+    "common.continue": {
+        "en": "Continue",
+        "hy": "Շարունակել",
+        "ru": "Продолжить"
     },
     "common.create_game": {
         "en": "Create a game",

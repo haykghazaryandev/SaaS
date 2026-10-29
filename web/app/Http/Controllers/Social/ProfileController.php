@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Social;
 
 use App\Domain\Chat\Chat;
+use App\Domain\Club\Ratings;
 use App\Domain\Social\Friends;
 use App\Enums\GamePlayerStatus;
 use App\Http\Controllers\Controller;
@@ -18,7 +19,6 @@ use Inertia\Inertia;
 class ProfileController extends Controller
 {
     public const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward'];
-
 
     public function __construct(private Friends $friends, private PlayerCards $cards) {}
 
@@ -44,7 +44,7 @@ class ProfileController extends Controller
                     ->whereHas('game', fn ($g) => $g->whereNotIn('status', ['forming', 'cancelled']))->count(),
                 'friends' => count($player->friendIds()),
                 // ratings per sport, set by the clubs (🏓 ping-pong apart from ⚽ football)
-                'ratings' => \App\Domain\Club\Ratings::of($player),
+                'ratings' => Ratings::of($player),
             ],
             'hidden' => $hidden,
             'blockedByMe' => $blockedByMe,

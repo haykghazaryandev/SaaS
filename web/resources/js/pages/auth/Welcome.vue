@@ -2,9 +2,10 @@
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
-// first login: the player tells us their name (registration is finished here)
-const props = defineProps<{ name: string | null; needsPhone?: boolean }>();
-const form = useForm({ name: props.name ?? '', username: '', phone: '' });
+// first login: the player tells us their name, and their phone when the account has none
+// (username + password, Google, email): nothing else opens until it is given (RequirePhone)
+const props = defineProps<{ name: string | null; username?: string | null; needsPhone?: boolean }>();
+const form = useForm({ name: props.name ?? '', username: props.username ?? '', phone: '' });
 </script>
 
 <template>
@@ -18,7 +19,7 @@ const form = useForm({ name: props.name ?? '', username: '', phone: '' });
                 <input id="name" v-model="form.name" class="input" autocomplete="name" autofocus />
                 <div v-if="form.errors.name" class="err">{{ form.errors.name }}</div>
             </div>
-            <!-- email accounts give their phone here (not confirmed): the place may call about a booking -->
+            <!-- accounts without a phone give it here (not confirmed): the place may call about a booking -->
             <div v-if="needsPhone" class="field">
                 <label for="phone">{{ $t('auth.welcome.phone') }}</label>
                 <div class="row" style="gap: 8px">
@@ -32,7 +33,7 @@ const form = useForm({ name: props.name ?? '', username: '', phone: '' });
                 <input id="username" v-model="form.username" class="input mono" autocapitalize="off" placeholder="aram_10" />
                 <div v-if="form.errors.username" class="err">{{ form.errors.username }}</div>
             </div>
-            <button class="btn block" :disabled="form.processing">{{ $t('common.book_a_field') }}</button>
+            <button class="btn block" :disabled="form.processing">{{ $t('common.continue') }}</button>
         </form>
     </AuthLayout>
 </template>

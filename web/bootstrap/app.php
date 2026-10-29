@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureVenueStaff;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RequirePhone;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\StaffStayInPanel;
 use App\Http\Middleware\TouchLastSeen;
@@ -31,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             TouchLastSeen::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            // accounts without a phone (password, Google, email) add it on the welcome page before anything else
+            RequirePhone::class,
             // people who run a place stay in the owner panel (no player pages)
             StaffStayInPanel::class,
         ]);

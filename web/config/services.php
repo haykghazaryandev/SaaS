@@ -44,6 +44,14 @@ return [
         'app_name' => env('TELEGRAM_APP_NAME'),
     ],
 
+    // "Continue with Google" (Google Cloud → OAuth client, type Web); empty = the button is hidden.
+    // Authorised redirect URI: <APP_URL>/login/google/callback
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/login/google/callback'),
+    ],
+
     // how login codes are delivered: log (development) | gateway (Telegram Gateway API)
     'otp_driver' => env('OTP_DRIVER', 'log'),
 

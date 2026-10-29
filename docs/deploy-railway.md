@@ -62,8 +62,7 @@ railway login
    Domain**. Only `web` gets a domain. On each of the four services, Settings > Source >
    enable **Wait for CI**.
 4. Fill the `preserve()` variables. Every variable in this table goes on **all four
-   services** (web, worker, scheduler, reverb), except the two `VITE_*` rows which go on
-   **web only**. Railway references avoid retyping, e.g. on worker `APP_KEY=${{web.APP_KEY}}`.
+   services** (web, worker, scheduler, reverb), except the rows marked **web only**. Railway references avoid retyping, e.g. on worker `APP_KEY=${{web.APP_KEY}}`.
 
    | Variable | Value |
    |---|---|
@@ -76,6 +75,7 @@ railway login
    | `REVERB_HOST` | `<web domain>` without scheme |
    | `VITE_REVERB_APP_KEY` (web only) | same as `REVERB_APP_KEY` |
    | `VITE_REVERB_HOST` (web only) | same as `REVERB_HOST` |
+   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (web only) | Google OAuth client ("Web application"); its redirect URI is `https://<web domain>/login/google/callback`. Empty hides the Google button |
 
    Saving variables triggers a redeploy, so after the last one Railway rebuilds with everything set.
 5. Repeat steps 2 to 4 for production: `railway environment production`, then plan, apply,

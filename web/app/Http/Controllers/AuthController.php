@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Auth\EmailCodes;
+use App\Domain\Auth\GoogleLogin;
 use App\Domain\Auth\LoginLinks;
+use App\Domain\Auth\PasswordLogin;
 use App\Domain\Auth\PhoneCodes;
 use App\Domain\Auth\TelegramLoginFlow;
 use App\Domain\Auth\TelegramWebApp;
@@ -16,15 +18,20 @@ use App\Support\TestAccounts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Socialite\Facades\Socialite;
+use Throwable;
 
 /**
  * Login = registration. Ways to log in:
  * 1. "Log in with Telegram" (main, free): our bot gets the user's phone from Telegram → confirmed phone
  * 2. email code (backup for people without Telegram, free)
  * 3. phone + code (Telegram Gateway, paid ~$0.01): only when OTP_DRIVER=gateway, or in development (code on screen)
- * New accounts finish on the welcome page (name; email accounts also add a phone).
+ * 4. email + password (sign up here too; "Forgot password?" emails a link)
+ * 5. "Continue with Google" (when GOOGLE_CLIENT_ID is set)
+ * New accounts finish on the welcome page (name; accounts without a phone add it there, RequirePhone keeps them there until then).
  * Owners use the same login; their accounts are created by the admin.
  */
 class AuthController extends Controller
@@ -46,6 +53,7 @@ class AuthController extends Controller
             'testAccounts' => ! $this->realPhoneCodes() && TestAccounts::enabled(),
             // email codes need a real mail service (MAIL_MAILER); with "log" nobody would receive them
             'emailLogin' => config('app.debug') || ! in_array(config('mail.default'), ['log', 'array'], true),
+            'google' => $this->googleEnabled(),
         ]);
     }
 
@@ -239,6 +247,84 @@ class AuthController extends Controller
         return back();
     }
 
+    // ---------- 4. email + password ----------
+
+    public function passwordLogin(Request $request, PasswordLogin $login)
+    {
+        $data = $request->validate(['email' => 'required|email:rfc|max:120', 'password' => 'required|string|max:200']);
+
+        return $this->finish($request, $login->attempt($data['email'], $data['password'], (string) $request->ip()), 'email');
+    }
+
+    /** Sign up: email and password; the welcome page then asks for the name and the phone. */
+    public function passwordRegister(Request $request, PasswordLogin $login)
+    {
+        $request->merge(['email' => PasswordLogin::normalize((string) $request->input('email'))]);
+        $data = $request->validate([
+            'email' => ['required', 'email:rfc', 'max:120', Rule::unique('users')],
+            'password' => ['required', 'string', 'max:200', 'confirmed', Password::min(8)->letters()->numbers()],
+        ], ['email.unique' => __('auth.password.email_taken')]);
+
+        return $this->finish($request, $login->register($data['email'], $data['password']), 'email');
+    }
+
+    /** "Forgot password?": the same answer whether the email has an account or not. */
+    public function passwordForgot(Request $request, PasswordLogin $login)
+    {
+        $data = $request->validate(['email' => 'required|email:rfc|max:120']);
+        $login->sendResetLink($data['email']);
+
+        return back()->with('success', __('auth.reset.sent'));
+    }
+
+    /** The link from the email: choose a new password. */
+    public function passwordResetForm(Request $request, string $token)
+    {
+        return Inertia::render('auth/ResetPassword', ['token' => $token, 'email' => (string) $request->query('email')]);
+    }
+
+    public function passwordReset(Request $request, PasswordLogin $login)
+    {
+        $data = $request->validate([
+            'token' => 'required|string|max:200',
+            'email' => 'required|email:rfc|max:120',
+            'password' => ['required', 'string', 'max:200', 'confirmed', Password::min(8)->letters()->numbers()],
+        ]);
+        $user = $login->reset($data['email'], $data['token'], $data['password']);
+        $request->session()->flash('success', __('auth.reset.done'));
+
+        return $this->finish($request, $user, 'password');
+    }
+
+    // ---------- 5. Google ----------
+
+    public function googleRedirect(Request $request)
+    {
+        abort_unless($this->googleEnabled(), 404);
+        $request->session()->put('google_to', $request->query('to'));
+
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function googleCallback(Request $request, GoogleLogin $google)
+    {
+        abort_unless($this->googleEnabled(), 404);
+        try {
+            $user = $google->user(Socialite::driver('google')->user());
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()->route('login')->with('error', __('auth.google.failed'));
+        }
+        if ($user->isBlocked()) {
+            return redirect()->route('login')->with('error', __('auth.blocked'));
+        }
+        $request->merge(['to' => $request->session()->pull('google_to')]);
+
+        // a plain browser redirect from Google (not an Inertia visit)
+        return redirect($this->landing($request, $user));
+    }
+
     // ---------- welcome (registration) ----------
 
     /** First login: name and username; email accounts also give their phone (not confirmed). */
@@ -249,7 +335,7 @@ class AuthController extends Controller
             return redirect()->route('home');
         }
 
-        return Inertia::render('auth/Welcome', ['name' => $user->name, 'needsPhone' => ! $user->phone]);
+        return Inertia::render('auth/Welcome', ['name' => $user->name, 'username' => $user->username, 'needsPhone' => ! $user->phone]);
     }
 
     public function register(Request $request)
@@ -292,10 +378,10 @@ class AuthController extends Controller
     // ---------- helpers ----------
 
     /** Log in and go to the right page (Inertia redirect). */
-    private function finish(Request $request, User $user)
+    private function finish(Request $request, User $user, string $errorField = 'code')
     {
         if ($user->isBlocked()) {
-            throw ValidationException::withMessages(['code' => __('auth.blocked')]);
+            throw ValidationException::withMessages([$errorField => __('auth.blocked')]);
         }
         $url = $this->landing($request, $user);
         // the admin panel (Filament) is not an Inertia page: full page load
@@ -340,6 +426,11 @@ class AuthController extends Controller
     private function canSimulate(TelegramBot $bot): bool
     {
         return config('app.debug') && ! $bot->configured();
+    }
+
+    private function googleEnabled(): bool
+    {
+        return filled(config('services.google.client_id')) && filled(config('services.google.client_secret'));
     }
 
     private function phoneCodeEnabled(): bool
