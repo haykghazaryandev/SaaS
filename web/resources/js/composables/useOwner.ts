@@ -127,15 +127,17 @@ export function useOwner() {
 }
 
 /**
- * What the signed-in person may do here (Menus::may): the owner everything; staff a menu the owner left on, and with a
+ * What the signed-in person may do here (Menus::may), in the menus the place has: the owner everything; staff a menu the owner left on, and with a
  * level ("schedule", "edit") only when the owner gave them that much. The server checks the same.
  */
 export function useMay() {
     const owner = useOwner();
     return <K extends MenuKey>(key: K, level?: string) => {
         const o = owner.value;
+        // a menu the place doesn't have (admin → place → features): nobody
+        if (!o.menus.available.includes(key)) return false;
         if (o.role === 'owner') return true;
-        if (!o.menus.available.includes(key) || !o.menus.staff[key]) return false;
+        if (!o.menus.staff[key]) return false;
         if (!level || !(key in MENU_LEVELS)) return true;
         const levels = MENU_LEVELS[key as keyof typeof MENU_LEVELS] as readonly string[];
         return levels.indexOf(o.menus.level[key as keyof typeof MENU_LEVELS]) >= levels.indexOf(level);
