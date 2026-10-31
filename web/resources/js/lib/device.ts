@@ -1,4 +1,6 @@
+import { social } from '@/composables/useSocial';
 import { router } from '@inertiajs/vue3';
+import { watch } from 'vue';
 
 /**
  * The installed app's icon number (like a messenger): unread notices + chats (+ requests waiting, for a place's
@@ -12,7 +14,20 @@ export function installAppBadge() {
         if (typeof n !== 'number') return;
         (n > 0 ? nav.setAppBadge!(n) : nav.clearAppBadge!()).catch(() => {});
     };
-    router.on('navigate', (e) => set((e.detail.page.props as { appBadge?: number | null }).appBadge));
+    // the page's number, and the unread notices + chats it was made with
+    let base: number | null = null;
+    let baseLive = 0;
+    router.on('navigate', (e) => {
+        const p = e.detail.page.props as { appBadge?: number | null; counts?: { notifications?: number; messages?: number } | null };
+        base = typeof p.appBadge === 'number' ? p.appBadge : null;
+        baseLive = (p.counts?.notifications ?? 0) + (p.counts?.messages ?? 0);
+        set(base);
+    });
+    // a chat message or a notice arriving live (or read) while the app is open: the icon follows at once
+    watch(
+        () => social.counts.notifications + social.counts.messages,
+        (live) => base !== null && set(Math.max(0, base - baseLive + live)),
+    );
 }
 
 /**
