@@ -9949,6 +9949,11 @@
         "hy": "Ոլորեք ներքև և ընտրեք «Add to Home Screen» (ռուսերեն՝ «На экран „Домой“»)",
         "ru": "Пролистайте вниз и выберите «На экран „Домой“»"
     },
+    "pwa.install.ios.chrome_share": {
+        "en": "In Chrome, tap the Share button in the address bar (or ••• → Share)",
+        "hy": "Chrome-ում սեղմեք «Կիսվել» (Share) կոճակը հասցեի տողում (կամ ••• → Share)",
+        "ru": "В Chrome нажмите кнопку «Поделиться» в адресной строке (или ••• → «Поделиться»)"
+    },
     "pwa.install.ios.confirm": {
         "en": "Tap “Add”: the icon appears on your home screen",
         "hy": "Սեղմեք «Add» («Добавить»)․ պատկերակը կհայտնվի հիմնական էկրանին",
@@ -9973,6 +9978,11 @@
         "en": "On iPhone, notifications work only in the installed app (iOS 16.4 or later): open it from the icon to turn them on.",
         "hy": "iPhone-ում ծանուցումները աշխատում են միայն տեղադրված հավելվածում (iOS 16.4 և ավելի նոր)․ բացեք այն պատկերակից՝ դրանք միացնելու համար։",
         "ru": "На iPhone уведомления работают только в установленном приложении (iOS 16.4 и новее): откройте его со значка, чтобы включить их."
+    },
+    "pwa.install.ios.or_safari": {
+        "en": "Or open in Safari",
+        "hy": "Կամ բացել Safari-ում",
+        "ru": "Или открыть в Safari"
     },
     "pwa.install.ios.safari_open": {
         "en": "Open in Safari",

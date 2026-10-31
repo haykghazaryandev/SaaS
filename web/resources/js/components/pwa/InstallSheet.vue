@@ -24,7 +24,24 @@ async function copy() {
                 <h3 id="install-ios-title">{{ $t('pwa.install.ios.title') }}</h3>
                 <button type="button" class="x" :aria-label="$t('common.close')" @click="close"><Icon name="x" size="sm" /></button>
             </div>
-            <template v-if="pwa.iosOther">
+            <template v-if="pwa.iosChrome">
+                <ol class="isteps">
+                    <li>
+                        <span class="n">1</span><span>{{ $t('pwa.install.ios.chrome_share') }}</span
+                        ><Icon name="ios_share" class="si" />
+                    </li>
+                    <li>
+                        <span class="n">2</span><span>{{ $t('pwa.install.ios.add') }}</span
+                        ><Icon name="plus" class="si" />
+                    </li>
+                    <li>
+                        <span class="n">3</span><span>{{ $t('pwa.install.ios.confirm') }}</span>
+                    </li>
+                </ol>
+                <button type="button" class="btn block" @click="close">{{ $t('pwa.install.ios.done') }}</button>
+                <a class="btn ghost block icopy" :href="safariUrl()" data-test="open-safari">{{ $t('pwa.install.ios.or_safari') }}</a>
+            </template>
+            <template v-else-if="pwa.iosOther">
                 <p class="iother">{{ $t('pwa.install.ios.safari_text') }}</p>
                 <a class="btn block" :href="safariUrl()" data-test="open-safari">{{ $t('pwa.install.ios.safari_open') }}</a>
                 <button type="button" class="btn ghost block icopy" @click="copy">

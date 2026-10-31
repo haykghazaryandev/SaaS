@@ -39,6 +39,8 @@ export const pwa = reactive({
     isIos: false,
     /** iPhone / iPad in another browser or an app's own browser (Chrome, Instagram…): "Open in Safari" first */
     iosOther: false,
+    /** of those, Chrome: it adds to the home screen itself (iOS 16.4+, Share in its address bar), so its steps first */
+    iosChrome: false,
     /** already installed (opened from the icon, or just installed) */
     installed: false,
     /** the iOS steps sheet is open (one sheet, mounted by the layouts) */
@@ -62,6 +64,7 @@ export function installPwa() {
     if (pwa.installed) return;
     pwa.isIos = iosSafari();
     pwa.iosOther = ios() && !pwa.isIos;
+    pwa.iosChrome = pwa.iosOther && /CriOS/.test(navigator.userAgent);
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault(); // no mini-infobar: our button opens the prompt when the person asks
         deferred = e as BeforeInstallPromptEvent;
