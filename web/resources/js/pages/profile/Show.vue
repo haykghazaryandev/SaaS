@@ -17,30 +17,13 @@ const props = defineProps<{
         bio?: string | null;
         games?: number;
         friends?: number;
-        ratings?: Record<string, { rating: number; intl_id: string | null }>;
-        /** ping-pong: tournament matches with scores, and the totals */
-        history?: { played: number; won: number; lost: number; titles: number; matches: Match[] };
-        /** the place in the ranking of the club that set the rating */
-        rank?: { rank: number; club: string; slug: string } | null;
+        /** a rating per sport, with the club that set it */
+        ratings?: Record<string, { rating: number; intl_id: string | null; club?: { name: string; slug: string } | null }>;
     };
     hidden: boolean;
     blockedByMe: boolean;
     canMessage: boolean;
 }>();
-
-interface Match {
-    id: number;
-    won: boolean;
-    opponent: { name: string; id: number | null } | null;
-    score: string | null;
-    tournament: { code: string; title: string; division: string | null };
-    fromEnd: number;
-    date: string | null;
-}
-// "Final", "Semi-final", "Quarter-final", "1/8 final (16 players)"
-const roundName = (n: number) =>
-    n === 1 ? trans('club.bracket.final') : n === 2 ? trans('club.bracket.semi') : n === 3 ? trans('club.bracket.quarter') : trans('club.bracket.round_of', { n: 2 ** n, half: 2 ** (n - 1) });
-const ddmm = (d: string | null) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}` : '');
 
 const canChat = (() => {
     try {
@@ -90,10 +73,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
                         <span v-if="player.district" class="pill"><Icon name="pin" size="sm" />{{ $t('common.districts.' + player.district) }}</span>
                         <!-- a rating per sport: 🏓 1450 is the ping-pong one, football has its own -->
                         <span v-for="(r, sp) in player.ratings ?? {}" :key="sp" class="pill lime" :title="$t('club.rating_of', { sport: $t(`common.sports.${sp}`) })"
-                            >{{ SPORT_ICON[sp] ?? '' }} {{ $t('club.rating') }} {{ r.rating }}</span
-                        >
-                        <Link v-if="player.rank" class="pill" :href="route('places.ranking', player.rank.slug)" data-test="profile-rank"
-                            >#{{ player.rank.rank }} · {{ player.rank.club }}</Link
+                            >{{ SPORT_ICON[sp] ?? '' }} {{ $t('club.rating') }} {{ r.rating }}<template v-if="r.club"> · {{ r.club.name }}</template></span
                         >
                     </div>
                 </div>
@@ -124,25 +104,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
                 <p :class="{ muted: !player.bio }">{{ player.bio || $t('friends.profile.no_bio') }}</p>
             </section>
 
-            <!-- tournament matches (ping-pong): the totals, then every match, newest first; a tap opens the tournament -->
-            <section v-if="player.history?.played" class="card pad hist" data-test="match-history">
-                <h2>{{ $t('player.history.title') }}</h2>
-                <div class="hstats">
-                    <div><b>{{ player.history.played }}</b><span>{{ $t('player.history.matches') }}</span></div>
-                    <div><b>{{ player.history.won }}–{{ player.history.lost }}</b><span>{{ $t('player.history.won_lost') }}</span></div>
-                    <div><b>{{ player.history.titles }}</b><span>🏆 {{ $t('player.history.titles') }}</span></div>
-                </div>
-                <Link v-for="m in player.history.matches" :key="m.id" class="hrow" :href="route('tournament.show', m.tournament.code)">
-                    <span :class="['res', m.won ? 'w' : 'l']">{{ m.won ? $t('player.history.w') : $t('player.history.l') }}</span>
-                    <span class="hw"
-                        ><b>{{ $t('player.history.vs', { name: m.opponent?.name ?? '—' }) }}<template v-if="m.score"> · {{ m.score }}</template></b
-                        ><small
-                            >{{ m.tournament.title }}<template v-if="m.tournament.division"> · {{ m.tournament.division }}</template> · {{ roundName(m.fromEnd) }}
-                            <template v-if="m.date">· {{ ddmm(m.date) }}</template></small
-                        ></span
-                    >
-                </Link>
-            </section>
         </template>
 
         <ConfirmSheet
@@ -171,6 +132,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
 .acts { grid-column: 2 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 10px; position: relative; }
 .hiddenp { grid-template-columns: auto 1fr; }
 .pmenu { position: relative; }
+/* "•••": a small card under the button with Report / Block, one per line */
+.pdrop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; min-width: 190px; padding: 6px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 2px; }
+.pdrop button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 11px; background: none; color: var(--ink); font: 700 14px var(--body); text-align: left; cursor: pointer; white-space: nowrap; }
+.pdrop button:hover { background: var(--surface-2); }
+.pdrop button.danger { color: var(--hot); }
 .about { margin-top: 14px; padding: 20px 24px; }
 .about h2 { font-family: var(--body); font-size: 15px; font-weight: 800; letter-spacing: 0; margin: 0 0 6px; }
 .about p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
@@ -181,17 +147,4 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
   .acts { grid-column: 1 / -1; }
   .about { padding: 16px 18px; }
 }
-.hist { margin-top: 16px; }
-.hist h2 { margin: 0 0 10px; }
-.hstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-.hstats div { background: var(--surface-2); border-radius: 14px; padding: 10px; text-align: center; display: flex; flex-direction: column; }
-.hstats b { font: 600 20px var(--display); }
-.hstats span { color: var(--muted); font-size: 12px; font-weight: 700; }
-.hrow { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; }
-.hrow .res { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-weight: 900; font-size: 12.5px; flex: none; }
-.hrow .res.w { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
-.hrow .res.l { background: var(--hot-soft); color: var(--hot); }
-.hrow .hw { min-width: 0; display: flex; flex-direction: column; }
-.hrow .hw b { font-size: 14px; }
-.hrow .hw small { color: var(--muted); font-size: 12px; }
 </style>

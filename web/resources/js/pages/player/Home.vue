@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import RankList, { type RankRow } from '@/components/player/RankList.vue';
-import PageSkeleton from '@/components/PageSkeleton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
@@ -43,13 +41,10 @@ const props = defineProps<{
     tournaments?: { code: string; title: string; venue: string; when: string; from: number; phase: Phase; divisions: number }[];
     openGames?: number | null;
     games?: GameCardT[];
-    tab?: 'book' | 'tournaments' | 'games' | 'ranking';
-    /** a sport with ratings (ping-pong): the Ranking tab; its list comes when the tab opens */
-    rated?: boolean;
-    ranking?: RankRow[];
+    tab?: 'book' | 'tournaments' | 'games';
 }>();
 // the sport page's sections: fixed tabs under the title; one shows below (the tab is kept in the address)
-type Tab = 'book' | 'tournaments' | 'games' | 'ranking';
+type Tab = 'book' | 'tournaments' | 'games';
 const tab = ref<Tab>(props.tab ?? 'book');
 const { user } = useShared();
 // tournaments: Live · Open · Finished — on Live when something is on, else Open, else Finished
@@ -70,7 +65,6 @@ useLive(
 const tShown = computed(() => (props.tournaments ?? []).filter((t) => groupOf(t.phase) === tGroup.value));
 function pickTab(t: Tab) {
     tab.value = t;
-    if (t === 'ranking' && !props.ranking) router.reload({ only: ['ranking'] });
     const u = new URL(window.location.href);
     if (t === 'book') u.searchParams.delete('tab');
     else u.searchParams.set('tab', t);
@@ -78,11 +72,6 @@ function pickTab(t: Tab) {
 }
 
 const sport = computed(() => props.filters.sport || props.sports[0]?.key || 'football');
-// Ranking: all clubs, or one club (the club that set the rating)
-const rankClub = ref<number | null>(null);
-const rankClubs = computed(() => [...new Map((props.ranking ?? []).filter((r) => r.club).map((r) => [r.club!.id, r.club!])).values()]);
-const rankRows = computed(() => (props.ranking ?? []).filter((r) => rankClub.value === null || r.club?.id === rankClub.value));
-if (props.tab === 'ranking' && !props.ranking) router.reload({ only: ['ranking'] });
 const isFootball = computed(() => sport.value === 'football');
 useSportTheme(() => (props.pick ? null : sport.value));
 const f = reactive({ district: props.filters.district ?? '', time: props.filters.time ?? '' });
@@ -176,23 +165,10 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                 <button type="button" role="tab" :aria-selected="tab === 'games'" data-test="tab-games" @click="pickTab('games')">
                     <Icon name="ball" size="sm" />{{ $t('common.games') }}<span v-if="openGames" class="n">{{ openGames }}</span>
                 </button>
-                <button v-if="rated" type="button" role="tab" :aria-selected="tab === 'ranking'" data-test="tab-ranking" @click="pickTab('ranking')">
-                    <Icon name="medal" size="sm" />{{ $t('player.ranking.tab') }}
-                </button>
             </nav>
 
-            <!-- the ranking of all clubs (the rating each club sets); a club chip shows one club -->
-            <section v-if="tab === 'ranking'" class="section tabsec" data-test="ranking-tab">
-                <div v-if="rankClubs.length > 1" class="chips tfilter">
-                    <button type="button" class="chip" :aria-pressed="rankClub === null" @click="rankClub = null">{{ $t('player.ranking.all_clubs') }}</button>
-                    <button v-for="c in rankClubs" :key="c.id" type="button" class="chip" :aria-pressed="rankClub === c.id" @click="rankClub = c.id">{{ c.name }}</button>
-                </div>
-                <PageSkeleton v-if="!ranking" :cards="2" />
-                <RankList v-else-if="rankRows.length" :rows="rankRows" :me="user?.id" podium show-club />
-                <EmptyState v-else icon="medal" :title="$t('player.ranking.empty_title')" :text="$t('player.ranking.empty_text')" />
-            </section>
 
-            <section v-else-if="tab === 'tournaments'" class="section tabsec">
+            <section v-if="tab === 'tournaments'" class="section tabsec">
                 <Link v-if="user && social.counts.tournaments" class="mylink" :href="route('me.tournaments')" data-test="my-tournaments"
                     ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }} <span class="faint">{{ social.counts.tournaments }}</span><Icon name="arrow" size="sm"
                 /></Link>

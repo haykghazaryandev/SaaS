@@ -649,6 +649,81 @@
         "hy": "Օր․՝ մեկ գին բոլոր պինգ-պոնգի սեղանների համար",
         "ru": "Например, одна цена для всех столов"
     },
+    "admin.report.by": {
+        "en": "Reported by",
+        "hy": "Ով է բողոքել",
+        "ru": "Кто пожаловался"
+    },
+    "admin.report.content": {
+        "en": "The message",
+        "hy": "Հաղորդագրությունը",
+        "ru": "Сообщение"
+    },
+    "admin.report.dismiss": {
+        "en": "Dismiss",
+        "hy": "Մերժել",
+        "ru": "Отклонить"
+    },
+    "admin.report.handled": {
+        "en": "Handled",
+        "hy": "Լուծված է",
+        "ru": "Решено"
+    },
+    "admin.report.many": {
+        "en": "Reports",
+        "hy": "Բողոքներ",
+        "ru": "Жалобы"
+    },
+    "admin.report.one": {
+        "en": "Report",
+        "hy": "Բողոք",
+        "ru": "Жалоба"
+    },
+    "admin.report.reason": {
+        "en": "Why",
+        "hy": "Պատճառը",
+        "ru": "Причина"
+    },
+    "admin.report.status_dismissed": {
+        "en": "Dismissed",
+        "hy": "Մերժված",
+        "ru": "Отклонена"
+    },
+    "admin.report.status_handled": {
+        "en": "Handled",
+        "hy": "Լուծված",
+        "ru": "Решена"
+    },
+    "admin.report.status_open": {
+        "en": "Open",
+        "hy": "Բաց",
+        "ru": "Открыта"
+    },
+    "admin.report.type_game": {
+        "en": "Game",
+        "hy": "Խաղ",
+        "ru": "Игра"
+    },
+    "admin.report.type_message": {
+        "en": "Message",
+        "hy": "Հաղորդագրություն",
+        "ru": "Сообщение"
+    },
+    "admin.report.type_user": {
+        "en": "Player",
+        "hy": "Խաղացող",
+        "ru": "Игрок"
+    },
+    "admin.report.what": {
+        "en": "What",
+        "hy": "Ինչի մասին",
+        "ru": "На что"
+    },
+    "admin.report.who": {
+        "en": "Reported player",
+        "hy": "Բողոքարկված խաղացող",
+        "ru": "На кого"
+    },
     "admin.rule.auto_accept_regulars": {
         "en": "Accept regular players automatically",
         "hy": "Մշտական խաղացողներին ընդունել ավտոմատ",
@@ -7334,6 +7409,11 @@
         "hy": "Ավելացնել տևողություն",
         "ru": "Добавить длительность"
     },
+    "owner.settings.length_dearer": {
+        "en": ":long costs :a, but at the :short price it would be :b: players can book shorter times instead.",
+        "hy": ":long-ը արժե :a, բայց :short-ի գնով կլիներ :b․ խաղացողները կարող են ամրագրել ավելի կարճ ժամեր։",
+        "ru": ":long стоит :a, а по цене :short вышло бы :b: игроки могут бронировать короткое время."
+    },
     "owner.settings.length_rule": {
         "en": "A length on the list costs its price. Any other length goes at the rate of the longest listed length below it: with 30 min = 2 500 ֏, 45 min = 3 750 ֏. Empty evening or weekend: the day price.",
         "hy": "Ցանկի տևողությունն արժե իր գինը։ Այլ տևողությունը հաշվվում է իրենից կարճ ամենաերկար տևողության դրույքով՝ եթե 30 րոպեն 2 500 ֏ է, 45 րոպեն՝ 3 750 ֏։ Դատարկ երեկո կամ հանգստյան օր՝ ցերեկային գինը։",
@@ -8299,41 +8379,6 @@
         "hy": "Բաց խաղեր չկան",
         "ru": "Открытых игр нет"
     },
-    "player.history.l": {
-        "en": "L",
-        "hy": "Պ",
-        "ru": "Пр"
-    },
-    "player.history.matches": {
-        "en": "matches",
-        "hy": "խաղ",
-        "ru": "матчей"
-    },
-    "player.history.title": {
-        "en": "Tournament matches",
-        "hy": "Մրցաշարային խաղեր",
-        "ru": "Матчи турниров"
-    },
-    "player.history.titles": {
-        "en": "titles",
-        "hy": "տիտղոս",
-        "ru": "титулы"
-    },
-    "player.history.vs": {
-        "en": "vs :name",
-        "hy": "ընդդեմ :name",
-        "ru": "против :name"
-    },
-    "player.history.w": {
-        "en": "W",
-        "hy": "Հ",
-        "ru": "П"
-    },
-    "player.history.won_lost": {
-        "en": "won–lost",
-        "hy": "հաղթանակ–պարտություն",
-        "ru": "победы–поражения"
-    },
     "player.home.all_games": {
         "en": "All games",
         "hy": "Բոլոր խաղերը",
@@ -9084,11 +9129,6 @@
         "hy": "Ամբողջ աղյուսակը (:n)",
         "ru": "Весь рейтинг (:n)"
     },
-    "player.ranking.all_clubs": {
-        "en": "All clubs",
-        "hy": "Բոլոր ակումբները",
-        "ru": "Все клубы"
-    },
     "player.ranking.club_sub": {
         "en": ":club · :n players, by the rating the club sets",
         "hy": ":club · :n խաղացող՝ ակումբի սահմանած վարկանիշով",
@@ -9108,11 +9148,6 @@
         "en": "You are #:n · :r",
         "hy": "Դուք #:n-րդն եք · :r",
         "ru": "Вы на :n-м месте · :r"
-    },
-    "player.ranking.tab": {
-        "en": "Ranking",
-        "hy": "Վարկանիշ",
-        "ru": "Рейтинг"
     },
     "player.ranking.title": {
         "en": "Ranking",

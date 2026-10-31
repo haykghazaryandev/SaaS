@@ -43,7 +43,9 @@ class Ratings
     /** [sport => ['rating' => 1450, 'intl_id' => …]] for a profile. */
     public static function of(User $player): array
     {
-        return SportRating::where('user_id', $player->id)->whereNotNull('rating')->get()
-            ->mapWithKeys(fn (SportRating $r) => [$r->sport => ['rating' => $r->rating, 'intl_id' => $r->intl_id]])->all();
+        // with the club that set it ("🏓 1180 · Pingpong.land")
+        return SportRating::where('user_id', $player->id)->whereNotNull('rating')->with('venue:id,name,slug')->get()
+            ->mapWithKeys(fn (SportRating $r) => [$r->sport => ['rating' => $r->rating, 'intl_id' => $r->intl_id,
+                'club' => $r->venue ? ['name' => $r->venue->name, 'slug' => $r->venue->slug] : null]])->all();
     }
 }

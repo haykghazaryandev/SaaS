@@ -5,19 +5,15 @@ namespace App\Domain\Club;
 use App\Enums\Sport;
 use App\Models\Booking;
 use App\Models\SportRating;
-use App\Models\Tournament;
 use App\Models\TournamentEntry;
-use App\Models\TournamentMatch;
-use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
 use Illuminate\Support\Collection;
 
 /**
- * Rankings by the rating the clubs set (Owner → Our players → a player: rating), for sports that have one (ping-pong):
- * a club's ranking (the players who played there: bookings, cards, tournaments, or rated there), and the all-clubs one
- * (every rated player, with the club that set the rating). Equal ratings share a place. And a player's match history:
- * their tournament matches with the scores, wins / losses and titles.
+ * A club's ranking by the rating it sets (Owner → Our players → a player: rating), for sports that have one
+ * (ping-pong): the players who played there (bookings, cards, tournaments) or were rated there. Equal ratings share
+ * a place. Shown on the place page (the top 5) and on its own page.
  */
 class Ranking
 {
@@ -40,14 +36,6 @@ class Ranking
         $ratings = SportRating::where('sport', $sport->value)->whereNotNull('rating')
             ->where(fn ($q) => $q->whereIn('user_id', self::playersOf($venue))->orWhere('venue_id', $venue->id))
             ->with('user:id,name,username,avatar_path')->get();
-
-        return $this->rows($ratings, $limit);
-    }
-
-    /** Every rated player of a sport, with the club that set the rating (the ping-pong page). */
-    public function all(Sport $sport, ?int $limit = null): Collection
-    {
-        $ratings = SportRating::where('sport', $sport->value)->whereNotNull('rating')->with('user:id,name,username,avatar_path', 'venue:id,name,slug')->get();
 
         return $this->rows($ratings, $limit);
     }
@@ -79,49 +67,5 @@ class Ranking
     private function ratedSport(Venue $venue): ?Sport
     {
         return collect($venue->sports())->first(fn (Sport $s) => $s->rated());
-    }
-
-    /**
-     * A player's tournament matches with a result, newest first: the opponent, the score from their side, won or lost,
-     * the tournament (and division), the round; and the totals: matches, won, lost, titles (1st places).
-     */
-    public function history(User $user, int $limit = 30): array
-    {
-        $entries = TournamentEntry::where('user_id', $user->id)->get(['id', 'tournament_id', 'place']);
-        $ids = $entries->pluck('id')->all();
-        if (! $ids) {
-            return ['played' => 0, 'won' => 0, 'lost' => 0, 'titles' => 0, 'matches' => []];
-        }
-        $matches = TournamentMatch::where(fn ($q) => $q->whereIn('a_id', $ids)->orWhereIn('b_id', $ids))
-            ->whereNotNull('winner_id')->whereNotNull('a_id')->whereNotNull('b_id')
-            ->with(['tournament:id,code,title,division,parent_id,starts_at', 'tournament.parent:id,title'])->latest('updated_at')->get();
-        $rounds = TournamentMatch::whereIn('tournament_id', $matches->pluck('tournament_id')->unique())->groupBy('tournament_id')
-            ->selectRaw('tournament_id, max(round) as n')->pluck('n', 'tournament_id');
-        $others = TournamentEntry::whereIn('id', $matches->flatMap(fn ($m) => [$m->a_id, $m->b_id])->unique())->get(['id', 'first_name', 'last_name', 'user_id'])->keyBy('id');
-        $rows = $matches->map(function (TournamentMatch $m) use ($ids, $others, $rounds) {
-            $mineA = in_array($m->a_id, $ids, true);
-            $me = $mineA ? $m->a_id : $m->b_id;
-            $other = $others[$mineA ? $m->b_id : $m->a_id] ?? null;
-            [$sa, $sb] = array_pad(explode(':', (string) $m->score), 2, null);
-            $t = $m->tournament;
-
-            return [
-                'id' => $m->id, 'won' => $m->winner_id === $me,
-                'opponent' => $other ? ['name' => Tournaments::name($other), 'id' => $other->user_id] : null,
-                'score' => $m->score ? ($mineA ? "$sa:$sb" : "$sb:$sa") : null,
-                'tournament' => ['code' => $t->code, 'title' => $t->parent?->title ?? $t->title, 'division' => $t->parent ? $t->division : null],
-                // 1 = the final, 2 = the semi-final, 3 = the quarter-final, more: "round of N"
-                'fromEnd' => (int) ($rounds[$m->tournament_id] ?? $m->round) - $m->round + 1,
-                'date' => $t->starts_at?->toDateString(),
-            ];
-        });
-
-        return [
-            'played' => $rows->count(),
-            'won' => $rows->where('won', true)->count(),
-            'lost' => $rows->where('won', false)->count(),
-            'titles' => $entries->where('place', 1)->count(),
-            'matches' => $rows->take($limit)->values()->all(),
-        ];
     }
 }

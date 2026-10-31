@@ -3,9 +3,6 @@
 use App\Domain\Club\FeePayments;
 use App\Domain\Club\Ranking;
 use App\Models\SportRating;
-use App\Models\Tournament;
-use App\Models\TournamentEntry;
-use App\Models\TournamentMatch;
 use App\Models\User;
 use App\Support\LocalTime;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -31,16 +28,9 @@ it('ranks a club by the rating it sets; equal ratings share a place; the place p
     $this->get('/places/'.$field->slug.'/ranking')->assertNotFound();
 });
 
-it('shows a player their tournament matches (score from their side, won / lost, titles) and their place', function () {
-    $t = Tournament::create(['venue_id' => $this->club->id, 'sport' => 'pingpong', 'title' => 'Autumn Cup', 'code' => 'autumn01', 'starts_at' => now()->subDay(), 'status' => 'done', 'options' => [['label' => '', 'price' => 0]]]);
-    $ea = TournamentEntry::create(['tournament_id' => $t->id, 'user_id' => $this->a->id, 'first_name' => 'Aram', 'last_name' => 'P', 'phone' => '+37493000901', 'option' => 0, 'status' => 'accepted', 'place' => 1]);
-    $eb = TournamentEntry::create(['tournament_id' => $t->id, 'user_id' => $this->b->id, 'first_name' => 'Davit', 'last_name' => 'H', 'phone' => '+37493000902', 'option' => 0, 'status' => 'accepted', 'place' => 2]);
-    TournamentMatch::create(['tournament_id' => $t->id, 'round' => 1, 'slot' => 0, 'a_id' => $eb->id, 'b_id' => $ea->id, 'winner_id' => $ea->id, 'score' => '1:3']);
-    $h = app(Ranking::class)->history($this->a);
-    expect($h)->played->toBe(1)->won->toBe(1)->titles->toBe(1)
-        ->and($h['matches'][0])->score->toBe('3:1')->won->toBeTrue()->fromEnd->toBe(1);
+it('shows each rating with the club that set it on the profile', function () {
     $this->actingAs($this->b)->get('/u/'.$this->a->id)
-        ->assertInertia(fn (Assert $p) => $p->where('player.history.played', 1)->where('player.rank.rank', 1));
+        ->assertInertia(fn (Assert $p) => $p->where('player.ratings.pingpong.rating', 1520)->where('player.ratings.pingpong.club.name', $this->club->name)->missing('player.history'));
 });
 
 it('lets the admin mark a month of ZoneSpot fee as paid, and the owner sees it', function () {

@@ -199,7 +199,7 @@ it('keeps a rating per sport with its history', function () {
     $r = app(Ratings::class);
     $r->set($this->player, Sport::Pingpong, 1450, 'ARM-123', $this->club, $this->owner, 'after the league');
     $r->set($this->player, Sport::Pingpong, 1500, 'ARM-123', $this->club, $this->owner);
-    expect(Ratings::of($this->player))->toBe(['pingpong' => ['rating' => 1500, 'intl_id' => 'ARM-123']])
+    expect(Ratings::of($this->player))->toBe(['pingpong' => ['rating' => 1500, 'intl_id' => 'ARM-123', 'club' => ['name' => $this->club->name, 'slug' => $this->club->slug]]])
         ->and(RatingChange::where('user_id', $this->player->id)->pluck('new')->all())->toBe([1450, 1500]);
     expect(fn () => $r->set($this->player, Sport::Pingpong, 1, null, $this->other, $this->owner))->toThrow(BookingException::class);
 });

@@ -15,14 +15,20 @@ export function useNavLoading() {
         clearTimeout(t);
         t = window.setTimeout(() => (loading.value = true), 250);
     });
-    const offFinish = router.on('finish', () => {
+    const done = () => {
         clearTimeout(t);
         loading.value = false;
-    });
+    };
+    const offFinish = router.on('finish', done);
+    // back / forward: the page comes from the browser's history (no "finish"), so never keep the placeholders
+    const offNavigate = router.on('navigate', done);
+    window.addEventListener('popstate', done);
     onBeforeUnmount(() => {
         clearTimeout(t);
         offStart();
         offFinish();
+        offNavigate();
+        window.removeEventListener('popstate', done);
     });
     return loading;
 }

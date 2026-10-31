@@ -6,7 +6,7 @@ import PushSwitch from '@/components/PushSwitch.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { ask } from '@/composables/useConfirm';
 import { fdate, useOwner } from '@/composables/useOwner';
-import { useShared } from '@/composables/useShared';
+import { amd, useShared } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { trans } from '@/lib/i18n';
@@ -216,6 +216,20 @@ function setTrainingByLength(p: Prices[number], on: boolean) {
         const h = num(p.training) || num(p.day);
         p.trainingLengths = [30, 60, 90].map((m) => ({ min: m, day: sep(Math.round((h * m) / 60 / 100) * 100), evening: '', weekend: '' }));
     }
+}
+// a longer time that costs more than the shorter ones at their rate: players would book 2 × 30 min instead of 1 h
+function lengthWarnings(rows: LengthRow[]): string[] {
+    const ok = rows.filter((r) => num(r.day) > 0).sort((a, b) => a.min - b.min);
+    const out: string[] = [];
+    for (const long of ok) {
+        // the cheapest shorter time per minute
+        const short = ok.filter((r) => r.min < long.min).sort((a, b) => num(a.day) / a.min - num(b.day) / b.min)[0];
+        if (!short) continue;
+        const atRate = Math.round((num(short.day) * long.min) / short.min / 100) * 100;
+        if (num(long.day) > atRate)
+            out.push(trans('owner.settings.length_dearer', { long: lenName(long.min), a: amd(num(long.day)), short: lenName(short.min), b: amd(atRate) }));
+    }
+    return out;
 }
 function onLength(l: LengthRow, key: 'day' | 'evening' | 'weekend', e: Event) {
     const d = digits((e.target as HTMLInputElement).value).slice(0, 7);
@@ -448,6 +462,7 @@ const fmtRange = (c: ClosureRow) =>
                                 </div>
                                 <button v-if="canEdit && p.lengths.length < 10" type="button" class="btn ghost sm" @click="addLength(p)">+ {{ $t('owner.settings.length_add') }}</button>
                                 <small class="faint">{{ $t('owner.settings.length_rule') }}</small>
+                                <p v-for="w in lengthWarnings(p.lengths)" :key="w" class="lwarn" data-test="length-warning"><Icon name="alert" size="sm" />{{ w }}</p>
                             </div>
                             <div v-for="k in p.byLength ? [] : (['day', 'evening', 'weekend'] as const)" :key="k" class="field">
                                 <label :for="`p${k}${i}`">{{ $t(`owner.settings.price_${k}`) }}</label>
@@ -787,6 +802,7 @@ const fmtRange = (c: ClosureRow) =>
 </template>
 
 <style scoped>
+.lwarn { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0 0; padding: 8px 10px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 700; }
 .sjump { display: none; }
 /* the jump menu: one row of chips that scrolls sideways, staying under the top bar while the page scrolls */
 @media (max-width: 1100px) {
