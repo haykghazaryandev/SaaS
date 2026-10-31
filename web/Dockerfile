@@ -61,6 +61,21 @@ RUN composer dump-autoload --optimize --classmap-authoritative --no-dev \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod +x docker/entrypoint.sh
 
+# Country database for ALLOWED_COUNTRIES (config/access.php): DB-IP "IP to Country Lite" (CC BY 4.0, no key needed),
+# this month's file or, early in a month before it is published, last month's. Fresh on every build (this layer
+# comes after COPY . .). The build fails unless the file opens and answers a lookup, so a deploy never ships
+# without it (Railway then keeps the previous deployment).
+ENV GEOIP_DATABASE=/usr/share/geoip/dbip-country-lite.mmdb
+RUN set -eu; mkdir -p "$(dirname "$GEOIP_DATABASE")"; \
+    for month in "$(date -u +%Y-%m)" "$(date -u -d "$(date -u +%Y-%m-15) -1 month" +%Y-%m)"; do \
+        if curl -fsSL --retry 3 --max-time 180 "https://download.db-ip.com/free/dbip-country-lite-${month}.mmdb.gz" \
+            | gunzip > "$GEOIP_DATABASE.tmp"; then mv "$GEOIP_DATABASE.tmp" "$GEOIP_DATABASE"; echo "GeoIP: dbip-country-lite-${month}"; break; fi; \
+        rm -f "$GEOIP_DATABASE.tmp"; \
+    done; \
+    php -r 'require "vendor/autoload.php"; $r = new MaxMind\Db\Reader(getenv("GEOIP_DATABASE")); \
+        $c = $r->get("8.8.8.8")["country"]["iso_code"] ?? null; \
+        if ($c !== "US") { fwrite(STDERR, "GeoIP database does not answer (8.8.8.8 -> ".var_export($c, true).")\n"); exit(1); }'
+
 # Production php.ini plus opcache tuned for a read-only deploy.
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && printf 'opcache.enable=1\nopcache.validate_timestamps=0\nopcache.memory_consumption=192\nopcache.max_accelerated_files=20000\nupload_max_filesize=20M\npost_max_size=20M\n' \

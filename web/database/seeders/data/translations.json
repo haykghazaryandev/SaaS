@@ -2529,6 +2529,16 @@
         "hy": "Արգելափակել",
         "ru": "Заблокировать"
     },
+    "common.blocked_country.text": {
+        "en": "The app can't be opened from your location. If you are in Armenia, turn off your VPN or proxy and try again.",
+        "hy": "Ձեր գտնվելու վայրից հավելվածը հնարավոր չէ բացել։ Եթե Հայաստանում եք, անջատեք VPN-ը կամ պրոքսին և փորձեք նորից։",
+        "ru": "Из вашего местоположения приложение открыть нельзя. Если вы в Армении, отключите VPN или прокси и попробуйте снова."
+    },
+    "common.blocked_country.title": {
+        "en": "Available only in Armenia",
+        "hy": "Հասանելի է միայն Հայաստանում",
+        "ru": "Доступно только в Армении"
+    },
     "common.book_a_field": {
         "en": "Book a field",
         "hy": "Ամրագրել դաշտ",

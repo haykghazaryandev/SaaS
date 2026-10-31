@@ -17,6 +17,7 @@
         "laravel/reverb": "^1.0",
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^2.10.1",
+        "maxmind-db/reader": "^1.12",
         "tightenco/ziggy": "^2.4"
     },
     "require-dev": {

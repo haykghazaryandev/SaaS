@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Access\IpCountry;
+use App\Domain\Access\MmdbIpCountry;
 use App\Domain\Auth\CodeSender;
 use App\Domain\Auth\LogCodeSender;
 use App\Domain\Auth\TelegramGatewaySender;
@@ -27,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // login codes: written to the log in development, sent by Telegram Gateway in production
         $this->app->bind(CodeSender::class, fn () => config('services.otp_driver') === 'gateway' ? new TelegramGatewaySender : new LogCodeSender);
+
+        // country of an IP address, for ALLOWED_COUNTRIES (App\Http\Middleware\AllowedCountriesOnly)
+        $this->app->singleton(IpCountry::class, fn () => new MmdbIpCountry((string) config('access.geoip_database')));
 
         // __() reads the app's texts from the `translations` table (Laravel's file loader stays for the framework's own texts).
         // Laravel's translation provider is deferred and binds the loader itself later, so the binding is extended, not replaced.

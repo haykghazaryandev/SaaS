@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AllowedCountriesOnly;
 use App\Http\Middleware\EnsureVenueMenu;
 use App\Http\Middleware\EnsureVenueOwner;
 use App\Http\Middleware\EnsureVenueStaff;
@@ -8,10 +9,12 @@ use App\Http\Middleware\RequirePhone;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\StaffStayInPanel;
 use App\Http\Middleware\TouchLastSeen;
+use App\Http\Middleware\TrustProxies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Middleware\TrustProxies as BaseTrustProxies;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -39,8 +42,12 @@ return Application::configure(basePath: dirname(__DIR__))
             // people who run a place stay in the owner panel (no player pages)
             StaffStayInPanel::class,
         ]);
-        // behind ngrok / a load balancer: trust X-Forwarded-* so links use https and the right host
+        // behind ngrok / a load balancer: trust X-Forwarded-* so links use https and the right host.
+        // Our TrustProxies also trusts Railway's edge hop, so $request->ip() is the visitor, not Railway.
         $middleware->trustProxies(at: '*');
+        $middleware->replace(BaseTrustProxies::class, TrustProxies::class);
+        // only visitors from ALLOWED_COUNTRIES (off when unset), after TrustProxies has found their address
+        $middleware->append(AllowedCountriesOnly::class);
         $middleware->alias(['venue.staff' => EnsureVenueStaff::class, 'venue.owner' => EnsureVenueOwner::class, 'venue.menu' => EnsureVenueMenu::class]);
         $middleware->redirectGuestsTo(fn () => route('login'));
     })

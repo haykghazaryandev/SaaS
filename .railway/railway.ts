@@ -99,6 +99,8 @@ export default defineRailway((ctx) => {
       // "Continue with Google" (empty = button hidden). Google Console redirect URI: https://<web domain>/login/google/callback
       GOOGLE_CLIENT_ID: preserve(),
       GOOGLE_CLIENT_SECRET: preserve(),
+      // Countries that may open the app, e.g. "AM" (empty = everyone). See docs/deploy-railway.md "Country restriction".
+      ALLOWED_COUNTRIES: preserve(),
     },
   });
 
