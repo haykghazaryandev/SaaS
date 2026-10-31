@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Auth\EmailCodes;
+use App\Domain\Auth\EmailVerification;
 use App\Domain\Auth\GoogleLogin;
 use App\Domain\Auth\LoginLinks;
 use App\Domain\Auth\PasswordLogin;
@@ -48,6 +49,7 @@ class AuthController extends Controller
             'to' => $request->query('to'),
             'phone' => $request->session()->get('otp_phone') ? Phone::format($request->session()->get('otp_phone')) : null,
             'email' => $request->session()->get('otp_email'),
+            'signup' => $request->session()->get('signup.email'),
             'telegram' => ['bot' => config('services.telegram.bot_username'), 'simulate' => $this->canSimulate($bot)],
             'phoneCode' => $this->phoneCodeEnabled(),
             'testAccounts' => ! $this->realPhoneCodes() && TestAccounts::enabled(),
@@ -188,7 +190,8 @@ class AuthController extends Controller
     {
         $data = $request->validate(['email' => 'required|email:rfc|max:120']);
         $codes->send($data['email'], $request->ip());
-        $request->session()->put('otp_email', strtolower(trim($data['email'])));
+        $request->session()->forget('signup');
+        $request->session()->put('otp_email', PasswordLogin::normalize($data['email']));
 
         return back();
     }
@@ -221,6 +224,7 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['phone' => __('auth.phone.test_only')]);
         }
         $codes->send($phone, $request->ip());
+        $request->session()->forget('signup');
         $request->session()->put('otp_phone', $phone);
 
         return back();
@@ -242,7 +246,7 @@ class AuthController extends Controller
 
     public function changePhone(Request $request)
     {
-        $request->session()->forget(['otp_phone', 'otp_email']);
+        $request->session()->forget(['otp_phone', 'otp_email', 'signup']);
 
         return back();
     }
@@ -256,16 +260,48 @@ class AuthController extends Controller
         return $this->finish($request, $login->attempt($data['email'], $data['password'], (string) $request->ip()), 'email');
     }
 
-    /** Sign up: email and password; the welcome page then asks for the name and the phone. */
-    public function passwordRegister(Request $request, PasswordLogin $login)
+    /** Sign up, step 1: email and password → a code to the email; the account comes with the right code. */
+    public function passwordRegister(Request $request, EmailVerification $verification)
     {
         $request->merge(['email' => PasswordLogin::normalize((string) $request->input('email'))]);
         $data = $request->validate([
-            'email' => ['required', 'email:rfc', 'max:120', Rule::unique('users')],
+            'email' => ['required', 'email:rfc', 'max:120', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'max:200', 'confirmed', Password::min(8)->letters()->numbers()],
         ], ['email.unique' => __('auth.password.email_taken')]);
 
-        return $this->finish($request, $login->register($data['email'], $data['password']), 'email');
+        $request->session()->forget(['otp_phone', 'otp_email', 'signup']);
+        $request->session()->put('signup', $verification->startSignup($data['email'], $data['password'], (string) $request->ip()));
+
+        return back();
+    }
+
+    /** Sign-up, step 2: the code from the email → the account is created, then the welcome page. */
+    public function passwordRegisterVerify(Request $request, EmailVerification $verification)
+    {
+        $request->validate(['code' => 'required|digits:4']);
+        $signup = $request->session()->get('signup');
+        if (! $signup) {
+            throw ValidationException::withMessages(['code' => __('auth.code.expired')]);
+        }
+        try {
+            $user = $verification->finishSignup($signup, $request->input('code'));
+        } catch (ValidationException $e) {
+            if (! $verification->signupPending($signup)) {
+                $request->session()->forget('signup');
+            }
+            throw $e;
+        }
+
+        return $this->finish($request, $user);
+    }
+
+    public function passwordRegisterResend(Request $request, EmailVerification $verification)
+    {
+        $signup = $request->session()->get('signup');
+        abort_unless($signup, 404);
+        $verification->resendSignup($signup, (string) $request->ip());
+
+        return back();
     }
 
     /** "Forgot password?": the same answer whether the email has an account or not. */
@@ -406,6 +442,7 @@ class AuthController extends Controller
     {
         Auth::login($user, remember: true);
         $request->session()->regenerate();
+        $request->session()->forget(['signup', 'otp_email', 'otp_phone']);
         if ($request->input('to') === 'owner' && $user->venues()->exists()) {
             return route('owner.start');
         }

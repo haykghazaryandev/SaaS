@@ -3,6 +3,7 @@
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Domain\Booking\BookingException;
 use App\Domain\Notifications\TelegramLinker;
+use App\Mail\EmailConfirmMail;
 use App\Mail\PasswordResetMail;
 use App\Models\Booking;
 use App\Models\User;
@@ -23,8 +24,16 @@ beforeEach(fn () => config(['services.google.client_id' => 'id', 'services.googl
 it('signs up with email and password, then asks for the name; booking waits for a phone confirmed with Telegram', function () {
     $small = makeVenue()->fields->firstWhere('size.value', 'small');
     $booking = ['field_id' => $small->id, 'date' => at(0)->toDateString(), 'start' => '20:00', 'minutes' => 60];
-    $this->post('/login/register', ['email' => ' Aram@Mail.am ', 'password' => 'secret123', 'password_confirmation' => 'secret123'])
-        ->assertRedirect(route('welcome'));
+    Mail::fake();
+    $this->post('/login/register', ['email' => ' Aram@Mail.am ', 'password' => 'secret123', 'password_confirmation' => 'secret123'])->assertSessionHasNoErrors();
+    // the code sent to the email creates the account (EmailVerificationTest has the details)
+    $code = null;
+    Mail::assertSent(EmailConfirmMail::class, function ($m) use (&$code) {
+        $code = $m->code;
+
+        return true;
+    });
+    $this->post('/login/register/verify', ['code' => $code])->assertRedirect(route('welcome'));
     $u = User::where('email', 'aram@mail.am')->first();
     expect($u)->not->toBeNull()->and($u->username)->toBeNull()->and($u->phone)->toBeNull()->and($u->isRegistered())->toBeFalse()
         ->and($u->password)->not->toBe('secret123');   // hashed

@@ -8,6 +8,9 @@ export interface AuthUser {
     telegram: boolean;
     /** a phone confirmed with Telegram: needed to book */
     phoneConfirmed?: boolean;
+    /** the account's email (null: none) and whether it is confirmed (a reminder until then) */
+    email?: string | null;
+    emailConfirmed?: boolean;
     isAdmin: boolean;
     isOwner: boolean;
     playerMode?: boolean;

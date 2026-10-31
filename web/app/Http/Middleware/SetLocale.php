@@ -16,21 +16,32 @@ class SetLocale
 {
     public function handle(Request $request, Closure $next)
     {
-        $locales = config('app.locales');
-        $user = $request->user();
-        $lang = $request->query('lang');
-        if (in_array($lang, $locales, true)) {
-            $request->session()->put('locale', $lang);
-            if ($user && ($user->locale !== $lang || ! $user->locale_chosen_at)) {
-                $user->forceFill(['locale' => $lang, 'locale_chosen_at' => now()])->save();
+        $locale = self::detect($request);
+        // ?lang=… is a choice: remembered for the visitor and saved on the account
+        if ($request->query('lang') === $locale) {
+            $request->session()->put('locale', $locale);
+            $user = $request->user();
+            if ($user && ($user->locale !== $locale || ! $user->locale_chosen_at)) {
+                $user->forceFill(['locale' => $locale, 'locale_chosen_at' => now()])->save();
             }
         }
-        $locale = $user?->preferredLocale()
-            ?? $request->session()->get('locale')
-            ?? Locales::fromHeader($request->header('Accept-Language'))
-            ?? 'hy';   // not config('app.locale'): setLocale() changes it during a request
-        app()->setLocale(in_array($locale, $locales, true) ? $locale : 'hy');
+        app()->setLocale($locale);
 
         return $next($request);
+    }
+
+    /** The language for this request, saving nothing. FriendlyErrors uses it too: errors can come before this middleware. */
+    public static function detect(Request $request): string
+    {
+        $locales = config('app.locales');
+        $lang = $request->query('lang');
+        $session = $request->hasSession() ? $request->session() : null;
+        $locale = (in_array($lang, $locales, true) ? $lang : null)
+            ?? ($session ? $request->user()?->preferredLocale() : null)   // the account lives in the session
+            ?? $session?->get('locale')
+            ?? Locales::fromHeader($request->header('Accept-Language'))
+            ?? 'hy';   // not config('app.locale'): setLocale() changes it during a request
+
+        return in_array($locale, $locales, true) ? $locale : 'hy';
     }
 }

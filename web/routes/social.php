@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Social\AvatarController;
+use App\Http\Controllers\Social\EmailController;
 use App\Http\Controllers\Social\FriendsController;
 use App\Http\Controllers\Social\NotificationController;
 use App\Http\Controllers\Social\ProfileController;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 // /u/{player}: a username or an id, resolved in AppServiceProvider (bindings in route files are lost with route:cache)
 
 // profile photos (stored in the database, see AvatarPhoto)
-Route::get('avatars/{file}', [App\Http\Controllers\Social\AvatarController::class, 'show'])->where('file', '[0-9]+-[A-Za-z0-9]+\.webp')->name('avatars.show');
+Route::get('avatars/{file}', [AvatarController::class, 'show'])->where('file', '[0-9]+-[A-Za-z0-9]+\.webp')->name('avatars.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('friends', [FriendsController::class, 'index'])->name('friends.index');
@@ -35,6 +37,14 @@ Route::middleware('auth')->group(function () {
 
 // profile photo
 Route::middleware('auth')->group(function () {
-    Route::post('me/avatar', [App\Http\Controllers\Social\AvatarController::class, 'store'])->middleware('throttle:10,1')->name('me.avatar');
-    Route::delete('me/avatar', [App\Http\Controllers\Social\AvatarController::class, 'destroy'])->name('me.avatar.destroy');
+    Route::post('me/avatar', [AvatarController::class, 'store'])->middleware('throttle:10,1')->name('me.avatar');
+    Route::delete('me/avatar', [AvatarController::class, 'destroy'])->name('me.avatar.destroy');
+});
+
+// the account's email ("Your email"): a code goes to the new address; it is saved when the code is right
+Route::middleware('auth')->group(function () {
+    Route::get('me/email', [EmailController::class, 'show'])->name('me.email');
+    Route::post('me/email', [EmailController::class, 'change'])->middleware('throttle:10,10')->name('me.email.change');
+    Route::post('me/email/send', [EmailController::class, 'send'])->middleware('throttle:10,10')->name('me.email.send');
+    Route::post('me/email/verify', [EmailController::class, 'verify'])->middleware('throttle:30,10')->name('me.email.verify');
 });

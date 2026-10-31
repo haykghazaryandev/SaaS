@@ -990,9 +990,9 @@
         "ru": "Имя в ссылке"
     },
     "admin.venue.slug_hint": {
-        "en": "zonespot.am/places/<link name>; small letters, digits and -",
-        "hy": "zonespot.am/places/<անուն>; փոքրատառ լատինական տառեր, թվեր և -",
-        "ru": "zonespot.am/places/<имя>; маленькие латинские буквы, цифры и -"
+        "en": "zonespot.com/places/<link name>; small letters, digits and -",
+        "hy": "zonespot.com/places/<անուն>; փոքրատառ լատինական տառեր, թվեր և -",
+        "ru": "zonespot.com/places/<имя>; маленькие латинские буквы, цифры и -"
     },
     "admin.venue.staff_count": {
         "en": "Staff",
@@ -1115,9 +1115,9 @@
         "ru": "Разработка: код :code"
     },
     "auth.email.body": {
-        "en": "Your ZoneSpot login code is :code. It works for 10 minutes.",
-        "hy": "Ձեր ZoneSpot մուտքի կոդն է :code։ Այն գործում է 10 րոպե։",
-        "ru": "Ваш код входа ZoneSpot: :code. Он действует 10 минут."
+        "en": "Your ZoneSpot login code is :code. It works for :min minutes.",
+        "hy": "Ձեր ZoneSpot մուտքի կոդն է :code։ Այն գործում է :min րոպե։",
+        "ru": "Ваш код входа ZoneSpot: :code. Он действует :min минут."
     },
     "auth.email.enter": {
         "en": "Enter the code we sent to :email",
@@ -1133,6 +1133,16 @@
         "en": "Email",
         "hy": "Էլ. փոստ",
         "ru": "Эл. почта"
+    },
+    "auth.email.mail_hint": {
+        "en": "Type it on the login page. It works for :min minutes.",
+        "hy": "Մուտքագրեք այն մուտքի էջում։ Կոդը գործում է :min րոպե։",
+        "ru": "Введите его на странице входа. Код действует :min минут."
+    },
+    "auth.email.mail_title": {
+        "en": "Your login code",
+        "hy": "Ձեր մուտքի կոդը",
+        "ru": "Ваш код входа"
     },
     "auth.email.note": {
         "en": "For people without Telegram. We'll ask for your phone after.",
@@ -1264,6 +1274,16 @@
         "hy": "Ինչ-որ մեկը խնդրել է վերականգնել ձեր ZoneSpot հաշվի գաղտնաբառը։ Բացեք այս հղումը՝ նորը սահմանելու համար (գործում է :min րոպե)։",
         "ru": "Кто-то запросил восстановление пароля вашего аккаунта ZoneSpot. Откройте ссылку, чтобы задать новый (она действует :min минут):"
     },
+    "auth.reset.mail_button": {
+        "en": "Set a new password",
+        "hy": "Սահմանել նոր գաղտնաբառ",
+        "ru": "Задать новый пароль"
+    },
+    "auth.reset.mail_link_hint": {
+        "en": "If the button doesn't work, copy this link into your browser:",
+        "hy": "Եթե կոճակը չի աշխատում, պատճենեք այս հղումը բրաուզերում՝",
+        "ru": "Если кнопка не работает, скопируйте эту ссылку в браузер:"
+    },
     "auth.reset.mail_subject": {
         "en": "ZoneSpot: restore your password",
         "hy": "ZoneSpot․ գաղտնաբառի վերականգնում",
@@ -1363,6 +1383,31 @@
         "en": "Log in or sign up",
         "hy": "Մուտք կամ գրանցում",
         "ru": "Вход или регистрация"
+    },
+    "auth.verify.mail_code": {
+        "en": "Your ZoneSpot code: :code. Type it on the screen where you asked for it. It is valid for :min minutes.",
+        "hy": "Ձեր ZoneSpot կոդը՝ :code։ Մուտքագրեք կոդը այն էջում, որտեղ այն խնդրել եք։ Կոդը գործում է :min րոպե։",
+        "ru": "Ваш код ZoneSpot: :code. Введите его на странице, где вы его запросили. Код действует :min минут."
+    },
+    "auth.verify.mail_hint": {
+        "en": "Type it on the screen where you asked for it. It is valid for :min minutes.",
+        "hy": "Մուտքագրեք կոդը այն էջում, որտեղ այն խնդրել եք։ Կոդը գործում է :min րոպե։",
+        "ru": "Введите его на странице, где вы его запросили. Код действует :min минут."
+    },
+    "auth.verify.mail_intro": {
+        "en": "Your ZoneSpot code:",
+        "hy": "Ձեր ZoneSpot կոդը՝",
+        "ru": "Ваш код ZoneSpot:"
+    },
+    "auth.verify.mail_subject": {
+        "en": "ZoneSpot: confirm your email, code :code",
+        "hy": "ZoneSpot. հաստատեք էլ. փոստը, կոդ՝ :code",
+        "ru": "ZoneSpot: подтвердите эл. почту, код :code"
+    },
+    "auth.verify.mail_title": {
+        "en": "Confirm your email",
+        "hy": "Հաստատեք ձեր էլ. փոստը",
+        "ru": "Подтвердите эл. почту"
     },
     "auth.welcome.sub": {
         "en": "How should other players see you?",
@@ -2924,6 +2969,16 @@
         "hy": "Մոտակա ազատը՝ :t",
         "ru": "Ближайшее свободное: :t"
     },
+    "common.not_found": {
+        "en": "This page doesn't exist or was removed.",
+        "hy": "Այս էջը գոյություն չունի կամ հեռացվել է։",
+        "ru": "Такой страницы нет, или она была удалена."
+    },
+    "common.not_found_title": {
+        "en": "Page not found",
+        "hy": "Էջը չի գտնվել",
+        "ru": "Страница не найдена"
+    },
     "common.now": {
         "en": "Now",
         "hy": "Հիմա",
@@ -2953,6 +3008,16 @@
         "en": "Owners and staff",
         "hy": "Սեփականատերեր և աշխատակիցներ",
         "ru": "Владельцы и персонал"
+    },
+    "common.page_expired": {
+        "en": "The page was open too long. We refreshed it, please try again.",
+        "hy": "Էջը չափազանց երկար էր բաց։ Մենք այն թարմացրել ենք, խնդրում ենք կրկին փորձել։",
+        "ru": "Страница была открыта слишком долго. Мы её обновили, попробуйте ещё раз."
+    },
+    "common.page_expired_title": {
+        "en": "The page has expired",
+        "hy": "Էջի ժամկետն անցել է",
+        "ru": "Страница устарела"
     },
     "common.pages": {
         "en": "Pages",
@@ -3113,6 +3178,21 @@
         "en": "Tomorrow",
         "hy": "Վաղը",
         "ru": "Завтра"
+    },
+    "common.too_many": {
+        "en": "Too many tries. Please try again in :min min.",
+        "hy": "Չափազանց շատ փորձեր։ Խնդրում ենք կրկին փորձել :min րոպեից։",
+        "ru": "Слишком много попыток. Попробуйте снова через :min мин."
+    },
+    "common.too_many_title": {
+        "en": "Please wait a moment",
+        "hy": "Խնդրում ենք մի փոքր սպասել",
+        "ru": "Подождите немного"
+    },
+    "common.try_again": {
+        "en": "Try again",
+        "hy": "Փորձել կրկին",
+        "ru": "Попробовать снова"
     },
     "common.unblock": {
         "en": "Unblock",
@@ -9163,6 +9243,91 @@
         "en": "You haven't blocked anyone.",
         "hy": "Դու ոչ մեկին չես արգելափակել։",
         "ru": "Вы никого не блокировали."
+    },
+    "profile.email.add": {
+        "en": "Add",
+        "hy": "Ավելացնել",
+        "ru": "Добавить"
+    },
+    "profile.email.bar": {
+        "en": "Confirm your email.",
+        "hy": "Հաստատեք ձեր էլ. փոստը։",
+        "ru": "Подтвердите эл. почту."
+    },
+    "profile.email.bar_hint": {
+        "en": "We send a 4-digit code to it.",
+        "hy": "Մենք դրան կուղարկենք 4-նիշանոց կոդ։",
+        "ru": "Мы отправим на неё 4-значный код."
+    },
+    "profile.email.change": {
+        "en": "Change email",
+        "hy": "Փոխել էլ. փոստը",
+        "ru": "Изменить эл. почту"
+    },
+    "profile.email.change_short": {
+        "en": "Change",
+        "hy": "Փոխել",
+        "ru": "Изменить"
+    },
+    "profile.email.check": {
+        "en": "We sent a 4-digit code to :email. Enter it here: the email is saved only after that.",
+        "hy": "Մենք :email հասցեին ուղարկել ենք 4-նիշանոց կոդ։ Մուտքագրեք այն այստեղ. էլ. փոստը կպահպանվի միայն դրանից հետո։",
+        "ru": "Мы отправили 4-значный код на :email. Введите его здесь: почта сохранится только после этого."
+    },
+    "profile.email.confirm": {
+        "en": "Confirm",
+        "hy": "Հաստատել",
+        "ru": "Подтвердить"
+    },
+    "profile.email.confirmed": {
+        "en": "Confirmed",
+        "hy": "Հաստատված է",
+        "ru": "Подтверждена"
+    },
+    "profile.email.done": {
+        "en": "Email confirmed.",
+        "hy": "Էլ. փոստը հաստատված է։",
+        "ru": "Эл. почта подтверждена."
+    },
+    "profile.email.new": {
+        "en": "New email",
+        "hy": "Նոր էլ. փոստ",
+        "ru": "Новая эл. почта"
+    },
+    "profile.email.none": {
+        "en": "Not added yet.",
+        "hy": "Դեռ ավելացված չէ։",
+        "ru": "Ещё не добавлена."
+    },
+    "profile.email.not_confirmed": {
+        "en": "Not confirmed",
+        "hy": "Հաստատված չէ",
+        "ru": "Не подтверждена"
+    },
+    "profile.email.other": {
+        "en": "Use another email",
+        "hy": "Օգտագործել այլ էլ. փոստ",
+        "ru": "Указать другую почту"
+    },
+    "profile.email.sent": {
+        "en": "Sent. Check your inbox (and the spam folder).",
+        "hy": "Ուղարկված է։ Ստուգեք մուտքային նամակները (և սպամի թղթապանակը)։",
+        "ru": "Отправлено. Проверьте входящие (и папку «Спам»)."
+    },
+    "profile.email.taken": {
+        "en": "This email belongs to another account.",
+        "hy": "Այս էլ. փոստը պատկանում է այլ հաշվի։",
+        "ru": "Эта почта принадлежит другому аккаунту."
+    },
+    "profile.email.title": {
+        "en": "Your email",
+        "hy": "Ձեր էլ. փոստը",
+        "ru": "Ваша эл. почта"
+    },
+    "profile.email.why": {
+        "en": "Used to log in with a password and to get back into your account.",
+        "hy": "Օգտագործվում է գաղտնաբառով մուտքի և հաշիվը վերականգնելու համար։",
+        "ru": "Нужна для входа по паролю и восстановления доступа к аккаунту."
     },
     "profile.languages.en": {
         "en": "English",

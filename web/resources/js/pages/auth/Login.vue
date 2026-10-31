@@ -10,7 +10,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 // Login = registration. The main screen, top to bottom:
-// 1. email + password: log in, or sign up (email, password); "Forgot password?" emails a link
+// 1. email + password: log in, or sign up (email, password, then the code sent to the email); "Forgot password?" emails a link
 // 2. "Log in with Telegram" (free: Telegram confirms the phone)
 // 3. "Continue with Google" (when Google is configured), email code (people without Telegram)
 // 4. phone + code (development, or when the paid Telegram Gateway is switched on)
@@ -19,6 +19,7 @@ const props = defineProps<{
     to: string | null;
     phone: string | null;
     email: string | null;
+    signup: string | null;
     telegram: { bot: string; simulate: boolean };
     phoneCode: boolean;
     testAccounts?: boolean;
@@ -79,13 +80,14 @@ function sendPhone() {
 }
 function verify(code: string) {
     codeForm.code = code;
-    codeForm.post(route(props.email ? 'login.email.verify' : 'login.verify'), { onError: () => codeBox.value?.clear() });
+    codeForm.post(route(props.signup ? 'login.register.verify' : props.email ? 'login.email.verify' : 'login.verify'), { onError: () => codeBox.value?.clear() });
 }
 function back() {
     router.post(route('login.change'), {}, { onSuccess: () => (mode.value = 'main') });
 }
 function resend() {
-    if (props.email) router.post(route('login.email'), { email: props.email }, { preserveScroll: true });
+    if (props.signup) router.post(route('login.register.resend'), {}, { preserveScroll: true });
+    else if (props.email) router.post(route('login.email'), { email: props.email }, { preserveScroll: true });
     else if (props.phone) router.post(route('login.code'), { phone: props.phone }, { preserveScroll: true });
 }
 </script>
@@ -95,14 +97,18 @@ function resend() {
         <Head :title="$t('auth.title')" />
         <h1 v-if="!onlyTelegram" style="font-size: 26px">{{ $t('auth.title') }}</h1>
 
-        <!-- a code was sent (email or phone): enter it -->
-        <div v-if="email || phone">
-            <p class="muted" style="margin: 8px 0 20px">{{ email ? $t('auth.email.enter', { email }) : $t('auth.enter', { phone: phone ?? '' }) }}</p>
+        <!-- a code was sent (sign-up, email or phone): enter it -->
+        <div v-if="signup || email || phone">
+            <p class="muted" style="margin: 8px 0 20px">
+                {{ signup || email ? $t('auth.email.enter', { email: signup ?? email ?? '' }) : $t('auth.enter', { phone: phone ?? '' }) }}
+            </p>
             <CodeInput ref="codeBox" @complete="verify" />
             <p v-if="page.props.devCode" style="text-align: center; margin: 14px 0 0">
                 <span class="pill lime">{{ $t('auth.dev_code', { code: page.props.devCode }) }}</span>
             </p>
             <div v-if="codeForm.errors.code" class="err" style="text-align: center">{{ codeForm.errors.code }}</div>
+            <!-- "Send again" refused (too many codes) -->
+            <div v-else-if="page.props.errors?.email" class="err" style="text-align: center">{{ page.props.errors.email }}</div>
             <div class="row" style="justify-content: space-between; margin-top: 20px">
                 <button type="button" class="btn ghost sm" @click="back"><Icon name="back" size="sm" />{{ $t('common.back') }}</button>
                 <button type="button" class="btn ghost sm" @click="resend">{{ $t('auth.resend') }}</button>

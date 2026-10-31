@@ -38,6 +38,8 @@ const props = defineProps<{
         phone: string;
         telegram: boolean;
         url: string;
+        email: string | null;
+        emailConfirmed: boolean;
     };
     options: { positions: string[]; districts: string[]; locales: string[] };
     notify: Record<string, boolean>;
@@ -175,6 +177,21 @@ function unblock(p: PlayerCard) {
                     </div>
                 </section>
 
+                <!-- the email: confirmed or not; "Your email" confirms, changes or adds it -->
+                <section class="card box" data-test="profile-email">
+                    <div class="row between">
+                        <h2>{{ $t('auth.email.label') }}</h2>
+                        <Link :href="route('me.email')" class="btn outline sm">{{
+                            !profile.email ? $t('profile.email.add') : profile.emailConfirmed ? $t('profile.email.change_short') : $t('profile.email.confirm')
+                        }}</Link>
+                    </div>
+                    <p v-if="profile.email" class="muted small emline">
+                        <span class="addr">{{ profile.email }}</span>
+                        <span :class="['pill', profile.emailConfirmed ? 'green' : 'warn']">{{ profile.emailConfirmed ? $t('profile.email.confirmed') : $t('profile.email.not_confirmed') }}</span>
+                    </p>
+                    <p v-else class="muted small">{{ $t('profile.email.none') }}</p>
+                </section>
+
                 <section v-if="profile.telegram" class="card box">
                     <h2>{{ $t('profile.telegram') }}</h2>
                     <p class="muted small"><span class="pill blue" style="margin-right: 6px"><Icon name="send" size="sm" /></span>{{ $t('profile.telegram_on') }}</p>
@@ -290,4 +307,6 @@ small { font-size: 12px; }
 .phcam { position: absolute; right: 0; bottom: 0; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 3px var(--bg); }
 .phacts { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
 .phacts label.btn { cursor: pointer; }
+.emline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; }
+.emline .addr { word-break: break-all; color: var(--ink); }
 </style>

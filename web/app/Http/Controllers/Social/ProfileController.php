@@ -61,6 +61,7 @@ class ProfileController extends Controller
                 'name' => $u->name, 'username' => $u->username, 'position' => $u->position, 'avatar' => $u->avatarUrl(),
                 'district' => $u->district, 'bio' => $u->bio, 'locale' => app()->getLocale(),   // the language the page is shown in
                 'phone' => Phone::format($u->phone), 'telegram' => $u->hasTelegram(), 'url' => PlayerCards::url($u),
+                'email' => $u->email, 'emailConfirmed' => $u->email && $u->email_verified_at !== null,
             ],
             'options' => ['positions' => self::POSITIONS, 'districts' => self::districts(), 'locales' => config('app.locales')],
             'blocked' => fn () => $this->cards->cards($u, User::whereIn('id', UserBlock::where('blocker_id', $u->id)->select('blocked_id'))->orderBy('name')->get()),

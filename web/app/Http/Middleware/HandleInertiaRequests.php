@@ -34,6 +34,8 @@ class HandleInertiaRequests extends Middleware
                     'telegram' => $user->hasTelegram(),
                     // a phone confirmed (with Telegram): needed to book
                     'phoneConfirmed' => $user->phone_verified_at !== null,
+                    'email' => $user->email,
+                    'emailConfirmed' => $user->email_verified_at !== null,
                     'isAdmin' => (bool) $user->is_admin,
                     'isOwner' => fn () => $user->venues()->exists(),
                     // someone who runs a place chose the player app (the switch): its full menu
@@ -56,7 +58,7 @@ class HandleInertiaRequests extends Middleware
                     // staging: the demo accounts only
                     return TestAccounts::is($phone) ? Cache::get('dev-otp:'.$phone) : null;
                 }
-                $key = $request->session()->get('otp_email') ?? $phone;
+                $key = $request->session()->get('otp_email') ?? $request->session()->get('signup.email') ?? $phone;
 
                 return $key ? Cache::get('dev-otp:'.$key) : null;
             },

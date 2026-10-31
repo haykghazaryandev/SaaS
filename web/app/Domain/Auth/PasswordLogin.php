@@ -12,17 +12,19 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Email + password. Signing up (email, password) creates an account without name and phone:
+ * Email + password. Signing up (email, password, then the code sent to the email) creates an account without name and phone:
  * the welcome page asks for both. "Forgot password?" emails a link (Laravel's password broker, 60 minutes);
  * it also lets an email-code account set its first password.
  * Limits: 5 wrong tries per login + IP per 10 minutes, 30 per IP per hour.
  */
 class PasswordLogin
 {
-    public function register(string $email, string $password): User
+    /** Creates the account once the code sent to $email was right (EmailVerification): the email is confirmed. */
+    public function register(string $email, string $passwordHash): User
     {
         $user = new User(['email' => self::normalize($email), 'locale' => app()->getLocale()]);
-        $user->forceFill(['password' => $password, 'last_seen_at' => now()])->save();
+        // the "hashed" cast keeps an existing hash as it is
+        $user->forceFill(['password' => $passwordHash, 'email_verified_at' => now(), 'last_seen_at' => now()])->save();
 
         return $user;
     }

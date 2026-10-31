@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\FriendlyErrors;
 use App\Http\Middleware\AllowedCountriesOnly;
 use App\Http\Middleware\EnsureVenueMenu;
 use App\Http\Middleware\EnsureVenueOwner;
@@ -55,8 +56,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // pages (not JSON, not the admin panel): our error page instead of the framework's white one; while
-        // debugging, a crash still shows the details
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
             $status = $response->getStatusCode();
             $page = in_array($status, [403, 404], true) || (in_array($status, [500, 503], true) && ! config('app.debug'));

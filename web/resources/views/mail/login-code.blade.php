@@ -1,5 +1,5 @@
-{{ __('auth.email.body', ['code' => $code]) }}
+{!! __('auth.email.body', ['code' => $code, 'min' => $minutes]) !!}
 
-{{ __('auth.email.ignore') }}
+{!! __('auth.email.ignore') !!}
 
-ZoneSpot · {{ config('app.url') }}
+ZoneSpot · {!! config('app.url') !!}

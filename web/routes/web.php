@@ -12,6 +12,7 @@ use App\Http\Controllers\Player\MyTournamentsController;
 use App\Http\Controllers\Player\PlaceController;
 use App\Http\Controllers\Player\RateController;
 use App\Http\Controllers\RoleSwitchController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 // interface texts for the browser (resources/js/lib/i18n.ts), versioned in the URL; see LangController
@@ -67,6 +68,8 @@ Route::middleware('guest')->group(function () {
     // email + password (and "Forgot password?"), and "Continue with Google" (both add the phone on the welcome page)
     Route::post('login/password', [AuthController::class, 'passwordLogin'])->middleware('throttle:30,1')->name('login.password');
     Route::post('login/register', [AuthController::class, 'passwordRegister'])->middleware('throttle:10,1')->name('login.register');
+    Route::post('login/register/verify', [AuthController::class, 'passwordRegisterVerify'])->middleware('throttle:30,1')->name('login.register.verify');
+    Route::post('login/register/resend', [AuthController::class, 'passwordRegisterResend'])->middleware('throttle:10,1')->name('login.register.resend');
     Route::post('login/forgot', [AuthController::class, 'passwordForgot'])->middleware('throttle:5,1')->name('login.forgot');
     Route::get('login/reset/{token}', [AuthController::class, 'passwordResetForm'])->name('login.reset');
     Route::post('login/reset', [AuthController::class, 'passwordReset'])->middleware('throttle:10,1')->name('login.reset.store');
@@ -87,3 +90,8 @@ Route::middleware('auth')->group(function () {
     // admin / owner / owner as staff / player app
     Route::match(['get', 'post'], 'switch', RoleSwitchController::class)->name('switch');
 });
+
+// unknown addresses get the 404 in the visitor's language (FriendlyErrors); any method, and no CSRF check, so a
+// POST is a 404 too (not 405 / 419)
+Route::any('{fallbackPlaceholder}', fn () => abort(404))->where('fallbackPlaceholder', '.*')->fallback()
+    ->withoutMiddleware(ValidateCsrfToken::class);

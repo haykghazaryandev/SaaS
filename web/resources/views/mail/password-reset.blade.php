@@ -1,7 +1,7 @@
-{{ __('auth.reset.mail_body', ['min' => $minutes]) }}
+{!! __('auth.reset.mail_body', ['min' => $minutes]) !!}
 
-{{ $url }}
+{!! $url !!}
 
-{{ __('auth.email.ignore') }}
+{!! __('auth.email.ignore') !!}
 
-ZoneSpot · {{ config('app.url') }}
+ZoneSpot · {!! config('app.url') !!}

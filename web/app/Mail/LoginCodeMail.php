@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Domain\Auth\EmailCodes;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -12,7 +13,7 @@ class LoginCodeMail extends Mailable
 {
     use Queueable;
 
-    public function __construct(public string $code) {}
+    public function __construct(public string $code, public int $minutes = EmailCodes::CODE_MINUTES) {}
 
     public function envelope(): Envelope
     {
@@ -21,6 +22,6 @@ class LoginCodeMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'mail.login-code');
+        return new Content(view: 'mail.login-code-html', text: 'mail.login-code');
     }
 }

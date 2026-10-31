@@ -173,6 +173,17 @@ watch(() => page.url, () => (menu.value = false));
                     ><b>{{ $t('auth.confirm.bar') }}</b> <small>{{ $t('auth.confirm.no_booking') }}</small></span
                 ><span class="go">{{ $t('auth.confirm.cta') }} →</span>
             </Link>
+            <!-- an email not confirmed yet (one bar at a time: the phone first, it is needed to book) -->
+            <Link
+                v-else-if="user && user.email && user.emailConfirmed === false && !route().current('me.email')"
+                class="phonebar"
+                :href="route('me.email')"
+                data-test="confirm-email-bar"
+            >
+                <Icon name="alert" size="sm" /><span
+                    ><b>{{ $t('profile.email.bar') }}</b> <small>{{ $t('profile.email.bar_hint') }}</small></span
+                ><span class="go">{{ $t('profile.email.confirm') }} →</span>
+            </Link>
             <slot />
         </main>
         <footer v-if="!user" class="foot">
