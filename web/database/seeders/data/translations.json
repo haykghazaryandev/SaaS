@@ -74,6 +74,11 @@
         "hy": "Մերժման պատճառ",
         "ru": "Причина отказа"
     },
+    "admin.booking.no_events": {
+        "en": "No changes recorded yet.",
+        "hy": "Փոփոխություններ դեռ գրանցված չեն։",
+        "ru": "Изменений пока нет."
+    },
     "admin.booking.note_owner": {
         "en": "Owner note",
         "hy": "Վայրի նշում",
@@ -364,10 +369,10 @@
         "hy": "Վայրեր չկան։",
         "ru": "Нет заведений."
     },
-    "admin.fee.note": {
-        "en": "Counted: bookings, trainings and tournament fees (card or cash, refunds taken off). Not counted: shop sales and card top-ups. Places without the desk (no wallet / shop / money) take no payments in the app: their played bookings count at the booking price, on the day played. The % is set on each place.",
-        "hy": "Հաշվվում են՝ ամրագրումները, մարզումները և մրցաշարային վճարները (քարտով կամ կանխիկ, վերադարձները հանված)։ Չեն հաշվվում՝ խանութի վաճառքները և քարտի լիցքավորումները։ Դրամարկղ չունեցող վայրերը (առանց քարտերի / խանութի / դրամի) հավելվածում վճարներ չեն ընդունում․ նրանց խաղացված ամրագրումները հաշվվում են ամրագրման գնով՝ խաղի օրը։ Տոկոսը սահմանվում է յուրաքանչյուր վայրում։",
-        "ru": "Учитываются: брони, тренировки и турнирные взносы (карта или наличные, возвраты вычтены). Не учитываются: продажи магазина и пополнения карт. Заведения без кассы (без карт / магазина / денег) не принимают оплату в приложении: их сыгранные брони учитываются по цене брони, в день игры. Процент задаётся у каждого заведения."
+    "admin.fee.note_counted": {
+        "en": "Counted: bookings, trainings and tournament fees (card or cash, refunds taken off). Not counted: shop sales and card top-ups. A place that took no money in the app in the period (no desk, or the desk not used) counts its played bookings at the booking price, on the day played. The % is set on each place.",
+        "hy": "Հաշվվում են՝ ամրագրումները, մարզումները և մրցաշարային վճարները (քարտով կամ կանխիկ, վերադարձները հանված)։ Չեն հաշվվում՝ խանութի վաճառքը և քարտերի համալրումները։ Եթե վայրը տվյալ ժամանակահատվածում հավելվածում գումար չի ընդունել (դրամարկղ չկա կամ չի օգտագործվում), հաշվվում են խաղացված ամրագրումները՝ ամրագրման գնով, խաղի օրով։ Տոկոսը սահմանվում է յուրաքանչյուր վայրի համար։",
+        "ru": "Считаются: брони, тренировки и взносы за турниры (картой или наличными, без возвратов). Не считаются: продажи магазина и пополнения карт. Если место за период не принимало деньги в приложении (нет стойки или она не используется), считаются сыгранные брони по цене брони, в день игры. Процент задаётся для каждого места."
     },
     "admin.fee.pct": {
         "en": "ZoneSpot fee, %",
@@ -479,6 +484,11 @@
         "hy": "Ծածկույթ",
         "ru": "Покрытие"
     },
+    "admin.log.error": {
+        "en": "Error",
+        "hy": "Սխալ",
+        "ru": "Ошибка"
+    },
     "admin.log.many": {
         "en": "Notification log",
         "hy": "Ծանուցումների մատյան",
@@ -488,6 +498,11 @@
         "en": "Telegram message",
         "hy": "Telegram հաղորդագրություն",
         "ru": "Сообщение Telegram"
+    },
+    "admin.log.type": {
+        "en": "Type",
+        "hy": "Տեսակ",
+        "ru": "Тип"
     },
     "admin.nav.admin_panel": {
         "en": "Admin panel",
@@ -779,6 +794,16 @@
         "hy": "Հյուր (ամրագրել է առանց հաշվի)",
         "ru": "Гость (бронь без аккаунта)"
     },
+    "admin.user.is_admin": {
+        "en": "ZoneSpot admin",
+        "hy": "ZoneSpot-ի ադմին",
+        "ru": "Админ ZoneSpot"
+    },
+    "admin.user.is_admin_help": {
+        "en": "Opens this admin panel. Numbers in ADMIN_PHONE are admins again after every deploy.",
+        "hy": "Բացում է այս ադմին վահանակը։ ADMIN_PHONE-ի համարները յուրաքանչյուր թարմացումից հետո կրկին ադմին են։",
+        "ru": "Открывает эту админ-панель. Номера из ADMIN_PHONE снова становятся админами после каждого обновления."
+    },
     "admin.user.last_seen": {
         "en": "Last seen",
         "hy": "Վերջին այց",
@@ -964,10 +989,10 @@
         "hy": "Անունը հղումում",
         "ru": "Имя в ссылке"
     },
-    "admin.venue.slug_help": {
-        "en": "bookball.am/places/<link name>; small letters, digits and -",
-        "hy": "bookball.am/places/<անուն>; փոքրատառ լատինական տառեր, թվեր և -",
-        "ru": "bookball.am/places/<имя>; маленькие латинские буквы, цифры и -"
+    "admin.venue.slug_hint": {
+        "en": "zonespot.am/places/<link name>; small letters, digits and -",
+        "hy": "zonespot.am/places/<անուն>; փոքրատառ լատինական տառեր, թվեր և -",
+        "ru": "zonespot.am/places/<имя>; маленькие латинские буквы, цифры и -"
     },
     "admin.venue.staff_count": {
         "en": "Staff",
@@ -2089,6 +2114,26 @@
         "hy": "Մեկ քարտ յուրաքանչյուր ակումբի համար։ Ցույց տվեք QR-ը ընդունարանում․ այնտեղ կլիցքավորեն հաշիվը և կգանձեն վճարումները, իսկ վճարածի մի մասը կվերադառնա որպես քեշբեք։ Քարտը գործում է միայն իր ակումբում։",
         "ru": "По одной карте на клуб. Покажите её QR на ресепшене: там пополнят баланс и примут оплату, а часть оплаченного вернётся кэшбэком. Карта действует только в своём клубе."
     },
+    "club.need_first_name": {
+        "en": "Write your first name",
+        "hy": "Գրեք ձեր անունը",
+        "ru": "Напишите имя"
+    },
+    "club.need_last_name": {
+        "en": "Write your last name",
+        "hy": "Գրեք ձեր ազգանունը",
+        "ru": "Напишите фамилию"
+    },
+    "club.need_level": {
+        "en": "Write your rating: this division is for a rating range",
+        "hy": "Գրեք ձեր վարկանիշը․ այս խումբը որոշակի վարկանիշի համար է",
+        "ru": "Укажите рейтинг: эта группа для определённого рейтинга"
+    },
+    "club.need_phone": {
+        "en": "Write your phone number (8 digits after +374)",
+        "hy": "Գրեք ձեր հեռախոսահամարը (+374-ից հետո 8 թիվ)",
+        "ru": "Напишите номер телефона (8 цифр после +374)"
+    },
     "club.no_cards": {
         "en": "No cards yet. Open a club page and tap \"Get a card\".",
         "hy": "Քարտեր դեռ չկան։ Բացեք ակումբի էջը և սեղմեք «Ստանալ քարտ»։",
@@ -2304,6 +2349,21 @@
         "hy": "Մրցաշարի չատ",
         "ru": "Чат турнира"
     },
+    "club.tournament.confirm_btn": {
+        "en": "Confirm the phone",
+        "hy": "Հաստատել հեռախոսը",
+        "ru": "Подтвердить телефон"
+    },
+    "club.tournament.confirm_note": {
+        "en": "It takes a few seconds in Telegram, then you come back here.",
+        "hy": "Telegram-ում մի քանի վայրկյան է տևում, հետո կվերադառնաք այստեղ։",
+        "ru": "Это займёт пару секунд в Telegram, потом вы вернётесь сюда."
+    },
+    "club.tournament.confirm_title": {
+        "en": "Confirm your phone to register",
+        "hy": "Գրանցվելու համար հաստատեք ձեր հեռախոսը",
+        "ru": "Подтвердите телефон, чтобы зарегистрироваться"
+    },
     "club.tournament.d_bracket_ready": {
         "en": "The draw is made: see who plays whom",
         "hy": "Վիճակահանությունն արված է․ տեսեք՝ ով ում հետ է խաղում",
@@ -2518,6 +2578,26 @@
         "en": "Address",
         "hy": "Հասցե",
         "ru": "Адрес"
+    },
+    "common.ago_day": {
+        "en": ":n d ago",
+        "hy": ":n օր առաջ",
+        "ru": ":n дн назад"
+    },
+    "common.ago_hour": {
+        "en": ":n h ago",
+        "hy": ":n ժ առաջ",
+        "ru": ":n ч назад"
+    },
+    "common.ago_min": {
+        "en": ":n min ago",
+        "hy": ":n ր առաջ",
+        "ru": ":n мин назад"
+    },
+    "common.ago_now": {
+        "en": "just now",
+        "hy": "հենց հիմա",
+        "ru": "только что"
     },
     "common.all": {
         "en": "All",
@@ -3003,6 +3083,11 @@
         "en": "Artificial turf",
         "hy": "Արհեստական խոտ",
         "ru": "Искусственный газон"
+    },
+    "common.table_one": {
+        "en": "Table",
+        "hy": "Սեղան",
+        "ru": "Стол"
     },
     "common.team": {
         "en": "Team",
@@ -4124,10 +4209,10 @@
         "hy": "Դեռ չի պատասխանել",
         "ru": "Пока не ответил(а)"
     },
-    "games.show.you": {
-        "en": "you",
-        "hy": "դու",
-        "ru": "вы"
+    "games.show.you_label": {
+        "en": "You",
+        "hy": "Դուք",
+        "ru": "Вы"
     },
     "games.status.archived": {
         "en": "Archived",
@@ -4924,6 +5009,11 @@
         "hy": "Խաղացողի նշում",
         "ru": "Комментарий игрока"
     },
+    "owner.booking.phone_only": {
+        "en": "No ZoneSpot account: call them about any change",
+        "hy": "ZoneSpot-ի հաշիվ չունի․ փոփոխությունների մասին զանգահարեք",
+        "ru": "Нет аккаунта ZoneSpot: о любых изменениях сообщите по телефону"
+    },
     "owner.booking.player": {
         "en": "ZoneSpot player",
         "hy": "ZoneSpot խաղացող",
@@ -5163,6 +5253,11 @@
         "en": "Test games are on the tables",
         "hy": "Փորձնական խաղերը սեղաններին են",
         "ru": "Тестовые игры на столах"
+    },
+    "owner.club.discount": {
+        "en": "Discount, %",
+        "hy": "Զեղչ, %",
+        "ru": "Скидка, %"
     },
     "owner.club.discounts_given": {
         "en": "Discounts given: :a",
@@ -6674,10 +6769,10 @@
         "hy": "օր.՝ Դաշտը փակ է վերանորոգման համար",
         "ru": "напр.: Поле закрыто на обслуживание"
     },
-    "owner.reason.taken": {
-        "en": "The field is taken at this time",
-        "hy": "Այս ժամին դաշտը զբաղված է",
-        "ru": "Поле в это время занято"
+    "owner.reason.time_taken": {
+        "en": "This time is already taken",
+        "hy": "Այս ժամն արդեն զբաղված է",
+        "ru": "Это время уже занято"
     },
     "owner.record.good": {
         "en": "played :n, always came",
@@ -7444,6 +7539,11 @@
         "hy": ":a — :b, :score։ Պահպանե՞լ",
         "ru": ":a — :b, :score. Сохранить?"
     },
+    "owner.tournament.ask_score_final": {
+        "en": ":name wins the tournament.",
+        "hy": ":name-ը հաղթում է մրցաշարում։",
+        "ru": ":name побеждает в турнире."
+    },
     "owner.tournament.ask_score_text": {
         "en": ":name goes on to the next round.",
         "hy": ":name-ն անցնում է հաջորդ փուլ։",
@@ -7784,10 +7884,10 @@
         "hy": "Ուղարկել",
         "ru": "Отправить"
     },
-    "owner.tournament.sent": {
-        "en": "Sent to :n players.",
-        "hy": "Ուղարկվեց :n խաղացողի։",
-        "ru": "Отправлено :n игрокам."
+    "owner.tournament.sent_n": {
+        "en": "Sent to the players: :n",
+        "hy": "Ուղարկվեց խաղացողներին՝ :n",
+        "ru": "Отправлено игрокам: :n"
     },
     "owner.tournament.split_by_rating": {
         "en": "Split by rating (divisions)",

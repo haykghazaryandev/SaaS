@@ -278,8 +278,11 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     <li v-for="p in players.in" :key="p.id">
                         <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" />
                         <span class="nm">
-                            <span class="n1">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template></span>
-                            <small v-if="p.creator">{{ $t('games.show.organiser_short') }}</small>
+                            <span class="n1">{{ p.name }}</span>
+                            <!-- "you" on the small line, so the name keeps its room next to the position chip -->
+                            <small v-if="p.creator || p.me">{{
+                                [p.me ? $t('games.show.you_label') : '', p.creator ? $t('games.show.organiser_short') : ''].filter(Boolean).join(' · ')
+                            }}</small>
                         </span>
                         <!-- my own chip opens the position sheet; the others only show theirs -->
                         <button v-if="p.me && can.position && positions.length" type="button" :class="['pill pos', { blue: p.position }]" :title="p.position ? posFull(p.position) : undefined"
@@ -306,7 +309,7 @@ const bookWhen = (b: GameBooking) => `${dateRel(b.date, todayYerevan())} · ${b.
                     <ul class="plist dim">
                         <li v-for="p in players.invited" :key="p.id">
                             <Avatar :id="p.id" :name="p.name" :src="p.avatar" size="md" />
-                            <span class="nm"><span class="n1">{{ p.name }}<template v-if="p.me"> <span class="faint">({{ $t('games.show.you') }})</span></template></span><small>{{ $t('games.show.waiting') }}</small></span>
+                            <span class="nm"><span class="n1">{{ p.name }}</span><small>{{ p.me ? $t('games.show.you_label') + ' · ' : '' }}{{ $t('games.show.waiting') }}</small></span>
                         </li>
                     </ul>
                 </template>

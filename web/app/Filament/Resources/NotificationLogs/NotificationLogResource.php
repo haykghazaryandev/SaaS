@@ -36,6 +36,12 @@ class NotificationLogResource extends Resource
         return __('admin.log.many');
     }
 
+    /** As written (Filament would capitalise every word: "Журнал Уведомлений"). */
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.log.many');
+    }
+
     public static function canCreate(): bool
     {
         return false;
@@ -44,13 +50,13 @@ class NotificationLogResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
-            TextEntry::make('type'),
-            TextEntry::make('status')->badge(),
+            TextEntry::make('type')->label(__('admin.log.type')),
+            TextEntry::make('status')->label(__('common.status'))->badge(),
             TextEntry::make('user.name')->label(__('admin.user.one'))->placeholder('—'),
             TextEntry::make('chat_id'),
             TextEntry::make('payload.text')->label(__('common.text'))->html()->columnSpanFull()
                 ->formatStateUsing(fn ($state) => nl2br(strip_tags((string) $state, '<b><i><a><code>'))),
-            TextEntry::make('error')->placeholder('—')->columnSpanFull(),
+            TextEntry::make('error')->label(__('admin.log.error'))->placeholder('—')->columnSpanFull(),
         ]);
     }
 
@@ -61,16 +67,16 @@ class NotificationLogResource extends Resource
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('created_at')->label(__('common.when'))->dateTime('d.m H:i:s', 'Asia/Yerevan'),
-                TextColumn::make('type')->badge()->color('gray')->searchable(),
+                TextColumn::make('type')->label(__('admin.log.type'))->badge()->color('gray')->searchable(),
                 TextColumn::make('user.name')->label(__('admin.user.one'))->placeholder('—'),
                 TextColumn::make('payload.text')->label(__('common.text'))->limit(70)->formatStateUsing(fn ($state) => strip_tags((string) $state)),
-                TextColumn::make('status')->badge()->color(fn ($state) => match ($state) {
+                TextColumn::make('status')->label(__('common.status'))->badge()->color(fn ($state) => match ($state) {
                     'sent' => 'success', 'failed' => 'danger', default => 'gray'
                 }),
-                TextColumn::make('error')->limit(40)->placeholder('—')->toggleable(),
+                TextColumn::make('error')->label(__('admin.log.error'))->limit(40)->placeholder('—')->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('status')->options(['sent' => 'sent', 'logged' => 'logged', 'failed' => 'failed']),
+                SelectFilter::make('status')->label(__('common.status'))->options(['sent' => 'sent', 'logged' => 'logged', 'failed' => 'failed']),
             ])
             ->recordActions([ViewAction::make()]);
     }

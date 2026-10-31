@@ -71,7 +71,7 @@ class VenueResource extends Resource
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn ($state, callable $set, callable $get, string $operation) => $operation === 'create' && ! $get('slug') ? $set('slug', Str::slug($state)) : null),
                 TextInput::make('slug')->label(__('admin.venue.slug'))->required()->maxLength(80)
-                    ->regex('/^[a-z0-9-]+$/')->unique(ignoreRecord: true)->helperText(__('admin.venue.slug_help')),
+                    ->regex('/^[a-z0-9-]+$/')->unique(ignoreRecord: true)->helperText(__('admin.venue.slug_hint')),
                 Select::make('district')->label(__('admin.venue.district'))->options(Options::districts())->required()->searchable(),
                 Select::make('status')->label(__('common.status'))->options(Options::venueStatuses())->default('active')->required(),
                 TextInput::make('phone')->label(__('common.phone'))->tel()->maxLength(20),

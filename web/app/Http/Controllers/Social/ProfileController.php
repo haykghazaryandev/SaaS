@@ -101,7 +101,12 @@ class ProfileController extends Controller
         $u->forceFill([...$data, 'registered_at' => $u->registered_at ?? now()])->save();
         $request->session()->put('locale', $data['locale']);
         app()->setLocale($data['locale']);
+        // back to the page, but with the new language: an old ?lang= in its address would switch the account back
+        $back = url()->previous();
+        if (str_contains($back, 'lang=')) {
+            $back = preg_replace('/([?&])lang=[a-z]{2}/', '$1lang='.$data['locale'], $back);
+        }
 
-        return back()->with('success', __('profile.saved'));
+        return redirect($back)->with('success', __('profile.saved'));
     }
 }

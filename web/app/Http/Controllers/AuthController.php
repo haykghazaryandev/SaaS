@@ -363,6 +363,11 @@ class AuthController extends Controller
     public function confirmPhone(Request $request)
     {
         $user = $request->user();
+        // ?back=/t/abc: a page that sent the person here on purpose (only our own paths)
+        $back = (string) $request->query('back');
+        if (str_starts_with($back, '/') && ! str_starts_with($back, '//')) {
+            $request->session()->put('url.intended', url($back));
+        }
         if ($user->phone_verified_at) {
             return redirect()->intended(route('home'));
         }

@@ -105,7 +105,10 @@ class BookingResource extends Resource
                     ->suffix(fn (Booking $record) => $record->cancelled_by ? ' ('.$record->cancelled_by.')' : ''),
             ]),
             Section::make(__('common.history'))->collapsible()->schema([
-                RepeatableEntry::make('events')->hiddenLabel()->columns(3)->schema([
+                // no events yet (an old or imported booking): say so instead of an empty box
+                TextEntry::make('no_events')->hiddenLabel()->state(__('admin.booking.no_events'))->color('gray')
+                    ->visible(fn (Booking $record) => ! $record->events()->exists()),
+                RepeatableEntry::make('events')->hiddenLabel()->columns(3)->visible(fn (Booking $record) => $record->events()->exists())->schema([
                     TextEntry::make('type')->hiddenLabel()->badge(),
                     TextEntry::make('created_at')->hiddenLabel()->dateTime('d.m.Y H:i', 'Asia/Yerevan'),
                     TextEntry::make('changes')->hiddenLabel()->placeholder('')
@@ -159,16 +162,17 @@ class BookingResource extends Resource
                 SelectFilter::make('venue_id')->label(__('common.place'))->relationship('venue', 'name')->searchable()->preload(),
                 SelectFilter::make('status')->label(__('common.status'))->options(Options::bookingStatuses())->multiple(),
                 Filter::make('day')->label(__('common.day'))
-                    ->schema([DatePicker::make('day')->label(__('common.day'))->native(false)])
-                    ->query(function (Builder $q, array $data) {
+                    ->schema([DatePicker::make('day')->label(__('common.day'))->native(false)->format('Y-m-d')->displayFormat('d.m.Y')->closeOnDateSelection()])
+                    // Filament passes the arguments by name: $query (not $q), or the filter goes to another query
+                    ->query(function (Builder $query, array $data) {
                         if (! ($data['day'] ?? null)) {
-                            return $q;
+                            return $query;
                         }
-                        $day = LocalTime::day($data['day']);
+                        $day = LocalTime::day(substr((string) $data['day'], 0, 10));
 
-                        return $q->where('starts_at', '>=', $day->utc())->where('starts_at', '<', $day->addDay()->utc());
+                        return $query->where('starts_at', '>=', $day->utc())->where('starts_at', '<', $day->addDay()->utc());
                     })
-                    ->indicateUsing(fn (array $data) => ($data['day'] ?? null) ? __('common.day').': '.$data['day'] : null),
+                    ->indicateUsing(fn (array $data) => ($data['day'] ?? null) ? __('common.day').': '.LocalTime::day(substr((string) $data['day'], 0, 10))->format('d.m.Y') : null),
                 Filter::make('upcoming')->label(__('admin.booking.upcoming'))->query(fn (Builder $query) => $query->where('starts_at', '>=', now())),
             ])
             ->recordActions([

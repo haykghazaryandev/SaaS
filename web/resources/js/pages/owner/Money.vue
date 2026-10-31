@@ -4,6 +4,7 @@ import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { router } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 // Money (the owner): what the place sold in the period (bookings, trainings, shop, tournaments), the cash that came in,
 // what was paid from cards (that money came earlier, with the top-up), the top-ups, and the payments of the period —
@@ -29,7 +30,11 @@ const props = defineProps<{
 }>();
 const dm = (d: string) => `${d.slice(8)}.${d.slice(5, 7)}`;
 const owner = useOwner();
-const KINDS = ['booking', 'training', 'shop', 'tournament', 'topup'];
+// only what the place has: no cards / tournaments on a football field (no top-ups, no "from cards", no card filter)
+const has = (f: string) => (owner.value.features ?? []).includes(f);
+const shown = (k: string) => (k === 'topup' ? has('wallet') : k === 'tournament' ? has('tournaments') : k === 'shop' ? has('shop') : k === 'training' ? has('trainings') : true);
+const KINDS = ['booking', 'training', 'shop', 'tournament', 'topup'].filter(shown);
+const kinds = computed(() => Object.fromEntries(Object.entries(props.report.byKind).filter(([k, v]) => shown(k) || v)));
 // a new period or filter starts the list on its first page
 function go(change: Record<string, string | null>) {
     const q = { period: props.period, kind: props.filters.kind, method: props.filters.method, ...change };
@@ -51,15 +56,17 @@ function go(change: Record<string, string | null>) {
             </button>
         </div>
 
-        <div class="kpis">
+        <div :class="['kpis', { n2: !has('wallet') }]">
             <div class="card kp"><small>{{ $t('owner.club.sales_total') }}</small><b>{{ amd(report.sales) }}</b></div>
             <div class="card kp"><small>{{ $t('owner.club.cash_in') }}</small><b>{{ amd(report.cash) }}</b></div>
-            <div class="card kp"><small>{{ $t('owner.club.from_cards') }}</small><b>{{ amd(report.fromCards) }}</b></div>
-            <div class="card kp"><small>{{ $t('owner.club.topups') }}</small><b>{{ amd(report.topups) }}</b></div>
+            <template v-if="has('wallet')">
+                <div class="card kp"><small>{{ $t('owner.club.from_cards') }}</small><b>{{ amd(report.fromCards) }}</b></div>
+                <div class="card kp"><small>{{ $t('owner.club.topups') }}</small><b>{{ amd(report.topups) }}</b></div>
+            </template>
         </div>
         <section class="card panel">
             <div class="sec-h"><h2>{{ $t('owner.club.by_kind') }}</h2></div>
-            <button v-for="(v, k) in report.byKind" :key="k" type="button" class="krow" @click="go({ kind: k as string })">
+            <button v-for="(v, k) in kinds" :key="k" type="button" class="krow" @click="go({ kind: k as string })">
                 <span>{{ $t('club.kind.' + k) }}</span>
                 <i :style="{ width: report.sales ? (v / report.sales) * 100 + '%' : '0' }" />
                 <b class="mono">{{ amd(v) }}</b>
@@ -74,7 +81,7 @@ function go(change: Record<string, string | null>) {
                     <button type="button" :class="['chip', { on: !filters.kind }]" @click="go({ kind: null })">{{ $t('owner.money.everything') }}</button>
                     <button v-for="k in KINDS" :key="k" type="button" :class="['chip', { on: filters.kind === k }]" @click="go({ kind: k })">{{ $t('club.kind.' + k) }}</button>
                 </div>
-                <div class="seg sm" role="group" :aria-label="$t('owner.money.method')">
+                <div v-if="has('wallet')" class="seg sm" role="group" :aria-label="$t('owner.money.method')">
                     <button type="button" :aria-pressed="!filters.method" @click="go({ method: null })">{{ $t('common.all') }}</button>
                     <button type="button" :aria-pressed="filters.method === 'card'" @click="go({ method: 'card' })">{{ $t('owner.money.by_card') }}</button>
                     <button type="button" :aria-pressed="filters.method === 'cash'" @click="go({ method: 'cash' })">{{ $t('owner.money.in_cash') }}</button>
@@ -110,5 +117,6 @@ function go(change: Record<string, string | null>) {
 .prow2 .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .prow2 small { color: var(--muted); font-size: 12.5px; }
 .amt { white-space: nowrap; }
-@media (max-width: 560px) { .krow { grid-template-columns: 96px 1fr auto; } .prow2 { flex-wrap: wrap; } .prow2 .w { order: 3; flex-basis: 100%; } .amt { margin-left: auto; } }
+/* phones: the name and the amount on one line, the bar under them (long Armenian names don't run into the bar) */
+@media (max-width: 560px) { .krow { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; } .krow i { grid-column: 1 / -1; grid-row: 2; } .prow2 { flex-wrap: wrap; } .prow2 .w { order: 3; flex-basis: 100%; } .amt { margin-left: auto; } }
 </style>

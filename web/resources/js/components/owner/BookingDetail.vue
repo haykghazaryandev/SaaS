@@ -14,6 +14,8 @@ const props = defineProps<{ id: number }>();
 const emit = defineEmits<{ close: [] }>();
 const owner = useOwner();
 const b = ref<BookingDetail | null>(null);
+// "Table" for a ping-pong table, "Field" for a football field
+const fieldOf = computed(() => owner.value.fields.find((f) => f.id === b.value?.field_id));
 const failed = ref(false);
 
 onMounted(async () => {
@@ -87,7 +89,7 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
             <div class="muted" style="font-size: 14px; margin-bottom: 14px">{{ b.team ? b.team + ' · ' : '' }}{{ sourceLabel }}</div>
             <div class="kvs">
                 <div class="kv">
-                    <Icon name="grid" size="sm" /><span>{{ $t('common.field') }}</span
+                    <Icon name="grid" size="sm" /><span>{{ $t(fieldOf?.size === 'table' ? 'common.table_one' : 'common.field') }}</span
                     ><b>{{ b.field }}</b>
                 </div>
                 <div class="kv">
@@ -134,7 +136,7 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
                 </div>
             </div>
             <div class="tg-hint" style="margin: 12px 0 4px">
-                <Icon name="send" size="sm" />{{ $t(b.tel ? 'owner.booking.telegram_hint' : 'owner.booking.no_phone') }}
+                <Icon name="send" size="sm" />{{ $t(b.user ? 'owner.booking.telegram_hint' : b.tel ? 'owner.booking.phone_only' : 'owner.booking.no_phone') }}
             </div>
             <div class="hist">
                 <div class="kicker" style="margin: 14px 0 8px">{{ $t('common.history') }}</div>

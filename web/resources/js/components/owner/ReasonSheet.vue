@@ -8,7 +8,7 @@ const props = defineProps<{ kind: 'decline' | 'cancel'; id: number; who?: string
 const emit = defineEmits<{ close: [] }>();
 const reason = ref('');
 const busy = ref(false);
-const QUICK = ['owner.reason.taken', 'owner.reason.maintenance', 'owner.reason.call'];
+const QUICK = ['owner.reason.time_taken', 'owner.reason.maintenance', 'owner.reason.call'];
 
 function go() {
     if (props.kind === 'decline') {

@@ -60,7 +60,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
             $status = $response->getStatusCode();
             $page = in_array($status, [403, 404], true) || (in_array($status, [500, 503], true) && ! config('app.debug'));
-            if (! $page || $request->expectsJson() || $request->is('admin', 'admin/*', 'livewire/*')) {
+            // the admin panel keeps its own pages, except "no access" for people who aren't admins
+            $admin = $request->is('admin', 'admin/*', 'livewire/*') && ! ($status === 403 && ! $request->user()?->is_admin);
+            if (! $page || $request->expectsJson() || $admin) {
                 return $response;
             }
 

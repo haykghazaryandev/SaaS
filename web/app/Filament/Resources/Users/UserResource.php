@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Domain\Auth\AccountEraser;
+use App\Domain\Booking\AfterBooking\Penalties;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Pages\ViewUser;
@@ -17,6 +19,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
@@ -77,6 +80,9 @@ class UserResource extends Resource
                 TextInput::make('username')->label(__('admin.user.username'))->maxLength(32)->regex('/^[a-z0-9_.]+$/')->unique(ignoreRecord: true),
                 Select::make('locale')->label(__('common.language'))->options(['hy' => 'Հայերեն', 'ru' => 'Русский', 'en' => 'English'])->required(),
                 Textarea::make('bio')->label(__('common.about'))->maxLength(300)->columnSpanFull(),
+                // admin rights (the numbers in ADMIN_PHONE are admins again on every deploy)
+                Toggle::make('is_admin')->label(__('admin.user.is_admin'))->helperText(__('admin.user.is_admin_help'))
+                    ->disabled(fn (?User $record) => $record?->id === auth()->id()),
             ]),
         ]);
     }
@@ -199,7 +205,7 @@ class UserResource extends Resource
                 ->modalSubmitActionLabel(__('admin.user.erase'))
                 ->action(function (User $record, Action $action) {
                     $self = $record->is(auth()->user());
-                    app(\App\Domain\Auth\AccountEraser::class)->erase($record);
+                    app(AccountEraser::class)->erase($record);
                     Notification::make()->success()->title(__('admin.user.erased'))->send();
                     if ($self) {
                         auth()->guard('web')->logout();
@@ -214,7 +220,7 @@ class UserResource extends Resource
                 ->requiresConfirmation()
                 ->modalDescription(__('admin.user.reset_no_shows_help'))
                 ->action(function (User $record) {
-                    app(\App\Domain\Booking\AfterBooking\Penalties::class)->reset($record);
+                    app(Penalties::class)->reset($record);
                     $record->forceFill(['blocked_until' => null])->save();
                     Notification::make()->success()->title(__('admin.user.reset_done'))->send();
                 }),

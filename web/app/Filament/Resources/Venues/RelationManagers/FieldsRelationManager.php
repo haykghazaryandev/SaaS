@@ -41,9 +41,12 @@ class FieldsRelationManager extends RelationManager
 
         // a place may have many courts of one kind (ping-pong tables): players book "a table", the place gets any free one
         return $schema->columns(2)->components([
-            Select::make('size')->label(__('admin.field.size'))->options(Options::fieldSizes())->required(),
+            Select::make('size')->label(__('admin.field.size'))->options(Options::fieldSizes())->required()->live(),
             TextInput::make('name')->label(__('admin.field.name'))->maxLength(40)->placeholder(__('admin.field.name_ph')),
-            Select::make('surface')->label(__('admin.field.surface'))->options(['turf' => __('common.surfaces.turf'), 'grass' => __('common.surfaces.grass')])->default('turf')->required(),
+            // a surface only for football fields (a ping-pong table has none)
+            Select::make('surface')->label(__('admin.field.surface'))->options(['turf' => __('common.surfaces.turf'), 'grass' => __('common.surfaces.grass')])->default('turf')
+                ->visible(fn ($get) => ($get('size') instanceof FieldSize ? $get('size')->value : $get('size')) !== 'table')
+                ->required(fn ($get) => ($get('size') instanceof FieldSize ? $get('size')->value : $get('size')) !== 'table'),
             CheckboxList::make('durations')->label(__('admin.field.durations'))->options($durations)->columns(5)->required()->columnSpanFull(),
             Select::make('default_duration')->label(__('admin.field.default_duration'))->options($durations)->required(),
             TextInput::make('sort')->label(__('admin.field.sort'))->integer()->default(0),
@@ -75,7 +78,7 @@ class FieldsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('name')->label(__('admin.field.name'))->placeholder('—')->weight('bold'),
                 TextColumn::make('size')->label(__('admin.field.size'))->formatStateUsing(fn ($state) => __('telegram.field.'.($state instanceof FieldSize ? $state->value : $state))),
-                TextColumn::make('surface')->label(__('admin.field.surface'))->formatStateUsing(fn ($state) => __('admin.field.'.$state)),
+                TextColumn::make('surface')->label(__('admin.field.surface'))->formatStateUsing(fn ($state, Field $record) => $record->size === FieldSize::Table ? '—' : __('common.surfaces.'.$state)),
                 IconColumn::make('indoor')->label(__('admin.field.indoor'))->boolean()->falseColor('gray'),
                 TextColumn::make('durations_text')->label(__('admin.field.durations'))->getStateUsing(fn (Field $record) => implode(' / ', $record->durations ?? []).' min'),
                 TextColumn::make('default_duration')->label(__('admin.field.default_duration'))->suffix(' min'),

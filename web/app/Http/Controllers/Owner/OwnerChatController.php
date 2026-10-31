@@ -23,6 +23,9 @@ class OwnerChatController extends ChatController
 
     public function show(Request $request, Conversation $conversation): Response
     {
+        // only a chat of the place picked (another place's chat: switch the place first)
+        abort_unless(Conversation::ofPlace(Conversation::query()->whereKey($conversation->id), $request->attributes->get('venue')->id)->exists(), 404);
+
         return parent::show($request, $conversation)->with('panel', true);
     }
 }

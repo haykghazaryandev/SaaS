@@ -876,5 +876,10 @@
     "owner.sched.in_h": null,
     "owner.sched.in_min": null,
     "owner.sched.ends": null,
-    "admin.venue.show_features_help": null
+    "admin.venue.show_features_help": null,
+    "admin.fee.note": null,
+    "owner.reason.taken": null,
+    "owner.tournament.sent": null,
+    "games.show.you": null,
+    "admin.venue.slug_help": null
 }

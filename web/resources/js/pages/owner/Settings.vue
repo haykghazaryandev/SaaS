@@ -267,7 +267,7 @@ function removePhone() {
 }
 
 // rules
-const NOTICE = [0, 30, 60, 120, 240];
+const NOTICE = [0, 15, 30, 60, 120, 240];
 const EXPIRE = [30, 60, 120, 240, 720];
 const GRACE = [5, 10, 15, 20, 30];
 const mins = (m: number) =>
@@ -283,18 +283,30 @@ function addTier() {
 const today = owner.value.today;
 const closure = useForm({ field_id: null as number | null, from: `${today}T09:00`, to: `${today}T12:00`, reason: '' });
 function addClosure() {
-    closure.post(route('owner.closures.store'), { ...opts, onSuccess: () => closure.reset('reason') });
+    // a closure saved: an old "end must be after start" goes away with it
+    closure.post(route('owner.closures.store'), {
+        ...opts,
+        onSuccess: () => {
+            closure.reset('reason');
+            closure.clearErrors();
+        },
+    });
 }
 async function removeClosure(id: number) {
     if (await ask({ title: trans('owner.settings.closure_remove_ask'), ok: trans('common.remove'), danger: true }))
         router.delete(route('owner.closures.destroy', id), opts);
 }
+// "Tables", "Fields", or both when the place has both kinds
+const courtsTitle = computed(() => {
+    const kinds = new Set(owner.value.fields.map((f) => (f.size === 'table' ? 'table' : 'field')));
+    return kinds.size > 1 ? 'owner.courts.title' : kinds.has('table') ? 'owner.courts.kind_table' : 'common.fields';
+});
 // the sections to jump to (Menus only for the owner)
 const jumps = computed(() =>
     [
         { id: 's-profile', label: 'owner.settings.profile' },
         { id: 's-prices', label: 'owner.settings.prices_title' },
-        { id: 's-courts', label: 'owner.courts.title' },
+        { id: 's-courts', label: courtsTitle.value },
         { id: 's-closures', label: 'owner.settings.closures' },
         { id: 's-menus', label: 'owner.menus.title', on: props.canEdit },
         { id: 's-hours', label: 'common.opening_hours' },
@@ -486,7 +498,7 @@ const fmtRange = (c: ClosureRow) =>
                     <!-- tables / fields: a 4th table, a name, out of order for a while, gone -->
                     <section id="s-courts" class="card panel" data-test="courts">
                         <div class="sec-h">
-                            <h2>{{ $t('owner.courts.title') }}</h2>
+                            <h2>{{ $t(courtsTitle) }}</h2>
                         </div>
                         <p class="muted" style="font-size: 13px; margin: 0">{{ $t('owner.courts.note') }}</p>
                         <div v-for="k in courts" :key="k.size" class="ckind">

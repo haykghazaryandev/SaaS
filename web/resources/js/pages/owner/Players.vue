@@ -71,7 +71,7 @@ watch(
                     <option value="no">{{ $t('owner.club.noshow_no') }}</option>
                 </select>
                 <select v-model="f.sort" class="input" :aria-label="$t('owner.club.sort')">
-                    <option v-for="s in ['last', 'visits', 'rating', 'name', 'noshows']" :key="s" :value="s">{{ $t('owner.club.sort_' + s) }}</option>
+                    <option v-for="s in ['last', 'visits', 'rating', 'name', 'noshows'].filter((x) => x !== 'rating' || has('rating'))" :key="s" :value="s">{{ $t('owner.club.sort_' + s) }}</option>
                 </select>
             </div>
             <div class="plist">

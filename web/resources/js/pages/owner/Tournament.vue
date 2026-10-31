@@ -43,6 +43,7 @@ interface Division {
     phase: Phase;
     accepted: number;
     waiting: number;
+    options?: { label: string; price: number }[];
 }
 const props = defineProps<{
     tournament: TournamentSettings & {
@@ -69,6 +70,16 @@ const opts = { preserveScroll: true };
 // ---------- players ----------
 type Filter = 'all' | 'applied' | 'accepted' | 'declined' | 'paid' | 'unpaid';
 const filter = ref<Filter>('all');
+// the fee line: with divisions, from the cheapest to the dearest of them (not only the first division's price)
+const priceText = computed(() => {
+    const t = props.tournament;
+    if (!t.divisions.length) return t.options.map((o) => `${o.label} ${amd(o.price)}`).join(' / ');
+    const prices = t.divisions.flatMap((d) => (d.options ?? []).map((o) => o.price));
+    if (!prices.length) return '';
+    const lo = Math.min(...prices);
+    const hi = Math.max(...prices);
+    return lo === hi ? amd(lo) : `${amd(lo)} – ${amd(hi)}`;
+});
 const owes = (e: Entry) => e.status === 'accepted' && !e.paid && e.price > 0;
 const test: Record<Filter, (e: Entry) => boolean> = {
     all: (e) => e.status !== 'declined',
@@ -180,6 +191,10 @@ function setMatch(data: Record<string, string | number | boolean | null>) {
     });
 }
 const canSave = computed(() => sc.value.a !== '' && sc.value.b !== '' && sc.value.a !== sc.value.b);
+const isFinal = (m: Match) => {
+    const rounds = props.tournament.bracket?.rounds ?? [];
+    return rounds.length > 0 && rounds[rounds.length - 1].matches.some((x) => x.id === m.id);
+};
 async function saveScore() {
     const m = picked.value;
     if (!canSave.value || !m?.a || !m.b) return;
@@ -188,7 +203,8 @@ async function saveScore() {
     if (
         await ask({
             title: trans('owner.tournament.ask_score', { a: m.a.name, b: m.b.name, score: `${a}:${b}` }),
-            text: trans('owner.tournament.ask_score_text', { name: won }),
+            // the final: they win the tournament (not "the next round")
+            text: trans(isFinal(m) ? 'owner.tournament.ask_score_final' : 'owner.tournament.ask_score_text', { name: won }),
             ok: trans('common.save'),
         })
     )
@@ -255,7 +271,7 @@ async function copy() {
                     <TournamentPhase :phase="tournament.phase" style="margin-top: 6px" />
                     <p class="muted" style="margin: 4px 0 0; font-size: 13.5px">
                         {{ when }} ·
-                        {{ tournament.options.map((o) => `${o.label} ${amd(o.price)}`).join(' / ') }}
+                        {{ priceText }}
                     </p>
                     <p
                         v-if="tournament.min_rating != null || tournament.max_rating != null || tournament.max_players"

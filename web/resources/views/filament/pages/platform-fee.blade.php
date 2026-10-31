@@ -72,6 +72,6 @@
                 </tfoot>
             </table>
         </div>
-        <p style="font-size:12.5px;opacity:.65;margin-top:10px">{{ __('admin.fee.note') }}</p>
+        <p style="font-size:12.5px;opacity:.65;margin-top:10px">{{ __('admin.fee.note_counted') }}</p>
     </x-filament::section>
 </x-filament-panels::page>

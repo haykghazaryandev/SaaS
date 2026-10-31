@@ -43,6 +43,14 @@ class Checkout
             throw new BookingException('out_of_stock');
         }
 
+        // the same product at the same price again: one line with more of it (3 × Cola, not 2 × and 1 ×)
+        $same = BookingItem::where('booking_id', $booking->id)->where('product_id', $product->id)->where('price_each', $product->finalPrice())->first();
+        if ($same && $same->qty + $qty <= 100) {
+            $same->update(['qty' => $same->qty + $qty]);
+
+            return $same;
+        }
+
         return BookingItem::create(['booking_id' => $booking->id, 'product_id' => $product->id, 'name' => $product->name,
             'qty' => $qty, 'price_each' => $product->finalPrice(), 'created_by' => $by->id]);
     }
@@ -88,7 +96,14 @@ class Checkout
     public function walkIn(Field $field, User $by, int $minutes, ?string $name = null): Booking
     {
         $minutes = max($this->stepOf($field), min(240, $minutes));
-        $start = self::nextMinute();
+        // from this minute (a 15 min game shows 15 min left, not 16); right after a game stopped on this table that
+        // still holds the table to the next minute, from the minute it gives back
+        $start = LocalTime::now()->setSecond(0)->setMicrosecond(0);
+        $held = Booking::query()->where('field_id', $field->id)->whereIn('status', [BookingStatus::Pending, BookingStatus::Accepted, BookingStatus::Completed])
+            ->where('ends_at', '>', $start->utc())->where('ends_at', '<=', self::nextMinute()->utc())->max('ends_at');
+        if ($held) {
+            $start = CarbonImmutable::parse($held)->setTimezone(LocalTime::tz());
+        }
         $b = app(OwnerBooking::class)->create($by, $field, $start, $minutes, ['name' => $name ?: __('owner.club.walk_in')]);
         // a game of the length chosen (it counts down like a booked one, at its price-list price)
         $b->update(['started_at' => now(), 'arrived_at' => now()]);
@@ -138,6 +153,9 @@ class Checkout
             if (($e->errorInfo[0] ?? null) !== '23P01') {
                 throw $e;
             }
+            // the time after it is booked already (the game ran over into the next one): it keeps its own end;
+            // forget the end that failed, or the next save would send it again
+            $booking->refresh();
         }
         $booking->update(['price' => $price, 'stopped_at' => now(), 'charged_minutes' => $minutes]);
 

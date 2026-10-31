@@ -1,14 +1,13 @@
 <script setup lang="ts">
+import { trans } from '@/lib/i18n';
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
-import { useShared } from '@/composables/useShared';
 import { markRead, refresh, social } from '@/composables/useSocial';
 import type { Notice } from '@/types/social';
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // The bell in the header: unread badge, a dropdown with the last 30 notices, and a toast for live ones.
-const { locale } = useShared();
 const page = usePage();
 const open = ref(false);
 const el = ref<HTMLElement>();
@@ -34,15 +33,13 @@ function goToast() {
     if (link) router.visit(link);
 }
 
-// "5 min ago" in the page language
+// "5 min ago" in the page language (our own texts: browsers have no Armenian for Intl.RelativeTimeFormat)
 function ago(iso: string): string {
-    const s = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
-    const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
-    const a = Math.abs(s);
-    if (a < 60) return rtf.format(Math.round(s), 'second');
-    if (a < 3600) return rtf.format(Math.round(s / 60), 'minute');
-    if (a < 86400) return rtf.format(Math.round(s / 3600), 'hour');
-    return rtf.format(Math.round(s / 86400), 'day');
+    const a = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+    if (a < 60) return trans('common.ago_now');
+    if (a < 3600) return trans('common.ago_min', { n: Math.round(a / 60) });
+    if (a < 86400) return trans('common.ago_hour', { n: Math.round(a / 3600) });
+    return trans('common.ago_day', { n: Math.round(a / 86400) });
 }
 
 function onDoc(e: MouseEvent) {

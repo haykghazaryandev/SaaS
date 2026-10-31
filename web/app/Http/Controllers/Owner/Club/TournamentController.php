@@ -34,7 +34,8 @@ class TournamentController extends OwnerController
         $row = fn (Tournament $t) => $this->present($t) + [
             'phase' => Tournaments::phase($t),
             'entries' => $t->entries->where('status', '!=', 'declined')->count(),
-            'waiting' => $t->entries->where('status', 'applied')->count(),
+            // a cancelled one has nobody waiting for an answer any more
+            'waiting' => $t->status === 'cancelled' ? 0 : $t->entries->where('status', 'applied')->count(),
             'accepted' => $t->entries->where('status', 'accepted')->count(),
             'unpaid' => $t->entries->where('status', 'accepted')->filter(fn ($e) => ! $e->payment_id && Tournaments::fee($t, $e) > 0)->count(),
         ];
@@ -63,7 +64,7 @@ class TournamentController extends OwnerController
             return Inertia::render('owner/Tournament', ['tournament' => $this->present($t) + [
                 'phase' => Tournaments::phase($t), 'list' => [], 'bracket' => null, 'chat' => null, 'unpaid' => 0, 'siblings' => [],
                 'divisions' => $t->divisions->each->setRelation('parent', $t)->map(fn (Tournament $d) => $this->present($d) + ['phase' => Tournaments::phase($d),
-                    'accepted' => $d->entries->where('status', 'accepted')->count(), 'waiting' => $d->entries->where('status', 'applied')->count()])->values(),
+                    'accepted' => $d->entries->where('status', 'accepted')->count(), 'waiting' => $d->status === 'cancelled' ? 0 : $d->entries->where('status', 'applied')->count()])->values(),
             ]]);
         }
         // the players' cards here: "from the card" only for those who have one (and its balance)
@@ -200,7 +201,7 @@ class TournamentController extends OwnerController
         $data = $request->validate(['text' => 'required|string|max:1000', 'to' => 'nullable|in:'.implode(',', Tournaments::AUDIENCES)]);
         $n = $this->attempt(fn () => $tournaments->announce($tournament, $request->user(), $data['text'], $data['to'] ?? 'all'));
 
-        return back()->with('success', __('owner.tournament.sent', ['n' => $n]));
+        return back()->with('success', __('owner.tournament.sent_n', ['n' => $n]));
     }
 
     /** "You haven't paid yet" to the accepted players with an unpaid fee. */

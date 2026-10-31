@@ -14,6 +14,11 @@ export const SPORT_ICON: Record<string, string> = { football: '⚽', pingpong: '
 export const pitchColor = (surface?: string | null) => (surface === 'grass' ? '#2b7d3f' : undefined);
 
 const parts = (iso: string) => iso.split('-').map(Number);
+/** a calendar date as a day number (months are 0-based in Date.UTC: Oct 31 must not become "Nov 31" = Dec 1) */
+const dayNo = (iso: string) => {
+    const [y, m, d] = parts(iso);
+    return Date.UTC(y, m - 1, d) / 864e5;
+};
 
 /** weekday 0 (Sunday) … 6 of a calendar date */
 export function weekday(iso: string): number {
@@ -34,7 +39,7 @@ export function dateLong(iso: string): string {
 }
 /** "Today" / "Tomorrow" / "Wed, 21 Oct" */
 export function dateRel(iso: string, todayIso: string): string {
-    const diff = Math.round((Date.UTC(...(parts(iso) as [number, number, number])) - Date.UTC(...(parts(todayIso) as [number, number, number]))) / 864e5);
+    const diff = Math.round(dayNo(iso) - dayNo(todayIso));
     if (diff === 0) return trans('common.today');
     if (diff === 1) return trans('common.tomorrow');
     return dateLong(iso);
@@ -50,7 +55,7 @@ export function toHours(t: string): number {
 }
 /** days between two calendar dates (b − a) */
 export function dayDiff(a: string, b: string): number {
-    return Math.round((Date.UTC(...(parts(b) as [number, number, number])) - Date.UTC(...(parts(a) as [number, number, number]))) / 864e5);
+    return Math.round(dayNo(b) - dayNo(a));
 }
 /** "Today 19:00" / "Tomorrow 19:00" / "Fri 19:00" (within a week) / "Fri, 31 Oct 19:00"; inline = "today" / "tomorrow" in lower case (inside a sentence) */
 export function nextLabel(iso: string, todayIso: string, time: string, inline = false): string {

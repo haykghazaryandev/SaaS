@@ -33,7 +33,7 @@ class PlaceController extends Controller
         if ($sp = $venue->sports()[0] ?? null) {
             $request->session()->put('sport', $sp->value);
         }
-        $day = $present->pickDay($request->query('date'));
+        $day = $present->pickDay($request->query('date'), self::horizon($venue));
         // one choice per kind of court: all ping-pong tables are "a table" (the first one stands for the group)
         $groups = $present->groups($venue->fields);
         $fields = $groups->map->first()->values();
@@ -75,7 +75,7 @@ class PlaceController extends Controller
             'features' => $venue->featureList(),
             // the club parts the place has switched on
             'club' => $this->club($request, $venue),
-            'days' => $present->days(),
+            'days' => $present->days(self::horizon($venue)),
             'initial' => [
                 'date' => $day->toDateString(),
                 'field' => $field?->id,
@@ -109,7 +109,7 @@ class PlaceController extends Controller
         $fieldId = $request->integer('field') ?: null;
         abort_if($fieldId && ! $venue->fields()->whereKey($fieldId)->exists(), 404);
 
-        $day = $present->pickDay($request->query('date'));
+        $day = $present->pickDay($request->query('date'), self::horizon($venue));
 
         // "mine" and "limit" come with every refresh: a request withdrawn on another page shows up here at once
         return response()->json($present->slots($venue, $day, $fieldId, $request->integer('minutes') ?: null)
@@ -171,5 +171,11 @@ class PlaceController extends Controller
                 ->orderBy('starts_at')->limit(8)->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title, 'phase' => Tournaments::phase($t),
                     'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price'), 'divisions' => $t->divisions->count()])->values()->all() : [],
         ];
+    }
+
+    /** How many days ahead players can book here (Admin → place → Book ahead), at least today. */
+    private static function horizon(Venue $venue): int
+    {
+        return max(1, min(60, (int) $venue->rule('horizon_days')));
     }
 }

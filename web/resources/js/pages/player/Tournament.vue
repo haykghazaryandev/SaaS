@@ -4,7 +4,7 @@ import BracketPreview, { type Player } from '@/components/club/BracketPreview.vu
 import TournamentPhase from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
 import { SPORT_ICON, dateLong } from '@/composables/usePlayer';
-import { amd } from '@/composables/useShared';
+import { amd, useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
 import { useLive } from '@/lib/echo';
@@ -103,6 +103,7 @@ const rangeOf = (d: { min_rating: number | null; max_rating: number | null }) =>
           : d.max_rating == null
             ? `${d.min_rating}+`
             : `${d.min_rating}–${d.max_rating}`;
+const { user } = useShared();
 const ranged = computed(() => t.value.min_rating != null || t.value.max_rating != null);
 const full = computed(() => !!t.value.max_players && t.value.count >= t.value.max_players);
 // live: the draw, a result, a match being played
@@ -122,7 +123,21 @@ const form = useForm({ first_name: props.me?.first_name ?? '', last_name: props.
 // registering needs an account: log in (Telegram) and come back here
 const loginUrl = computed(() => route('login', { redirect: `/t/${props.tournament.code}` }));
 const err = computed(() => (form.errors as Record<string, string>).register);
+// our own checks and texts (the browser's "Please fill out this field" is English only)
+function check(): boolean {
+    form.clearErrors();
+    const need: Record<string, string> = {};
+    if (form.first_name.trim().length < 2) need.first_name = trans('club.need_first_name');
+    if (form.last_name.trim().length < 2) need.last_name = trans('club.need_last_name');
+    if (!props.me?.phone && String(form.phone).replace(/\D/g, '').length < 8) need.phone = trans('club.need_phone');
+    if (ranged.value && String(form.level).trim() === '') need.level = trans('club.need_level');
+    form.setError(need);
+    return !Object.keys(need).length;
+}
+// a confirmed phone first (Telegram): the form would be lost on the way otherwise
+const needPhone = computed(() => !!user.value && !(user.value as { phoneConfirmed?: boolean }).phoneConfirmed);
 function send() {
+    if (!check()) return;
     form.transform((d) => ({ ...d, phone: props.me?.phone ? null : '+374' + String(d.phone).replace(/\D/g, '').slice(-8), level: d.level === '' ? null : Number(d.level) })).post(route('tournament.register', props.tournament.code), {
         preserveScroll: true,
         onSuccess: () => (done.value = true),
@@ -250,7 +265,12 @@ function send() {
                     <small>{{ $t('club.tournament.login_note') }}</small>
                     <Link class="btn block" :href="loginUrl" data-test="login-register"><Icon name="user" size="sm" />{{ $t('club.tournament.login_btn') }}</Link>
                 </div>
-                <form v-else-if="tournament.open" class="tf" data-test="register-form" @submit.prevent="send">
+                <div v-else-if="tournament.open && needPhone" class="needlogin" data-test="confirm-to-register">
+                    <b>{{ $t('club.tournament.confirm_title') }}</b>
+                    <small>{{ $t('club.tournament.confirm_note') }}</small>
+                    <Link class="btn block" :href="route('phone.confirm', { back: `/t/${tournament.code}` })"><Icon name="send" size="sm" />{{ $t('club.tournament.confirm_btn') }}</Link>
+                </div>
+                <form v-else-if="tournament.open" class="tf" novalidate data-test="register-form" @submit.prevent="send">
                     <div class="two">
                         <label class="field"><span>{{ $t('club.first_name') }}</span><input v-model="form.first_name" class="input" required minlength="2" maxlength="60" autocomplete="given-name" /></label>
                         <label class="field"><span>{{ $t('club.last_name') }}</span><input v-model="form.last_name" class="input" required minlength="2" maxlength="60" autocomplete="family-name" /></label>
@@ -279,7 +299,7 @@ function send() {
                             </button>
                         </div>
                     </div>
-                    <div v-if="err" class="err">{{ err }}</div>
+                    <div v-if="err || Object.keys(form.errors).length" class="err">{{ err || Object.values(form.errors)[0] }}</div>
                     <button class="btn block" :disabled="form.processing">{{ $t('club.register') }}</button>
                     <p class="faint" style="font-size: 12.5px; margin: 0">{{ $t('club.register_note') }}</p>
                 </form>

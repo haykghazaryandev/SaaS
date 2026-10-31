@@ -8,4 +8,9 @@ use Filament\Resources\Pages\ListRecords;
 class ListNotificationLogs extends ListRecords
 {
     protected static string $resource = NotificationLogResource::class;
+
+    public function getTitle(): string
+    {
+        return __('admin.log.many');
+    }
 }

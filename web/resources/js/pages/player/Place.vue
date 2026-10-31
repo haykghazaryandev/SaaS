@@ -7,7 +7,7 @@ import CourtSvg from '@/components/player/CourtSvg.vue';
 import StatusPill from '@/components/player/StatusPill.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { amd, hhmm, useShared } from '@/composables/useShared';
-import { courtName, courtShort, dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName } from '@/composables/usePlayer';
+import { courtName, courtShort, dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName, weekday } from '@/composables/usePlayer';
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useSportTheme } from '@/lib/sport';
@@ -125,7 +125,10 @@ const byLength = (f: FieldInfo) => !!f.lengths?.length;
 // priced by length: no day / evening marks on the times, the price of each start comes from the server
 const isPrime = (f: FieldInfo, h: number) => !byLength(f) && rateAt(f, h) > f.price.min;
 /** "15 min 1 200 ֏ · 30 min 2 000 ֏ · 1 h 5 000 ֏" (day prices) */
-const lengthList = (f: FieldInfo) => (f.lengths ?? []).map((l) => `${dur(l.min)} ${amd(l.day)}`).join(' · ');
+// prices by length on the day picked: the weekend price on Saturday / Sunday (evenings: the total shows it)
+const isWeekend = computed(() => [0, 6].includes(weekday(date.value)));
+const lenDay = (l: { day: number; weekend?: number | null }) => (isWeekend.value && l.weekend ? l.weekend : l.day);
+const lengthList = (f: FieldInfo) => (f.lengths ?? []).map((l) => `${dur(l.min)} ${amd(lenDay(l))}`).join(' · ');
 function priceOf(f: FieldInfo, s: number, m: number) {
     if (byLength(f)) {
         const cost = slots.value.fields.find((x) => x.id === f.id)?.costs?.[String(m)]?.[String(Math.round(s * 100) / 100)];
@@ -637,7 +640,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                         ><template v-else>{{ $t('common.players_count', { n: String(t.f.players) }) }}</template></span
                                     >
                                     <span class="fp">{{
-                                        byLength(t.f) ? `${amd(t.f.lengths![0].day)} / ${dur(t.f.lengths![0].min)}` : $t('player.place.field_price', { p: amd(t.f.price.min) })
+                                        byLength(t.f) ? `${amd(lenDay(t.f.lengths![0]))} / ${dur(t.f.lengths![0].min)}` : $t('player.place.field_price', { p: amd(t.f.price.min) })
                                     }}</span>
                                 </span>
                                 <span v-if="t.st === 'busy'" class="fbusy">{{ t.line }}</span>
@@ -772,7 +775,11 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                             <b>{{ amd(summary.total) }}</b>
                         </div>
                         <div v-if="!byLength(summary.f) || purpose === 'training'" class="rate" :class="{ prime: summary.primeMin }">
-                            <template v-if="summary.primeMin && summary.dayMin">{{ $t('player.place.price_mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
+                            <!-- a training: its own price per hour, not the play rate -->
+                            <template v-if="purpose === 'training' && summary.f.trainingPrice != null"
+                                >{{ $t('club.training') }} · {{ amd(summary.f.trainingPrice) }} {{ $t('common.per_hour') }}</template
+                            >
+                            <template v-else-if="summary.primeMin && summary.dayMin">{{ $t('player.place.price_mixed', { a: dur(summary.dayMin), b: dur(summary.primeMin) }) }}</template>
                             <template v-else-if="summary.primeMin">{{ $t('player.place.prime_rate', { p: amd(summary.f.price.max) }) }}</template>
                             <template v-else>{{ $t('player.place.day_rate', { p: amd(summary.f.price.min) }) }}</template>
                         </div>
