@@ -95,7 +95,8 @@ class CheckoutController extends OwnerController
         $this->ensureSameVenue($request, $booking);
         $this->attempt(fn () => $checkout->stop($booking, $request->user()));
 
-        return redirect()->route('owner.bookings.checkout', $booking->id);
+        // End game on Now stays on Now; the bill page stays on the bill
+        return back()->with('success', __('owner.club.ended'));
     }
 
     public function pay(Request $request, Booking $booking, Checkout $checkout)
@@ -104,7 +105,7 @@ class CheckoutController extends OwnerController
         $data = $request->validate(['card' => 'required|integer|min:0', 'cash' => 'required|integer|min:0']);
         $this->attempt(fn () => $checkout->pay($booking, (int) $data['card'], (int) $data['cash'], $request->user()));
 
-        return redirect()->route($this->venue($request)->hasFeature('desk') ? 'owner.now' : 'owner.schedule')
-            ->with('success', __('owner.club.paid'));
+        // the Take money window on Now (or the bill page) stays where it was
+        return back()->with('success', __('owner.club.paid'));
     }
 }

@@ -125,7 +125,7 @@ it('shows every table now: a game with its live check, a free one its next booki
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->component('owner/Now')
         ->where('courts.0.state', 'playing')->where('courts.0.game.id', $b->id)->where('courts.0.game.bill.card.balance', 0)
         ->where('courts.1.state', 'free'));
-    $this->actingAs($this->owner)->post("/owner/bookings/{$b->id}/stop")->assertRedirect(route('owner.bookings.checkout', $b->id));
+    $this->actingAs($this->owner)->from('/owner/now')->post("/owner/bookings/{$b->id}/stop")->assertRedirect('/owner/now');   // End game on Now stays on Now
     $this->actingAs($this->owner)->get('/owner/now')->assertInertia(fn (Assert $p) => $p->where('courts.0.state', 'to_pay')->where('courts.1.state', 'free'));
 });
 

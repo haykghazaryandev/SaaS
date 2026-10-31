@@ -68,6 +68,9 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
   except cards outside ping-pong; rating and (solo) tournaments only where the sport has them. Check with `hasFeature()`.
 - Club package: `Domain/Club/*`. Cards are per player per place (QR = `/c/{code}`); a top-up needs the QR scanned,
   money comes off a card only on a game's check (`Checkout`: time + items, card / cash / both). Owners land on Now.
+  A game can be paid before its end (it plays on, paid; + time / + item after that is a new amount to take, `bill()['due']`;
+  at its end a paid game frees the table). An unpaid game over moves to Now's "To pay" list once the next booked team's
+  time has come or a new game starts on its table.
 - `ADMIN_PHONE` may list several numbers (commas). On local / staging each admin owns demo places
   (first: Zangak + Pingpong.land, second: Masis + Spin Club, then Davtashen + Smash Club …); a place has one owner, the
   others who ran it become staff. `php artisan club:demo-now` puts test games on the tables.
