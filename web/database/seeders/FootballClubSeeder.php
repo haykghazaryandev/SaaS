@@ -2,30 +2,26 @@
 
 namespace Database\Seeders;
 
-use App\Domain\Club\Cards;
 use App\Domain\Club\Shop;
 use App\Domain\Venues\PriceCalculator;
 use App\Models\Booking;
-use App\Models\CardEntry;
-use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Venue;
-use App\Models\VenueCard;
 use App\Support\LocalTime;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Local / staging: the club tools on three football places (the ones the admins own first: Zangak, Masis, Davtashen),
- * so football can be tried like ping-pong: the desk (Now), cards, a shop (drinks, ball rent, bibs), trainings and money.
- * Masis prices its fields by length (60 / 90 / 120 min); the others keep day / evening / weekend prices per hour.
- * No rating (football has none) and no tournaments yet (football ones are for teams, coming later).
- * Safe to run again: a place that already has products is left as it is.
+ * Local / staging: what a football place fills in itself, so football can be tried like ping-pong. The club tools
+ * (Now, shop, trainings, money…) every place has by default (Venue::defaultFeatures; cards: ping-pong only); this adds
+ * the data: a shop (drinks, ball rent, bibs), training prices and kids' trainings. Masis prices its fields by length
+ * (60 / 90 / 120 min); the others keep day / evening / weekend prices per hour. Football has no rating, and its
+ * tournaments (teams) come later. Safe to run again: a place that already has products is left as it is.
  */
 class FootballClubSeeder extends Seeder
 {
-    public const PLACES = ['zangak', 'masis', 'davtashen'];
+    public const PLACES = ['zangak', 'masis', 'davtashen', 'avan', 'nork', 'ajapnyak', 'kentron', 'malatia'];
 
     /** [name, price, picture in data/products] */
     private const SHOP = [['Water 0.5 l', 300, 'water'], ['Isotonic 0.5 l', 800, 'isotonic'], ['Ball rent', 2000, 'ball'], ['Bibs, set of 10', 3000, 'bibs']];
@@ -41,8 +37,7 @@ class FootballClubSeeder extends Seeder
 
                 continue;
             }
-            $rules = [...($venue->rules ?? []), 'training_prices' => ['small' => 12000, 'big' => 30000],
-                'cashback_tiers' => [['from' => 0, 'pct' => 3], ['from' => 150000, 'pct' => 5]]];
+            $rules = [...($venue->rules ?? []), 'training_prices' => ['small' => 12000, 'big' => 30000]];
             if ($venue->slug === 'masis') {
                 // prices by length: one price for the whole game, cheaper per hour the longer they play
                 $rules['length_prices'] = [
@@ -50,39 +45,14 @@ class FootballClubSeeder extends Seeder
                     'big' => [['min' => 90, 'day' => 55000, 'evening' => 70000, 'weekend' => 70000], ['min' => 120, 'day' => 70000, 'evening' => 90000, 'weekend' => 90000]],
                 ];
             }
-            $venue->update([
-                'features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'wallet', 'trainings', 'shop', 'money'])),
-                'rules' => $rules,
-            ]);
+            $venue->update(['rules' => $rules]);
             foreach (self::SHOP as $i => [$name, $price, $img]) {
                 $file = new UploadedFile(database_path("seeders/data/products/{$img}.png"), "{$img}.png", 'image/png', null, true);
                 app(Shop::class)->save(new Product(['venue_id' => $venue->id, 'sort' => $i]), ['name' => $name, 'price' => $price], $file);
             }
-            $this->cards($venue);
             $this->trainings($venue);
         }
-        $this->command?->info('Football clubs: '.implode(', ', self::PLACES).' have the desk, cards, shop, trainings and money.');
-    }
-
-    /** Four demo players with cards (Aram already paid with his, so he has cashback). */
-    private function cards(Venue $venue): void
-    {
-        foreach (User::whereIn('phone', ['+37493000100', '+37493000101', '+37493000102', '+37493000103'])->orderBy('phone')->get() as $k => $u) {
-            $card = VenueCard::firstOrCreate(['venue_id' => $venue->id, 'user_id' => $u->id], ['code' => Cards::newCode()]);
-            if (! $card->wasRecentlyCreated) {
-                continue;
-            }
-            $balance = [40000, 25000, 10000, 0][$k];
-            $paid = $k === 0 ? 120000 : 0;
-            $card->update(['balance' => $balance]);
-            if ($balance + $paid) {
-                CardEntry::create(['card_id' => $card->id, 'amount' => $balance + $paid, 'kind' => 'topup', 'note' => 'demo']);
-            }
-            if ($paid) {
-                $pay = Payment::create(['venue_id' => $venue->id, 'user_id' => $u->id, 'card_id' => $card->id, 'kind' => 'booking', 'method' => 'card', 'amount' => $paid, 'note' => 'demo']);
-                CardEntry::create(['card_id' => $card->id, 'amount' => -$paid, 'kind' => 'pay', 'payment_id' => $pay->id, 'note' => 'demo']);
-            }
-        }
+        $this->command?->info('Football places: shop, training prices and kids\' trainings added.');
     }
 
     /** The next 7 days: a kids' training on the small field most evenings (made again once the last ones passed). */

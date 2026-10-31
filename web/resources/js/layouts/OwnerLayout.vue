@@ -72,7 +72,12 @@ const TAB_SLOTS = 4;
 const canScan = computed(() => owner.value.menus.available.includes('cards') && may('cards'));
 const isClub = computed(() => club.value.some((n) => n.name === 'owner.now'));
 const tabs = computed(() => {
-    if (isClub.value) return nav.value.filter((n) => ['owner.now', 'owner.schedule'].includes(n.name));
+    // a place with the desk: Now · Schedule, then Scan (cards) or the next page (Requests) in the free slot
+    if (isClub.value) {
+        const first = nav.value.filter((n) => ['owner.now', 'owner.schedule'].includes(n.name));
+        const rest = nav.value.filter((n) => !first.includes(n));
+        return canScan.value || rest.length <= 2 ? [...first, ...(canScan.value ? [] : rest)] : [...first, rest[0]];
+    }
     const room = TAB_SLOTS - (canScan.value ? 1 : 0);
     return nav.value.length <= room ? nav.value : nav.value.slice(0, room - 1);
 });

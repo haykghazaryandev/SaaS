@@ -18,7 +18,10 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->club = makeVenue();
-    $this->club->update(['features' => [...Venue::DEFAULT_FEATURES, 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money']]);
+    $this->club->update(['features' => [...Venue::DEFAULT_FEATURES, 'desk', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money']]);
+    // a table too: tournaments and ratings are ping-pong things (football has neither yet)
+    Field::create(['venue_id' => $this->club->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [60], 'default_duration' => 60, 'sort' => 9]);
+    $this->club->load('fields');
     $this->owner = User::factory()->create();
     $this->club->staff()->attach($this->owner->id, ['role' => 'owner']);
     $this->player = User::factory()->create(['name' => 'Gor Petrosyan']);
@@ -74,10 +77,6 @@ it('tops a card up only after a scan; the rating needs none', function () {
     $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->where('level.pct', 0)->where('level.next.from', 50000));
     // no free "take from card": money comes off a card only on a game's check
     $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000])->assertNotFound();
-    // ratings are a ping-pong thing: football has none; with a table the place has them
-    $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450])->assertNotFound();
-    Field::create(['venue_id' => $this->club->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [60], 'default_duration' => 60, 'sort' => 9]);
-    $this->club->load('fields');
     $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450, 'intl_id' => 'ARM-7'])->assertRedirect();
     $this->actingAs($this->owner)->get("/owner/players/{$this->player->id}")->assertInertia(fn (Assert $p) => $p->component('owner/Player')
         ->where('rating.rating', 1450)->where('card.balance', 10000));
@@ -131,7 +130,7 @@ it('shows every table now: a game with its live check, a free one its next booki
 });
 
 it('puts demo games on the club tables at any hour (not in production)', function () {
-    $club = makeClub(3, ['slug' => 'demo-club', 'features' => ['booking', 'wallet', 'shop']]);
+    $club = makeClub(3, ['slug' => 'demo-club', 'features' => ['booking', 'desk', 'wallet', 'shop']]);
     $club->staff()->attach($this->owner->id, ['role' => 'owner']);
     $this->travelTo(LocalTime::now()->startOfDay()->addMinutes(20));   // 00:20, the club is closed
     // a booking (no note) where the next team goes: it makes way (it used to break the overlap rule: a 500)

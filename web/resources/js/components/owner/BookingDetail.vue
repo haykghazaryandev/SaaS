@@ -54,7 +54,7 @@ function edit() {
 // the bill: time + things taken during the game, paid at the end (card after a scan, cash, or both)
 const hasFeature = (f: string) => (owner.value.features ?? []).includes(f);
 // a place with the desk: "Start game" instead of "Arrived", and a bill only once the game was started
-const desk = computed(() => hasFeature('wallet') || hasFeature('shop') || hasFeature('money'));
+const desk = computed(() => hasFeature('desk'));
 const billable = computed(() => b.value && desk.value && !!b.value.game_started && ['accepted', 'completed'].includes(b.value.status));
 async function startGame() {
     if (!b.value) return;

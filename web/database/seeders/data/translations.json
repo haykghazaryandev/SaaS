@@ -194,6 +194,16 @@
         "hy": "Խաղացողները ժամեր են ամրագրում առցանց",
         "ru": "Игроки бронируют время онлайн"
     },
+    "admin.feature.desk": {
+        "en": "Desk (Now)",
+        "hy": "Դրամարկղ (Հիմա)",
+        "ru": "Стойка (Сейчас)"
+    },
+    "admin.feature.desk_help": {
+        "en": "The games being played: timers, add time, the bill, walk-in games, Our players",
+        "hy": "Ընթացիկ խաղերը՝ ժամաչափ, ժամանակի ավելացում, հաշիվ, առանց ամրագրման խաղեր, Մեր խաղացողները",
+        "ru": "Текущие игры: таймеры, добавить время, счёт, игры без брони, Наши игроки"
+    },
     "admin.feature.games": {
         "en": "Games",
         "hy": "Խաղեր",
@@ -223,6 +233,11 @@
         "en": "Staff set players' ratings in the place's sport",
         "hy": "Աշխատակիցները սահմանում են խաղացողների ռեյթինգը վայրի մարզաձևում",
         "ru": "Сотрудники ставят рейтинг игроков в виде спорта места"
+    },
+    "admin.feature.rating_sport": {
+        "en": "Ping-pong only: football has no rating",
+        "hy": "Միայն պինգ-պոնգ․ ֆուտբոլում վարկանիշ չկա",
+        "ru": "Только пинг-понг: в футболе рейтинга нет"
     },
     "admin.feature.reviews": {
         "en": "Reviews",
@@ -264,6 +279,11 @@
         "hy": "Գրանցման հղում, մասնակիցներ, վճարներ, արդյունքներ",
         "ru": "Ссылка на регистрацию, участники, взносы, результаты"
     },
+    "admin.feature.tournaments_sport": {
+        "en": "Ping-pong for now; football team tournaments are coming",
+        "hy": "Առայժմ պինգ-պոնգ․ ֆուտբոլի թիմային մրցաշարերը շուտով",
+        "ru": "Пока пинг-понг; командные турниры по футболу скоро"
+    },
     "admin.feature.trainings": {
         "en": "Trainings",
         "hy": "Մարզումներ",
@@ -283,6 +303,11 @@
         "en": "A card per player with a QR: top-ups, payments, cashback that grows with what the card has paid",
         "hy": "Քարտ յուրաքանչյուր խաղացողի համար՝ QR-ով․ լիցքավորում, վճարումներ, քեշբեք, որն աճում է քարտով վճարածի հետ",
         "ru": "Карта на игрока с QR: пополнения, оплата, кэшбэк, который растёт с суммой оплат картой"
+    },
+    "admin.feature.wallet_sport": {
+        "en": "Usually for ping-pong clubs; off by default for football",
+        "hy": "Սովորաբար պինգ-պոնգի ակումբների համար․ ֆուտբոլի համար լռելյայն անջատված է",
+        "ru": "Обычно для клубов пинг-понга; для футбола по умолчанию выключено"
     },
     "admin.fee.all_sports": {
         "en": "All sports",
@@ -929,10 +954,10 @@
         "hy": "Ցուցադրում և հնարավորություններ",
         "ru": "Показ и возможности"
     },
-    "admin.venue.show_features_help": {
-        "en": "What players see of this place. A new feature made for one place stays off for the others until switched on here.",
-        "hy": "Ինչ են տեսնում խաղացողները այս վայրից։ Մեկ վայրի համար ստեղծված նոր հնարավորությունը մյուսների համար անջատված է, մինչև այստեղ միացնեք։",
-        "ru": "Что игроки видят у этого места. Новая возможность, сделанная для одного места, у остальных выключена, пока её не включат здесь."
+    "admin.venue.show_features_about": {
+        "en": "What players see of this place and the tools it has. New places get everything their sport usually needs; switch off what this place doesn't use.",
+        "hy": "Ինչ են տեսնում խաղացողները այս վայրից և ինչ գործիքներ ունի այն։ Նոր վայրերը ստանում են այն ամենը, ինչ սովորաբար պետք է իրենց մարզաձևին․ անջատեք այն, ինչ այս վայրը չի օգտագործում։",
+        "ru": "Что игроки видят у этого места и какие у него инструменты. Новые места получают всё, что обычно нужно их виду спорта; выключите то, чем это место не пользуется."
     },
     "admin.venue.slug": {
         "en": "Link name",

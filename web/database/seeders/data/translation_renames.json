@@ -875,5 +875,6 @@
     "owner.duration_hours": null,
     "owner.sched.in_h": null,
     "owner.sched.in_min": null,
-    "owner.sched.ends": null
+    "owner.sched.ends": null,
+    "admin.venue.show_features_help": null
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Chat\Chat;
+use App\Filament\Support\Options;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Models\Venue;
@@ -58,4 +59,16 @@ it('shows our error page for a page that is not there, and JSON stays JSON', fun
 it('gives each of the 7 days how full it is', function () {
     $this->actingAs($this->owner)->withSession(['venue_id' => $this->a->id])->get('/owner/schedule')
         ->assertInertia(fn (Assert $p) => $p->has('days', 7)->has('days.0.full')->where('days.0.full', fn ($v) => $v >= 0 && $v <= 100));
+});
+
+it('gives every sport the club tools by default: cards, rating and tournaments only for ping-pong', function () {
+    $field = makeVenue();
+    expect($field->featureList())->toContain('desk', 'shop', 'trainings', 'money', 'booking')->not->toContain('wallet', 'rating', 'tournaments');
+    $club = makeClub(1);
+    expect($club->featureList())->toContain('desk', 'wallet', 'rating', 'tournaments', 'shop', 'money');
+    // the admin can still give a football place cards
+    $field->update(['features' => [...Venue::DEFAULT_FEATURES, 'desk', 'wallet']]);
+    expect($field->fresh()->hasFeature('wallet'))->toBeTrue();
+    // the admin form explains where the sport matters
+    expect(Options::featureHelp()['wallet'])->toContain(__('admin.feature.wallet_sport'));
 });

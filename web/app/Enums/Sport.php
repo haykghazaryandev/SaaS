@@ -44,6 +44,12 @@ enum Sport: string
         return $this === self::Pingpong;
     }
 
+    /** Our tournaments are for single players (entries, divisions by rating): ping-pong. Football needs team ones. */
+    public function soloTournaments(): bool
+    {
+        return $this === self::Pingpong;
+    }
+
     public function icon(): string
     {
         return match ($this) {

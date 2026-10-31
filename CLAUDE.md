@@ -63,16 +63,17 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
 - Sports: `App\Enums\Sport` (football: fields 5×5 / 11×11; ping-pong: tables); the admin shows / hides them (`sports` table).
   The home page asks "What do you play?" first, then the sport's page (Book / Tournaments / Games tabs).
 - A place's courts of one kind are one group: players book "a table", `Availability::freeInGroup` gives any free one.
-- `venues.features`: what a place offers (booking, team, alerts, reviews, games + the club package: wallet, rating,
-  trainings, shop, tournaments, money). New features start off (`Venue::DEFAULT_FEATURES`); check with `hasFeature()`.
+- `venues.features`: what a place offers (booking, team, alerts, reviews, games + the club tools: desk (Now), wallet,
+  rating, trainings, shop, tournaments, money). Null = `Venue::defaultFeatures()`: everything, the same for every sport,
+  except cards outside ping-pong; rating and (solo) tournaments only where the sport has them. Check with `hasFeature()`.
 - Club package: `Domain/Club/*`. Cards are per player per place (QR = `/c/{code}`); a top-up needs the QR scanned,
   money comes off a card only on a game's check (`Checkout`: time + items, card / cash / both). Owners land on Now.
 - `ADMIN_PHONE` may list several numbers (commas). On local / staging each admin owns demo places
   (first: Zangak + Pingpong.land, second: Masis + Spin Club, then Davtashen + Smash Club …); a place has one owner, the
   others who ran it become staff. `php artisan club:demo-now` puts test games on the tables.
-- Football has no rating (`Sport::rated()`; `hasFeature('rating')` is false without a rated sport). On local / staging
-  `FootballClubSeeder` gives Zangak, Masis (prices by length) and Davtashen the desk, cards, shop, trainings and money;
-  football tournaments (teams) are not built yet.
+- Football has no rating (`Sport::rated()`) and no tournaments yet (`Sport::soloTournaments()`; team ones to come).
+  On local / staging `FootballClubSeeder` fills football places with a shop, training prices and kids' trainings
+  (Masis: prices by length).
 - Roles: the owner (everything) and staff, added by the owner on Owner → Team. Owner → Settings → Menus
   (`Domain/Venues/Menus`, `venues.menus`) sets which menus each panel shows and staff's levels (Schedule view / edit,
   Shop sell / edit, Tournaments run / create, Money today / all; by default staff get the daily work without Money).

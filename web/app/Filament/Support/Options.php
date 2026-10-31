@@ -2,6 +2,7 @@
 
 namespace App\Filament\Support;
 
+use App\Models\Venue;
 use App\Support\LocalTime;
 use Carbon\CarbonInterface;
 
@@ -46,12 +47,14 @@ final class Options
 
     public static function features(): array
     {
-        return collect(\App\Models\Venue::FEATURES)->mapWithKeys(fn ($f) => [$f => __('admin.feature.'.$f)])->all();
+        return collect(Venue::FEATURES)->mapWithKeys(fn ($f) => [$f => __('admin.feature.'.$f)])->all();
     }
 
     public static function featureHelp(): array
     {
-        return collect(\App\Models\Venue::FEATURES)->mapWithKeys(fn ($f) => [$f => __('admin.feature.'.$f.'_help')])->all();
+        // with a note where the sport matters (cards: usually ping-pong; rating and tournaments: ping-pong only for now)
+        return collect(Venue::FEATURES)->mapWithKeys(fn ($f) => [$f => __('admin.feature.'.$f.'_help')
+            .(in_array($f, ['wallet', 'rating', 'tournaments'], true) ? ' · '.__('admin.feature.'.$f.'_sport') : '')])->all();
     }
 
     /** "18:00:00" → "18:00" */

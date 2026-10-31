@@ -2,6 +2,7 @@
 
 use App\Domain\Auth\TelegramWebApp;
 use App\Domain\Chat\Chat;
+use App\Domain\Social\Presence;
 use App\Models\ConversationParticipant;
 use App\Models\Friendship;
 use App\Models\User;
@@ -149,11 +150,11 @@ it('never logs in through an unconfirmed Telegram link: asks for the phone, then
 
 it('sends a chat message by Telegram right away to someone without the app open, never to someone online', function () {
     [$a, $b, $c] = chatPair();
-    $this->mock(App\Domain\Social\Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([$a->id]));   // only the sender is online
+    $this->mock(Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([$a->id]));   // only the sender is online
     app(Chat::class)->send($c, $a, 'Are you coming?');
     expect(chatTelegrams(7102))->toBe(1);   // b: no delay
 
-    $this->mock(App\Domain\Social\Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([$a->id, $b->id]));   // b opens the app
+    $this->mock(Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([$a->id, $b->id]));   // b opens the app
     $this->travel(1)->minutes();
     app(Chat::class)->send($c, $a, 'Hello?');
     expect(chatTelegrams(7102))->toBe(1);   // b sees it live, no Telegram

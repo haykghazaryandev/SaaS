@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\Venue;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -40,7 +41,7 @@ it('leaves the bot alone on http (local polling keeps working)', function () {
 });
 
 it('does not fail the deploy when Telegram is down', function () {
-    Http::swap(new Illuminate\Http\Client\Factory);
+    Http::swap(new Factory);
     Http::fake(['api.telegram.org/*' => Http::response(['ok' => false, 'description' => 'Bad Gateway'], 502)]);
     config(['app.url' => 'https://staging.bookball.am', 'services.telegram.bot_token' => 'test-token', 'services.telegram.webhook_secret' => 'hook-secret', 'app.seed_on_deploy' => false]);
 

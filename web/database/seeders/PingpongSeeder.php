@@ -51,7 +51,7 @@ class PingpongSeeder extends Seeder
             'lat' => 40.1838, 'lng' => 44.5096, 'phone' => '+37410555123',
             'amenities' => ['lockers', 'cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15], 'status' => 'active', 'listed' => true,
             // games (1×1, 2×2) and the whole club package on
-            'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
+            'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'desk', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
         ]);
         foreach (range(0, 6) as $wd) {
             OpeningHour::create(['venue_id' => $venue->id, 'weekday' => $wd, 'opens_at' => '10:00', 'closes_at' => '22:00']);
@@ -111,7 +111,7 @@ class PingpongSeeder extends Seeder
             'description' => $L('A small table tennis club with two tables.', 'Սեղանի թենիսի փոքր ակումբ՝ երկու սեղանով։', 'Небольшой клуб настольного тенниса с двумя столами.'),
             'lat' => 40.1950, 'lng' => 44.5040, 'amenities' => ['cafe'], 'rules' => ['min_notice_min' => 15, 'step_min' => 15, 'training_prices' => ['table' => 5000]],
             'status' => 'active', 'listed' => true,
-            'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
+            'features' => ['booking', 'team', 'alerts', 'reviews', 'games', 'desk', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'],
         ]);
         foreach (range(0, 6) as $wd) {
             OpeningHour::create(['venue_id' => $club->id, 'weekday' => $wd, 'opens_at' => '11:00', 'closes_at' => '23:00']);
@@ -155,7 +155,7 @@ class PingpongSeeder extends Seeder
             return;
         }
         // trainings are booked like a table, at their own price per hour
-        $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'games', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
+        $venue->update(['features' => array_values(array_unique([...($venue->features ?? Venue::DEFAULT_FEATURES), 'games', 'desk', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money'])),
             'rules' => [...($venue->rules ?? []), 'training_prices' => ['table' => 6000]]]);
         // the shop: drinks with their pictures (data/products/*.png)
         foreach ([['Cola 0.5 l', 500, 'cola'], ['Water 0.5 l', 300, 'water']] as $i => [$name, $price, $img]) {

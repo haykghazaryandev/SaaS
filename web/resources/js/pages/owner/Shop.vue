@@ -177,4 +177,14 @@ async function sell(id: number) {
 .srow { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .srow .w { flex: 1; }
 .srow small { color: var(--muted); }
+/* phones: two products a row with smaller pictures (one per screen was too long); quantity over the button */
+@media (max-width: 560px) {
+    .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .prod .img { aspect-ratio: 1 / 1; }
+    .prod .body { padding: 9px; gap: 2px; }
+    .prod .body b { font-size: 13.5px; line-height: 1.25; }
+    .pact { grid-template-columns: 1fr; gap: 5px; }
+    .pact .btn { font-size: 12.5px; padding: 7px 6px; }
+    .pedit { width: 30px; height: 30px; top: 6px; right: 6px; }
+}
 </style>

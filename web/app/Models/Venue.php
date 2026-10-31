@@ -28,8 +28,8 @@ class Venue extends HasFactoryModel
     ];
 
     /**
-     * What a place can offer players; the admin switches each one per place (venues.features, null = all of them).
-     * A feature made for one client is added here and stays off for the other places until switched on.
+     * What a place can offer; the admin switches each one per place (venues.features; null = the defaults of its
+     * sport, see defaultFeatures()). Some depend on the sport whatever is switched on (rating, tournaments: hasFeature).
      */
     public const FEATURES = [
         'booking',   // players book times
@@ -37,7 +37,8 @@ class Venue extends HasFactoryModel
         'alerts',    // "notify me if it frees up"
         'reviews',   // "How was the place?" after playing
         'games',     // players create and join games here
-        // the club package (ping-pong first): off until the admin switches it on for a place
+        // the club tools: every sport has them by default (cards: ping-pong only by default)
+        'desk',        // Now: the games being played, timers, add time, the bill, walk-ins (and Our players)
         'wallet',      // player cards with a QR: balance, cashback by level
         'rating',      // the staff set players' ratings in the place's sport
         'trainings',   // players book a table for a training, at the place's training price
@@ -144,16 +145,43 @@ class Venue extends HasFactoryModel
         return $this->hasFeature('trainings') ? self::cleanLengths((array) (($this->rules['training_lengths'] ?? [])[$size] ?? [])) : [];
     }
 
-    /** What a place has while the admin never set its features (new features start off). */
+    /** The basic features (booking and the player side), without the club tools. */
     public const DEFAULT_FEATURES = ['booking', 'team', 'alerts', 'reviews', 'games'];
+
+    /** Features off by default: player cards are a ping-pong club thing (football places switch them on if they want). */
+    private const OFF_UNLESS_PINGPONG = ['wallet'];
+
+    /**
+     * What a place has while the admin never set its features: everything, the same for every sport, except cards
+     * outside ping-pong. The admin switches any of it off (or cards on) per place.
+     *
+     * @return string[]
+     */
+    public function defaultFeatures(): array
+    {
+        $sports = collect($this->sports());
+        $pingpong = $sports->contains(Sport::Pingpong);
+        $off = [
+            ...($pingpong ? [] : self::OFF_UNLESS_PINGPONG),
+            // what the sport doesn't have at all is not ticked either (football: rating, tournaments for now)
+            ...($sports->contains(fn (Sport $s) => $s->rated()) ? [] : ['rating']),
+            ...($sports->contains(fn (Sport $s) => $s->soloTournaments()) ? [] : ['tournaments']),
+        ];
+
+        return array_values(array_diff(self::FEATURES, $off));
+    }
 
     public function hasFeature(string $feature): bool
     {
-        if ($feature === 'rating' && ! collect($this->sports())->contains(fn (Sport $s) => $s->rated())) {
+        $sports = collect($this->sports());
+        if ($feature === 'rating' && ! $sports->contains(fn (Sport $s) => $s->rated())) {
             return false; // ratings only where a sport has them (not football), whatever the admin switched on
         }
+        if ($feature === 'tournaments' && ! $sports->contains(fn (Sport $s) => $s->soloTournaments())) {
+            return false; // tournaments are for single players (ping-pong); football's team tournaments come later
+        }
 
-        return in_array($feature, $this->features ?? self::DEFAULT_FEATURES, true);
+        return in_array($feature, $this->features ?? $this->defaultFeatures(), true);
     }
 
     /** @return string[] the features the place has on */

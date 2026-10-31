@@ -78,13 +78,18 @@ class VenueResource extends Resource
                 TextInput::make('lat')->label(__('admin.venue.lat'))->numeric()->minValue(39)->maxValue(42),
                 TextInput::make('lng')->label(__('admin.venue.lng'))->numeric()->minValue(43)->maxValue(47),
             ]),
-            Section::make(__('admin.venue.show_features'))->description(__('admin.venue.show_features_help'))->schema([
+            Section::make(__('admin.venue.show_features'))->description(__('admin.venue.show_features_about'))->schema([
                 // ZoneSpot's fee for this place: % of bookings, trainings and tournament fees (Admin → ZoneSpot fee)
                 TextInput::make('commission_pct')->label(__('admin.fee.pct'))->helperText(__('admin.fee.pct_help'))->numeric()->minValue(0)->maxValue(50)->step(0.5)->suffix('%')->default(5)->required(),
                 Toggle::make('listed')->label(__('admin.venue.listed'))->helperText(__('admin.venue.listed_help'))->default(true),
                 CheckboxList::make('features')->label(__('admin.venue.features'))->options(Options::features())->descriptions(Options::featureHelp())
-                    ->columns(2)->bulkToggleable()->default(Venue::DEFAULT_FEATURES)
-                    ->formatStateUsing(fn ($state) => $state ?? Venue::DEFAULT_FEATURES),
+                    ->columns(2)->bulkToggleable()->default(array_values(array_diff(Venue::FEATURES, ['wallet'])))
+                    // never set: what the place has by default for its sport (all, cards only for ping-pong)
+                    ->afterStateHydrated(function (CheckboxList $component, ?Venue $record) {
+                        if ($record && $record->features === null) {
+                            $component->state($record->defaultFeatures());
+                        }
+                    }),
             ]),
             Section::make(__('admin.venue.texts'))->schema([
                 Tabs::make('langs')->tabs(collect($langs)->map(fn ($label, $l) => Tab::make($label)->schema([

@@ -34,7 +34,10 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->club = makeVenue(['cashback_tiers' => [['from' => 0, 'pct' => 5]]]);   // 5% from the first payment
-    $this->club->update(['features' => [...Venue::DEFAULT_FEATURES, 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money']]);
+    $this->club->update(['features' => [...Venue::DEFAULT_FEATURES, 'desk', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money']]);
+    // a table too: tournaments and ratings are ping-pong things (football has neither yet)
+    Field::create(['venue_id' => $this->club->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [60], 'default_duration' => 60, 'sort' => 9]);
+    $this->club->load('fields');
     $this->other = makeVenue();
     $this->other->update(['features' => ['booking', 'wallet']]);
     $this->owner = User::factory()->create();
@@ -147,7 +150,7 @@ it('gives a phone-only booking its player when their card is scanned at the bill
 });
 
 it('stops a game: the booked length, the time added; past the end the bill does not grow', function () {
-    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15], 'features' => ['booking', 'wallet', 'shop']]);
+    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15], 'features' => ['booking', 'desk', 'wallet', 'shop']]);
     $t1 = $club->fields->first();
     $checkout = app(Checkout::class);
     $this->cards->forPlayer($club, $this->player);
@@ -293,7 +296,7 @@ it('tells the player about their card: made, topped up, paid (one message for a 
 });
 
 it('runs the desk: start a booked game in its window, extend it while the table is free, a walk-in holds the table', function () {
-    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15], 'features' => ['booking', 'wallet', 'shop']]);
+    $club = makeClub(2, ['rules' => ['min_notice_min' => 0, 'step_min' => 15], 'features' => ['booking', 'desk', 'wallet', 'shop']]);
     [$t1, $t2] = [$club->fields[0], $club->fields[1]];
     $checkout = app(Checkout::class);
     $start = LocalTime::at(LocalTime::now()->startOfDay(), 12);

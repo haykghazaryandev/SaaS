@@ -32,10 +32,10 @@ class Menus
     {
         $has = fn (string ...$f) => collect($f)->contains(fn ($x) => $venue->hasFeature($x));
         $on = [
-            'now' => $has('wallet', 'shop'),
+            'now' => $has('desk'),
             'schedule' => true,
             'requests' => true,
-            'players' => $has('wallet', 'rating'),
+            'players' => $has('desk', 'wallet', 'rating'),
             'cards' => $has('wallet'),
             'shop' => $has('shop'),
             'tournaments' => $has('tournaments'),

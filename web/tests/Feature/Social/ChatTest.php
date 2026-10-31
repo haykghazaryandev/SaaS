@@ -3,6 +3,7 @@
 use App\Domain\Chat\Chat;
 use App\Domain\Chat\Events\ChatUpdated;
 use App\Domain\Chat\Events\MessageSent;
+use App\Domain\Games\Games;
 use App\Domain\Social\Friends;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
@@ -198,8 +199,8 @@ it('gives a game chat its pinned game bar: time, place and the field state (UX r
     [$friend] = User::factory()->count(1)->create();
     $creator = $this->a;
     app(Friends::class)->accept($friend, app(Friends::class)->request($creator, $friend));
-    $game = app(\App\Domain\Games\Games::class)->create($creator, ['players_per_side' => 3, 'district' => 'arabkir'], [$this->b->id, $friend->id]);
-    app(\App\Domain\Games\Games::class)->respond($game, $this->b, true);
+    $game = app(Games::class)->create($creator, ['players_per_side' => 3, 'district' => 'arabkir'], [$this->b->id, $friend->id]);
+    app(Games::class)->respond($game, $this->b, true);
     $conv = $game->fresh()->conversation;
     expect($conv)->not->toBeNull();
 

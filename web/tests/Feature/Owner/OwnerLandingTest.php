@@ -4,7 +4,7 @@ use App\Models\User;
 use App\Models\Venue;
 
 it('sends an owner to the dashboard instead of the player app, unless they open the player site', function () {
-    $club = makeClub(2, ['features' => [...Venue::DEFAULT_FEATURES, 'wallet']]);
+    $club = makeClub(2, ['features' => [...Venue::DEFAULT_FEATURES, 'desk', 'wallet']]);
     $field = makeVenue();
     $owner = User::factory()->create();
     $club->staff()->attach($owner->id, ['role' => 'owner']);
@@ -20,9 +20,11 @@ it('sends an owner to the dashboard instead of the player app, unless they open 
     $this->actingAs($owner)->get('/messages')->assertRedirect(route('owner.messages'));
     $this->actingAs($owner)->get('/me/profile')->assertOk();
 
-    // a football place lands at Today; players are not redirected
+    // a football place has the desk too by default (lands on Now); without it, on the schedule; players are not redirected
     $other = User::factory()->create();
     $field->staff()->attach($other->id, ['role' => 'owner']);
+    $this->actingAs($other)->get('/owner/start')->assertRedirect(route('owner.now'));
+    $field->update(['features' => Venue::DEFAULT_FEATURES]);
     $this->actingAs($other)->get('/owner/start')->assertRedirect(route('owner.schedule'));
     $this->actingAs(User::factory()->create())->get('/')->assertOk();
 

@@ -27,7 +27,7 @@ it('needs ~30% of the players: 5×5 opens with the creator + 2 friends', functio
     expect(Game::minToOpen(10))->toBe(3)->and(Game::minToOpen(22))->toBe(7)->and(Game::minToOpen(6))->toBe(2);
     [$c, $friends] = crew(3);
     $game = $this->g->create($c, ['players_per_side' => 5], $friends->pluck('id')->all());
-    expect($game->status)->toBe(GameStatus::Forming)->and($friends[0]->notifications()->where("data->type", "game_invite")->count())->toBe(1);
+    expect($game->status)->toBe(GameStatus::Forming)->and($friends[0]->notifications()->where('data->type', 'game_invite')->count())->toBe(1);
 
     $this->g->respond($game, $friends[0], true);
     expect($game->fresh()->status)->toBe(GameStatus::Forming);   // 2 of 10: not yet

@@ -29,7 +29,7 @@ class NowController extends OwnerController
     public function index(Request $request, Checkout $checkout, Availability $availability, PriceCalculator $prices)
     {
         $venue = $this->venue($request);
-        $this->ensureAny($venue, ['wallet', 'shop']);
+        $this->ensureAny($venue, ['desk']);
         $venue->load('fields', 'openingHours');
         $now = LocalTime::now();
         $tz = LocalTime::tz();

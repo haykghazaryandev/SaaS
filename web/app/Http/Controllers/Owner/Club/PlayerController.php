@@ -32,7 +32,7 @@ class PlayerController extends OwnerController
     public function index(Request $request)
     {
         $venue = $this->venue($request);
-        $this->ensureAny($venue, ['wallet', 'rating']);
+        $this->ensureAny($venue, ['desk', 'wallet', 'rating']);
         $f = $request->validate([
             'q' => 'nullable|string|max:60', 'min' => 'nullable|integer|min:0', 'max' => 'nullable|integer|min:0',
             'card' => 'nullable|in:yes,no', 'sort' => 'nullable|in:last,visits,rating,name,noshows', 'noshow' => 'nullable|in:yes,no',
@@ -82,7 +82,7 @@ class PlayerController extends OwnerController
     public function show(Request $request, User $user)
     {
         $venue = $this->venue($request);
-        $this->ensureAny($venue, ['wallet', 'rating']);
+        $this->ensureAny($venue, ['desk', 'wallet', 'rating']);
         abort_unless(in_array($user->id, self::playerIds($venue), true), 404);
         $sport = $this->sport($venue);
         $rating = SportRating::where('user_id', $user->id)->where('sport', $sport->value)->first();

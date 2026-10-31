@@ -4,12 +4,15 @@ use App\Domain\Booking\Actions\RequestBooking;
 use App\Enums\BookingStatus;
 use App\Filament\Pages\OwnerAccount;
 use App\Filament\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Resources\Sports\Pages\ListSports;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Filament\Resources\Venues\Pages\EditVenue;
+use App\Filament\Resources\Venues\RelationManagers\FieldsRelationManager;
 use App\Filament\Resources\Venues\RelationManagers\PriceRulesRelationManager;
 use App\Filament\Resources\Venues\RelationManagers\StaffRelationManager;
 use App\Models\PriceRule;
+use App\Models\SportSetting;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Cache;
@@ -160,14 +163,14 @@ it('adds several tables at once, and switches sports and place features', functi
     $club = makeVenue();
     $club->fields()->where('size', 'big')->delete();
     $club->fields()->update(['size' => 'table', 'format' => '🏓']);
-    Livewire::test(App\Filament\Resources\Venues\RelationManagers\FieldsRelationManager::class, ['ownerRecord' => $club->fresh(), 'pageClass' => EditVenue::class])
+    Livewire::test(FieldsRelationManager::class, ['ownerRecord' => $club->fresh(), 'pageClass' => EditVenue::class])
         ->assertOk()
         ->callTableAction('addMany', data: ['size' => 'table', 'count' => 2])
         ->assertHasNoTableActionErrors();
     expect($club->fields()->where('size', 'table')->count())->toBe(3)
         ->and($club->fields()->latest('id')->first()->priceRules()->count())->toBe(3);   // copies the first table's prices
 
-    Livewire::test(App\Filament\Resources\Sports\Pages\ListSports::class)->assertOk()->assertCanSeeTableRecords(App\Models\SportSetting::all());
+    Livewire::test(ListSports::class)->assertOk()->assertCanSeeTableRecords(SportSetting::all());
     Livewire::test(EditVenue::class, ['record' => $club->slug])
         ->fillForm(['features' => ['booking'], 'listed' => false])->call('save')->assertHasNoFormErrors();
     expect($club->fresh()->features)->toBe(['booking'])->and($club->fresh()->listed)->toBeFalse();

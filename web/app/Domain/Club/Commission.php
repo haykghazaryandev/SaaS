@@ -83,7 +83,7 @@ class Commission
     /** The place takes the money at the desk (the bill of a game, cards, the shop): its payments are the truth. */
     public static function usesDesk(Venue $v): bool
     {
-        return $v->hasFeature('wallet') || $v->hasFeature('shop') || $v->hasFeature('money');
+        return $v->hasFeature('desk');
     }
 
     public static function fee(int $base, float $pct): int

@@ -1,11 +1,13 @@
 <?php
 
 use App\Domain\Booking\Actions\RequestBooking;
+use App\Domain\Chat\Chat;
 use App\Domain\Notifications\BookingNotification;
 use App\Domain\Notifications\TelegramChannel;
+use App\Models\Friendship;
 use App\Models\User;
 use App\Notifications\Notice;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Http;
 
 function viaTelegram(User $u, Notice $n): bool
 {
@@ -41,13 +43,13 @@ it('respects the switches in Profile → Notifications', function () {
 });
 
 it('does not send chat messages by Telegram when chats are switched off', function () {
-    Illuminate\Support\Facades\Http::fake(['api.telegram.org/*' => Illuminate\Support\Facades\Http::response(['ok' => true, 'result' => ['message_id' => 1]])]);
+    Http::fake(['api.telegram.org/*' => Http::response(['ok' => true, 'result' => ['message_id' => 1]])]);
     config(['services.telegram.bot_token' => 'test-token', 'app.url' => 'https://bookball.am']);
     $a = User::factory()->create(['telegram_chat_id' => 7101]);
     $b = User::factory()->create(['telegram_chat_id' => 7102, 'notify_prefs' => ['chats' => false]]);
-    App\Models\Friendship::create(['user_id' => $a->id, 'friend_id' => $b->id, 'status' => 'accepted', 'accepted_at' => now()]);
-    $c = app(App\Domain\Chat\Chat::class)->direct($a, $b);
-    app(App\Domain\Chat\Chat::class)->send($c, $a, 'hello');
+    Friendship::create(['user_id' => $a->id, 'friend_id' => $b->id, 'status' => 'accepted', 'accepted_at' => now()]);
+    $c = app(Chat::class)->direct($a, $b);
+    app(Chat::class)->send($c, $a, 'hello');
 
-    Illuminate\Support\Facades\Http::assertNotSent(fn ($r) => str_ends_with($r->url(), '/sendMessage') && $r['chat_id'] == 7102);
+    Http::assertNotSent(fn ($r) => str_ends_with($r->url(), '/sendMessage') && $r['chat_id'] == 7102);
 });

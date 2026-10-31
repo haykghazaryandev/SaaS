@@ -2,6 +2,7 @@
 
 use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Venues\Menus;
+use App\Models\Field;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\LocalTime;
@@ -9,7 +10,10 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->club = makeVenue();
-    $this->club->update(['features' => [...Venue::DEFAULT_FEATURES, 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money']]);
+    $this->club->update(['features' => [...Venue::DEFAULT_FEATURES, 'desk', 'wallet', 'rating', 'trainings', 'shop', 'tournaments', 'money']]);
+    // a table too: tournaments and ratings are ping-pong things (football has neither yet)
+    Field::create(['venue_id' => $this->club->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [60], 'default_duration' => 60, 'sort' => 9]);
+    $this->club->load('fields');
     $this->owner = User::factory()->create();
     $this->club->staff()->attach($this->owner->id, ['role' => 'owner']);
     $this->staff = User::factory()->create();

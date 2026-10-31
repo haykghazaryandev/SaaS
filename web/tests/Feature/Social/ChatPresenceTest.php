@@ -1,10 +1,14 @@
 <?php
 
 use App\Domain\Chat\Chat;
+use App\Domain\Chat\Events\MessagesRead;
 use App\Domain\Social\Friends;
+use App\Domain\Social\Presence;
 use App\Models\Conversation;
+use App\Models\Friendship;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /** "online" / "last seen" in chats: a and b are friends with a direct chat; c is a stranger */
@@ -101,21 +105,21 @@ it('refreshes presence for members only', function () {
 });
 
 it('tells the chat when a member read it (live "seen" ticks) and gives the read positions to the page', function () {
-    Illuminate\Support\Facades\Event::fake([App\Domain\Chat\Events\MessagesRead::class]);
-    $a = App\Models\User::factory()->create();
-    $b = App\Models\User::factory()->create();
-    App\Models\Friendship::create(['user_id' => $a->id, 'friend_id' => $b->id, 'status' => 'accepted', 'accepted_at' => now()]);
-    $chat = app(App\Domain\Chat\Chat::class);
+    Event::fake([MessagesRead::class]);
+    $a = User::factory()->create();
+    $b = User::factory()->create();
+    Friendship::create(['user_id' => $a->id, 'friend_id' => $b->id, 'status' => 'accepted', 'accepted_at' => now()]);
+    $chat = app(Chat::class);
     $c = $chat->direct($a, $b);
     $m = $chat->send($c, $a, 'hi');
 
     $chat->markRead($c, $b, $m->id);
-    Illuminate\Support\Facades\Event::assertDispatched(App\Domain\Chat\Events\MessagesRead::class, fn ($e) => $e->userId === $b->id && $e->messageId === $m->id && $e->conversationId === $c->id);
+    Event::assertDispatched(MessagesRead::class, fn ($e) => $e->userId === $b->id && $e->messageId === $m->id && $e->conversationId === $c->id);
     $this->actingAs($a)->get("/messages/{$c->id}")->assertInertia(fn ($p) => $p->where("chat.reads.{$b->id}", $m->id));
 });
 
 it('uses the live list of open apps for "online" when Reverb answers', function () {
-    $u = App\Models\User::factory()->create(['last_seen_at' => now()]);   // seen a moment ago…
-    $this->mock(App\Domain\Social\Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([]));
+    $u = User::factory()->create(['last_seen_at' => now()]);   // seen a moment ago…
+    $this->mock(Presence::class, fn ($m) => $m->shouldReceive('onlineIds')->andReturn([]));
     expect($u->isActiveNow())->toBeFalse();   // …but the app is closed: offline at once
 });

@@ -18,7 +18,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->club = makeClub(2, ['features' => [...Venue::DEFAULT_FEATURES, 'wallet', 'shop', 'money', 'tournaments']]);
+    $this->club = makeClub(2, ['features' => [...Venue::DEFAULT_FEATURES, 'desk', 'wallet', 'shop', 'money', 'tournaments']]);
     $this->owner = User::factory()->create();
     $this->club->staff()->attach($this->owner->id, ['role' => 'owner']);
     $this->player = User::factory()->create();
@@ -67,6 +67,7 @@ it('takes the % of bookings, trainings and tournaments only — not the shop, no
 
 it('counts the played bookings of a place without the desk, once (a bill paid there is the payment, not the booking)', function () {
     $park = makeVenue();
+    $park->update(['features' => Venue::DEFAULT_FEATURES]);   // the desk switched off
     $field = $park->fields->first();
     $mk = fn ($code, $status, $price, $hour, $paid = null) => Booking::create(['code' => $code, 'venue_id' => $park->id, 'field_id' => $field->id, 'status' => $status,
         'source' => 'owner', 'contact_name' => 'Team', 'starts_at' => LocalTime::now()->startOfDay()->addHours($hour)->utc(), 'ends_at' => LocalTime::now()->startOfDay()->addHours($hour + 1)->utc(), 'price' => $price, 'paid_at' => $paid]);
@@ -106,6 +107,7 @@ it('cuts the periods in Yerevan time and rounds the fee', function () {
 
 it('shows the fee to the owner of a place without the money feature', function () {
     $park = makeVenue();
+    $park->update(['features' => Venue::DEFAULT_FEATURES]);
     $park->staff()->attach($this->owner->id, ['role' => 'owner']);
     // no money feature: Money is the fee page
     $this->actingAs($this->owner)->withSession(['venue_id' => $park->id])->get(route('owner.money'))->assertRedirect(route('owner.fee'));

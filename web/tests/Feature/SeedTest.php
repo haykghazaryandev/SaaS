@@ -69,16 +69,16 @@ it('reads ADMIN_PHONE with commas, semicolons or new lines between the numbers',
     expect(AdminSeeder::phones())->toBe(['+37499000001', '+37499000002', '+37499000003']);
 });
 
-it('gives three football places the club tools (desk, cards, shop, trainings, money) but no rating or tournaments', function () {
+it('gives football places the club tools by default (no cards, rating or tournaments yet) and a shop to try', function () {
     $this->seed([VenueSeeder::class, FootballClubSeeder::class]);
     foreach (FootballClubSeeder::PLACES as $slug) {
         $v = Venue::where('slug', $slug)->first();
-        expect($v->featureList())->toContain('wallet', 'shop', 'trainings', 'money')->not->toContain('rating', 'tournaments')
+        expect($v->featureList())->toContain('desk', 'shop', 'trainings', 'money')->not->toContain('wallet', 'rating', 'tournaments')
             ->and(Product::where('venue_id', $v->id)->count())->toBe(4)
             ->and($v->trainingPrice('small'))->toBe(12000);
     }
     expect(Venue::where('slug', 'masis')->first()->lengthPrices('small'))->toHaveCount(3);
     // again: nothing doubled
     $this->seed(FootballClubSeeder::class);
-    expect(Product::count())->toBe(12);
+    expect(Product::count())->toBe(4 * count(FootballClubSeeder::PLACES));
 });

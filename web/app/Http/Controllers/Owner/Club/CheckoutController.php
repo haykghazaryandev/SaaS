@@ -104,7 +104,7 @@ class CheckoutController extends OwnerController
         $data = $request->validate(['card' => 'required|integer|min:0', 'cash' => 'required|integer|min:0']);
         $this->attempt(fn () => $checkout->pay($booking, (int) $data['card'], (int) $data['cash'], $request->user()));
 
-        return redirect()->route($this->venue($request)->hasFeature('wallet') || $this->venue($request)->hasFeature('shop') ? 'owner.now' : 'owner.schedule')
+        return redirect()->route($this->venue($request)->hasFeature('desk') ? 'owner.now' : 'owner.schedule')
             ->with('success', __('owner.club.paid'));
     }
 }

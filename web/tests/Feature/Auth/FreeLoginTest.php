@@ -2,6 +2,7 @@
 
 use App\Domain\Notifications\TelegramUpdateHandler;
 use App\Enums\BookingSource;
+use App\Mail\LoginCodeMail;
 use App\Models\Booking;
 use App\Models\TelegramLogin;
 use App\Models\User;
@@ -110,7 +111,7 @@ it('logs in by email, asks for the name, then to confirm the phone with Telegram
     $this->post('/login/email', ['email' => 'Narek@Mail.am'])->assertSessionHasNoErrors();
     $code = Cache::get('dev-otp:narek@mail.am');
     expect($code)->toHaveLength(4);
-    Mail::assertSent(App\Mail\LoginCodeMail::class);
+    Mail::assertSent(LoginCodeMail::class);
     $this->post('/login/email/verify', ['code' => $code])->assertRedirect(route('welcome'));
     $this->assertAuthenticated();
     $u = User::where('email', 'narek@mail.am')->first();

@@ -240,7 +240,8 @@ watch(upIds, (ids) => {
                             {{ $t('owner.now.so_far') }}: <b>{{ amd(c.game.bill.total) }}</b
                             ><span v-if="c.game.bill.itemsTotal" class="faint"> ({{ $t('owner.now.with_items', { a: amd(c.game.bill.itemsTotal) }) }})</span>
                         </div>
-                        <div class="cardl">
+                        <!-- the player's card: only where the place has cards (football: usually not) -->
+                        <div v-if="(owner.features ?? []).includes('wallet')" class="cardl">
                             <Icon name="wallet" size="sm" />
                             <span v-if="c.game.bill.card">{{ $t('owner.club.card_balance', { a: amd(c.game.bill.card.balance) }) }}</span>
                             <span v-else class="faint">{{ $t('owner.club.no_card_short') }}</span>

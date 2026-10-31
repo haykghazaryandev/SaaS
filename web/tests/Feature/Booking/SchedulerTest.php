@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Booking\Actions\ExpireAndComplete;
+use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\Actions\RequestBooking;
 use App\Enums\BookingStatus;
 use App\Models\User;
@@ -21,7 +22,7 @@ it('marks accepted bookings as completed after they end', function () {
     $venue = makeVenue();
     $field = $venue->fields->firstWhere('size.value', 'small');
     $owner = User::factory()->create();
-    $b = app(App\Domain\Booking\Actions\OwnerBooking::class)->create($owner, $field, at(20), 60, ['name' => 'X']);
+    $b = app(OwnerBooking::class)->create($owner, $field, at(20), 60, ['name' => 'X']);
     $this->travelTo(at(21.5));
     app(ExpireAndComplete::class)->completeEnded();
     expect($b->fresh()->status)->toBe(BookingStatus::Completed);

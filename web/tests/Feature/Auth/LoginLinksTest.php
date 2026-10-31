@@ -7,8 +7,8 @@ use App\Domain\Notifications\BookingNotification;
 use App\Domain\Notifications\TelegramChannel;
 use App\Models\Booking;
 use App\Models\Friendship;
-use App\Models\NotificationLog;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
@@ -107,7 +107,7 @@ it('makes ADMIN_PHONE the admin again after registering anew', function () {
 it('has no on-screen code logins on staging: Telegram only', function () {
     config(['app.debug' => false, 'services.otp_driver' => 'log']);
     app()->detectEnvironment(fn () => 'staging');
-    $this->withoutMiddleware(Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+    $this->withoutMiddleware(ValidateCsrfToken::class);
 
     $this->get('/login')->assertInertia(fn ($p) => $p->where('phoneCode', false)->where('testAccounts', false));
     $this->post('/login/code', ['phone' => '93 000 100'])->assertNotFound();
@@ -117,7 +117,7 @@ it('has no on-screen code logins on staging: Telegram only', function () {
 it('has no test accounts in production', function () {
     config(['app.debug' => false, 'services.otp_driver' => 'log']);
     app()->detectEnvironment(fn () => 'production');
-    $this->withoutMiddleware(Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+    $this->withoutMiddleware(ValidateCsrfToken::class);
 
     $this->get('/login')->assertInertia(fn ($p) => $p->where('phoneCode', false));
     $this->post('/login/code', ['phone' => '93 000 100'])->assertNotFound();
