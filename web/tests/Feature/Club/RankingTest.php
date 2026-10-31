@@ -5,6 +5,8 @@ use App\Domain\Club\Ranking;
 use App\Domain\Social\Friends;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\SportRating;
+use App\Models\Tournament;
+use App\Models\TournamentEntry;
 use App\Models\User;
 use App\Support\LocalTime;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -55,4 +57,12 @@ it('lists players\' reports for the admin, open first, and marks them handled', 
     $this->actingAs($admin)->get('/admin/reports')->assertOk()->assertSee('Rude in the chat');
     expect(ReportResource::getNavigationBadge())->toBe('1')
         ->and(ReportResource::targetUser($r)->id)->toBe($this->b->id);
+});
+
+it('shows tournament medals on the profile', function () {
+    $t = Tournament::create(['venue_id' => $this->club->id, 'sport' => 'pingpong', 'title' => 'Cup', 'code' => 'cup00001', 'starts_at' => now()->subDay(), 'status' => 'done', 'options' => [['label' => '', 'price' => 0]]]);
+    foreach ([1, 1, 3] as $i => $place) {
+        TournamentEntry::create(['tournament_id' => $t->id, 'user_id' => $this->a->id, 'first_name' => 'Aram', 'last_name' => 'P', 'phone' => '+3749300090'.$i, 'option' => 0, 'status' => 'accepted', 'place' => $place]);
+    }
+    $this->actingAs($this->b)->get('/u/'.$this->a->id)->assertInertia(fn (Assert $p) => $p->where('player.medals', [1 => 2, 3 => 1]));
 });

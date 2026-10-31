@@ -19,6 +19,8 @@ const props = defineProps<{
         friends?: number;
         /** a rating per sport, with the club that set it */
         ratings?: Record<string, { rating: number; intl_id: string | null; club?: { name: string; slug: string } | null }>;
+        /** tournament places: { 1: 2, 3: 1 } = two golds, one bronze */
+        medals?: Record<string, number>;
     };
     hidden: boolean;
     blockedByMe: boolean;
@@ -74,6 +76,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
                         <!-- a rating per sport: 🏓 1450 is the ping-pong one, football has its own -->
                         <span v-for="(r, sp) in player.ratings ?? {}" :key="sp" class="pill lime" :title="$t('club.rating_of', { sport: $t(`common.sports.${sp}`) })"
                             >{{ SPORT_ICON[sp] ?? '' }} {{ $t('club.rating') }} {{ r.rating }}<template v-if="r.club"> · {{ r.club.name }}</template></span
+                        >
+                        <!-- tournament medals: 🥇 ×2 🥈 🥉 -->
+                        <span
+                            v-for="pl in [1, 2, 3].filter((x) => player.medals?.[x])"
+                            :key="pl"
+                            class="pill medal"
+                            :title="$t('friends.profile.medal_' + pl)"
+                            data-test="medal"
+                            >{{ pl === 1 ? '🥇' : pl === 2 ? '🥈' : '🥉' }}<template v-if="player.medals![pl] > 1"> ×{{ player.medals![pl] }}</template></span
                         >
                     </div>
                 </div>
@@ -132,6 +143,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
 .acts { grid-column: 2 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 10px; position: relative; }
 .hiddenp { grid-template-columns: auto 1fr; }
 .pmenu { position: relative; }
+.medal { font-weight: 800; }
 /* "•••": a small card under the button with Report / Block, one per line */
 .pdrop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; min-width: 190px; padding: 6px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 2px; }
 .pdrop button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 11px; background: none; color: var(--ink); font: 700 14px var(--body); text-align: left; cursor: pointer; white-space: nowrap; }

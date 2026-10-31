@@ -5,6 +5,7 @@ import Icon from '@/components/Icon.vue';
 import FriendActions from '@/components/social/FriendActions.vue';
 import { ask } from '@/composables/useConfirm';
 import { whenShort } from '@/composables/useGames';
+import ReportSheet from '@/components/social/ReportSheet.vue';
 import { api, type ChatItem, type ChatMessage, chatIcon, chatTitle, clock, dayKey, dayLabel, lastSeenText, sysText, userName } from '@/composables/useChat';
 import { useShared } from '@/composables/useShared';
 import { presence, refresh as refreshCounts } from '@/composables/useSocial';
@@ -539,13 +540,10 @@ async function remove(m: ChatMessage) {
     active.value = null;
     confirmDelete.value = false;
 }
-async function report(m: ChatMessage) {
-    try {
-        await api('POST', route('reports.store'), { type: 'message', id: m.id, target_type: 'message', target_id: m.id, reason: 'chat message' });
-        reported.value.push(m.id);
-    } catch (e) {
-        error.value = (e as Error).message;
-    }
+// Report: a window with the message and a reason to write (the admin sees both)
+const reportOf = ref<ChatMessage | null>(null);
+function report(m: ChatMessage) {
+    reportOf.value = m;
     active.value = null;
 }
 function jumpTo(id: number) {
@@ -838,6 +836,16 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </Teleport>
+        <ReportSheet
+            v-if="reportOf"
+            target-type="message"
+            :target-id="reportOf.id"
+            :name="reportOf.user ? userName(reportOf.user) : undefined"
+            :quote="reportOf.body"
+            json
+            @sent="reported.push(reportOf!.id)"
+            @close="reportOf = null"
+        />
     </component>
 </template>
 

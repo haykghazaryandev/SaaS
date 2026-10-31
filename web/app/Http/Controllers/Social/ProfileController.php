@@ -8,6 +8,7 @@ use App\Domain\Social\Friends;
 use App\Enums\GamePlayerStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerCards;
+use App\Models\TournamentEntry;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Support\Phone;
@@ -45,6 +46,9 @@ class ProfileController extends Controller
                 'friends' => count($player->friendIds()),
                 // ratings per sport, set by the clubs (🏓 ping-pong apart from ⚽ football)
                 'ratings' => Ratings::of($player),
+                // tournament medals: how many 1st, 2nd and 3rd places
+                'medals' => TournamentEntry::where('user_id', $player->id)->whereIn('place', [1, 2, 3])->selectRaw('place, count(*) as n')
+                    ->groupBy('place')->pluck('n', 'place')->map(fn ($n) => (int) $n)->all(),
             ],
             'hidden' => $hidden,
             'blockedByMe' => $blockedByMe,

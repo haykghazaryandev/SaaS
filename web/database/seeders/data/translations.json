@@ -3609,6 +3609,21 @@
         "hy": "Խմբագրել պրոֆիլը",
         "ru": "Редактировать профиль"
     },
+    "friends.profile.medal_1": {
+        "en": "1st place in tournaments",
+        "hy": "1-ին տեղ մրցաշարերում",
+        "ru": "1-е место в турнирах"
+    },
+    "friends.profile.medal_2": {
+        "en": "2nd place in tournaments",
+        "hy": "2-րդ տեղ մրցաշարերում",
+        "ru": "2-е место в турнирах"
+    },
+    "friends.profile.medal_3": {
+        "en": "3rd place in tournaments",
+        "hy": "3-րդ տեղ մրցաշարերում",
+        "ru": "3-е место в турнирах"
+    },
     "friends.profile.no_bio": {
         "en": "No description yet.",
         "hy": "Նկարագրություն դեռ չկա։",
