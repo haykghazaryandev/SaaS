@@ -67,11 +67,18 @@ const nav = computed(() => [
           ]
         : []),
 ]);
-// phones: a club: Now · Schedule · Scan · More (Today and the rest); others: the three tabs as before
-const canScan = computed(() => may('cards'));
+// phones: at most 4 slots in the bottom bar. A club: Now · Schedule · Scan · More; others: the first pages, the rest under More
+const TAB_SLOTS = 4;
+// scanning is for places with cards (may() alone is always true for the owner)
+const canScan = computed(() => owner.value.menus.available.includes('cards') && may('cards'));
 const isClub = computed(() => club.value.some((n) => n.name === 'owner.now'));
-const tabs = computed(() => (isClub.value ? nav.value.filter((n) => ['owner.now', 'owner.schedule'].includes(n.name)) : club.value.length ? nav.value.slice(0, 2) : nav.value));
-const more = computed(() => (club.value.length ? nav.value.filter((n) => !tabs.value.includes(n)) : []));
+const tabs = computed(() => {
+    if (isClub.value) return nav.value.filter((n) => ['owner.now', 'owner.schedule'].includes(n.name));
+    const room = TAB_SLOTS - (canScan.value ? 1 : 0);
+    return nav.value.length <= room ? nav.value : nav.value.slice(0, room - 1);
+});
+const more = computed(() => nav.value.filter((n) => !tabs.value.includes(n)));
+const moreBadge = computed(() => more.value.reduce((sum, n) => sum + n.badge, 0));
 const moreOpen = ref(false);
 const scanOpen = ref(false);
 const moreActive = computed(() => more.value.some((n) => current(n.name)));
@@ -189,7 +196,8 @@ watch(
                 <span class="tb-ico"><Icon name="qr" size="lg" /></span>{{ $t('owner.club.scan') }}
             </button>
             <button v-if="more.length" type="button" :aria-current="moreActive ? 'page' : undefined" @click="moreOpen = true">
-                <span class="tb-ico"><Icon name="more" size="lg" /></span>{{ $t('owner.nav.more') }}
+                <span class="tb-ico"><Icon name="more" size="lg" /><span v-if="moreBadge" class="nbadge">{{ moreBadge }}</span></span
+                >{{ $t('owner.nav.more') }}
             </button>
         </nav>
         <!-- phones: the other pages -->

@@ -96,11 +96,14 @@ button { cursor: pointer; }
 .lang button { border: 0; background: none; color: var(--muted); padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
 .lang button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink); }
 .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 800; font-size: 13px; border: 1px solid var(--line-2); }
+/* tablets: the short labels (PlayerLayout) and tighter items, so menu + bell + avatar fit from 901px */
+@media (max-width: 1120px) { .nav { gap: 2px; margin-left: 4px; } .nav a { padding: 8px 9px; } }
 @media (max-width: 900px) { .nav { display: none; } }
 @media (max-width: 600px) { .top .wrap { gap: 10px; } .top-right .btn span { display: none; } .top-right .btn { padding: 8px 10px; } .lang button { padding: 5px 7px; } .logo { font-size: 18px; } .logo-mark { width: 36px; height: 36px; } .logo-glyph { width: 28px; height: 28px; } }
 /* small phones: the header fits on one line, nothing past the screen's edge (logged in, the language is in Profile) */
 .top .brand { min-width: 0; }
-@media (max-width: 600px) { .papp:not(.guest) .top-right .lang { display: none; } }
+/* phones and tablets (an iPad sideways is 1024px: the top menu + language + avatar do not fit) */
+@media (max-width: 1180px) { .papp:not(.guest) .top-right .lang { display: none; } }
 @media (max-width: 400px) { .top .wrap { gap: 8px; } .top-right { gap: 6px; } .logo { font-size: 16px; gap: 7px; } .logo-mark { width: 32px; height: 32px; } .logo-glyph { width: 24px; height: 24px; } .lang button { padding: 4px 6px; font-size: 11px; } }
 
 /* bottom tab bar on phones */
@@ -424,6 +427,11 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
    sideways. On phones and touch screens every text field is 16px (pages must not set a smaller size on them). */
 @media (max-width: 900px), (pointer: coarse) {
   input:where(:not([type="checkbox"], [type="radio"], [type="range"])), textarea, select { font-size: 16px; }
+}
+/* touch: the small text links (back, all sports, see my page) get a finger-sized tap area; the layout does not move */
+@media (pointer: coarse) {
+  .backlink, a.back, .allsports, a.see, .see-all, a.tel, .addnote, .howbtn, .newhint .x { position: relative; }
+  .backlink::after, a.back::after, .allsports::after, a.see::after, .see-all::after, a.tel::after, .addnote::after, .howbtn::after, .newhint .x::after { content: ""; position: absolute; inset: -10px -8px; }
 }
 /* fullscreen pages (the chat on phones) never scroll sideways, even if something inside is too wide */
 @media (max-width: 900px) { html:has(.papp.fs), html:has(.papp.fs) body { overflow-x: clip; } }

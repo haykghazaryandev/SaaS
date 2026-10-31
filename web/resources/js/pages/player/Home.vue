@@ -353,6 +353,8 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .filters .days { min-width: 0; max-width: 100%; }
 .filters .sel { width: auto; padding: 7px 30px 7px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 700; }
+/* phones: 16px, or iPhone zooms in when it opens */
+@media (max-width: 900px), (pointer: coarse) { .filters .sel { font-size: 16px; } }
 .day.we:not([aria-pressed="true"]) small { color: var(--warn); }
 .vcard .art { display: block; }
 .vcard h3 a:hover { color: var(--accent); }

@@ -263,6 +263,7 @@ onBeforeUnmount(() => {
 .db i { font-style: normal; font: 600 10px var(--mono); color: var(--faint); margin-left: 8px; }
 .dcomp { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
 .dcomp textarea { flex: 1; min-width: 0; resize: none; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 16px; padding: 8px 12px; color: var(--ink); font: inherit; font-size: 14px; max-height: 110px; outline: none; }
+@media (max-width: 900px), (pointer: coarse) { .dcomp textarea { font-size: 16px; } }
 .dcomp textarea:focus { border-color: rgba(200, 255, 61, 0.5); }
 .dsend { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; cursor: pointer; flex: none; align-self: flex-end; }
 .dsend:disabled { opacity: 0.4; cursor: default; }
