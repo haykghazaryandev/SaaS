@@ -392,6 +392,8 @@ function submit() {
         preserveState: true,
         onSuccess: () => {
             sheet.value = null;
+            // booked: the time is "yours" now (blue), not a pick waiting for "Book"
+            start.value = null;
             form.reset('team_name', 'note');
         },
         onError: (e) => {
@@ -454,6 +456,9 @@ const watchedAlert = (t: number) =>
 // my requests / bookings on this day and court kind (shown in their own row above the times)
 /** my booking that overlaps a game of the chosen length starting at t (that start is taken partly because of me) */
 const mineOver = (t: number) => myToday.value.find((m) => t < m.end - 1e-9 && t + minutes.value / 60 > m.start + 1e-9);
+// a start time inside my own request / booking: blue even while other tables are still free then (ping-pong), so
+// right after booking the player sees their time in the list, not only in the "Yours" chip
+const mineAt = (t: number) => myToday.value.find((m) => t >= m.start - 1e-9 && t < m.end - 1e-9);
 const myToday = computed(() => (field.value ? (slots.value.mine ?? []).filter((m) => m.field === field.value!.id) : []));
 const mineOpen = ref<MyTime | null>(null);
 const cancelBusy = ref(false);
@@ -700,14 +705,15 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 <div :class="['slots', { dim: loading, pulse }]">
                                     <template v-for="s in g.items" :key="s.t">
                                     <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
-                                    <!-- taken, and one of the taken tables is mine: a tap shows my booking, not "notify me" -->
+                                    <!-- mine (inside my request / booking, or taken with one of the taken tables mine): blue, dashed while waiting; a tap shows my booking -->
                                     <button
-                                        v-if="s.taken && mineOver(s.t)"
+                                        v-if="mineAt(s.t) || (s.taken && mineOver(s.t))"
                                         type="button"
-                                        class="tslot mine"
+                                        :class="['tslot mine', (mineAt(s.t) ?? mineOver(s.t))!.status]"
                                         aria-haspopup="dialog"
+                                        data-test="mine-slot"
                                         :title="$t('player.place.mine_title')"
-                                        @click="openMine(mineOver(s.t)!)"
+                                        @click="openMine((mineAt(s.t) ?? mineOver(s.t))!)"
                                     >
                                         {{ hhmm(s.t) }}
                                     </button>
