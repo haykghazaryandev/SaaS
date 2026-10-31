@@ -508,8 +508,12 @@ html.kb-open .papp.with-tabbar { --app-bottom: 0px; }
    keyboard: no empty band on iPhone */
 html.kb-open .papp.fs { height: var(--vvh, 100dvh); }
 /* iPhone also slides the page up under the keyboard (the chat header goes off screen and an empty band shows
-   above the keyboard): pin the chat to the visible part itself (--vvt: how far the visible part is moved down) */
-@media (max-width: 900px) { html.kb-open .papp.fs { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); } }
+   above the keyboard): pin the chat to the visible part itself (--vvt: how far the visible part is moved down), and
+   the page behind it doesn't scroll or bounce (no grey band jumping between the box and the keyboard) */
+@media (max-width: 900px) {
+  html.kb-open .papp.fs { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); }
+  html.kb-open:has(.papp.fs), html.kb-open:has(.papp.fs) body { overflow: hidden; overscroll-behavior: none; background: var(--bg-2); }
+}
 html.kb-open .chat.inpanel { height: calc(var(--vvh, 100dvh) - 70px - var(--sat)); }
 /* the top bar is solid, the strip behind the status bar (time, battery, the Dynamic Island) included: the page never
    shows through it blurred while scrolling. The strip is dark in both themes: in the installed app iPhone draws the

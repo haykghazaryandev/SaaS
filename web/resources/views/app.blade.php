@@ -12,7 +12,9 @@
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        {{-- "black": iPhone draws its own solid bar behind the time / battery and the app starts below it. With
+             "black-translucent" the app went under it and iOS 26 laid its blur over the top of our header. --}}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
         <meta name="apple-mobile-web-app-title" content="ZoneSpot">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
