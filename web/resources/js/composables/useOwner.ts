@@ -342,10 +342,11 @@ export function relDay(iso: string, today: string): string {
 }
 export const longDate = (iso: string) => fdate(iso, { weekday: 'long', day: 'numeric', month: 'long' });
 
-/** 90 -> "1.5 h" */
+/** 20 -> "20 min", 60 -> "1 h", 90 -> "1 h 30 min" */
 export function dur(minutes: number): string {
-    const h = minutes / 60;
-    return trans('owner.duration_hours', { h: String(Number.isInteger(h) ? h : h.toFixed(1)) });
+    const m = Math.round(minutes);
+    if (m < 60) return trans('owner.club.len_m', { m });
+    return trans('owner.club.len_h', { h: Math.floor(m / 60), m: m % 60 ? ' ' + trans('owner.club.len_m', { m: m % 60 }) : '' });
 }
 
 /** Pill class and label of a booking. */

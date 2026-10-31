@@ -871,5 +871,6 @@
     "tgapp.waiting": "telegram.miniapp.waiting",
     "tgapp.welcome": "common.welcome_to_bookball",
     "switch.staff_short": null,
-    "switch.panels": null
+    "switch.panels": null,
+    "owner.duration_hours": null
 }

@@ -17,18 +17,20 @@ const courtName = (id: number) => {
 };
 const sorted = computed(() => [...props.rows].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.field_id - b.field_id));
 const todays = computed(() => sorted.value.filter((b) => b.date === props.today));
-const live = computed(() => todays.value.filter((b) => b.kind !== 'pending' && b.start <= props.now && b.end > props.now));
-const hour = computed(() => todays.value.filter((b) => b.start > props.now && b.start <= props.now + 1));
-const later = computed(() => todays.value.filter((b) => b.start > props.now + 1));
+// playing: its time has come, or the desk already started it (a game added on Now starts at the next full minute)
+const isLive = (b: BookingRow) => b.date === props.today && b.kind !== 'pending' && b.end > props.now && (b.start <= props.now || !!b.playing);
+const live = computed(() => todays.value.filter(isLive));
+const hour = computed(() => todays.value.filter((b) => !isLive(b) && b.start > props.now && b.start <= props.now + 1));
+const later = computed(() => todays.value.filter((b) => !isLive(b) && b.start > props.now + 1));
 const when = (b: BookingRow) => {
     if (b.date !== props.today) return '–' + hhmm(b.end);
-    if (b.start > props.now) {
+    if (b.start > props.now && !b.playing) {
         const m = Math.round((b.start - props.now) * 60);
         return m >= 60 ? trans('owner.sched.in_h', { h: Math.floor(m / 60), m: String(m % 60).padStart(2, '0') }) : trans('owner.sched.in_min', { m });
     }
     return trans('owner.sched.ends', { t: hhmm(b.end) });
 };
-const cls = (b: BookingRow) => (b.kind === 'pending' ? 'req' : b.purpose === 'training' ? 'train' : b.start <= props.now && b.end > props.now && b.date === props.today ? 'live' : b.weekly ? 'week' : '');
+const cls = (b: BookingRow) => (b.kind === 'pending' ? 'req' : b.purpose === 'training' ? 'train' : isLive(b) ? 'live' : b.weekly ? 'week' : '');
 const sections = computed(() => [
     { key: 'now', title: trans('owner.sched.playing_now'), sub: fdate(props.today, { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + hhmm(props.now), rows: live.value },
     { key: 'hour', title: trans('owner.sched.next_hour'), sub: `${hhmm(props.now)}–${hhmm(Math.min(24, props.now + 1))}`, rows: hour.value },

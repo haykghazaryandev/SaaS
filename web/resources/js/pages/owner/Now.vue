@@ -2,7 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { ask } from '@/composables/useConfirm';
-import { openForm, useOwner } from '@/composables/useOwner';
+import { dur, openForm, useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
@@ -77,7 +77,7 @@ const plusMin = (at: string, m: number) => {
     return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 };
 // "1 h 15" / "45 min"
-const len = (m: number) => (m >= 60 ? trans('owner.club.len_h', { h: Math.floor(m / 60), m: m % 60 ? ' ' + (m % 60) : '' }) : trans('owner.club.len_m', { m }));
+const len = dur;
 
 function stateOf(c: Court): St {
     const g = c.game;

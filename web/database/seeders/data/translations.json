@@ -5789,11 +5789,6 @@
         "hy": "Բացել Զրույցներում",
         "ru": "Открыть в Сообщениях"
     },
-    "owner.duration_hours": {
-        "en": ":h h",
-        "hy": ":h ժ",
-        "ru": ":h ч"
-    },
     "owner.error.generic": {
         "en": "Something went wrong. Try again.",
         "hy": "Ինչ-որ բան այն չէ։ Փորձեք կրկին։",

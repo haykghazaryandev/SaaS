@@ -15,7 +15,7 @@ const courtName = (id: number) => {
 const sorted = computed(() => [...props.rows].sort((a, b) => a.start - b.start || a.field_id - b.field_id));
 const isToday = computed(() => props.date === props.today);
 const cls = (b: BookingRow) =>
-    b.purpose === 'training' ? 'train' : isToday.value && b.start <= props.now && b.end > props.now ? 'live' : b.past ? 'done' : b.weekly ? 'week' : '';
+    b.purpose === 'training' ? 'train' : isToday.value && b.end > props.now && (b.start <= props.now || b.playing) ? 'live' : b.past ? 'done' : b.weekly ? 'week' : '';
 </script>
 
 <template>
