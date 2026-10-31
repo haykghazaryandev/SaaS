@@ -458,6 +458,7 @@ watch(upIds, (ids) => {
 .bar.train i { background: #ff7ad9; }
 /* the card's actions side by side in one row (long Armenian words go to a second line inside the button) */
 .takeb { width: 100%; justify-content: center; margin-top: 10px; padding: 11px; font-size: 14.5px; }
+.takeb + .btns { margin-top: 8px; } /* a little room between Take money and the row under it */
 .endb { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 35%, transparent); }
 .c-paid { background: rgba(92, 200, 255, 0.15); color: var(--blue, #5cc8ff); }
 .a-card.paid { border-top-color: var(--blue, #5cc8ff); }
