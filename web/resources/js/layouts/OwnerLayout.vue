@@ -204,7 +204,7 @@ watch(
             <div class="sheet" role="dialog" aria-modal="true">
                 <nav class="moremenu">
                     <Link v-for="n in more" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined" @click="moreOpen = false">
-                        <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span>
+                        <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span><span v-if="n.badge" class="nbadge mb">{{ n.badge }}</span>
                     </Link>
                     <!-- the account -->
                     <Link :href="route('me.profile')"><Icon name="user" /><span>{{ $t('profile.title') }}</span></Link>

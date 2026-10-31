@@ -4,6 +4,7 @@ use App\Domain\Booking\Actions\OwnerBooking;
 use App\Domain\Booking\Events\ScheduleChanged;
 use App\Domain\Club\Cards;
 use App\Models\Booking;
+use App\Models\Field;
 use App\Models\Product;
 use App\Models\SportRating;
 use App\Models\Tournament;
@@ -73,6 +74,10 @@ it('tops a card up only after a scan; the rating needs none', function () {
     $this->actingAs($this->owner)->get($base)->assertInertia(fn (Assert $p) => $p->where('level.pct', 0)->where('level.next.from', 50000));
     // no free "take from card": money comes off a card only on a game's check
     $this->actingAs($this->owner)->post("$base/charge", ['amount' => 2000])->assertNotFound();
+    // ratings are a ping-pong thing: football has none; with a table the place has them
+    $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450])->assertNotFound();
+    Field::create(['venue_id' => $this->club->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [60], 'default_duration' => 60, 'sort' => 9]);
+    $this->club->load('fields');
     $this->actingAs($this->owner)->post("/owner/players/{$this->player->id}/rating", ['rating' => 1450, 'intl_id' => 'ARM-7'])->assertRedirect();
     $this->actingAs($this->owner)->get("/owner/players/{$this->player->id}")->assertInertia(fn (Assert $p) => $p->component('owner/Player')
         ->where('rating.rating', 1450)->where('card.balance', 10000));

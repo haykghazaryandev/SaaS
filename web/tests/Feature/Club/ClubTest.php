@@ -18,6 +18,7 @@ use App\Enums\Sport;
 use App\Http\Controllers\Owner\BookingPresenter;
 use App\Models\Booking;
 use App\Models\BookingEvent;
+use App\Models\Field;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\RatingChange;
@@ -183,6 +184,9 @@ it('books a training at the training price', function () {
 });
 
 it('keeps a rating per sport with its history', function () {
+    // ratings are a ping-pong thing: the club gets a table
+    Field::create(['venue_id' => $this->club->id, 'size' => 'table', 'format' => '🏓', 'max_players' => 4, 'durations' => [60], 'default_duration' => 60, 'sort' => 9]);
+    $this->club->load('fields');
     $r = app(Ratings::class);
     $r->set($this->player, Sport::Pingpong, 1450, 'ARM-123', $this->club, $this->owner, 'after the league');
     $r->set($this->player, Sport::Pingpong, 1500, 'ARM-123', $this->club, $this->owner);

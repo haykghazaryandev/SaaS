@@ -38,6 +38,12 @@ enum Sport: string
         };
     }
 
+    /** Players of this sport have a rating (ping-pong: points, the federation's list); football has none. */
+    public function rated(): bool
+    {
+        return $this === self::Pingpong;
+    }
+
     public function icon(): string
     {
         return match ($this) {

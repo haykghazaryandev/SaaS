@@ -3,6 +3,7 @@
 use App\Domain\Chat\Chat;
 use App\Models\Conversation;
 use App\Models\User;
+use App\Models\Venue;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -34,6 +35,19 @@ it('shows in the place panel only the chats of the place picked, with their unre
     expect($this->actingAs($this->owner)->getJson(route('messages.list', ['venue' => $this->a->id]))->json('chats'))->toHaveCount(1);
     $other = makeVenue();
     expect(count($this->actingAs($this->owner)->getJson(route('messages.list', ['venue' => $other->id]))->json('chats')))->toBeGreaterThan(1);
+
+    // the badge adds up like the list: a closed chat and a muted one don't count
+    $toB->update(['status' => 'archived']);
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->b->id])->get('/owner/messages')->assertInertia(fn (Assert $p) => $p->where('owner.unreadChats', 0));
+    $chat->mute($toA, $this->owner, true);
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->a->id])->get('/owner/messages')->assertInertia(fn (Assert $p) => $p->where('owner.unreadChats', 0));
+});
+
+it('has no rating for football, even with the feature switched on', function () {
+    $this->a->update(['features' => [...Venue::DEFAULT_FEATURES, 'wallet', 'rating']]);
+    expect($this->a->fresh()->hasFeature('rating'))->toBeFalse()->and($this->a->fresh()->featureList())->not->toContain('rating');
+    $player = User::factory()->create();
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->a->id])->post(route('owner.players.rating', $player->id), ['rating' => 1500])->assertNotFound();
 });
 
 it('shows our error page for a page that is not there, and JSON stays JSON', function () {

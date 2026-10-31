@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import { useOwner } from '@/composables/useOwner';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -42,6 +43,9 @@ const isDivision = !!t?.parent;
 // more divisions: a new tournament or one that has them (a plain one that has players stays plain)
 const canSplit = !isDivision && (!t || !!t.divisions?.length);
 const price = (o?: Opt[]) => o?.[0]?.price ?? '';
+// the place's sport has ratings (ping-pong): divisions by rating; football: no rating fields
+const owner = useOwner();
+const rated = computed(() => (owner.value.features ?? []).includes('rating'));
 const blank = (): Div => ({ name: '', min_rating: '', max_rating: '', max_players: '', price: divs.value[divs.value.length - 1]?.price ?? '' });
 const divs = ref<Div[]>(
     t?.divisions?.length
@@ -108,11 +112,12 @@ function save() {
                     </button>
                 </div>
                 <div class="div-r">
-                    <label
+                    <!-- a rating range only where the sport has ratings (not football) -->
+                    <label v-if="rated"
                         ><small>{{ $t('owner.tournament.min_rating') }}</small
                         ><input v-model="d.min_rating" class="input" type="number" min="0" max="4000" :placeholder="$t('owner.tournament.any')" data-test="t-min"
                     /></label>
-                    <label
+                    <label v-if="rated"
                         ><small>{{ $t('owner.tournament.max_rating') }}</small
                         ><input v-model="d.max_rating" class="input" type="number" min="0" max="4000" :placeholder="$t('owner.tournament.any')" data-test="t-max"
                     /></label>
@@ -127,7 +132,7 @@ function save() {
                 </div>
             </div>
             <button v-if="canSplit && divs.length < 6" type="button" class="btn ghost sm" data-test="div-add" @click="divs.push(blank())">
-                <Icon name="plus" size="sm" />{{ divs.length === 1 ? $t('owner.tournament.split_by_rating') : $t('owner.tournament.division_add') }}
+                <Icon name="plus" size="sm" />{{ divs.length === 1 && rated ? $t('owner.tournament.split_by_rating') : $t('owner.tournament.division_add') }}
             </button>
         </div>
         <div v-if="t" class="field">

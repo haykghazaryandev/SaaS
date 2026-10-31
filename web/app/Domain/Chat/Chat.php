@@ -176,11 +176,29 @@ class Chat
     }
 
     /** Unread messages that count for the Chats badge and the sound: not in muted chats. */
-    public function unreadLoud(User $u): int
+    public function unreadLoud(User $u, ?int $venueId = null): int
     {
-        $muted = ConversationParticipant::where('user_id', $u->id)->whereNotNull('muted_until')->where('muted_until', '>', now())->pluck('conversation_id')->all();
+        return array_sum($this->unreadShown($u, $venueId));
+    }
 
-        return array_sum(array_diff_key($this->unread($u), array_flip($muted)));
+    /**
+     * Unread messages per chat the way the chat list counts them: open chats only (not the closed ones below the list),
+     * muted chats left out; with a place: only that place's chats (the place panel). The badges use this, so the number
+     * on a badge is the number the list adds up to.
+     *
+     * @return array<int, int>
+     */
+    public function unreadShown(User $u, ?int $venueId = null): array
+    {
+        $unread = $this->unread($u);
+        if (! $unread) {
+            return [];
+        }
+        $muted = ConversationParticipant::where('user_id', $u->id)->whereNotNull('muted_until')->where('muted_until', '>', now())->pluck('conversation_id')->all();
+        $open = Conversation::query()->whereIn('id', array_keys($unread))->where('status', '!=', 'archived')
+            ->when($venueId, fn ($q) => Conversation::ofPlace($q, $venueId))->pluck('id')->all();
+
+        return array_diff_key(array_intersect_key($unread, array_flip($open)), array_flip($muted));
     }
 
     // ---------- messages ----------

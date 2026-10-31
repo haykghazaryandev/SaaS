@@ -149,6 +149,10 @@ class Venue extends HasFactoryModel
 
     public function hasFeature(string $feature): bool
     {
+        if ($feature === 'rating' && ! collect($this->sports())->contains(fn (Sport $s) => $s->rated())) {
+            return false; // ratings only where a sport has them (not football), whatever the admin switched on
+        }
+
         return in_array($feature, $this->features ?? self::DEFAULT_FEATURES, true);
     }
 

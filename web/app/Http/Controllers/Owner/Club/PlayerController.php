@@ -105,7 +105,7 @@ class PlayerController extends OwnerController
     public function rating(Request $request, User $user, Ratings $ratings)
     {
         $venue = $this->venue($request);
-        abort_unless(in_array($user->id, self::playerIds($venue), true), 404);
+        abort_unless($venue->hasFeature('rating') && in_array($user->id, self::playerIds($venue), true), 404);
         $data = $request->validate(['rating' => 'nullable|integer|min:0|max:'.Ratings::MAX, 'intl_id' => 'nullable|string|max:40', 'note' => 'nullable|string|max:200']);
         $this->attempt(fn () => $ratings->set($user, $this->sport($venue), $data['rating'] ?? null, $data['intl_id'] ?? null, $venue, $request->user(), $data['note'] ?? null));
 
