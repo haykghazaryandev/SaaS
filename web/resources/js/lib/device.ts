@@ -3,7 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
 /**
- * The installed app's icon number (like a messenger): unread notices + chats (+ requests waiting, for a place's
+ * The installed app's icon number: one per unread notice, one per chat with unread messages (+ requests waiting, for a place's
  * people), the same number push sets while the app is closed (shared prop appBadge). Phones / browsers without
  * the Badging API: nothing.
  */
@@ -18,14 +18,14 @@ export function installAppBadge() {
     let base: number | null = null;
     let baseLive = 0;
     router.on('navigate', (e) => {
-        const p = e.detail.page.props as { appBadge?: number | null; counts?: { notifications?: number; messages?: number } | null };
+        const p = e.detail.page.props as { appBadge?: number | null; counts?: { notifications?: number; chats?: number } | null };
         base = typeof p.appBadge === 'number' ? p.appBadge : null;
-        baseLive = (p.counts?.notifications ?? 0) + (p.counts?.messages ?? 0);
+        baseLive = (p.counts?.notifications ?? 0) + (p.counts?.chats ?? 0);
         set(base);
     });
     // a chat message or a notice arriving live (or read) while the app is open: the icon follows at once
     watch(
-        () => social.counts.notifications + social.counts.messages,
+        () => social.counts.notifications + (social.counts.chats ?? 0),
         (live) => base !== null && set(Math.max(0, base - baseLive + live)),
     );
 }

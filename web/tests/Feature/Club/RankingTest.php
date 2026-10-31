@@ -1,15 +1,18 @@
 <?php
 
+use App\Domain\Chat\Chat;
 use App\Domain\Club\FeePayments;
 use App\Domain\Club\Ranking;
 use App\Domain\Notifications\PushNotifications;
 use App\Domain\Social\Friends;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\Booking;
+use App\Models\Friendship;
 use App\Models\SportRating;
 use App\Models\Tournament;
 use App\Models\TournamentEntry;
 use App\Models\User;
+use App\Notifications\Notice;
 use App\Support\LocalTime;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -77,4 +80,19 @@ it('gives the app icon a number: unread notices and chats, and requests waiting 
     $msg = PushNotifications::message('Hi', '/owner', 'tag', badge: 1)->toArray();
     expect($msg['data']['badge'])->toBe(1);
     $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id])->get('/owner/schedule')->assertInertia(fn (Assert $p) => $p->where('appBadge', 1));
+});
+
+it('counts a chat once on the app icon, however many unread messages it has, and each notice', function () {
+    $me = User::factory()->create();
+    $friend = User::factory()->create();
+    Friendship::create(['user_id' => $me->id, 'friend_id' => $friend->id, 'status' => 'accepted', 'accepted_at' => now()]);
+    $chat = app(Chat::class);
+    $c = $chat->direct($friend, $me);
+    foreach (['Hi', 'Are you coming?', 'Answer!'] as $text) {
+        $chat->send($c, $friend, $text);
+    }
+    $me->notify(new Notice('friend_accepted', ['name' => 'X'], '/friends'));
+
+    expect(PushNotifications::badgeFor($me))->toBe(2);
+    $this->actingAs($me)->get('/')->assertInertia(fn (Assert $p) => $p->where('counts.messages', 3)->where('counts.chats', 1)->where('appBadge', 2));
 });

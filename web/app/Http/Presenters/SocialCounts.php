@@ -17,6 +17,7 @@ use App\Models\User;
  * - messages: unread chat messages ("Chats")
  * - friendRequests: friend requests waiting for me
  * - invites: game invites I have not answered (game still forming or open)
+ * - chats: chats with unread messages (the app icon counts a chat once)
  * - pendingBookings: my booking requests still waiting for the place (not ended yet)
  */
 class SocialCounts
@@ -28,6 +29,8 @@ class SocialCounts
         return [
             'notifications' => $u->unreadNotifications()->count(),
             'messages' => $this->chat->unreadLoud($u),   // muted chats: no badge, no sound
+            // chats with unread messages (one each, however many): the app icon's number counts these
+            'chats' => count($this->chat->unreadShown($u)),
             'friendRequests' => Friendship::where('friend_id', $u->id)->where('status', 'pending')->count(),
             'invites' => GamePlayer::where('user_id', $u->id)->where('status', GamePlayerStatus::Invited)
                 ->whereHas('game', fn ($q) => $q->whereIn('status', ['forming', 'open']))->count(),

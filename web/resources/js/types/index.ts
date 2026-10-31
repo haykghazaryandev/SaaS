@@ -35,6 +35,8 @@ export interface SharedData {
 export interface SocialCounts {
     notifications: number;
     messages: number;
+    /** chats with unread messages (the app icon counts a chat once) */
+    chats?: number;
     friendRequests: number;
     /** game invites I have not answered */
     invites: number;

@@ -101,12 +101,13 @@ class PushNotifications
      * $tag: a newer notification with the same tag replaces the older one (e.g. one per chat).
      */
     /**
-     * The number on the app icon (like a messenger): unread notices + unread chat messages (muted chats left out),
+     * The number on the app icon: one per unread notice + one per chat with unread messages (however many; muted chats
+     * left out),
      * and for people who run a place, the requests waiting for an answer. The same number the app sets while open.
      */
     public static function badgeFor(User $u): int
     {
-        $n = $u->unreadNotifications()->count() + app(Chat::class)->unreadLoud($u);
+        $n = $u->unreadNotifications()->count() + count(app(Chat::class)->unreadShown($u));
         $venues = $u->venues()->pluck('venues.id');
         if ($venues->isNotEmpty()) {
             $n += Booking::whereIn('venue_id', $venues)->where('status', 'pending')->where('starts_at', '>', now())->count();
