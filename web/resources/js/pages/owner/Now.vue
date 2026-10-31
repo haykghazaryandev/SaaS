@@ -79,6 +79,8 @@ interface Court {
     freeUntil: string | null;
     limit: Limit;
     walkPrices: { min: number; price: number; fits: boolean }[];
+    /** the same lengths as a training (empty: no training price for this kind) */
+    trainPrices: { min: number; price: number; fits: boolean }[];
     toPay: Unpaid[];
 }
 type St = 'play' | 'train' | 'soon' | 'up' | 'topay' | 'paid' | 'due' | 'free';
@@ -153,10 +155,16 @@ function addTime(c: Court, m: number) {
     panel.value[c.id] = null;
     router.post(route('owner.bookings.extend', c.game.id), { minutes: m }, opts);
 }
+// New game: a game or a training (at the training price), per table
+const walkKind = ref<Record<number, 'play' | 'training'>>({});
+const kindOf = (c: Court) => (c.trainPrices.length ? (walkKind.value[c.id] ?? 'play') : 'play');
+const walkList = (c: Court) => (kindOf(c) === 'training' ? c.trainPrices : c.walkPrices);
 async function newGame(c: Court, m: number) {
-    if (await ask({ title: trans('owner.club.ask_walkin', { table: c.label, t: len(m) }), text: trans('owner.club.ask_walkin_text'), ok: trans('owner.club.start_game') })) {
+    const training = kindOf(c) === 'training';
+    const title = trans(training ? 'owner.now.ask_walkin_training' : 'owner.club.ask_walkin', { table: c.label, t: len(m) });
+    if (await ask({ title, text: trans('owner.club.ask_walkin_text'), ok: trans('owner.club.start_game') })) {
         panel.value[c.id] = null;
-        router.post(route('owner.fields.walkin', c.id), { minutes: m }, opts);
+        router.post(route('owner.fields.walkin', c.id), { minutes: m, purpose: kindOf(c) }, opts);
     }
 }
 async function startGame(c: Court) {
@@ -377,8 +385,15 @@ watch(upIds, (ids) => {
                     <div v-if="panel[c.id] === 'new'" class="panel" data-test="new-panel">
                         <h4>{{ $t('owner.now.new_title', { t: c.label }) }}</h4>
                         <p class="why">{{ $t('owner.now.new_why', { t: c.freeUntil ?? '' }) }}</p>
+                        <!-- a game or a training (its own price); only where this kind of table has a training price -->
+                        <div v-if="c.trainPrices.length" class="seg wkind" role="group">
+                            <button type="button" :aria-pressed="kindOf(c) === 'play'" data-test="walk-play" @click="walkKind[c.id] = 'play'">{{ $t('owner.now.kind_game') }}</button>
+                            <button type="button" :aria-pressed="kindOf(c) === 'training'" data-test="walk-training" @click="walkKind[c.id] = 'training'">
+                                🎓 {{ $t('club.training') }}
+                            </button>
+                        </div>
                         <div class="opts">
-                            <button v-for="w in c.walkPrices" :key="w.min" type="button" class="opt" :disabled="!w.fits" :data-test="`walk-${w.min}`" @click="newGame(c, w.min)">
+                            <button v-for="w in walkList(c)" :key="w.min" type="button" class="opt" :disabled="!w.fits" :data-test="`walk-${w.min}`" @click="newGame(c, w.min)">
                                 <b>{{ len(w.min) }} · {{ amd(w.price) }}</b>
                                 <small v-if="w.fits">{{ $t('owner.now.price_list') }}</small>
                                 <small v-else>{{ limitText(c.limit) }}</small>
@@ -460,6 +475,8 @@ watch(upIds, (ids) => {
 .bar.train i { background: #ff7ad9; }
 /* the card's actions side by side in one row (long Armenian words go to a second line inside the button) */
 .takeb { width: 100%; justify-content: center; margin-top: 10px; padding: 11px; font-size: 14.5px; }
+.wkind { display: flex; margin: 0 0 10px; }
+.wkind button { flex: 1; justify-content: center; }
 .takeb + .btns { margin-top: 8px; } /* a little room between Take money and the row under it */
 .endb { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 35%, transparent); }
 .c-paid { background: rgba(92, 200, 255, 0.15); color: var(--blue, #5cc8ff); }

@@ -6639,6 +6639,11 @@
         "hy": "Ավարտե՞լ :name-ի խաղը",
         "ru": "Завершить игру :name?"
     },
+    "owner.now.ask_walkin_training": {
+        "en": "Start a training on :table for :t?",
+        "hy": "Սկսե՞լ մարզում :table-ում :t-ով",
+        "ru": "Начать тренировку на :table на :t?"
+    },
     "owner.now.booked_for": {
         "en": "Booked :a–:b",
         "hy": "Ամրագրված է :a–:b",
@@ -6733,6 +6738,11 @@
         "en": "Item",
         "hy": "Ապրանք",
         "ru": "Товар"
+    },
+    "owner.now.kind_game": {
+        "en": "Game",
+        "hy": "Խաղ",
+        "ru": "Игра"
     },
     "owner.now.min": {
         "en": "min",

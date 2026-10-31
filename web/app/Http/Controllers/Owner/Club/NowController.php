@@ -113,6 +113,9 @@ class NowController extends OwnerController
                 'limit' => $limit,
                 // New game: the lengths with their price now (the place's price list)
                 'walkPrices' => ($game && ! $gameOver) || $due ? [] : collect([15, 30, 45, 60, 90, 120])->map(fn ($m) => ['min' => $m, 'price' => $prices->price($f, $now, $m), 'fits' => $m <= $gap])->values(),
+                // the same lengths as a training, at the training price (only where this kind has one)
+                'trainPrices' => ($game && ! $gameOver) || $due || $venue->trainingPrice($f->size->value) === null ? [] : collect([15, 30, 45, 60, 90, 120])
+                    ->map(fn ($m) => ['min' => $m, 'price' => $prices->price($f, $now, $m, 'training'), 'fits' => $m <= $gap])->values(),
             ];
         });
 
@@ -149,9 +152,9 @@ class NowController extends OwnerController
     public function walkIn(Request $request, Field $field, Checkout $checkout)
     {
         abort_unless($field->venue_id === $this->venue($request)->id, 404);
-        $data = $request->validate(['minutes' => 'required|integer|min:5|max:240', 'name' => 'nullable|string|max:60']);
+        $data = $request->validate(['minutes' => 'required|integer|min:5|max:240', 'name' => 'nullable|string|max:60', 'purpose' => 'nullable|in:play,training']);
         $field->setRelation('venue', $this->venue($request));
-        $this->attempt(fn () => $checkout->walkIn($field, $request->user(), (int) $data['minutes'], $data['name'] ?? null));
+        $this->attempt(fn () => $checkout->walkIn($field, $request->user(), (int) $data['minutes'], $data['name'] ?? null, $data['purpose'] ?? 'play'));
 
         return back()->with('success', __('owner.club.started'));
     }

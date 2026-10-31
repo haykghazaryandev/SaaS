@@ -101,8 +101,10 @@ class Checkout
      * A new game at a free table (Now → New game): started now for the $minutes chosen, charged that length like a
      * booked game; it holds the table (players can't book over it) and stopping gives the rest of the time back.
      */
-    public function walkIn(Field $field, User $by, int $minutes, ?string $name = null): Booking
+    public function walkIn(Field $field, User $by, int $minutes, ?string $name = null, string $purpose = 'play'): Booking
     {
+        // a training at the desk: only where this kind of court has a training price
+        $purpose = $purpose === 'training' && $field->venue->trainingPrice($field->size->value) !== null ? 'training' : 'play';
         $minutes = max($this->stepOf($field), min(240, $minutes));
         // from this minute (a 15 min game shows 15 min left, not 16); right after a game stopped on this table that
         // still holds the table to the next minute, from the minute it gives back
@@ -112,7 +114,7 @@ class Checkout
         if ($held) {
             $start = CarbonImmutable::parse($held)->setTimezone(LocalTime::tz());
         }
-        $b = app(OwnerBooking::class)->create($by, $field, $start, $minutes, ['name' => $name ?: __('owner.club.walk_in')]);
+        $b = app(OwnerBooking::class)->create($by, $field, $start, $minutes, ['name' => $name ?: __($purpose === 'training' ? 'club.training' : 'owner.club.walk_in'), 'purpose' => $purpose]);
         // a game of the length chosen (it counts down like a booked one, at its price-list price)
         $b->update(['started_at' => now(), 'arrived_at' => now()]);
 

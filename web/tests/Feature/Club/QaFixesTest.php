@@ -127,3 +127,17 @@ it('moves a game over and not paid to "To pay" when the next team is due, so the
     $this->checkout->pay($g->fresh(), 0, $this->checkout->bill($g->fresh())['due'], $this->owner);
     $now()->assertInertia(fn ($p) => $p->where('courts.0.game.id', $next->id)->where('toPay', []));
 });
+
+it('starts a training at the desk at the training price, and offers it only where the table has one', function () {
+    $this->club->update(['features' => [...$this->club->features, 'trainings'], 'rules' => [...$this->club->rules, 'training_prices' => ['table' => 6000]]]);
+    $this->travelTo(LocalTime::at(LocalTime::now()->startOfDay()->addDay(), 15));
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id])->get('/owner/now')
+        ->assertInertia(fn ($p) => $p->where('courts.0.trainPrices.3.min', 60)->where('courts.0.trainPrices.3.price', 6000));
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id])->post(route('owner.fields.walkin', $this->t1->id), ['minutes' => 90, 'purpose' => 'training'])->assertSessionHasNoErrors();
+    $b = Booking::where('field_id', $this->t1->id)->latest('id')->first();
+    expect($b->purpose)->toBe('training')->and($b->price)->toBe(9000)->and($this->checkout->addPrice($b->fresh()->setRelation('venue', $this->club), 5))->toBe(500);
+    // no training price: a plain game, whatever is asked
+    $this->club->update(['rules' => [...$this->club->rules, 'training_prices' => []]]);
+    $g = $this->checkout->walkIn($this->club->fields[1]->setRelation('venue', $this->club->fresh()), $this->owner, 30, null, 'training');
+    expect($g->purpose)->toBe('play');
+});
