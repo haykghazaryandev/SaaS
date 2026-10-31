@@ -5799,6 +5799,11 @@
         "hy": "Ինչ-որ բան այն չէ։ Փորձեք կրկին։",
         "ru": "Что-то пошло не так. Попробуйте ещё раз."
     },
+    "owner.error.menu_off": {
+        "en": "The owner turned this menu off for staff.",
+        "hy": "Սեփականատերը անջատել է այս մենյուն աշխատակիցների համար։",
+        "ru": "Владелец отключил это меню для сотрудников."
+    },
     "owner.error.owner_only": {
         "en": "Only the owner of the place can change this.",
         "hy": "Սա կարող է փոխել միայն ակումբի սեփականատերը։",
@@ -6163,6 +6168,76 @@
         "en": "ZoneSpot",
         "hy": "ZoneSpot",
         "ru": "ZoneSpot"
+    },
+    "owner.menus.group_owner": {
+        "en": "Owner only",
+        "hy": "Միայն սեփականատիրոջ",
+        "ru": "Только владелец"
+    },
+    "owner.menus.group_work": {
+        "en": "Daily work",
+        "hy": "Ամենօրյա աշխատանք",
+        "ru": "Ежедневная работа"
+    },
+    "owner.menus.lvl_all": {
+        "en": "All",
+        "hy": "Բոլորը",
+        "ru": "Всё"
+    },
+    "owner.menus.lvl_create": {
+        "en": "Create",
+        "hy": "Ստեղծել",
+        "ru": "Создавать"
+    },
+    "owner.menus.lvl_edit": {
+        "en": "Edit",
+        "hy": "Փոխել",
+        "ru": "Менять"
+    },
+    "owner.menus.lvl_run": {
+        "en": "Run",
+        "hy": "Վարել",
+        "ru": "Вести"
+    },
+    "owner.menus.lvl_sell": {
+        "en": "Sell",
+        "hy": "Վաճառել",
+        "ru": "Продавать"
+    },
+    "owner.menus.lvl_today": {
+        "en": "Today",
+        "hy": "Այսօր",
+        "ru": "Сегодня"
+    },
+    "owner.menus.lvl_view": {
+        "en": "View",
+        "hy": "Դիտել",
+        "ru": "Смотреть"
+    },
+    "owner.menus.note": {
+        "en": "Choose what your panel and your staff's panel show.",
+        "hy": "Ընտրեք, թե ինչ է երևում ձեր և աշխատակիցների վահանակում։",
+        "ru": "Выберите, что видно в вашей панели и в панели сотрудников."
+    },
+    "owner.menus.staff_can": {
+        "en": "Staff can:",
+        "hy": "Աշխատակիցը կարող է՝",
+        "ru": "Сотрудник может:"
+    },
+    "owner.menus.staff_none": {
+        "en": "Leave at least one menu on for staff.",
+        "hy": "Աշխատակցի համար թողեք գոնե մեկ մենյու։",
+        "ru": "Оставьте сотрудникам хотя бы одно меню."
+    },
+    "owner.menus.staff_see": {
+        "en": "Staff will see",
+        "hy": "Աշխատակիցը կտեսնի",
+        "ru": "Сотрудник увидит"
+    },
+    "owner.menus.title": {
+        "en": "Menus",
+        "hy": "Մենյուներ",
+        "ru": "Меню"
     },
     "owner.money.all_products": {
         "en": "All products",
@@ -9224,17 +9299,7 @@
         "hy": "Սեփականատեր",
         "ru": "Владелец"
     },
-    "switch.panels": {
-        "en": "Panel",
-        "hy": "Վահանակ",
-        "ru": "Панель"
-    },
     "switch.staff_panel": {
-        "en": "Staff",
-        "hy": "Աշխատակից",
-        "ru": "Сотрудник"
-    },
-    "switch.staff_short": {
         "en": "Staff",
         "hy": "Աշխատակից",
         "ru": "Сотрудник"

@@ -16,7 +16,7 @@ class TodayController extends OwnerController
     /** Today is on top of the schedule now: the old address opens it. */
     public function __invoke()
     {
-        return redirect()->route('owner.schedule');
+        return redirect()->route('owner.start');
     }
 
     /**

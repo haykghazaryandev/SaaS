@@ -32,7 +32,7 @@ it('lets the one owner add staff by name and phone and take them off; staff get 
 
     // Ani logs in: the staff panel only (no owner / staff toggle for her, no settings)
     $this->actingAs($ani)->withSession(['venue_id' => $this->venue->id])->get(route('owner.schedule'))
-        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'staff')->missing('kpi.revenueToday'));
+        ->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->missing('kpi.revenueToday'));
     $this->actingAs($ani)->get(route('switch', ['to' => 'owner']));
     $this->actingAs($ani)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
     $this->actingAs($ani)->post(route('owner.team.store'), ['phone' => '+37493000999', 'name' => 'X'])->assertForbidden();
@@ -41,7 +41,7 @@ it('lets the one owner add staff by name and phone and take them off; staff get 
     expect($this->venue->staff()->whereKey($ani->id)->exists())->toBeFalse();
 });
 
-it('switches between the place panel, the panel as staff, the player app and the admin panel', function () {
+it('switches between the place panel, the player app and the admin panel', function () {
     // an owner stays in the panel: the player pages send them back
     $this->actingAs($this->owner)->get('/')->assertRedirect(route('owner.start'));
     // the player app, on purpose
@@ -51,12 +51,8 @@ it('switches between the place panel, the panel as staff, the player app and the
     $this->actingAs($this->owner)->get(route('switch', ['to' => 'owner']))->assertRedirect(route('owner.start'));
     $this->actingAs($this->owner)->get('/')->assertRedirect(route('owner.start'));
 
-    // as staff: the staff menu and rights, the real role kept for the way back
-    $this->actingAs($this->owner)->get(route('switch', ['to' => 'staff']));
-    $this->actingAs($this->owner)->get(route('owner.schedule'))->assertInertia(fn (Assert $p) => $p->where('owner.role', 'staff')->where('owner.realRole', 'owner'));
-    $this->actingAs($this->owner)->get(route('owner.settings'))->assertRedirect(route('owner.start'));
-    $this->actingAs($this->owner)->get(route('switch', ['to' => 'owner']));
-    $this->actingAs($this->owner)->get(route('owner.settings'))->assertOk();
+    // no "as staff" any more: the owner sets what staff see in Settings → Menus
+    $this->actingAs($this->owner)->get(route('switch', ['to' => 'staff']))->assertSessionHasErrors('to');
 
     // the admin panel: admins only
     $this->actingAs($this->owner)->get(route('switch', ['to' => 'admin']))->assertForbidden();

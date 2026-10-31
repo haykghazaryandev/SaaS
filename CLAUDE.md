@@ -70,8 +70,11 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
 - `ADMIN_PHONE` may list several numbers (commas). On local / staging each admin owns demo places
   (first: Zangak + Pingpong.land, second: Masis + Spin Club, then Davtashen + Smash Club …); a place has one owner, the
   others who ran it become staff. `php artisan club:demo-now` puts test games on the tables.
-- Roles: the owner (everything; also works in the staff panel via the Owner / Staff toggle) and staff (the daily work,
-  no money or settings), added by the owner on Owner → Team. `EnsureVenueOwner` (`venue.owner`) guards owner-only routes.
+- Roles: the owner (everything) and staff, added by the owner on Owner → Team. Owner → Settings → Menus
+  (`Domain/Venues/Menus`, `venues.menus`) sets which menus each panel shows and staff's levels (Schedule view / edit,
+  Shop sell / edit, Tournaments run / create, Money today / all; by default staff get the daily work without Money).
+  `venue.menu:<key>` closes a menu turned off for staff; `venue.owner` guards owner-only routes, `venue.owner:<key>,<level>`
+  also lets in staff with that level. ZoneSpot fee, Team and Settings are always owner only.
 
 ## Architecture
 

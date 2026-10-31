@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureVenueMenu;
 use App\Http\Middleware\EnsureVenueOwner;
 use App\Http\Middleware\EnsureVenueStaff;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -40,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         // behind ngrok / a load balancer: trust X-Forwarded-* so links use https and the right host
         $middleware->trustProxies(at: '*');
-        $middleware->alias(['venue.staff' => EnsureVenueStaff::class, 'venue.owner' => EnsureVenueOwner::class]);
+        $middleware->alias(['venue.staff' => EnsureVenueStaff::class, 'venue.owner' => EnsureVenueOwner::class, 'venue.menu' => EnsureVenueMenu::class]);
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {

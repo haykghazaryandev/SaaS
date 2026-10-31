@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
+import MenusSettings from '@/components/owner/MenusSettings.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { ask } from '@/composables/useConfirm';
 import { fdate, useOwner } from '@/composables/useOwner';
@@ -549,6 +550,9 @@ const fmtRange = (c: ClosureRow) =>
                 </div>
 
                 <div class="scol">
+                    <!-- what the owner panel and the staff panel show (and how much staff may do) -->
+                    <MenusSettings v-if="canEdit" />
+
                     <section class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('owner.settings.telegram') }}</h2>

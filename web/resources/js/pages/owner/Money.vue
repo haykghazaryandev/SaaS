@@ -19,6 +19,8 @@ interface Report {
 interface Row { id: number; kind: string; method: string; amount: number; discount: number; who: string | null; by: string | null; note: string | null; at: string }
 const props = defineProps<{
     period: 'today' | 'week' | 'month' | 'prev_month';
+    /** staff the owner gave only "Today" (Settings → Menus) */
+    todayOnly?: boolean;
     from: string;
     to: string;
     filters: { kind: string | null; method: string | null };
@@ -43,7 +45,7 @@ function go(change: Record<string, string | null>) {
                 <h1>{{ $t('owner.nav.money') }}</h1>
             </div>
         </div>
-        <div class="seg mseg" role="group" style="margin-bottom: 14px; max-width: 480px">
+        <div v-if="!todayOnly" class="seg mseg" role="group" style="margin-bottom: 14px; max-width: 480px">
             <button v-for="p in ['today', 'week', 'month', 'prev_month']" :key="p" type="button" :aria-pressed="period === p" @click="go({ period: p })">
                 {{ $t(p === 'prev_month' ? 'owner.fee.prev_month' : 'owner.club.period_' + p) }}
             </button>

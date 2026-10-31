@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Owner\Club;
 
 use App\Domain\Club\Commission;
 use App\Domain\Club\Report;
+use App\Domain\Venues\Menus;
 use App\Http\Controllers\Owner\OwnerController;
 use App\Support\Paged;
 use Illuminate\Http\Request;
@@ -26,7 +27,9 @@ class MoneyController extends OwnerController
         if (! $venue->hasFeature('money')) {
             return redirect()->route('owner.fee');
         }
-        $period = in_array($request->query('period'), ['today', 'week', 'month', 'prev_month'], true) ? $request->query('period') : 'today';
+        // staff given "Today" in Settings → Menus: only today's money
+        $todayOnly = ! $this->isOwner($request) && ! Menus::staffMay($venue, 'money', 'all');
+        $period = ! $todayOnly && in_array($request->query('period'), ['today', 'week', 'month', 'prev_month'], true) ? $request->query('period') : 'today';
         $kind = in_array($request->query('kind'), self::KINDS, true) ? $request->query('kind') : null;
         $method = in_array($request->query('method'), ['card', 'cash'], true) ? $request->query('method') : null;
         [$from, $to] = Commission::period($period);
@@ -35,7 +38,7 @@ class MoneyController extends OwnerController
             ->paginate(20)->withQueryString();
 
         return Inertia::render('owner/Money', [
-            'period' => $period, 'from' => $from->toDateString(), 'to' => $to->subDay()->toDateString(),
+            'period' => $period, 'todayOnly' => $todayOnly, 'from' => $from->toDateString(), 'to' => $to->subDay()->toDateString(),
             'filters' => ['kind' => $kind, 'method' => $method],
             'report' => $report->between($venue, $from, $to),
             'payments' => Paged::of($rows, fn ($p) => Report::row($p)),

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Venues\Menus;
 use App\Enums\Sport;
 use App\Http\Controllers\Owner\BookingPresenter;
 use App\Models\Booking;
@@ -32,9 +33,8 @@ class EnsureVenueStaff
         $request->session()->put('venue_id', $venue->id);
         // back in the dashboard: the home page brings them here again (not the player app)
         $request->session()->forget('player_mode');
-        // an owner may look at the panel the way their staff see it (the switch); staff are always staff
-        $real = $venue->pivot->role;
-        $role = $real === 'owner' && $request->session()->get('as_staff') ? 'staff' : $real;
+        // one owner per place; what staff see and may do is set by the owner (Settings → Menus)
+        $role = $venue->pivot->role;
         $request->attributes->set('venue', $venue);
         $request->attributes->set('venueRole', $role);
 
@@ -42,7 +42,8 @@ class EnsureVenueStaff
         Inertia::share('owner', fn () => [
             'venue' => ['id' => $venue->id, 'name' => $venue->name, 'slug' => $venue->slug],
             'role' => $role,
-            'realRole' => $real,
+            // Settings → Menus: the two panels' menus and staff's levels, with the menus the place has
+            'menus' => Menus::of($venue) + ['available' => Menus::available($venue)],
             'venues' => $venues->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->values(),
             'pending' => Booking::query()->where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now())->count(),
             'fields' => BookingPresenter::fields($venue->loadMissing(['fields', 'openingHours'])),

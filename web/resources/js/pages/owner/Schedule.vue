@@ -4,7 +4,7 @@ import ScheduleDay from '@/components/owner/ScheduleDay.vue';
 import ScheduleNow from '@/components/owner/ScheduleNow.vue';
 import TodayCards, { type TodayNumbers } from '@/components/owner/TodayCards.vue';
 import DayStrip from '@/components/owner/DayStrip.vue';
-import { openForm, useOwner, type BookingRow } from '@/composables/useOwner';
+import { openForm, useMay, useOwner, type BookingRow } from '@/composables/useOwner';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { router, usePoll } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -24,8 +24,9 @@ const props = defineProps<{
     day?: { rows: BookingRow[]; hours: [number, number] | null };
 }>();
 const owner = useOwner();
-// staff look here and book on Now
-const staff = computed(() => owner.value.role === 'staff');
+// staff only look here (they book on Now) unless the owner let them change the schedule (Settings → Menus)
+const may = useMay();
+const staff = computed(() => !may('schedule', 'edit'));
 usePoll(30000, { only: ['upcoming', 'day', 'days', 'kpi', 'nowHour'] });
 
 // the time now, moving on while the page is open

@@ -3,7 +3,7 @@ import Icon from '@/components/Icon.vue';
 import PlayerRecord from '@/components/owner/PlayerRecord.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import { ask } from '@/composables/useConfirm';
-import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
+import { act, askCancel, askDecline, decide, dur, openForm, pillOf, relDay, useMay, useOwner, whoOf, type BookingDetail } from '@/composables/useOwner';
 import { amd, hhmm } from '@/composables/useShared';
 import { trans } from '@/lib/i18n';
 import { Link, router } from '@inertiajs/vue3';
@@ -30,6 +30,8 @@ onMounted(async () => {
 
 const pill = computed(() => (b.value ? pillOf(b.value) : null));
 const holds = computed(() => b.value && ['pending', 'accepted'].includes(b.value.status));
+// staff change a booking only when the owner let them change the schedule (Settings → Menus)
+const may = useMay();
 const sourceLabel = computed(() => (b.value ? trans(`owner.source.${b.value.source}`) : ''));
 
 async function noShow() {
@@ -158,7 +160,7 @@ const itemsSum = computed(() => (b.value?.items ?? []).reduce((s, i) => s + i.su
                         <Icon name="x" size="sm" />{{ $t('common.decline') }}
                     </button>
                 </template>
-                <button v-if="holds" type="button" class="btn ghost" data-test="edit" @click="edit">
+                <button v-if="holds && may('schedule', 'edit')" type="button" class="btn ghost" data-test="edit" @click="edit">
                     <Icon name="edit" size="sm" />{{ $t('common.edit') }}
                 </button>
                 <button v-if="b.status === 'accepted' && !b.started" type="button" class="btn ghost hot" data-test="cancel" @click="askCancel(b.id)">

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ChatDock from '@/components/owner/ChatDock.vue';
-import PanelToggle from '@/components/owner/PanelToggle.vue';
 import RequestsBell from '@/components/owner/RequestsBell.vue';
 import { ping } from '@/lib/sound';
 import '../../css/owner.css';
@@ -12,7 +11,7 @@ import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import Logo from '@/components/Logo.vue';
 import OwnerSheets from '@/components/owner/OwnerSheets.vue';
-import { decisions, openForm, sheets, useOwner, type FormOpts } from '@/composables/useOwner';
+import { decisions, openForm, sheets, useMay, useOwner, type FormOpts, type MenuKey } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -26,38 +25,39 @@ const props = defineProps<{ title?: string; newBooking?: FormOpts }>();
 const owner = useOwner();
 const page = usePage();
 const { user } = useShared();
-const has = (f: string) => (owner.value.features ?? []).includes(f);
-// the club pages show only where the admin switched them on (admin → place → features); some are the owner's only
-// (money, all cards, ZoneSpot's fee, team, settings): staff get a short menu for the daily work
+// the menus of this panel: the ones the place has (admin → place → features), left on by the owner in Settings → Menus
+// for their own panel or for staff; ZoneSpot's fee, the team and the settings are the owner's only
 const isOwner = computed(() => owner.value.role === 'owner');
+const may = useMay();
+const shows = (k: MenuKey) => owner.value.menus.available.includes(k) && owner.value.menus[isOwner.value ? 'owner' : 'staff'][k];
 const club = computed(() =>
-    [
-        { name: 'owner.now', label: 'owner.nav.now', icon: 'clock', on: has('wallet') || has('shop') },
-        { name: 'owner.players', label: 'owner.nav.our_players', icon: 'users', on: has('wallet') || has('rating') },
-        // staff too: they make cards, scan them and put money on them at the desk
-        { name: 'owner.cards', label: 'owner.nav.cards', icon: 'wallet', on: has('wallet') },
-        { name: 'owner.shop', label: 'owner.nav.shop', icon: 'cube', on: has('shop') },
-        { name: 'owner.tournaments', label: 'owner.nav.tournaments', icon: 'trophy', on: has('tournaments') },
-        { name: 'owner.money', label: 'owner.nav.money', icon: 'chart', on: has('money') && isOwner.value },
-    ]
-        .filter((n) => n.on)
+    (
+        [
+        { name: 'owner.now', key: 'now', label: 'owner.nav.now', icon: 'clock' },
+        { name: 'owner.players', key: 'players', label: 'owner.nav.our_players', icon: 'users' },
+        { name: 'owner.cards', key: 'cards', label: 'owner.nav.cards', icon: 'wallet' },
+        { name: 'owner.shop', key: 'shop', label: 'owner.nav.shop', icon: 'cube' },
+        { name: 'owner.tournaments', key: 'tournaments', label: 'owner.nav.tournaments', icon: 'trophy' },
+        { name: 'owner.money', key: 'money', label: 'owner.nav.money', icon: 'chart' },
+        ] as const
+    )
+        .filter((n) => shows(n.key))
         .map((n) => ({ ...n, badge: 0 })),
 );
 const nav = computed(() => [
     // a club starts at the desk ("Now")
     ...club.value.filter((n) => n.name === 'owner.now'),
-    // the schedule is also the home (today's numbers on top)
-    { name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 },
+    // the schedule (the day's numbers on top)
+    ...(shows('schedule') ? [{ name: 'owner.schedule', label: 'owner.nav.schedule', icon: 'calendar', badge: 0 }] : []),
     // the requests waiting for an answer (several for the same time: together, the best first)
-    { name: 'owner.requests', label: 'owner.nav.requests', icon: 'bell', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) },
+    ...(shows('requests')
+        ? [{ name: 'owner.requests', label: 'owner.nav.requests', icon: 'bell', badge: Math.max(0, owner.value.pending - Object.keys(decisions.hidden).length) }]
+        : []),
     ...club.value.filter((n) => n.name !== 'owner.now'),
     // the players' messages to the place (and the tournament chats): the chat list, unread on the badge
-    {
-        name: 'owner.messages',
-        label: 'owner.nav.messages',
-        icon: 'chat',
-        badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0),
-    },
+    ...(shows('messages')
+        ? [{ name: 'owner.messages', label: 'owner.nav.messages', icon: 'chat', badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0) }]
+        : []),
     // the owner: ZoneSpot's fee (just its %), who works here, the place's settings
     ...(isOwner.value
         ? [
@@ -68,7 +68,7 @@ const nav = computed(() => [
         : []),
 ]);
 // phones: a club: Now · Schedule · Scan · More (Today and the rest); others: the three tabs as before
-const canScan = computed(() => has('wallet'));
+const canScan = computed(() => may('cards'));
 const isClub = computed(() => club.value.some((n) => n.name === 'owner.now'));
 const tabs = computed(() => (isClub.value ? nav.value.filter((n) => ['owner.now', 'owner.schedule'].includes(n.name)) : club.value.length ? nav.value.slice(0, 2) : nav.value));
 const more = computed(() => (club.value.length ? nav.value.filter((n) => !tabs.value.includes(n)) : []));
@@ -132,9 +132,8 @@ watch(
                     <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>
                 </select>
                 <div v-else id="vs1" class="vname">{{ owner.venue.name }}</div>
-                <!-- the owner: owner panel / staff panel; staff: just their panel's name -->
-                <PanelToggle />
-                <span v-if="owner.realRole === 'staff'" class="rolepill">{{ $t('switch.staff_panel') }}</span>
+                <!-- staff: their panel's name -->
+                <span v-if="!isOwner" class="rolepill">{{ $t('switch.staff_panel') }}</span>
             </div>
             <nav class="onav">
                 <Link v-for="n in nav" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined">
@@ -146,7 +145,7 @@ watch(
                 <LangSwitch />
                 <!-- the account (photo, Telegram, language); the player app is not for people who run a place -->
                 <Link class="olink" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
-                <!-- admins: their panel (owner / staff: the toggle at the top) -->
+                <!-- admins: their panel -->
                 <a v-if="user?.isAdmin" class="olink" href="/admin"><Icon name="settings" size="sm" />{{ $t('switch.admin') }}</a>
                 <div class="ome">
                     <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
@@ -168,14 +167,13 @@ watch(
                 <option v-for="v in owner.venues" :key="v.id" :value="v.id">{{ v.name }}</option>
             </select>
             <div v-else class="vname">{{ owner.venue.name }}</div>
-            <a v-if="owner.realRole === 'owner' && owner.role === 'staff'" class="staffchip" :href="`${route('switch')}?to=owner`" :title="$t('switch.owner_panel')">{{ $t('switch.staff_short') }} ⇄</a>
-            <RequestsBell compact />
+            <RequestsBell v-if="may('requests')" compact />
             <Link class="x" :href="route('me.profile')" :title="$t('profile.title')" :aria-label="$t('profile.title')"><Icon name="user" size="sm" /></Link>
             <a v-if="user?.isAdmin" class="x" href="/admin" :title="$t('admin.nav.admin_panel')" :aria-label="$t('admin.nav.admin_panel')"><Icon name="settings" size="sm" /></a>
         </header>
         <main class="omain">
             <!-- computers: the requests waiting for an answer, top right of the page -->
-            <div class="obell"><RequestsBell /></div>
+            <div v-if="may('requests')" class="obell"><RequestsBell /></div>
             <slot />
         </main>
         <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" :aria-label="$t('common.new_booking')" :title="$t('common.new_booking')" @click="openForm(props.newBooking)">
@@ -197,12 +195,11 @@ watch(
         <!-- phones: the other pages -->
         <div v-if="moreOpen" class="scrim" @click.self="moreOpen = false">
             <div class="sheet" role="dialog" aria-modal="true">
-                <div style="margin-bottom: 10px"><PanelToggle /></div>
                 <nav class="moremenu">
                     <Link v-for="n in more" :key="n.name" :href="route(n.name)" :aria-current="current(n.name) ? 'page' : undefined" @click="moreOpen = false">
                         <Icon :name="n.icon" /><span>{{ $t(n.label) }}</span>
                     </Link>
-                    <!-- the account; switching: admin panel / owner / as staff / player app (full page loads) -->
+                    <!-- the account -->
                     <Link :href="route('me.profile')"><Icon name="user" /><span>{{ $t('profile.title') }}</span></Link>
                 </nav>
                 <a v-if="user?.isAdmin" class="more-admin" href="/admin"><Icon name="settings" /><span>{{ $t('switch.admin') }}</span></a>
@@ -213,6 +210,6 @@ watch(
         <Flash />
         <ConfirmDialog />
         <!-- computers: the mini chat at the bottom right (answer players while booking) -->
-        <ChatDock />
+        <ChatDock v-if="may('messages')" />
     </div>
 </template>

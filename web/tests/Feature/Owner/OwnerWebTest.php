@@ -48,8 +48,8 @@ it('sends guests to the owner login and refuses players', function () {
 it('shows the four numbers of the day shown on top of the schedule: bookings, requests waiting, trainings, how full', function () {
     $req = pendingRequest($this);
     $day = $req->starts_at->setTimezone(LocalTime::tz())->toDateString();
-    // the old Today address opens the schedule
-    $this->actingAs($this->owner)->get('/owner')->assertRedirect(route('owner.schedule'));
+    // the old Today address opens the start (the first menu)
+    $this->actingAs($this->owner)->get('/owner')->assertRedirect(route('owner.start'));
     // today: the request is for another day
     $this->actingAs($this->owner)->get('/owner/schedule')->assertOk()->assertInertia(fn (Assert $p) => $p
         ->component('owner/Schedule')

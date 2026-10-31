@@ -21,8 +21,8 @@ export interface OwnerField {
 export interface OwnerShared {
     venue: { id: number; name: string; slug: string };
     role: 'owner' | 'staff';
-    /** the role at the place (an owner may look at the panel as staff: role staff, realRole owner) */
-    realRole?: 'owner' | 'staff';
+    /** Settings → Menus: what each panel shows, staff's levels, and the menus the place has at all */
+    menus: OwnerMenus;
     venues: { id: number; name: string }[];
     pending: number;
     fields: OwnerField[];
@@ -35,6 +35,16 @@ export interface OwnerShared {
     sport?: string;
     /** the schedule's colours chosen by the place (missing ones: the default) */
 }
+
+export type MenuKey = 'now' | 'schedule' | 'requests' | 'players' | 'cards' | 'shop' | 'tournaments' | 'messages' | 'money';
+export interface OwnerMenus {
+    owner: Record<MenuKey, boolean>;
+    staff: Record<MenuKey, boolean>;
+    level: { schedule: 'view' | 'edit'; shop: 'sell' | 'edit'; tournaments: 'run' | 'create'; money: 'today' | 'all' };
+    available: MenuKey[];
+}
+/** Staff levels, the lower first (Menus::LEVELS). */
+export const MENU_LEVELS = { schedule: ['view', 'edit'], shop: ['sell', 'edit'], tournaments: ['run', 'create'], money: ['today', 'all'] } as const;
 
 /** Visual kind of booking (BookingPresenter::kind): colors come from the --st-* tokens. */
 export type Kind = 'pending' | 'accepted' | 'owner' | 'noshow' | 'expired' | 'off';
@@ -114,6 +124,22 @@ export interface FormOpts {
 export function useOwner() {
     const page = usePage();
     return computed(() => page.props.owner as OwnerShared);
+}
+
+/**
+ * What the signed-in person may do here (Menus::may): the owner everything; staff a menu the owner left on, and with a
+ * level ("schedule", "edit") only when the owner gave them that much. The server checks the same.
+ */
+export function useMay() {
+    const owner = useOwner();
+    return <K extends MenuKey>(key: K, level?: string) => {
+        const o = owner.value;
+        if (o.role === 'owner') return true;
+        if (!o.menus.available.includes(key) || !o.menus.staff[key]) return false;
+        if (!level || !(key in MENU_LEVELS)) return true;
+        const levels = MENU_LEVELS[key as keyof typeof MENU_LEVELS] as readonly string[];
+        return levels.indexOf(o.menus.level[key as keyof typeof MENU_LEVELS]) >= levels.indexOf(level);
+    };
 }
 
 // ---------- sheets (one host in OwnerLayout; any page can open them) ----------

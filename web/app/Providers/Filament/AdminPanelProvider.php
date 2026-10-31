@@ -82,8 +82,6 @@ class AdminPanelProvider extends PanelProvider
                 Action::make('player_app')->label(fn () => __('admin.nav.player_app'))->icon('heroicon-o-device-phone-mobile')->url(fn () => route('switch', ['to' => 'player'])),
                 Action::make('owner_panel')->label(fn () => __('admin.nav.owner_panel'))->icon('heroicon-o-building-storefront')
                     ->url(fn () => route('switch', ['to' => 'owner']))->visible(fn () => (bool) auth()->user()?->venues()->exists()),
-                Action::make('staff_view')->label(fn () => __('switch.staff_panel'))->icon('heroicon-o-identification')
-                    ->url(fn () => route('switch', ['to' => 'staff']))->visible(fn () => (bool) auth()->user()?->venues()->wherePivot('role', 'owner')->exists()),
             ])
             ->navigationGroups([
                 NavigationGroup::make()->label(fn () => __('admin.nav.places')),

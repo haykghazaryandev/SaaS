@@ -5,7 +5,7 @@ import Icon from '@/components/Icon.vue';
 import OwnerSheet from '@/components/owner/OwnerSheet.vue';
 import TournamentForm, { type TournamentSettings } from '@/components/owner/TournamentForm.vue';
 import { ask } from '@/composables/useConfirm';
-import { useOwner } from '@/composables/useOwner';
+import { useMay, useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
@@ -58,8 +58,9 @@ const props = defineProps<{
     };
 }>();
 const owner = useOwner();
-// the owner changes the settings and cancels; staff run it too (players, fees, the draw, results, news)
-const canEdit = owner.value.role === 'owner';
+// the owner changes the settings and cancels (or staff the owner let make tournaments); staff run it too (players,
+// fees, the draw, results, news)
+const canEdit = useMay()('tournaments', 'create');
 const has = (f: string) => (owner.value.features ?? []).includes(f);
 const t = computed(() => props.tournament);
 const editing = ref(false);

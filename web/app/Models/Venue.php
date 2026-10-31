@@ -46,11 +46,11 @@ class Venue extends HasFactoryModel
         'money',       // the money report: sales by kind, cash, top-ups
     ];
 
-    protected $fillable = ['slug', 'name', 'district', 'address', 'description', 'lat', 'lng', 'phone', 'rating_avg', 'rating_count', 'amenities', 'rules', 'features', 'status', 'listed', 'commission_pct'];
+    protected $fillable = ['slug', 'name', 'district', 'address', 'description', 'lat', 'lng', 'phone', 'rating_avg', 'rating_count', 'amenities', 'rules', 'features', 'menus', 'status', 'listed', 'commission_pct'];
 
     protected function casts(): array
     {
-        return ['address' => 'array', 'description' => 'array', 'amenities' => 'array', 'rules' => 'array', 'features' => 'array', 'listed' => 'boolean', 'rating_avg' => 'float', 'commission_pct' => 'float'];
+        return ['address' => 'array', 'description' => 'array', 'amenities' => 'array', 'rules' => 'array', 'features' => 'array', 'menus' => 'array', 'listed' => 'boolean', 'rating_avg' => 'float', 'commission_pct' => 'float'];
     }
 
     public function getRouteKeyName(): string

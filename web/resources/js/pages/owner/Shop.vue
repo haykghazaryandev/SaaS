@@ -2,7 +2,7 @@
 import Pager from '@/components/Pager.vue';
 import Icon from '@/components/Icon.vue';
 import { ask } from '@/composables/useConfirm';
-import { useOwner } from '@/composables/useOwner';
+import { useMay, useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
@@ -33,7 +33,8 @@ function filterSales(change: Record<string, string | number | null>) {
     router.get(route('owner.shop'), Object.fromEntries(Object.entries(q).filter(([k, v]) => v && !(k === 'period' && v === 'all'))), { preserveScroll: true, preserveState: true, replace: true, only: ['sales', 'salesFilter'] });
 }
 const owner = useOwner();
-const canEdit = owner.value.role === 'owner';
+// the owner, or staff the owner let change the items (Settings → Menus)
+const canEdit = useMay()('shop', 'edit');
 const editing = ref<number | 'new' | null>(null);
 const preview = ref<string | null>(null);
 const form = useForm({ name: '', description: '', price: 0, discount_pct: 0, in_stock: true, active: true, photo: null as File | null });

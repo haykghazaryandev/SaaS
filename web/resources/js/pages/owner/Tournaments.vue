@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
-import { useOwner } from '@/composables/useOwner';
+import { useMay, useOwner } from '@/composables/useOwner';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
 import { Link } from '@inertiajs/vue3';
@@ -36,7 +36,8 @@ const range = (d: Row) =>
             : `${d.min_rating}–${d.max_rating}`;
 const sum = (t: Row, k: 'entries' | 'waiting' | 'accepted' | 'unpaid') => (t.divisions?.length ? t.divisions.reduce((n, d) => n + d[k], 0) : t[k]);
 const owner = useOwner();
-const canEdit = owner.value.role === 'owner';
+// the owner, or staff the owner let make tournaments (Settings → Menus)
+const canEdit = useMay()('tournaments', 'create');
 </script>
 
 <template>

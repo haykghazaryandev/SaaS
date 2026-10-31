@@ -869,5 +869,7 @@
     "tgapp.retry": "telegram.miniapp.retry",
     "tgapp.share": "telegram.miniapp.share",
     "tgapp.waiting": "telegram.miniapp.waiting",
-    "tgapp.welcome": "common.welcome_to_bookball"
+    "tgapp.welcome": "common.welcome_to_bookball",
+    "switch.staff_short": null,
+    "switch.panels": null
 }

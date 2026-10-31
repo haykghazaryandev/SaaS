@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Owner;
 
 use App\Domain\Club\Cards;
 use App\Domain\Venues\Courts;
+use App\Domain\Venues\Menus;
 use App\Domain\Venues\PriceCalculator;
 use App\Enums\FieldSize;
 use App\Enums\Sport;
@@ -108,6 +109,35 @@ class SettingsController extends OwnerController
                     'reason' => $c->reason,
                 ])->values(),
         ]);
+    }
+
+    /**
+     * Settings → Menus: which menus the owner panel and the staff panel show, and staff's level on Schedule, Shop,
+     * Tournaments and Money. Staff keep at least one menu of the place (they need somewhere to land).
+     */
+    public function menus(Request $request)
+    {
+        $this->ensureOwner($request);
+        $venue = $this->venue($request);
+        $rules = [];
+        foreach (Menus::KEYS as $k) {
+            $rules["owner.$k"] = 'required|boolean';
+            $rules["staff.$k"] = 'required|boolean';
+        }
+        foreach (Menus::LEVELS as $k => $levels) {
+            $rules["level.$k"] = ['required', Rule::in($levels)];
+        }
+        $data = $request->validate($rules);
+        if (! collect(Menus::available($venue))->contains(fn ($k) => $data['staff'][$k])) {
+            throw ValidationException::withMessages(['staff' => __('owner.menus.staff_none')]);
+        }
+        $venue->update(['menus' => [
+            'owner' => array_map('boolval', $data['owner']),
+            'staff' => array_map('boolval', $data['staff']),
+            'level' => $data['level'],
+        ]]);
+
+        return back()->with('success', __('owner.flash.saved'));
     }
 
     /** Three prices per field: weekdays before 18:00, weekday evenings, weekends. Replaces the field's price rules. */
