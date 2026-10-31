@@ -2,6 +2,8 @@
 
 use App\Domain\Club\FeePayments;
 use App\Domain\Club\Ranking;
+use App\Domain\Social\Friends;
+use App\Filament\Resources\Reports\ReportResource;
 use App\Models\SportRating;
 use App\Models\User;
 use App\Support\LocalTime;
@@ -44,4 +46,13 @@ it('lets the admin mark a month of ZoneSpot fee as paid, and the owner sees it',
     app(FeePayments::class)->unmark($this->club, $month);
     $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id])->get('/owner/fee?period=month')->assertInertia(fn (Assert $p) => $p->where('paidOn', null));
     $this->actingAs($admin)->get('/admin/fee')->assertOk();
+});
+
+it('lists players\' reports for the admin, open first, and marks them handled', function () {
+    $admin = User::factory()->create();
+    $admin->forceFill(['is_admin' => true])->save();
+    $r = app(Friends::class)->report($this->a, 'user', $this->b->id, 'Rude in the chat');
+    $this->actingAs($admin)->get('/admin/reports')->assertOk()->assertSee('Rude in the chat');
+    expect(ReportResource::getNavigationBadge())->toBe('1')
+        ->and(ReportResource::targetUser($r)->id)->toBe($this->b->id);
 });

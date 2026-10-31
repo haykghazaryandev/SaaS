@@ -81,8 +81,8 @@ class ReportResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with('reporter'))
-            ->defaultSort(fn (Builder $q) => $q->orderByRaw("case when status = 'open' then 0 else 1 end")->orderByDesc('created_at'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('reporter'))
+            ->defaultSort(fn (Builder $query) => $query->orderByRaw("case when status = 'open' then 0 else 1 end")->orderByDesc('created_at'))
             ->columns([
                 TextColumn::make('created_at')->label(__('common.when'))->dateTime('d.m.Y H:i', 'Asia/Yerevan'),
                 TextColumn::make('reporter.name')->label(__('admin.report.by'))->placeholder('—'),
@@ -93,7 +93,7 @@ class ReportResource extends Resource
                     ->url(fn (Report $r) => ($u = self::targetUser($r)) ? UserResource::getUrl('view', ['record' => $u]) : null),
                 TextColumn::make('quote')->label(__('admin.report.content'))->limit(60)->placeholder('—')
                     ->getStateUsing(fn (Report $r) => $r->target_type === 'message' ? Message::whereKey($r->target_id)->value('body') : null),
-                TextColumn::make('reason')->label(__('admin.report.reason'))->wrap()->limit(160),
+                TextColumn::make('reason')->label(__('admin.report.reason'))->wrap()->limit(160)->width('32%'),
                 TextColumn::make('status')->label(__('common.status'))->badge()
                     ->formatStateUsing(fn (string $state) => __('admin.report.status_'.$state))
                     ->color(fn (string $state) => match ($state) {
