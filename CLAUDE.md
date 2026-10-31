@@ -88,6 +88,9 @@ Filament resources and the future mobile API all call the same actions/services:
 - `Domain/Social/Friends`, `Domain/Games/Games` (N vs N games: forming → open → full → booked → played), `Domain/Chat/Chat`.
   `Domain/Social/SocialException($reason)` → `social.error.<reason>`.
 - `Domain/Auth/*`: Telegram login flow, phone/email codes (`OTP_DRIVER=log|gateway`), Mini App login.
+- `Domain/Access/*` + `Http/Middleware/AllowedCountriesOnly`: `ALLOWED_COUNTRIES` (e.g. `AM`) lets only those countries in
+  (403 page otherwise; off when unset). `Http/Middleware/TrustProxies` makes `$request->ip()` the visitor behind Railway, not
+  its edge. See docs/deploy-railway.md "Country restriction".
 - `Domain/Notifications/*`: the Telegram bot (`TelegramBot`, `TelegramUpdateHandler` for webhook updates,
   `BookingTexts`). `App\Notifications\Notice($type, $params, $link)` is the in-app notification (database + broadcast,
   important types also to Telegram); texts are `notice.<type>`.

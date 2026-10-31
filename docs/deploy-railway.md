@@ -149,6 +149,25 @@ needs one token and one workflow job per environment.)
   `php artisan app:deploy` or `php artisan db:seed --force` in the `web` shell.
 - Local dev stays as in `web/INSTALL.md`; the Docker image is for Railway only.
 
+## Country restriction
+
+`ALLOWED_COUNTRIES` on the web service (ISO codes, comma separated: `AM`) lets only visitors from those
+countries in; everyone else gets a 403 page in hy / ru / en. Unset or empty = no restriction (production
+today). Set on staging since 2026-10-31.
+
+- Country of the visitor's address from DB-IP "IP to Country Lite" (CC BY 4.0, attribution on the 403 page),
+  downloaded into the image by `web/Dockerfile` on every build; the build fails if the file does not answer.
+  So the database is as fresh as the last deploy.
+- The visitor's address: Railway sends `REMOTE_ADDR` = its internal proxy (`100.64.0.0/10`) and
+  `X-Forwarded-For: <client>, <edge>`, replacing whatever the client sent (measured 2026-10-31).
+  `App\Http\Middleware\TrustProxies` trusts exactly that hop, so `$request->ip()` is the visitor
+  (before, it was Railway's edge for everyone, which also made per-IP rate limits shared by all users).
+- Never blocked: `/up` and the Telegram webhook (Telegram calls from abroad), an address of unknown country.
+  Static files in `public/` (built JS/CSS, icons) and the Reverb WebSocket (`/app/*`) are served by Caddy
+  without PHP; private channels still need `/broadcasting/auth`, which is blocked.
+- A VPN or proxy outside the allowed countries is blocked, like any foreign address.
+- Turning it off: delete the variable (or set it empty) and redeploy.
+
 ## Known trade-offs
 
 - Each push triggers four independent Railway builds of the same Dockerfile (one per
