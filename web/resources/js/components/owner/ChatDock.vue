@@ -49,12 +49,15 @@ const text = ref('');
 const sending = ref(false);
 const error = ref('');
 const loading = ref(false);
-const unread = computed(() => chats.value.filter((c) => !c.muted).reduce((n, c) => n + c.unread, 0));
+// the dock comes back on every page: until its list is loaded, the number the page already has (no blink to 0)
+const loaded = ref(false);
+const unread = computed(() => (loaded.value ? chats.value.filter((c) => !c.muted).reduce((n, c) => n + c.unread, 0) : (owner.value.unreadChats ?? 0)));
 
 async function loadList() {
     try {
         const r = await api<{ chats: ChatItem[] }>('GET', route('messages.list', { venue: owner.value.venue.id }));
         chats.value = r.chats;
+        loaded.value = true;
         if (current.value) current.value = r.chats.find((c) => c.id === current.value!.id) ?? current.value;
     } catch {
         /* offline: keep the old list */
