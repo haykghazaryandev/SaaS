@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
+import PaySheet from '@/components/owner/PaySheet.vue';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { ask } from '@/composables/useConfirm';
 import { dur, openForm, useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
-import { Link, router, usePoll } from '@inertiajs/vue3';
+import { router, usePoll } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // The desk ("Now"), one big card per table (style A):
@@ -20,10 +21,27 @@ interface Bill {
     minutes: number;
     running: boolean;
     time: number;
-    items: { id: number; product_id: number | null; name: string; qty: number; sum: number }[];
+    items: { id: number; product_id: number | null; name: string; qty: number; sum: number; paid?: boolean }[];
     itemsTotal: number;
     total: number;
     card: { code: string; balance: number; cashback: number } | null;
+    /** paid before the end: what was paid so far, and what is still to take (+ time / + item after paying) */
+    paidSoFar: number;
+    timeDue: number;
+    itemsDue: number;
+    due: number;
+}
+/** a game over and not paid while its table already has the next one */
+interface Unpaid {
+    id: number;
+    name: string;
+    start: string;
+    end: string;
+    ended: string;
+    purpose?: string;
+    bill: Bill;
+    player: { id: number; name: string | null } | null;
+    field?: string;
 }
 interface Limit {
     by: 'next' | 'close';
@@ -46,6 +64,8 @@ interface Court {
         bookedEnd: string | null;
         holdsUntil: string;
         openEnd: boolean;
+        /** paid before the end: still playing, ends by itself when its time is up */
+        paid: boolean;
         canExtend: number;
         addPrices: Record<string, number>;
         limit: Limit;
@@ -58,12 +78,20 @@ interface Court {
     freeUntil: string | null;
     limit: Limit;
     walkPrices: { min: number; price: number; fits: boolean }[];
+    toPay: Unpaid[];
 }
-type St = 'play' | 'train' | 'soon' | 'up' | 'topay' | 'due' | 'free';
-const props = defineProps<{ courts: Court[]; products: { id: number; name: string; price: number; photo: string | null }[]; canDemo?: boolean; step: number }>();
+type St = 'play' | 'train' | 'soon' | 'up' | 'topay' | 'paid' | 'due' | 'free';
+const props = defineProps<{
+    courts: Court[];
+    toPay: Unpaid[];
+    wallet: boolean;
+    products: { id: number; name: string; price: number; photo: string | null }[];
+    canDemo?: boolean;
+    step: number;
+}>();
 const opts = { preserveScroll: true, preserveState: true };
 const owner = useOwner();
-usePoll(30000, { only: ['courts'] });
+usePoll(30000, { only: ['courts', 'toPay'] });
 
 // ---------- the clock: every second ----------
 const nowTs = ref(Date.now() / 1000);
@@ -83,6 +111,7 @@ function stateOf(c: Court): St {
     const g = c.game;
     if (g) {
         if (c.state === 'to_pay') return 'topay';
+        if (g.paid && g.bill.due === 0) return 'paid';
         if (!g.openEnd) {
             const left = g.endsAt - nowTs.value;
             if (left <= 0) return 'up';
@@ -109,6 +138,7 @@ const CHIP: Record<St, [string, string]> = {
     soon: ['c-soon', 'owner.now.chip_soon'],
     up: ['c-up', 'owner.now.chip_up'],
     topay: ['c-soon', 'owner.now.chip_topay'],
+    paid: ['c-paid', 'owner.now.chip_paid'],
     due: ['c-due', 'owner.now.chip_due'],
     free: ['c-free', 'owner.now.chip_free'],
 };
@@ -137,6 +167,23 @@ async function noShow(c: Court) {
         router.post(route('owner.bookings.no-show', c.due.id), {}, opts);
 }
 const demo = () => router.post(route('owner.now.demo'), {}, { preserveScroll: true });
+
+// ---------- Take money: a window over Now (cash by default) ----------
+const payFor = ref<{ title: string; game: Unpaid | NonNullable<Court['game']> } | null>(null);
+// the window follows the live data (a card scanned, an item added on another phone)
+const payGame = computed(() => {
+    const id = payFor.value?.game.id;
+    return props.courts.find((c) => c.game?.id === id)?.game ?? props.toPay.find((u) => u.id === id) ?? payFor.value?.game ?? null;
+});
+const openPay = (title: string, game: Unpaid | NonNullable<Court['game']>) => (payFor.value = { title, game });
+// End game: the table is free from now; not paid yet: its money is still to take
+async function endGame(c: Court) {
+    const g = c.game;
+    if (!g) return;
+    const text = g.bill.due ? trans('owner.now.end_unpaid', { a: amd(g.bill.due) }) : trans('owner.now.end_paid');
+    if (await ask({ title: trans('owner.now.ask_end', { name: g.name }), text, ok: trans('owner.now.end_game'), danger: !!g.bill.due }))
+        router.post(route('owner.bookings.stop', g.id), {}, opts);
+}
 
 // ---------- the shop window of one game ----------
 const shopFor = ref<number | null>(null);
@@ -208,6 +255,9 @@ watch(upIds, (ids) => {
             </div>
         </div>
 
+        <!-- money still to take for games whose table moved on: a red chip that jumps to the list -->
+        <a v-if="toPay.length" class="topaychip" href="#topay" data-test="topay-chip">{{ $t('owner.now.chip_topay') }} · {{ toPay.length }} ↓</a>
+
         <div class="a-grid">
             <article v-for="c in courts" :key="c.id" :class="['a-card', stateOf(c)]" :data-test="'court-' + c.state">
                 <div class="a-h">
@@ -236,9 +286,11 @@ watch(upIds, (ids) => {
                         <div v-else>{{ $t('owner.now.started', { s: c.game.start }) }} · {{ $t('owner.now.ends_at') }} <b>{{ c.game.holdsUntil }}</b></div>
                         <div v-if="c.next">{{ $t('owner.now.next_booking') }}: <b>{{ c.next.start }}</b> {{ c.next.name }}</div>
                         <div v-else>{{ $t('owner.now.no_next') }}</div>
-                        <div v-if="stateOf(c) !== 'topay'">
+                        <div v-if="stateOf(c) === 'paid'" class="paidl">✓ {{ $t('owner.now.paid_line', { a: amd(c.game.bill.paidSoFar) }) }}</div>
+                        <div v-else-if="stateOf(c) !== 'topay'">
                             {{ $t('owner.now.so_far') }}: <b>{{ amd(c.game.bill.total) }}</b
-                            ><span v-if="c.game.bill.itemsTotal" class="faint"> ({{ $t('owner.now.with_items', { a: amd(c.game.bill.itemsTotal) }) }})</span>
+                            ><span v-if="c.game.bill.itemsTotal" class="faint"> ({{ $t('owner.now.with_items', { a: amd(c.game.bill.itemsTotal) }) }})</span
+                            ><span v-if="c.game.bill.paidSoFar" class="faint"> · {{ $t('owner.now.paid_part', { a: amd(c.game.bill.paidSoFar) }) }}</span>
                         </div>
                         <!-- the player's card: only where the place has cards (football: usually not) -->
                         <div v-if="(owner.features ?? []).includes('wallet')" class="cardl">
@@ -247,17 +299,20 @@ watch(upIds, (ids) => {
                             <span v-else class="faint">{{ $t('owner.club.no_card_short') }}</span>
                         </div>
                     </div>
-                    <div class="btns">
-                        <Link
-                            :class="['btn', 'sm', { ghost: !['up', 'topay'].includes(stateOf(c)) }]"
-                            :href="route('owner.bookings.checkout', c.game.id)"
-                            data-test="take-money"
-                            >{{ $t('owner.now.take_money') }}</Link
-                        >
-                        <button v-if="stateOf(c) !== 'topay' && !c.game.openEnd" type="button" class="btn ghost sm" data-test="add-time" @click="toggle(c, 'add')">+ {{ $t('owner.now.add_time') }}</button>
-                        <button v-if="products.length && stateOf(c) !== 'topay'" type="button" class="btn ghost sm" data-test="add-item" @click="shopFor = c.game.id">
+                    <!-- the main action: take the money (before the end too); then + Time · + Item · End game -->
+                    <button v-if="c.game.bill.due > 0" type="button" class="btn sm takeb" data-test="take-money" @click="openPay(`${c.label} · ${c.game.name}`, c.game)">
+                        {{ $t('owner.now.take_money') }} · {{ amd(c.game.bill.due) }}
+                    </button>
+                    <div v-if="stateOf(c) !== 'topay'" class="btns">
+                        <button v-if="!c.game.openEnd" type="button" class="btn ghost sm" data-test="add-time" @click="toggle(c, 'add')">+ {{ $t('owner.now.add_time') }}</button>
+                        <button v-if="products.length" type="button" class="btn ghost sm" data-test="add-item" @click="shopFor = c.game.id">
                             + {{ $t('owner.now.item') }}<span v-if="c.game.bill.items.length" class="cnt">{{ c.game.bill.items.reduce((s, i) => s + i.qty, 0) }}</span>
                         </button>
+                        <button type="button" class="btn ghost sm endb" data-test="end-game" @click="endGame(c)">{{ $t('owner.now.end_game') }}</button>
+                    </div>
+                    <!-- over, only the money left: a new game can start here (this one moves to "To pay") -->
+                    <div v-else-if="c.walkPrices.some((w) => w.fits)" class="btns">
+                        <button type="button" class="btn ghost sm" data-test="new-game" @click="toggle(c, 'new')">+ {{ $t('owner.now.new_game') }}</button>
                     </div>
                     <!-- add time: only what fits before the next booking / the closing -->
                     <div v-if="panel[c.id] === 'add'" class="panel" data-test="add-panel">
@@ -315,7 +370,8 @@ watch(upIds, (ids) => {
                     <div v-if="!c.freeFrom && c.walkPrices.some((w) => w.fits)" class="btns">
                         <button type="button" class="btn sm" data-test="new-game" @click="toggle(c, 'new')">+ {{ $t('owner.now.new_game') }}</button>
                     </div>
-                    <!-- new game: the lengths that fit, with their price -->
+                </template>
+                <!-- new game: the lengths that fit, with their price -->
                     <div v-if="panel[c.id] === 'new'" class="panel" data-test="new-panel">
                         <h4>{{ $t('owner.now.new_title', { t: c.label }) }}</h4>
                         <p class="why">{{ $t('owner.now.new_why', { t: c.freeUntil ?? '' }) }}</p>
@@ -328,9 +384,29 @@ watch(upIds, (ids) => {
                         </div>
                         <button type="button" class="btn ghost sm" style="margin-top: 8px" @click="panel[c.id] = null">{{ $t('common.close') }}</button>
                     </div>
-                </template>
+
+                <!-- games of this table over and not paid (the table moved on): their money is still to take -->
+                <div v-for="u in c.toPay" :key="u.id" class="unpaid" data-test="unpaid-strip">
+                    <div class="st-h">{{ $t('owner.now.prev_unpaid') }}</div>
+                    <div class="st-r">
+                        <span
+                            ><b>{{ u.name }}</b> · {{ u.start }}–{{ u.end }} · <b>{{ amd(u.bill.due) }}</b></span
+                        ><button type="button" class="btn sm" @click="openPay(`${c.label} · ${u.name}`, u)">{{ $t('owner.now.take_money') }}</button>
+                    </div>
+                </div>
             </article>
         </div>
+        <!-- every game whose money is still to take -->
+        <section v-if="toPay.length" id="topay" class="topay" data-test="topay">
+            <h3>{{ $t('owner.now.chip_topay') }} <span class="n">{{ toPay.length }}</span></h3>
+            <div v-for="u in toPay" :key="u.id" class="payrow">
+                <span class="w"
+                    ><b>{{ u.field }} · {{ u.name }}</b><small>{{ u.start }}–{{ u.end }} · {{ $t('owner.now.finished_at', { t: u.ended }) }}</small></span
+                ><b class="mono">{{ amd(u.bill.due) }}</b
+                ><button type="button" class="btn sm" @click="openPay(`${u.field} · ${u.name}`, u)">{{ $t('owner.now.take') }}</button>
+            </div>
+        </section>
+        <PaySheet v-if="payFor && payGame" :title="payFor.title" :game="payGame" :wallet="wallet" @close="payFor = null" />
         <ShopSheet
             v-if="shopGame"
             :booking-id="shopGame.id"
@@ -381,6 +457,21 @@ watch(upIds, (ids) => {
 .bar.up i { background: var(--hot); }
 .bar.train i { background: #ff7ad9; }
 /* the card's actions side by side in one row (long Armenian words go to a second line inside the button) */
+.takeb { width: 100%; justify-content: center; margin-top: 10px; padding: 11px; font-size: 14.5px; }
+.endb { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 35%, transparent); }
+.c-paid { background: rgba(92, 200, 255, 0.15); color: var(--blue, #5cc8ff); }
+.a-card.paid { border-top-color: var(--blue, #5cc8ff); }
+.paidl { color: var(--blue, #5cc8ff); font-weight: 700; }
+.unpaid { margin-top: 10px; border: 1px dashed color-mix(in srgb, var(--hot) 50%, transparent); border-radius: 14px; padding: 9px 10px; background: color-mix(in srgb, var(--hot) 6%, transparent); }
+.unpaid .st-h { font-size: 11.5px; font-weight: 800; color: var(--hot); text-transform: uppercase; letter-spacing: 0.04em; }
+.unpaid .st-r { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; font-size: 13.5px; flex-wrap: wrap; }
+.topaychip { display: inline-flex; margin: 0 0 12px; padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, var(--hot) 15%, transparent); color: var(--hot); font-weight: 800; font-size: 13px; text-decoration: none; }
+.topay { margin-top: 18px; scroll-margin-top: 80px; }
+.topay h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.topay .n { background: var(--hot); color: #111; border-radius: 99px; padding: 0 8px; font-size: 12px; }
+.payrow { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--hot) 35%, transparent); border-left: 4px solid var(--hot); border-radius: 14px; padding: 10px 12px; margin-bottom: 6px; }
+.payrow .w { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.payrow small { color: var(--muted); font-size: 12px; }
 .btns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
 .btns > .btn { justify-content: center; text-align: center; white-space: normal; line-height: 1.15; padding-left: 6px; padding-right: 6px; min-height: 38px; }
 .btn.red { background: rgba(255, 107, 107, 0.14); color: var(--hot); border: 1px solid rgba(255, 107, 107, 0.35); }

@@ -45,11 +45,21 @@ class NowController extends OwnerController
         $courts = $venue->fields->where('active', true)->sortBy(fn (Field $f) => [$f->sort, $f->id])->values()->map(function (Field $f) use ($bookings, $checkout, $now, $close, $hm, $minsTo, $prices, $venue) {
             $f->setRelation('venue', $venue);
             $mine = $bookings->where('field_id', $f->id);
-            // a game: started at the desk and not paid yet (playing, or stopped and waiting for the money)
-            $game = $mine->first(fn (Booking $b) => $b->started_at && ! $b->paid_at);
+            // the games of this table still open at the desk: playing (paid before or not), or over and not paid yet
+            $over = fn (Booking $b) => $b->stopped_at || ! $b->ends_at->isFuture();
+            $open = $mine->filter(fn (Booking $b) => $b->started_at && ! ($b->paid_at && $over($b)));
+            $live = $open->first(fn (Booking $b) => ! $over($b));
+            $unpaid = $open->filter(fn (Booking $b) => ! $b->paid_at && $over($b))->values();
             // a booked team due now (from 30 min before until its end) that has not started: Start game / Didn't come
-            $due = $game ? null : $mine->first(fn (Booking $b) => ! $b->started_at && $b->status->value !== 'pending'
+            $dueNow = $mine->first(fn (Booking $b) => ! $b->started_at && $b->status->value !== 'pending'
                 && $b->starts_at->lessThanOrEqualTo($now->addMinutes(Checkout::EARLY_MINUTES)) && $b->ends_at->isFuture());
+            // the table shows what is playing; else the last game over and not paid (red) — until the next booked team's
+            // time has come: then the team (Start game), and the unpaid game waits for its money under "To pay"
+            $old = $live ? null : $unpaid->last();
+            $game = $live ?: ($old && ! ($dueNow && $dueNow->starts_at->lessThanOrEqualTo($now)) ? $old : null);
+            $due = $game ? null : $dueNow;
+            $toPay = $unpaid->reject(fn (Booking $b) => $b->id === $game?->id)->values();
+            $gameOver = $game && $over($game);
             $next = $mine->first(fn (Booking $b) => ! $b->started_at && $b->starts_at->greaterThan($now) && $b->id !== $due?->id);
             // free time: after the game (or now) until the next booking or the closing; a time still held now (a game
             // paid but its time not over, a request for now) counts as taken
@@ -57,7 +67,7 @@ class NowController extends OwnerController
             $held = $mine->filter(fn (Booking $b) => in_array($b->status->value, ['pending', 'accepted'], true) && ! $b->stopped_at
                 && $b->starts_at->lessThanOrEqualTo($now) && $b->ends_at->greaterThan($now))
                 ->max(fn (Booking $b) => $b->ends_at->getTimestamp());
-            $from = $game && ! $game->stopped_at ? $game->ends_at->toImmutable() : ($due ? $due->ends_at->toImmutable() : $now);
+            $from = $game && ! $gameOver ? $game->ends_at->toImmutable() : ($due ? $due->ends_at->toImmutable() : $now);
             if (! $game && ! $due && $held) {
                 $from = CarbonImmutable::createFromTimestamp($held, LocalTime::tz());
             }
@@ -68,7 +78,7 @@ class NowController extends OwnerController
 
             return [
                 'id' => $f->id, 'label' => BookingPresenter::fieldLabel($f), 'size' => $f->size->value,
-                'state' => $game ? ($game->stopped_at ? 'to_pay' : 'playing') : ($due ? 'booked' : 'free'),
+                'state' => $game ? ($gameOver ? 'to_pay' : 'playing') : ($due ? 'booked' : 'free'),
                 'game' => $game ? [
                     'id' => $game->id, 'name' => $game->team_name ?: BookingPresenter::contactName($game), 'purpose' => $game->purpose,
                     'player' => $game->user ? ['id' => $game->user->id, 'name' => $game->user->name, 'phone' => $game->user->phone ? Phone::format($game->user->phone) : null] : null,
@@ -79,6 +89,8 @@ class NowController extends OwnerController
                     'bookedEnd' => $game->open_end ? null : $hm($game->ends_at),
                     'holdsUntil' => $hm($game->ends_at),
                     'openEnd' => (bool) $game->open_end,
+                    // paid before the end: still playing, ends by itself when its time is up
+                    'paid' => $game->paid_at !== null,
                     // how many minutes the game may still be held for (the next booking is never moved)
                     'canExtend' => $game->stopped_at ? 0 : min(120, $gap),
                     // Add time: what each choice adds to the bill (open-ended games pay what they play)
@@ -92,23 +104,36 @@ class NowController extends OwnerController
                     'phone' => $due->contact_phone ? Phone::format($due->contact_phone) : null,
                     'canNoShow' => Attendance::canNoShow($due)] : null,
                 'next' => $next ? ['id' => $next->id, 'start' => $hm($next->starts_at), 'in' => $minsTo($next->starts_at), 'name' => $next->team_name ?: BookingPresenter::contactName($next), 'pending' => $next->status->value === 'pending'] : null,
-                // a free table: free for how long (a walk-in can play that long)
-                'freeMin' => $game || $due ? null : $gap,
+                // games over and not paid, the table already has the next one: their money is still to take
+                'toPay' => $toPay->map(fn (Booking $b) => $this->unpaidRow($b, $checkout, $hm))->values(),
+                // a free table (or one whose last game is over, waiting only for its money): free for how long
+                'freeMin' => ($game && ! $gameOver) || $due ? null : $gap,
                 'freeFrom' => ! $game && ! $due && $held ? $hm($from) : null,
                 'freeUntil' => $game || $due ? null : ($next ? $hm($next->starts_at) : $hm($close)),
                 'limit' => $limit,
                 // New game: the lengths with their price now (the place's price list)
-                'walkPrices' => $game || $due ? [] : collect([15, 30, 45, 60, 90, 120])->map(fn ($m) => ['min' => $m, 'price' => $prices->price($f, $now, $m), 'fits' => $m <= $gap])->values(),
+                'walkPrices' => ($game && ! $gameOver) || $due ? [] : collect([15, 30, 45, 60, 90, 120])->map(fn ($m) => ['min' => $m, 'price' => $prices->price($f, $now, $m), 'fits' => $m <= $gap])->values(),
             ];
         });
 
         return Inertia::render('owner/Now', [
             'canDemo' => ! app()->isProduction(),
             'courts' => $courts,
+            // every game whose money is still to take while its table moved on (the "To pay" list)
+            'toPay' => $courts->flatMap(fn ($c) => collect($c['toPay'])->map(fn ($r) => $r + ['field' => $c['label']]))->values(),
+            'wallet' => $venue->hasFeature('wallet'),
             'step' => max(5, (int) $venue->rule('step_min')),
             'products' => $venue->hasFeature('shop') ? Product::where('venue_id', $venue->id)->where('active', true)->where('in_stock', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'price' => $p->finalPrice(), 'photo' => $p->photoUrl()])->values() : [],
         ]);
+    }
+
+    /** A game over and not paid, for the "To pay" list (and the red strip on its table). */
+    private function unpaidRow(Booking $b, Checkout $checkout, callable $hm): array
+    {
+        return ['id' => $b->id, 'name' => $b->team_name ?: BookingPresenter::contactName($b), 'start' => $hm($b->starts_at), 'end' => $hm($b->ends_at),
+            'ended' => $hm($b->stopped_at ?? $b->ends_at), 'purpose' => $b->purpose, 'bill' => $checkout->bill($b),
+            'player' => $b->user ? ['id' => $b->user->id, 'name' => $b->user->name] : null];
     }
 
     /** "Start game": the booked team is here. */

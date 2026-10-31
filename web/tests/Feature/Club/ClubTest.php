@@ -135,7 +135,13 @@ it('pays a check of time and items: card first (known from the booking, no scan)
         ->and($payments->where('kind', 'shop')->sum('amount'))->toBe(1000)
         ->and($card->fresh()->balance)->toBe(650 + 100 + 50)
         ->and($b->fresh()->paid_at)->not->toBeNull()
-        ->and(fn () => $checkout->pay($b->fresh(), 0, 16000, $this->owner))->toThrow(BookingException::class, __('booking.error.already_paid'))
+        ->and(fn () => $checkout->pay($b->fresh(), 0, 16000, $this->owner))->toThrow(BookingException::class, __('booking.error.already_paid'));
+    // paid before the end: they still play, a cola more is a new amount to take; once ended and paid, the bill is closed
+    $checkout->addItem($b->fresh(), $cola, 1, $this->owner);
+    expect($b->fresh()->paid_at)->toBeNull()->and($checkout->bill($b->fresh())['due'])->toBe(500);
+    $checkout->pay($b->fresh(), 0, 500, $this->owner);
+    $checkout->stop($b->fresh(), $this->owner);
+    expect($b->fresh()->paid_at)->not->toBeNull()
         ->and(fn () => $checkout->addItem($b->fresh(), $cola, 1, $this->owner))->toThrow(BookingException::class);
 });
 

@@ -5269,6 +5269,11 @@
         "hy": "Պատրաստ է",
         "ru": "Готово"
     },
+    "owner.club.ended": {
+        "en": "The game is over",
+        "hy": "Խաղն ավարտված է",
+        "ru": "Игра завершена"
+    },
     "owner.club.extended": {
         "en": "+:n min: the table is held longer.",
         "hy": "+:n րոպե․ սեղանը պահվում է ավելի երկար։",
@@ -5513,6 +5518,11 @@
         "en": "Paid",
         "hy": "Վճարված է",
         "ru": "Оплачено"
+    },
+    "owner.club.paid_before": {
+        "en": "Paid before",
+        "hy": "Արդեն վճարված",
+        "ru": "Уже оплачено"
     },
     "owner.club.paid_by_card": {
         "en": "From card (:a)",
@@ -5773,6 +5783,11 @@
         "en": "Time",
         "hy": "Ժամանակ",
         "ru": "Время"
+    },
+    "owner.club.to_take": {
+        "en": "To take",
+        "hy": "Վերցնել",
+        "ru": "К оплате"
     },
     "owner.club.topped_up": {
         "en": "Topped up",
@@ -6544,6 +6559,11 @@
         "hy": "Ավելացնել ժամանակ՝ :t",
         "ru": "Добавить время: :t"
     },
+    "owner.now.ask_end": {
+        "en": "End the game of :name?",
+        "hy": "Ավարտե՞լ :name-ի խաղը",
+        "ru": "Завершить игру :name?"
+    },
     "owner.now.booked_for": {
         "en": "Booked :a–:b",
         "hy": "Ամրագրված է :a–:b",
@@ -6558,6 +6578,11 @@
         "en": "Free",
         "hy": "Ազատ",
         "ru": "Свободно"
+    },
+    "owner.now.chip_paid": {
+        "en": "Paid · playing",
+        "hy": "Վճարված · խաղում են",
+        "ru": "Оплачено · играют"
     },
     "owner.now.chip_play": {
         "en": "Playing",
@@ -6593,6 +6618,21 @@
         "en": ":m min late",
         "hy": "Ուշանում է :m րոպե",
         "ru": "Опаздывает на :m мин"
+    },
+    "owner.now.end_game": {
+        "en": "End game",
+        "hy": "Ավարտել խաղը",
+        "ru": "Завершить игру"
+    },
+    "owner.now.end_paid": {
+        "en": "It is paid. The table is free from now.",
+        "hy": "Վճարված է։ Սեղանն այսուհետ ազատ է։",
+        "ru": "Оплачено. Стол свободен с этой минуты."
+    },
+    "owner.now.end_unpaid": {
+        "en": "The table is free from now. :a is still to take.",
+        "hy": "Սեղանն այսուհետ ազատ է։ Դեռ պետք է վերցնել :a։",
+        "ru": "Стол свободен с этой минуты. Ещё нужно принять :a."
     },
     "owner.now.ends_at": {
         "en": "Ends at",
@@ -6684,6 +6724,21 @@
         "hy": ":m րոպե ավել",
         "ru": "на :m мин дольше"
     },
+    "owner.now.paid_line": {
+        "en": "Paid :a · the table frees itself at the end",
+        "hy": "Վճարված է :a · ավարտին սեղանը կազատվի ինքնաբերաբար",
+        "ru": "Оплачено :a · в конце стол освободится сам"
+    },
+    "owner.now.paid_part": {
+        "en": "paid :a",
+        "hy": "վճարված է :a",
+        "ru": "оплачено :a"
+    },
+    "owner.now.prev_unpaid": {
+        "en": "Previous · not paid",
+        "hy": "Նախորդը · չվճարված",
+        "ru": "Предыдущая · не оплачена"
+    },
     "owner.now.price_list": {
         "en": "your price list",
         "hy": "ձեր գնացուցակից",
@@ -6708,6 +6763,11 @@
         "en": "Started :s",
         "hy": "Սկիզբը՝ :s",
         "ru": "Начало :s"
+    },
+    "owner.now.take": {
+        "en": "Take",
+        "hy": "Վերցնել",
+        "ru": "Принять"
     },
     "owner.now.take_money": {
         "en": "Take money",

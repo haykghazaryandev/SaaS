@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Icon from '@/components/Icon.vue';
-import QrScanner from '@/components/owner/QrScanner.vue';
+import PayBox from '@/components/owner/PayBox.vue';
 import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { ask } from '@/composables/useConfirm';
 import { relDay, useOwner, type BookingRow } from '@/composables/useOwner';
@@ -8,7 +8,7 @@ import { amd, hhmm } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
 import { Link, router } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { ref } from 'vue';
 
 // The check of a game: the time + what they took (a cola) = the total,
 // then the money: from the player's card (we know it from the booking), in cash, or part each (1 450 + 50).
@@ -25,6 +25,10 @@ interface Bill {
     total: number;
     card: { code: string; balance: number; cashback: number } | null;
     paid: boolean;
+    paidSoFar: number;
+    timeDue: number;
+    itemsDue: number;
+    due: number;
 }
 const props = defineProps<{
     booking: BookingRow & { field: string; purpose?: string; paid?: boolean; player: { id: number; name: string | null; phone: string | null } | null };
@@ -34,50 +38,7 @@ const props = defineProps<{
 }>();
 const owner = useOwner();
 const opts = { preserveScroll: true, preserveState: true };
-const scan = ref(false);
-const canCard = computed(() => props.wallet && !!props.bill.card && props.bill.card.balance > 0);
-// how they pay: cash by default; the card (if they have one with money) or part card, part cash, when the owner picks it
-type How = 'cash' | 'card' | 'both';
-const how = ref<How>('cash');
-const cardCovers = computed(() => canCard.value && props.bill.card!.balance >= props.bill.total);
-const fromCard = ref(0);
-function pick(h: How) {
-    how.value = h;
-    // card + cash starts half and half (rounded to 100 ֏); either box can be changed, the other follows
-    const half = Math.round(props.bill.total / 200) * 100;
-    fromCard.value = h === 'cash' ? 0 : Math.min(props.bill.card!.balance, h === 'both' ? half : props.bill.total);
-}
-const setCash = (e: Event) => (fromCard.value = Math.max(0, props.bill.total - (Number((e.target as HTMLInputElement).value) || 0)));
-watch(
-    () => [props.bill.total, props.bill.card?.balance],
-    () => {
-        if (!canCard.value || (how.value === 'card' && !cardCovers.value)) how.value = 'cash';
-        pick(how.value);
-    },
-    { immediate: true },
-);
-const cash = computed(() => Math.max(0, props.bill.total - (fromCard.value || 0)));
-const tooMuch = computed(() => how.value !== 'cash' && (fromCard.value > props.bill.card!.balance || fromCard.value > props.bill.total));
-
 const shopOpen = ref(false);
-const onCode = (code: string) => router.post(route('owner.bookings.scan', props.booking.id), { code }, opts);
-// no camera at the desk: find the card by the player's name or phone
-const find = ref('');
-const found = ref<{ code: string; name: string | null; phone: string | null; balance: number }[]>([]);
-let findT: number | undefined;
-watch(find, (q) => {
-    clearTimeout(findT);
-    if (q.trim().length < 2) return (found.value = []);
-    findT = window.setTimeout(async () => {
-        const r = await fetch(route('owner.bookings.cards', { booking: props.booking.id, q: q.trim() }), { headers: { Accept: 'application/json' } });
-        found.value = r.ok ? await r.json() : [];
-    }, 250);
-});
-function pickCard(code: string) {
-    find.value = '';
-    found.value = [];
-    onCode(code);
-}
 async function startGame() {
     if (await ask({ title: trans('owner.club.ask_start', { name: props.booking.team || props.booking.name || props.booking.field }), text: trans('owner.club.ask_start_text'), ok: trans('owner.club.start_game') }))
         router.post(route('owner.bookings.start', props.booking.id), {}, opts);
@@ -92,28 +53,6 @@ async function stop() {
         })
     )
         router.post(route('owner.bookings.stop', props.booking.id));
-}
-// the money: say exactly what is taken (card / cash) and ask
-async function pay() {
-    const card = how.value === 'cash' ? 0 : fromCard.value || 0;
-    const money = how.value === 'cash' ? props.bill.total : cash.value;
-    const title =
-        card > 0 && money > 0
-            ? trans('owner.club.take_split', { a: amd(card), b: amd(money) })
-            : card > 0
-              ? trans('owner.club.take_card', { a: amd(card) })
-              : trans('owner.club.take_cash', { a: amd(money) });
-    const lines = [
-        card > 0 && props.bill.card ? trans('owner.club.ask_card_after', { a: amd(props.bill.card.balance - card) }) : '',
-        money > 0 ? trans('owner.club.ask_cash_hands') : '',
-        props.bill.card?.cashback
-            ? trans('owner.club.cashback_note', { p: props.bill.card.cashback }) +
-              ' +' +
-              amd(Math.floor((props.bill.total * props.bill.card.cashback) / 100))
-            : '',
-    ].filter(Boolean);
-    if (await ask({ title: title + '?', text: lines.join('\n'), ok: trans('owner.club.ask_take') }))
-        router.post(route('owner.bookings.pay', props.booking.id), { card, cash: money });
 }
 </script>
 
@@ -151,71 +90,27 @@ async function pay() {
                     <span>{{ booking.purpose === 'training' ? $t('club.training') : $t('owner.club.time') }} · {{ $t('owner.club.min_n', { n: bill.minutes }) }}</span><b>{{ amd(bill.time) }}</b>
                 </div>
                 <!-- the shop: one line; a tap opens the products (photo, price, − / +) -->
-                <button type="button" class="bline shopln" :disabled="bill.paid" data-test="shop" @click="shopOpen = true">
+                <button type="button" class="bline shopln" :disabled="bill.paid && !bill.running" data-test="shop" @click="shopOpen = true">
                     <span
                         ><Icon name="cube" size="sm" /> {{ $t('owner.club.shop') }}<small v-if="bill.items.length" class="faint">
                             · {{ bill.items.map((i) => `${i.qty} × ${i.name}`).join(', ') }}</small
                         ></span
-                    ><b>{{ amd(bill.itemsTotal) }}</b><Icon v-if="!bill.paid" name="plus" size="sm" class="plus" />
+                    ><b>{{ amd(bill.itemsTotal) }}</b><Icon v-if="!bill.paid || bill.running" name="plus" size="sm" class="plus" />
                 </button>
                 <div class="bline total">
                     <span>{{ bill.running ? $t('owner.club.if_stop_now') : $t('player.place.total') }}</span><b data-test="total">{{ amd(bill.total) }}</b>
                 </div>
-                <button v-if="bill.running && !bill.paid" type="button" class="btn ghost block" data-test="stop" @click="stop"><Icon name="check" size="sm" />{{ $t('owner.club.stop_game') }}</button>
+                <button v-if="bill.running" type="button" class="btn ghost block" data-test="stop" @click="stop"><Icon name="check" size="sm" />{{ $t('owner.club.stop_game') }}</button>
 
             </section>
 
             <section class="card panel">
                 <div class="sec-h"><h2>{{ $t('owner.club.payment') }}</h2></div>
-                <div v-if="bill.paid" class="paid"><Icon name="check" />{{ $t('owner.club.paid') }}</div>
-                <template v-else>
-                    <!-- the card: only after a scan -->
-                    <!-- the player's card: known from the booking; a phone-only booking finds it by a scan -->
-                    <div v-if="wallet" class="cardrow">
-                        <Icon name="wallet" />
-                        <span class="w">
-                            <b>{{ bill.card ? $t('owner.club.card_balance', { a: amd(bill.card.balance) }) : $t('owner.club.no_card_short') }}</b>
-                            <small v-if="!bill.card && !booking.player">{{ $t('owner.club.find_card_why') }}</small>
-                        </span>
-                        <button v-if="!bill.card && !booking.player" type="button" class="btn sm" data-test="scan-bill" @click="scan = true"><Icon name="qr" size="sm" />{{ $t('owner.club.scan') }}</button>
-                    </div>
-                    <!-- no card on this bill yet: scan it (a phone or a desk camera) or find it by name / phone -->
-                    <div v-if="wallet && !bill.card && !booking.player" class="findcard">
-                        <input v-model="find" class="input" type="search" :placeholder="$t('owner.club.find_card_search')" data-test="find-card" />
-                        <button v-for="c in found" :key="c.code" type="button" class="frow" :data-test="`found-${c.code}`" @click="pickCard(c.code)">
-                            <span class="w"><b>{{ c.name || '—' }}</b><small>{{ c.phone }}</small></span><b>{{ amd(c.balance) }}</b>
-                        </button>
-                        <small v-if="find.trim().length >= 2 && !found.length" class="faint">{{ $t('owner.club.no_cards_found') }}</small>
-                    </div>
-                    <div v-if="canCard" class="seg how" role="group" :aria-label="$t('owner.club.payment')">
-                        <button type="button" :aria-pressed="how === 'cash'" data-test="how-cash" @click="pick('cash')">{{ $t('owner.club.cash') }}</button>
-                        <button type="button" :aria-pressed="how === 'card'" :disabled="!cardCovers" data-test="how-card" @click="pick('card')">
-                            {{ $t('owner.club.from_card') }}
-                        </button>
-                        <button type="button" :aria-pressed="how === 'both'" data-test="how-both" @click="pick('both')">{{ $t('owner.club.card_and_cash') }}</button>
-                    </div>
-                    <div v-if="canCard && how === 'both'" class="split">
-                        <label class="field"
-                            ><span>{{ $t('owner.club.from_card') }}</span
-                            ><span class="money"><input v-model.number="fromCard" class="input" type="number" min="0" :max="Math.min(bill.card!.balance, bill.total)" data-test="from-card" /><span>֏</span></span></label
-                        >
-                        <label class="field"><span>{{ $t('owner.club.cash') }}</span><span class="money"><input :value="cash" class="input" type="number" min="0" :max="bill.total" data-test="cash" @input="setCash" /><span>֏</span></span></label>
-                    </div>
-                    <!-- the card's cashback level: this much of the check (card or cash) comes back onto it -->
-                    <p v-if="bill.card?.cashback" class="faint" style="font-size: 12.5px; margin: 0">
-                        {{ $t('owner.club.cashback_note', { p: bill.card.cashback }) }} +{{ amd(Math.floor((bill.total * bill.card.cashback) / 100)) }}
-                    </p>
-                    <p v-if="tooMuch" class="err">{{ $t('booking.error.low_balance') }}</p>
-                    <button type="button" class="btn block big" :disabled="tooMuch" data-test="take-payment" @click="pay">
-                        <Icon name="check" size="sm" />
-                        <template v-if="how !== 'cash' && fromCard > 0 && cash > 0">{{ $t('owner.club.take_split', { a: amd(fromCard), b: amd(cash) }) }}</template>
-                        <template v-else-if="how !== 'cash' && fromCard > 0">{{ $t('owner.club.take_card', { a: amd(fromCard) }) }}</template>
-                        <template v-else>{{ $t('owner.club.take_cash', { a: amd(bill.total) }) }}</template>
-                    </button>
-                </template>
+                <div v-if="bill.paidSoFar" class="bline"><span>{{ $t('owner.club.paid_before') }}</span><b>{{ amd(bill.paidSoFar) }}</b></div>
+                <div v-if="bill.due <= 0 && bill.paid" class="paid"><Icon name="check" />{{ $t('owner.club.paid') }}</div>
+                <PayBox v-else :booking-id="booking.id" :bill="bill" :wallet="wallet" :has-player="!!booking.player" />
             </section>
         </div>
-        <QrScanner v-if="scan" pick @code="onCode" @close="scan = false" />
         <ShopSheet v-if="shopOpen" :booking-id="booking.id" :items="bill.items" :products="products" :total="bill.itemsTotal" @close="shopOpen = false" />
     </OwnerLayout>
 </template>
