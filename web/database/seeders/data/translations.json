@@ -9954,6 +9954,16 @@
         "hy": "Սեղմեք «Add» («Добавить»)․ պատկերակը կհայտնվի հիմնական էկրանին",
         "ru": "Нажмите «Добавить»: значок появится на главном экране"
     },
+    "pwa.install.ios.copied": {
+        "en": "Copied: paste it in Safari",
+        "hy": "Պատճենվեց․ տեղադրեք Safari-ում",
+        "ru": "Скопировано: вставьте в Safari"
+    },
+    "pwa.install.ios.copy_link": {
+        "en": "Copy the link",
+        "hy": "Պատճենել հղումը",
+        "ru": "Скопировать ссылку"
+    },
     "pwa.install.ios.done": {
         "en": "Got it",
         "hy": "Պարզ է",
@@ -9963,6 +9973,16 @@
         "en": "On iPhone, notifications work only in the installed app (iOS 16.4 or later): open it from the icon to turn them on.",
         "hy": "iPhone-ում ծանուցումները աշխատում են միայն տեղադրված հավելվածում (iOS 16.4 և ավելի նոր)․ բացեք այն պատկերակից՝ դրանք միացնելու համար։",
         "ru": "На iPhone уведомления работают только в установленном приложении (iOS 16.4 и новее): откройте его со значка, чтобы включить их."
+    },
+    "pwa.install.ios.safari_open": {
+        "en": "Open in Safari",
+        "hy": "Բացել Safari-ում",
+        "ru": "Открыть в Safari"
+    },
+    "pwa.install.ios.safari_text": {
+        "en": "On iPhone the app is installed from Safari. Open this page in Safari, then tap Share → “Add to Home Screen”.",
+        "hy": "iPhone-ում հավելվածը տեղադրվում է Safari-ից։ Բացեք այս էջը Safari-ում, ապա սեղմեք «Կիսվել» → «Add to Home Screen»։",
+        "ru": "На iPhone приложение устанавливается из Safari. Откройте эту страницу в Safari, затем нажмите «Поделиться» → «На экран „Домой“»."
     },
     "pwa.install.ios.share": {
         "en": "In Safari, tap the Share button",

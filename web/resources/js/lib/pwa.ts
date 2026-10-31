@@ -17,11 +17,18 @@ export const standalone = () =>
 
 // iPhone / iPad Safari: no prompt API, the steps are shown instead. iPadOS reports itself as a Mac, so a touch "Mac" is an iPad.
 // Other iOS browsers (Chrome CriOS, Firefox FxiOS…) can add to the home screen only since iOS 16.4 and differently: Safari only.
+function ios(): boolean {
+    const ua = navigator.userAgent;
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
 function iosSafari(): boolean {
     const ua = navigator.userAgent;
-    const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-    return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|YaBrowser|GSA\//.test(ua);
+    return ios() && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|YaBrowser|GSA\//.test(ua);
 }
+
+/** This page in Safari: iOS 17+ opens x-safari-https:// links in Safari from any browser or app (a QR scanned with
+ * Chrome as the default browser, a link in Instagram…). */
+export const safariUrl = () => 'x-safari-' + window.location.href;
 
 let deferred: BeforeInstallPromptEvent | null = null;
 
@@ -30,6 +37,8 @@ export const pwa = reactive({
     canInstall: false,
     /** iPhone / iPad Safari, not installed yet: we show the Share → Add to Home Screen steps */
     isIos: false,
+    /** iPhone / iPad in another browser or an app's own browser (Chrome, Instagram…): "Open in Safari" first */
+    iosOther: false,
     /** already installed (opened from the icon, or just installed) */
     installed: false,
     /** the iOS steps sheet is open (one sheet, mounted by the layouts) */
@@ -37,7 +46,7 @@ export const pwa = reactive({
 });
 
 /** Whether to show any install entry (menu item, banner). */
-export const installable = () => !pwa.installed && (pwa.canInstall || pwa.isIos);
+export const installable = () => !pwa.installed && (pwa.canInstall || pwa.isIos || pwa.iosOther);
 
 export function installPwa() {
     if (typeof window === 'undefined' || inTelegram()) return; // inside Telegram we are already an app
@@ -52,6 +61,7 @@ export function installPwa() {
     pwa.installed = standalone();
     if (pwa.installed) return;
     pwa.isIos = iosSafari();
+    pwa.iosOther = ios() && !pwa.isIos;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault(); // no mini-infobar: our button opens the prompt when the person asks
         deferred = e as BeforeInstallPromptEvent;
@@ -75,7 +85,7 @@ export async function promptInstall() {
         if (outcome === 'accepted') pwa.installed = true;
         return;
     }
-    if (pwa.isIos) pwa.iosSheet = true;
+    if (pwa.isIos || pwa.iosOther) pwa.iosSheet = true;
 }
 
 // the banner, once per device: a closed banner stays closed

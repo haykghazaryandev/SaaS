@@ -11,6 +11,7 @@ import { amd, hhmm, useShared } from '@/composables/useShared';
 import { courtName, courtShort, dateLong, dateRel, directionLinks, dur, nextLabel, pitchColor, toHours, wdName, weekday } from '@/composables/usePlayer';
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
+import InstallBanner from '@/components/pwa/InstallBanner.vue';
 import { useSportTheme } from '@/lib/sport';
 import { useLive } from '@/lib/echo';
 import type { DayInfo, FieldInfo, MyTime, PlayerBooking, SlotsPayload } from '@/types/player';
@@ -575,6 +576,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
         <Head :title="venue.name" />
         <div class="pg">
             <Link class="backlink" :href="homeUrl"><Icon name="back" size="sm" />{{ $t('common.all_fields') }}</Link>
+            <!-- people often land here from the place's table card QR: offer the app right away -->
+            <InstallBanner />
 
             <!-- header: the place only (no price, no button: booking starts below) -->
             <section class="vhead">
