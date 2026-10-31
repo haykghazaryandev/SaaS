@@ -14,7 +14,7 @@ import OwnerSheets from '@/components/owner/OwnerSheets.vue';
 import { decisions, openForm, sheets, useMay, useOwner, type FormOpts, type MenuKey } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import QrScanner from '@/components/owner/QrScanner.vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
@@ -23,7 +23,6 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 // The language switch lives in Settings (G6: no language switch in the header for logged-in users).
 const props = defineProps<{ title?: string; newBooking?: FormOpts }>();
 const owner = useOwner();
-const page = usePage();
 const { user } = useShared();
 // the menus of this panel: the ones the place has (admin → place → features), left on by the owner in Settings → Menus
 // for their own panel or for staff; ZoneSpot's fee, the team and the settings are the owner's only
@@ -56,7 +55,7 @@ const nav = computed(() => [
     ...club.value.filter((n) => n.name !== 'owner.now'),
     // the players' messages to the place (and the tournament chats): the chat list, unread on the badge
     ...(shows('messages')
-        ? [{ name: 'owner.messages', label: 'owner.nav.messages', icon: 'chat', badge: Number((page.props.counts as { messages?: number } | null)?.messages ?? 0) }]
+        ? [{ name: 'owner.messages', label: 'owner.nav.messages', icon: 'chat', badge: owner.value.unreadChats ?? 0 }]
         : []),
     // the owner: ZoneSpot's fee (just its %), who works here, the place's settings
     ...(isOwner.value

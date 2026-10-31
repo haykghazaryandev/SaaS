@@ -43,6 +43,8 @@ class ChatController extends Controller
             // my chats; one I deleted comes back only when somebody writes after that
             ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at')
                 ->where(fn ($w) => $w->whereNull('hidden_at')->orWhereColumn('conversation_participants.hidden_at', '<', 'conversations.last_message_at')))
+            // the place panel: only the chats of the place shown
+            ->when($this->placeOf($request), fn ($q, $venueId) => Conversation::ofPlace($q, $venueId))
             ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'latestMessage.user', 'participants.user'])
             ->orderByDesc('last_message_at')->orderByDesc('id')
             ->get()
@@ -57,6 +59,20 @@ class ChatController extends Controller
         ]);
     }
 
+    /** The place whose chats a page shows (the place panel); the player app: none, all of mine. */
+    protected function placeOf(Request $request): ?int
+    {
+        return null;
+    }
+
+    /** ?venue= of the mini chat, when the person runs that place. */
+    private function dockPlace(Request $request): ?int
+    {
+        $id = (int) $request->query('venue');
+
+        return $id && $request->user()->venues()->whereKey($id)->exists() ? $id : null;
+    }
+
     /** JSON: my open chats with their unread numbers (the owner panel's mini chat). */
     public function list(Request $request): JsonResponse
     {
@@ -66,6 +82,8 @@ class ChatController extends Controller
             ->whereHas('participants', fn ($q) => $q->where('user_id', $me->id)->whereNull('left_at')
                 ->where(fn ($w) => $w->whereNull('hidden_at')->orWhereColumn('conversation_participants.hidden_at', '<', 'conversations.last_message_at')))
             ->where('status', '!=', 'archived')
+            // the place panel's mini chat (?venue=): only that place's chats, for its owner and staff
+            ->when($this->dockPlace($request), fn ($q, $venueId) => Conversation::ofPlace($q, $venueId))
             ->with(['game' => fn ($q) => $q->withCount('inPlayers'), 'game.venue', 'game.booking.venue', 'game.booking.field', 'tournament', 'venue:id,name,slug', 'latestMessage.user', 'participants.user'])
             ->orderByDesc('last_message_at')->orderByDesc('id')->limit(40)->get()
             ->map(fn (Conversation $c) => $this->item($c, $me, $unread[$c->id] ?? 0))->values();

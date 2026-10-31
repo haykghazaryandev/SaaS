@@ -872,5 +872,8 @@
     "tgapp.welcome": "common.welcome_to_bookball",
     "switch.staff_short": null,
     "switch.panels": null,
-    "owner.duration_hours": null
+    "owner.duration_hours": null,
+    "owner.sched.in_h": null,
+    "owner.sched.in_min": null,
+    "owner.sched.ends": null
 }

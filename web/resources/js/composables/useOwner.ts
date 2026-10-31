@@ -25,6 +25,8 @@ export interface OwnerShared {
     menus: OwnerMenus;
     venues: { id: number; name: string }[];
     pending: number;
+    /** unread messages in this place's chats */
+    unreadChats?: number;
     fields: OwnerField[];
     hours: ([number, number] | null)[]; // by weekday, 0 = Sunday
     today: string;

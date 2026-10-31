@@ -47,6 +47,8 @@ function groupKey(b: PlayerBooking): string {
     const d = dayDiff(todayIso.value, b.date);
     return d <= 0 ? 'today' : d === 1 ? 'tomorrow' : d < 7 ? 'week' : 'later';
 }
+// "invite your friends" once: under the soonest booking that has no team yet (not on every card)
+const nudgeId = computed(() => props.upcoming.find((b) => b.role === 'booker' && !(b.team ?? []).length && b.status !== 'cancelled')?.id ?? null);
 const groups = computed(() => {
     const out: { key: string; items: PlayerBooking[] }[] = [];
     for (const b of props.upcoming) {
@@ -239,7 +241,7 @@ const canLinkTelegram = computed(() => {
                         </button>
                         <small v-if="b.role === 'booker' && waitingAnswers(b)" class="muted">{{ $t('player.team.waiting_count', { n: String(waitingAnswers(b)) }) }}</small>
                     </div>
-                    <p v-if="b.role === 'booker' && !(b.team ?? []).length && b.status !== 'cancelled'" class="hint-team">{{ $t('player.team.nudge') }}</p>
+                    <p v-if="b.id === nudgeId" class="hint-team">{{ $t('player.team.nudge') }}</p>
                     <!-- running late? -->
                     <div v-if="b.lateMinutes" class="late-said"><Icon name="clock" size="sm" />{{ $t('player.late.said', { min: String(b.lateMinutes) }) }}</div>
                     <div v-if="b.canLate && b.role !== 'invited'" class="late">

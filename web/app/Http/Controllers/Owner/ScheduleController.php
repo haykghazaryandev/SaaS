@@ -25,11 +25,13 @@ class ScheduleController extends OwnerController
         // the place's answer given (or played, a walk-in …); not the open requests
         $said = fn (Booking $b) => in_array(BookingPresenter::kind($b), ['accepted', 'owner'], true);
 
-        // the next 7 days to pick from, with how many bookings each
+        // the next 7 days to pick from: how many bookings each, and how full (the courts in use, on average)
         $week = $stats->bookings($venue, $today, $today->addDays(7));
+        $courts = $venue->fields->where('active', true);
         $days = collect(range(0, 6))->map(fn ($i) => $today->addDays($i))->map(fn ($d) => [
             'date' => $d->toDateString(),
             'count' => $week->filter($said)->filter(fn (Booking $b) => $b->starts_at->setTimezone(LocalTime::tz())->toDateString() === $d->toDateString())->count(),
+            'full' => $courts->isEmpty() ? 0 : (int) round($courts->avg(fn ($f) => $stats->occupancy($venue, $f->id, $d, $week))),
         ])->values();
 
         $props = [

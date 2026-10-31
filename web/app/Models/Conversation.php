@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -63,5 +64,12 @@ class Conversation extends Model
     public static function directKey(int $a, int $b): string
     {
         return min($a, $b).':'.max($a, $b);
+    }
+
+    /** The chats of a place: players writing to it, and its tournaments' chats. */
+    public static function ofPlace(Builder $q, int $venueId): Builder
+    {
+        return $q->where(fn ($w) => $w->where('venue_id', $venueId)
+            ->orWhereIn('tournament_id', Tournament::query()->where('venue_id', $venueId)->select('id')));
     }
 }

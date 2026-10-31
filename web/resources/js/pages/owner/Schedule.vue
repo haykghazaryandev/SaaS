@@ -18,7 +18,7 @@ const props = defineProps<{
     date: string;
     today: string;
     nowHour: number;
-    days: { date: string; count: number }[];
+    days: { date: string; count: number; full: number }[];
     kpi: TodayNumbers;
     upcoming?: { rows: BookingRow[]; hours: [number, number] | null };
     day?: { rows: BookingRow[]; hours: [number, number] | null };

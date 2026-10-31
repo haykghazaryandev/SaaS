@@ -25,26 +25,32 @@ const cls = (b: BookingRow) =>
             <small>{{ $t('owner.sched.n_bookings', { n: rows.length }) }}</small>
         </div>
         <p v-if="!hours" class="closed">{{ $t('owner.schedule.closed_day') }}</p>
-        <button v-for="b in sorted" :key="b.id" type="button" :class="['a-row', cls(b)]" :data-test="'srow-' + b.id" @click="openBooking(b.id)">
-            <span class="t"
-                ><b>{{ hhmm(b.start) }}</b><small>–{{ hhmm(b.end) }}</small></span
-            >
-            <span class="w"
-                ><b>{{ b.team || b.name }}</b
-                ><small class="marks"
-                    ><span v-if="cls(b) === 'live'" class="mk live">● {{ $t('owner.sched.live') }}</span
-                    ><span v-if="b.purpose === 'training'" class="mk train">🎓 {{ $t('club.training') }}</span
-                    ><span v-if="b.weekly" class="mk week">↻ {{ $t('owner.schedule.weekly') }}</span></small
-                ></span
-            >
-            <span class="tb">{{ courtName(b.field_id) }}</span>
-        </button>
+        <div class="rows">
+            <button v-for="b in sorted" :key="b.id" type="button" :class="['a-row', cls(b)]" :data-test="'srow-' + b.id" @click="openBooking(b.id)">
+                <span class="t"
+                    ><b>{{ hhmm(b.start) }}</b><small>–{{ hhmm(b.end) }}</small></span
+                >
+                <span class="w"
+                    ><b>{{ b.team || b.name }}</b
+                    ><small class="marks"
+                        ><span v-if="cls(b) === 'live'" class="mk live">● {{ $t('owner.sched.live') }}</span
+                        ><span v-if="b.purpose === 'training'" class="mk train">🎓 {{ $t('club.training') }}</span
+                        ><span v-if="b.weekly" class="mk week">↻ {{ $t('owner.schedule.weekly') }}</span></small
+                    ></span
+                >
+                <span class="tb">{{ courtName(b.field_id) }}</span>
+            </button>
+        </div>
         <div v-if="!rows.length && hours" class="a-empty">{{ $t('owner.sched.nothing') }}</div>
     </div>
 </template>
 
 <style scoped>
-.sday { max-width: 860px; }
+.sday { max-width: 1400px; }
+/* wide screens: the bookings in two columns (time order goes left to right), no empty half of the screen */
+@media (min-width: 1200px) {
+    .sday .rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
+}
 .a-sec { margin: 6px 0 10px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .a-sec h4 { margin: 0; font: 600 19px var(--display); }
 .a-sec small { color: var(--muted); font-weight: 700; font-size: 12.5px; }
@@ -66,8 +72,12 @@ const cls = (b: BookingRow) =>
 .mk.week { background: rgba(182, 156, 255, 0.16); color: #c9b8ff; }
 .tb { font: 700 12.5px var(--body); padding: 5px 10px; border-radius: 10px; background: var(--surface-3); white-space: nowrap; }
 .a-empty { color: var(--faint); font-size: 13px; padding: 2px 2px 8px; }
+/* phones: one line a booking (time · who · court), so a full day fits on a few screens */
 @media (max-width: 560px) {
-    .a-row { grid-template-columns: 68px minmax(0, 1fr); }
-    .tb { grid-column: 2; justify-self: start; padding: 2px 8px; }
+    .a-row { grid-template-columns: 60px minmax(0, 1fr) auto; gap: 8px; padding: 7px 10px; margin-bottom: 5px; }
+    .t b { font-size: 17px; }
+    .t small { font-size: 11px; white-space: nowrap; }
+    .w b { font-size: 14.5px; }
+    .tb { font-size: 12px; padding: 3px 8px; }
 }
 </style>

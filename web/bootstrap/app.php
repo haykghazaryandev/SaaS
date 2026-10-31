@@ -15,7 +15,10 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Middleware\TrustProxies as BaseTrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -52,5 +55,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // pages (not JSON, not the admin panel): our error page instead of the framework's white one; while
+        // debugging, a crash still shows the details
+        $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
+            $status = $response->getStatusCode();
+            $page = in_array($status, [403, 404], true) || (in_array($status, [500, 503], true) && ! config('app.debug'));
+            if (! $page || $request->expectsJson() || $request->is('admin', 'admin/*', 'livewire/*')) {
+                return $response;
+            }
+
+            return Inertia::render('Error', ['status' => $status])->toResponse($request)->setStatusCode($status);
+        });
     })->create();

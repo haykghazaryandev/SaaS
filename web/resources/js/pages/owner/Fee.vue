@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from '@/components/Icon.vue';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -20,7 +21,8 @@ const props = defineProps<{
 }>();
 const owner = useOwner();
 const PERIODS: Period[] = ['today', 'week', 'prev_week', 'month', 'prev_month'];
-const ICO = { booking: '📅', training: '🎓', tournament: '🏆' };
+// line icons like the rest of the panel (not emoji)
+const ICO = { booking: 'calendar', training: 'medal', tournament: 'trophy' };
 const dm = (d: string) => `${d.slice(8)}.${d.slice(5, 7)}`;
 const pctText = () => (Number.isInteger(props.pct) ? String(props.pct) : props.pct.toFixed(1));
 const go = (p: Period) => router.get(route('owner.fee'), { period: p }, { preserveScroll: true, replace: true });
@@ -48,10 +50,10 @@ const go = (p: Period) => router.get(route('owner.fee'), { period: p }, { preser
             </div>
             <div class="c-grid">
                 <div v-for="k in kinds" :key="k.kind" class="c-card" :data-test="'fee-' + k.kind">
-                    <span class="ico">{{ ICO[k.kind] }}</span>
+                    <span class="ico"><Icon :name="ICO[k.kind]" /></span>
                     <h3>{{ $t('owner.fee.kind_' + k.kind) }}</h3>
                     <div class="kfee">{{ amd(k.fee) }}</div>
-                    <div class="kbase">{{ $t('owner.fee.taken') }}: {{ amd(k.base) }}</div>
+                    <div class="kbase">{{ $t('owner.fee.taken') }}: <span>{{ amd(k.base) }}</span></div>
                     <div class="share"><i :style="{ width: base ? (k.base / base) * 100 + '%' : '0' }" /></div>
                 </div>
             </div>
@@ -72,10 +74,11 @@ const go = (p: Period) => router.get(route('owner.fee'), { period: p }, { preser
 .c-total .r b { display: block; color: var(--ink); font-size: 16px; }
 .c-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
 .c-card { padding: 18px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
-.c-card .ico { font-size: 22px; }
+.c-card .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent); }
 .c-card h3 { margin: 8px 0 2px; font-size: 15px; }
 .kfee { font: 700 26px var(--display); margin: 6px 0; }
 .kbase { color: var(--muted); font-size: 13px; }
+.kbase span { white-space: nowrap; }
 .share { height: 8px; border-radius: 4px; background: var(--surface-3); margin-top: 12px; overflow: hidden; }
 .share i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
 .quiet { color: var(--faint); font-size: 12.5px; margin: 14px 0 0; }

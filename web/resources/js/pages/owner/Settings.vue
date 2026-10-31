@@ -289,6 +289,23 @@ async function removeClosure(id: number) {
     if (await ask({ title: trans('owner.settings.closure_remove_ask'), ok: trans('common.remove'), danger: true }))
         router.delete(route('owner.closures.destroy', id), opts);
 }
+// the sections to jump to (Menus only for the owner)
+const jumps = computed(() =>
+    [
+        { id: 's-profile', label: 'owner.settings.profile' },
+        { id: 's-prices', label: 'owner.settings.prices_title' },
+        { id: 's-courts', label: 'owner.courts.title' },
+        { id: 's-closures', label: 'owner.settings.closures' },
+        { id: 's-menus', label: 'owner.menus.title', on: props.canEdit },
+        { id: 's-hours', label: 'common.opening_hours' },
+        { id: 's-rules', label: 'common.booking_rules' },
+        { id: 's-telegram', label: 'owner.settings.telegram' },
+        { id: 's-account', label: 'common.account' },
+    ].filter((j) => j.on !== false),
+);
+function jump(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 const fmtRange = (c: ClosureRow) =>
     `${c.from.slice(8, 10)}.${c.from.slice(5, 7)} ${c.from.slice(11)} – ${c.to.slice(0, 10) === c.from.slice(0, 10) ? '' : c.to.slice(8, 10) + '.' + c.to.slice(5, 7) + ' '}${c.to.slice(11)}`;
 </script>
@@ -302,11 +319,15 @@ const fmtRange = (c: ClosureRow) =>
                     <h1>{{ $t('owner.nav.settings') }}</h1>
                 </div>
             </div>
+            <!-- phones and small screens: jump to a section (the page is long) -->
+            <nav class="sjump" :aria-label="$t('owner.nav.settings')">
+                <a v-for="j in jumps" :key="j.id" :href="'#' + j.id" @click.prevent="jump(j.id)">{{ $t(j.label) }}</a>
+            </nav>
             <div v-if="!canEdit" class="readonly-note"><Icon name="eye" size="sm" />{{ $t('owner.settings.readonly') }}</div>
 
             <div class="sgrid">
                 <div class="scol">
-                    <section class="card panel">
+                    <section id="s-profile" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('owner.settings.profile') }}</h2>
                             <span v-if="place.status === 'active'" class="pill green">{{ $t('owner.settings.active') }}</span>
@@ -365,7 +386,7 @@ const fmtRange = (c: ClosureRow) =>
                         <p class="faint" style="font-size: 12.5px; margin: 12px 0 0">{{ $t('owner.settings.profile_note') }}</p>
                     </section>
 
-                    <section class="card panel">
+                    <section id="s-prices" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('owner.settings.prices_title') }}</h2>
                         </div>
@@ -463,7 +484,7 @@ const fmtRange = (c: ClosureRow) =>
                     </section>
 
                     <!-- tables / fields: a 4th table, a name, out of order for a while, gone -->
-                    <section class="card panel" data-test="courts">
+                    <section id="s-courts" class="card panel" data-test="courts">
                         <div class="sec-h">
                             <h2>{{ $t('owner.courts.title') }}</h2>
                         </div>
@@ -496,7 +517,7 @@ const fmtRange = (c: ClosureRow) =>
                         </div>
                     </section>
 
-                    <section class="card panel">
+                    <section id="s-closures" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('owner.settings.closures') }}</h2>
                         </div>
@@ -553,7 +574,7 @@ const fmtRange = (c: ClosureRow) =>
                     <!-- what the owner panel and the staff panel show (and how much staff may do) -->
                     <MenusSettings v-if="canEdit" />
 
-                    <section class="card panel">
+                    <section id="s-telegram" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('owner.settings.telegram') }}</h2>
                         </div>
@@ -562,7 +583,7 @@ const fmtRange = (c: ClosureRow) =>
                         <div v-else class="tg-hint"><Icon name="check" size="sm" />{{ $t('owner.settings.telegram_on') }}</div>
                     </section>
 
-                    <section class="card panel">
+                    <section id="s-hours" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('common.opening_hours') }}</h2>
                         </div>
@@ -615,7 +636,7 @@ const fmtRange = (c: ClosureRow) =>
                         <span v-if="errOf('hours')" class="err">{{ errOf('hours') }}</span>
                     </section>
 
-                    <section class="card panel">
+                    <section id="s-rules" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('common.booking_rules') }}</h2>
                         </div>
@@ -712,7 +733,7 @@ const fmtRange = (c: ClosureRow) =>
                         <span v-if="errOf('rules')" class="err">{{ errOf('rules') }}</span>
                     </section>
 
-                    <section class="card panel">
+                    <section id="s-account" class="card panel">
                         <div class="sec-h">
                             <h2>{{ $t('common.account') }}</h2>
                         </div>
@@ -750,6 +771,17 @@ const fmtRange = (c: ClosureRow) =>
 </template>
 
 <style scoped>
+.sjump { display: none; }
+/* the jump menu: one row of chips that scrolls sideways, staying under the top bar while the page scrolls */
+@media (max-width: 1100px) {
+    .sjump { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; position: sticky; top: 0; z-index: 5; margin: 0 -16px 12px; padding: 8px 16px; background: var(--bg); }
+    .sjump::-webkit-scrollbar { display: none; }
+    .sjump a { flex: none; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 700; white-space: nowrap; }
+}
+@media (max-width: 900px) {
+    .sjump { top: 61px; }
+}
+section[id] { scroll-margin-top: 120px; }
 .colgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
 .colrow { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; background: var(--surface-2); cursor: pointer; }
 .colrow input[type='color'] { width: 34px; height: 34px; border: 0; padding: 0; background: none; border-radius: 8px; cursor: pointer; flex: none; }

@@ -2,6 +2,7 @@
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import { api, type ChatItem, type ChatMessage, chatIcon, chatTitle, clock, sysText, userName } from '@/composables/useChat';
+import { useOwner } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
 import { trans } from '@/lib/i18n';
@@ -10,6 +11,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // The owner panel's mini chat (computers only): a round button at the bottom right with the unread number; it opens a
 // small window with the chats (players writing to the place, tournament chats) and a conversation, so the staff can
 // answer while they book. Live: the user's channel (a chat changed) and the open chat's channel (new messages).
+const owner = useOwner();
 const { user } = useShared();
 const me = computed(() => user.value?.id ?? 0);
 const wide = ref(false);
@@ -51,7 +53,7 @@ const unread = computed(() => chats.value.filter((c) => !c.muted).reduce((n, c) 
 
 async function loadList() {
     try {
-        const r = await api<{ chats: ChatItem[] }>('GET', route('messages.list'));
+        const r = await api<{ chats: ChatItem[] }>('GET', route('messages.list', { venue: owner.value.venue.id }));
         chats.value = r.chats;
         if (current.value) current.value = r.chats.find((c) => c.id === current.value!.id) ?? current.value;
     } catch {

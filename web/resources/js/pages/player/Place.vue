@@ -106,6 +106,12 @@ const allStarts = computed(() => {
     const taken = slotRow.value?.taken?.[String(minutes.value)] ?? [];
     return [...free.value.map((t) => ({ t, taken: false })), ...taken.map((t) => ({ t, taken: true }))].sort((a, b) => a.t - b.t);
 });
+// morning (before 12), day (12–17), evening (from 17): only the parts that have times
+const startGroups = computed(() =>
+    (['morning', 'day', 'evening'] as const)
+        .map((key) => ({ key, items: allStarts.value.filter((x) => (key === 'morning' ? x.t < 12 : key === 'day' ? x.t >= 12 && x.t < 17 : x.t >= 17)) }))
+        .filter((g) => g.items.length),
+);
 /** nothing free this day: the first free start on a later day */
 const nextFree = computed(() => (free.value.length ? null : (slotRow.value?.next?.[String(minutes.value)] ?? null)));
 
@@ -681,41 +687,47 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                                 {{ hhmm(m.start) }}–{{ hhmm(m.end) }}
                             </button>
                         </div>
-                        <div v-if="allStarts.length" :class="['slots', { dim: loading, pulse }]">
-                            <template v-for="s in allStarts" :key="s.t">
-                                <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
-                                <!-- taken, and one of the taken tables is mine: a tap shows my booking, not "notify me" -->
-                                <button
-                                    v-if="s.taken && mineOver(s.t)"
-                                    type="button"
-                                    class="tslot mine"
-                                    aria-haspopup="dialog"
-                                    :title="$t('player.place.mine_title')"
-                                    @click="openMine(mineOver(s.t)!)"
-                                >
-                                    {{ hhmm(s.t) }}
-                                </button>
-                                <button
-                                    v-else-if="s.taken"
-                                    type="button"
-                                    :class="['tslot taken', { watched: watchedAlert(s.t) }]"
-                                    aria-disabled="true"
-                                    aria-haspopup="dialog"
-                                    :title="watchedAlert(s.t) ? $t('player.alert.watching') : $t('player.place.taken')"
-                                    :aria-label="`${hhmm(s.t)} · ${$t('player.place.taken')}${watchedAlert(s.t) ? ' · ' + $t('player.alert.watching') : ''}`"
-                                    @click="openTaken(s.t)"
-                                >
-                                    <span class="tt">{{ hhmm(s.t) }}</span><Icon name="bell" size="sm" class="bell" />
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    :class="['tslot', { prime: twoRates && isPrime(field, s.t), on: start != null && same(s.t, start) }]"
-                                    :aria-pressed="start != null && same(s.t, start)"
-                                    @click="pickStart(s.t)"
-                                >
-                                    {{ hhmm(s.t) }}
-                                </button>
+                        <div v-if="allStarts.length" class="sgroups">
+                            <!-- the start times by part of the day, so a long day is easy to scan -->
+                            <template v-for="g in startGroups" :key="g.key">
+                                <div class="sgh">{{ $t('player.place.part_' + g.key) }}</div>
+                                <div :class="['slots', { dim: loading, pulse }]">
+                                    <template v-for="s in g.items" :key="s.t">
+                                    <!-- taken: not bookable; a tap offers "notify me if it frees up" -->
+                                    <!-- taken, and one of the taken tables is mine: a tap shows my booking, not "notify me" -->
+                                    <button
+                                        v-if="s.taken && mineOver(s.t)"
+                                        type="button"
+                                        class="tslot mine"
+                                        aria-haspopup="dialog"
+                                        :title="$t('player.place.mine_title')"
+                                        @click="openMine(mineOver(s.t)!)"
+                                    >
+                                        {{ hhmm(s.t) }}
+                                    </button>
+                                    <button
+                                        v-else-if="s.taken"
+                                        type="button"
+                                        :class="['tslot taken', { watched: watchedAlert(s.t) }]"
+                                        aria-disabled="true"
+                                        aria-haspopup="dialog"
+                                        :title="watchedAlert(s.t) ? $t('player.alert.watching') : $t('player.place.taken')"
+                                        :aria-label="`${hhmm(s.t)} · ${$t('player.place.taken')}${watchedAlert(s.t) ? ' · ' + $t('player.alert.watching') : ''}`"
+                                        @click="openTaken(s.t)"
+                                    >
+                                        <span class="tt">{{ hhmm(s.t) }}</span><Icon name="bell" size="sm" class="bell" />
+                                    </button>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        :class="['tslot', { prime: twoRates && isPrime(field, s.t), on: start != null && same(s.t, start) }]"
+                                        :aria-pressed="start != null && same(s.t, start)"
+                                        @click="pickStart(s.t)"
+                                    >
+                                        {{ hhmm(s.t) }}
+                                    </button>
+                                    </template>
+                                </div>
                             </template>
                         </div>
                         <div v-if="allStarts.length" class="tgl">
@@ -1076,6 +1088,8 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .fbody .fp { font-size: 13px; font-weight: 800; color: var(--ink); margin-top: 2px; }
 .fbusy { position: absolute; right: 10px; top: 8px; font-size: 11px; font-weight: 800; color: var(--muted); }
 .slots { display: flex; gap: 6px; flex-wrap: wrap; transition: opacity .15s; }
+.sgh { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 6px; }
+.sgroups > .sgh:first-child { margin-top: 0; }
 .slots.dim { opacity: .5; }
 .tslot { font-family: var(--mono); font-size: 14px; padding: 8px 0; width: 74px; text-align: center; border-radius: 9px; background: var(--free-soft); color: var(--free); border: 1px solid rgba(94, 240, 168, .22); }
 .tslot:hover { background: rgba(94, 240, 168, .22); }

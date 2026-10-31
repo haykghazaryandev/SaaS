@@ -2,10 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Chat\Chat;
 use App\Domain\Venues\Menus;
 use App\Enums\Sport;
 use App\Http\Controllers\Owner\BookingPresenter;
 use App\Models\Booking;
+use App\Models\Conversation;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use Closure;
@@ -45,6 +47,10 @@ class EnsureVenueStaff
             // Settings → Menus: the two panels' menus and staff's levels, with the menus the place has
             'menus' => Menus::of($venue) + ['available' => Menus::available($venue)],
             'venues' => $venues->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->values(),
+            // unread messages in this place's chats (the Chats badge of the panel; the player app counts all of mine)
+            'unreadChats' => array_sum(array_intersect_key(app(Chat::class)->unread($user), array_flip(
+                Conversation::ofPlace(Conversation::query(), $venue->id)->pluck('id')->all()
+            ))),
             'pending' => Booking::query()->where('venue_id', $venue->id)->where('status', 'pending')->where('starts_at', '>', now())->count(),
             'fields' => BookingPresenter::fields($venue->loadMissing(['fields', 'openingHours'])),
             'hours' => BookingPresenter::hours($venue),

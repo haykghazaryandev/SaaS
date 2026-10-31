@@ -379,7 +379,9 @@ watch(upIds, (ids) => {
 .bar.soon i { background: var(--warn); }
 .bar.up i { background: var(--hot); }
 .bar.train i { background: #ff7ad9; }
-.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+/* the card's actions side by side in one row (long Armenian words go to a second line inside the button) */
+.btns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
+.btns > .btn { justify-content: center; text-align: center; white-space: normal; line-height: 1.15; padding-left: 6px; padding-right: 6px; min-height: 38px; }
 .btn.red { background: rgba(255, 107, 107, 0.14); color: var(--hot); border: 1px solid rgba(255, 107, 107, 0.35); }
 .cnt { margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--accent); color: #0b0f0c; font-size: 11px; display: inline-grid; place-items: center; }
 .panel { margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line-2); }

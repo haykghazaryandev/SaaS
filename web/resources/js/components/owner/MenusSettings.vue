@@ -59,7 +59,7 @@ function save() {
 </script>
 
 <template>
-    <section class="card panel" data-test="menus">
+    <section id="s-menus" class="card panel" data-test="menus">
         <div class="sec-h">
             <h2>{{ $t('owner.menus.title') }}</h2>
         </div>

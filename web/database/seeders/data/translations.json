@@ -3114,6 +3114,56 @@
         "hy": "Ձեր անունը",
         "ru": "Ваше имя"
     },
+    "errors.back": {
+        "en": "Back",
+        "hy": "Հետ",
+        "ru": "Назад"
+    },
+    "errors.broken_text": {
+        "en": "We already know about it. Try again in a minute.",
+        "hy": "Մենք արդեն գիտենք այդ մասին։ Փորձեք մեկ րոպեից։",
+        "ru": "Мы уже знаем об этом. Попробуйте через минуту."
+    },
+    "errors.broken_title": {
+        "en": "Something went wrong",
+        "hy": "Ինչ-որ բան սխալ գնաց",
+        "ru": "Что-то пошло не так"
+    },
+    "errors.down_text": {
+        "en": "ZoneSpot is updating. Try again in a minute.",
+        "hy": "ZoneSpot-ը թարմացվում է։ Փորձեք մեկ րոպեից։",
+        "ru": "ZoneSpot обновляется. Попробуйте через минуту."
+    },
+    "errors.down_title": {
+        "en": "Back in a moment",
+        "hy": "Շուտով կվերադառնանք",
+        "ru": "Скоро вернёмся"
+    },
+    "errors.forbidden_text": {
+        "en": "You can't open this page. Ask the owner of the place if you need it.",
+        "hy": "Դուք չեք կարող բացել այս էջը։ Անհրաժեշտության դեպքում դիմեք վայրի սեփականատիրոջը։",
+        "ru": "Вы не можете открыть эту страницу. Если нужно, спросите владельца места."
+    },
+    "errors.forbidden_title": {
+        "en": "No access",
+        "hy": "Մուտք չկա",
+        "ru": "Нет доступа"
+    },
+    "errors.home": {
+        "en": "Home",
+        "hy": "Գլխավոր",
+        "ru": "Главная"
+    },
+    "errors.not_found_text": {
+        "en": "This page doesn't exist, or this place doesn't have it.",
+        "hy": "Այս էջը չկա, կամ այս վայրում այն չկա։",
+        "ru": "Такой страницы нет, или у этого места её нет."
+    },
+    "errors.not_found_title": {
+        "en": "Page not found",
+        "hy": "Էջը չի գտնվել",
+        "ru": "Страница не найдена"
+    },
     "friends.add": {
         "en": "Add friend",
         "hy": "Ավելացնել ընկերներին",
@@ -5749,6 +5799,11 @@
         "hy": "Զբաղվածություն",
         "ru": "Загрузка"
     },
+    "owner.dashboard.kpi_occupancy_short": {
+        "en": "Full",
+        "hy": "Զբաղված",
+        "ru": "Занято"
+    },
     "owner.dashboard.kpi_requests_none": {
         "en": "All answered",
         "hy": "Բոլորին պատասխանված է",
@@ -5773,6 +5828,11 @@
         "en": "sent :ago",
         "hy": "ուղարկվել է :ago",
         "ru": "отправлена :ago"
+    },
+    "owner.dashboard.telegram_go": {
+        "en": "Connect",
+        "hy": "Միացնել",
+        "ru": "Подключить"
     },
     "owner.dashboard.telegram_sub": {
         "en": "New requests come to Telegram with Accept and Decline buttons, so players don’t wait.",
@@ -6689,19 +6749,34 @@
         "hy": "Աշխատակից․ ժամանակացույց և ամրագրումներ",
         "ru": "Сотрудник: расписание и брони"
     },
-    "owner.sched.ends": {
-        "en": "ends :t",
-        "hy": "ավարտ՝ :t",
-        "ru": "до :t"
+    "owner.sched.day_full": {
+        "en": ":n bookings · :p% full",
+        "hy": ":n ամրագրում · :p% զբաղված",
+        "ru": ":n броней · занято :p%"
     },
-    "owner.sched.in_h": {
-        "en": "in :h h :m",
-        "hy": ":h ժ :m րոպեից",
-        "ru": "через :h ч :m"
+    "owner.sched.full_hi": {
+        "en": "Almost full",
+        "hy": "Գրեթե լիքը",
+        "ru": "Почти полно"
     },
-    "owner.sched.in_min": {
+    "owner.sched.full_lo": {
+        "en": "Quiet",
+        "hy": "Ազատ",
+        "ru": "Свободно"
+    },
+    "owner.sched.full_mid": {
+        "en": "Busy",
+        "hy": "Զբաղված",
+        "ru": "Занято"
+    },
+    "owner.sched.in_hm": {
+        "en": "in :h::m",
+        "hy": ":h::m հետո",
+        "ru": "через :h::m"
+    },
+    "owner.sched.in_m": {
         "en": "in :m min",
-        "hy": ":m րոպեից",
+        "hy": ":m ր հետո",
         "ru": "через :m мин"
     },
     "owner.sched.later_today": {
@@ -6743,6 +6818,11 @@
         "en": "Request",
         "hy": "Հայտ",
         "ru": "Заявка"
+    },
+    "owner.sched.until": {
+        "en": "until :t",
+        "hy": "մինչև :t",
+        "ru": "до :t"
     },
     "owner.schedule.closed_day": {
         "en": "The place is closed on this day (opening hours).",
@@ -8488,6 +8568,21 @@
         "en": "Open :a–:b",
         "hy": "Բաց է :a–:b",
         "ru": "Открыто :a–:b"
+    },
+    "player.place.part_day": {
+        "en": "Day",
+        "hy": "Ցերեկ",
+        "ru": "День"
+    },
+    "player.place.part_evening": {
+        "en": "Evening",
+        "hy": "Երեկո",
+        "ru": "Вечер"
+    },
+    "player.place.part_morning": {
+        "en": "Morning",
+        "hy": "Առավոտ",
+        "ru": "Утро"
     },
     "player.place.pick": {
         "en": "Pick a field and a start time.",
