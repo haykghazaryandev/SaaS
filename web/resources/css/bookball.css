@@ -507,9 +507,14 @@ html.kb-open .papp.with-tabbar { --app-bottom: 0px; }
 /* full-screen pages on phones (the chat: PlayerLayout .papp.fs) take exactly the height still visible above the
    keyboard: no empty band on iPhone */
 html.kb-open .papp.fs { height: var(--vvh, 100dvh); }
+/* iPhone also slides the page up under the keyboard (the chat header goes off screen and an empty band shows
+   above the keyboard): pin the chat to the visible part itself (--vvt: how far the visible part is moved down) */
+@media (max-width: 900px) { html.kb-open .papp.fs { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); } }
 html.kb-open .chat.inpanel { height: calc(var(--vvh, 100dvh) - 70px - var(--sat)); }
-/* the strip behind the status bar (time, battery, the Dynamic Island) is solid: the page never shows through it
-   blurred. Dark in both themes: in the installed app iPhone draws the time in white. */
-:root { --statusbar: #0a0d0b; }
-.top { background: linear-gradient(to bottom, var(--statusbar) var(--sat), rgba(10, 13, 11, 0.93) var(--sat)); }
-:root[data-theme="light"] .top { background: linear-gradient(to bottom, var(--statusbar) var(--sat), rgba(246, 248, 243, 0.94) var(--sat)); }
+/* the top bar is solid, the strip behind the status bar (time, battery, the Dynamic Island) included: the page never
+   shows through it blurred while scrolling. The strip is dark in both themes: in the installed app iPhone draws the
+   time in white. */
+:root { --statusbar: #0a0d0b; --topbar: #0a0d0b; }
+:root[data-theme="light"] { --topbar: #f6f8f3; }
+.top { background: linear-gradient(to bottom, var(--statusbar) var(--sat), var(--topbar) var(--sat)); backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-theme="light"] .top { background: linear-gradient(to bottom, var(--statusbar) var(--sat), var(--topbar) var(--sat)); }

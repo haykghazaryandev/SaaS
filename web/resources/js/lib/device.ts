@@ -39,15 +39,20 @@ export function watchKeyboard() {
     const vv = window.visualViewport;
     if (!vv) return;
     const root = document.documentElement;
+    let wasOpen = false;
     const update = () => {
         const open = window.innerHeight - vv.height > 140 && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '');
         root.classList.toggle('kb-open', open);
         root.style.setProperty('--vvh', `${Math.round(vv.height)}px`);
-        // iPhone scrolls the whole page up to show the field; a full-height screen (the chat) already fits the
-        // visible part, so keep its top (the header) in place
-        if (open && document.querySelector('.chat')) window.scrollTo(0, 0);
+        // iPhone slides the page up to show the field: --vvt is where the visible part starts, the chat (fixed while
+        // the keyboard is open) sits there, so its header stays on screen and its bottom touches the keyboard
+        root.style.setProperty('--vvt', `${Math.round(vv.offsetTop)}px`);
+        // keyboard closed: put back the page iPhone slid up
+        if (wasOpen && !open && document.querySelector('.chat')) window.scrollTo(0, 0);
+        wasOpen = open;
     };
     vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
     document.addEventListener('focusin', () => setTimeout(update, 120));
     document.addEventListener('focusout', () => setTimeout(update, 120));
     update();
