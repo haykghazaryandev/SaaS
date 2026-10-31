@@ -791,9 +791,9 @@ const fmtRange = (c: ClosureRow) =>
     .sjump a { flex: none; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 700; white-space: nowrap; }
 }
 @media (max-width: 900px) {
-    .sjump { top: 61px; }
+    .sjump { top: calc(61px + var(--sat)); }
 }
-section[id] { scroll-margin-top: 120px; }
+section[id] { scroll-margin-top: calc(120px + var(--sat)); }
 .colgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
 .colrow { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; background: var(--surface-2); cursor: pointer; }
 .colrow input[type='color'] { width: 34px; height: 34px; border: 0; padding: 0; background: none; border-radius: 8px; cursor: pointer; flex: none; }

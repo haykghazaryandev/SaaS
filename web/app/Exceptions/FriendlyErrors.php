@@ -7,15 +7,13 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
-use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
  * Never Laravel's bare error pages for the common cases, always in the visitor's language:
- * - 404 (no such page / record): a page in the app's look; inside the app (Inertia) a link to it opens it as a page,
- *   an action on it (a form) stays on the page with a toast;
+ * - 404: a form / button in the app stays on its page with a toast; a page load gets our Error page (bootstrap/app.php);
  * - 419 (a form open too long: the session / CSRF token expired): back to the page, refreshed, with a toast;
  * - 429 (a route's request limit): a toast in the app, a page on a full page load.
  * These can answer before SetLocale runs (the CSRF check, the route bindings), so the language is worked out here.
@@ -50,12 +48,10 @@ class FriendlyErrors
         if ($status === 419 && ! $request->isMethod('GET')) {
             return back(303)->with('error', $text);
         }
+        if ($status === 404 && ($request->isMethod('GET') || ! $request->hasHeader('X-Inertia'))) {
+            return null;   // our Error page (bootstrap/app.php)
+        }
         if ($request->hasHeader('X-Inertia')) {
-            // a link inside the app: open the 404 as a page, not in Inertia's pop-up
-            if ($status === 404 && $request->isMethod('GET')) {
-                return Inertia::location($request->fullUrl());
-            }
-
             return back(303)->withErrors([$status === 429 ? 'throttle' : 'error' => $text]);
         }
 

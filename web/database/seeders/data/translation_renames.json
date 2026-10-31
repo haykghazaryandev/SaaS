@@ -881,5 +881,6 @@
     "owner.reason.taken": null,
     "owner.tournament.sent": null,
     "games.show.you": null,
-    "admin.venue.slug_help": null
+    "admin.venue.slug_help": null,
+    "common.not_found_title": null
 }

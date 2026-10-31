@@ -309,8 +309,9 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .pick h2 { font-size: clamp(26px, 5vw, 38px); margin: 0 0 6px; }
 .intro { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 28px; }
 /* the video is black ink on white: inverted (white on black), the ink takes the theme gradient (multiply),
-   and the black drops into the page (screen), so the mark looks lit on the page itself */
-.intro-art { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; background: var(--grad); mix-blend-mode: screen; opacity: 0; transition: opacity .6s; }
+   and the black drops into the page (screen), so the mark looks lit on the page itself.
+   iPhone Safari ignores the screen blend over a video: the faded edges keep a black square from showing there */
+.intro-art { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; background: var(--grad); mix-blend-mode: screen; opacity: 0; transition: opacity .6s; mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent), linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent); mask-composite: intersect; }
 .intro-art.ready { opacity: 1; }
 .intro-art video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.15); filter: invert(1) grayscale(1) contrast(1.15); mix-blend-mode: multiply; }
 .intro-name { margin: 0; font-size: clamp(40px, 9vw, 68px); letter-spacing: -0.03em; line-height: 1; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -332,7 +333,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .shead h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .allsports { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; align-self: flex-start; }
 .allsports:hover { color: var(--accent); }
-.stabs { position: sticky; top: 64px; z-index: 20; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin-top: 16px; padding: 4px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }
+.stabs { position: sticky; top: calc(64px + var(--sat)); z-index: 20; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin-top: 16px; padding: 4px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }
 .stabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: inherit; font-weight: 800; font-size: 14px; min-width: 0; white-space: nowrap; }
 .stabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
 @media (max-width: 440px) { .stabs button { font-size: 12.5px; gap: 4px; padding: 10px 2px; } .stabs button .ico { display: none; } }

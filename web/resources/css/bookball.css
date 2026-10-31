@@ -32,6 +32,8 @@
   --tab-gap: max(10px, calc(var(--sab) - 12px));
   /* the space to keep free at the bottom (iPhone home indicator): the browser's, Telegram's (Mini App), or a minimum */
   --sab: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px), var(--tg-min-bottom, 0px));
+  /* the iPhone status bar (viewport-fit=cover): sticky headers keep it free so content does not show behind it */
+  --sat: env(safe-area-inset-top, 0px);
   --bg: #0a0d0b; --bg-2: #0f1310; --surface: #141915; --surface-2: #1b211c; --surface-3: #232b24;
   --ink: #eef5ec; --muted: #9aa69b; --faint: #657066; --line: rgba(220, 255, 220, 0.08); --line-2: rgba(220, 255, 220, 0.15);
   --accent: #c8ff3d; --accent-2: #5ef0a8; --on-accent: #0d1404;
@@ -81,7 +83,7 @@ button { cursor: pointer; }
 @media (max-width: 600px) { .wrap { padding: 0 16px; } }
 
 /* ---------- header ---------- */
-.top { position: sticky; top: 0; z-index: 40; background: rgba(10, 13, 11, 0.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+.top { position: sticky; top: 0; z-index: 40; padding-top: var(--sat); background: rgba(10, 13, 11, 0.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
 .top .wrap { display: flex; align-items: center; gap: 18px; height: 64px; }
 .logo { display: flex; align-items: center; gap: 12px; font-family: var(--display); font-weight: 700; font-size: 21px; letter-spacing: -0.02em; }
 .logo-mark { width: 42px; height: 42px; border-radius: 12px; background: var(--grad); display: grid; place-items: center; color: var(--on-accent); box-shadow: 0 6px 20px -6px rgba(200, 255, 61, 0.6); }
@@ -110,6 +112,9 @@ button { cursor: pointer; }
 .tabbar { display: none; }
 @media (max-width: 900px) {
   body:has(.tabbar) { padding-bottom: calc(84px + var(--tab-gap)); }
+  /* hides the content scrolling past under the floating bar */
+  body:has(.tabbar)::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--tab-gap) + 40px); z-index: 49; pointer-events: none; background: linear-gradient(to bottom, rgba(10, 13, 11, 0), var(--bg) 24px); transition: opacity .2s; }
+  body:has(.tabbar.tab-hide)::after { opacity: 0; }
   /* floating (Instagram-like): a small gap above the home indicator, 12px from the sides; slides away while
      you scroll down and comes back when you scroll up (.tab-hide, PlayerLayout) */
   .tabbar { display: flex; position: fixed; left: 12px; right: 12px; bottom: var(--tab-gap); z-index: 50; background: rgba(18, 23, 19, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--line-2); border-radius: 24px; box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.85); padding: 6px; transition: transform .28s cubic-bezier(.2, .8, .2, 1), opacity .2s; }

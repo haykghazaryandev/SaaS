@@ -109,12 +109,12 @@ watch(() => page.url, () => (open.value = false));
 .btxt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .btxt small { color: var(--faint); font-size: 11.5px; }
 .bempty { margin: 0; padding: 22px 14px; text-align: center; color: var(--muted); font-size: 13.5px; }
-.ntoast { position: fixed; right: 16px; top: 76px; z-index: 95; max-width: min(380px, calc(100vw - 32px)); display: flex; gap: 10px; align-items: flex-start; text-align: left; background: var(--surface-2); color: var(--ink); border: 1px solid rgba(200, 255, 61, 0.35); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); font-weight: 600; font-size: 13.5px; animation: nt-in 0.25s ease-out; }
+.ntoast { position: fixed; right: 16px; top: calc(76px + var(--sat)); z-index: 95; max-width: min(380px, calc(100vw - 32px)); display: flex; gap: 10px; align-items: flex-start; text-align: left; background: var(--surface-2); color: var(--ink); border: 1px solid rgba(200, 255, 61, 0.35); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); font-weight: 600; font-size: 13.5px; animation: nt-in 0.25s ease-out; }
 .ntoast .ico { color: var(--accent); margin-top: 2px; }
 @keyframes nt-in { from { transform: translateY(-8px); opacity: 0; } }
 @media (max-width: 600px) {
   .bell { position: static; }
-  .bdrop { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; max-width: none; }
-  .ntoast { left: 16px; right: 16px; top: 72px; max-width: none; }
+  .bdrop { position: fixed; left: 12px; right: 12px; top: calc(64px + var(--sat)); width: auto; max-width: none; }
+  .ntoast { left: 16px; right: 16px; top: calc(72px + var(--sat)); max-width: none; }
 }
 </style>

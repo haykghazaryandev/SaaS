@@ -1143,7 +1143,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .err-box.warn { background: var(--warn-soft); color: var(--warn); }
 .err-box .ico { margin-top: 2px; }
 
-.sumcard { padding: 18px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 84px; min-width: 0; }
+.sumcard { padding: 18px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: calc(84px + var(--sat)); min-width: 0; }
 .empty-sum { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .sumhead { display: flex; gap: 12px; align-items: center; }
 .sumhead .thumb { width: 76px; flex: none; border-radius: 8px; overflow: hidden; }
@@ -1187,6 +1187,10 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
   .bbinfo b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bbinfo small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pg { padding-bottom: 90px; }
+}
+/* phones: hides the content scrolling past under the booking bar */
+@media (max-width: 900px) {
+  :global(body:has(.bookbar)::after) { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--sab) + 40px); z-index: 44; pointer-events: none; background: linear-gradient(to bottom, rgba(10, 13, 11, 0), var(--bg) 24px); }
 }
 @media (max-width: 600px) {
   .flow, .sumcard { padding: 14px; }

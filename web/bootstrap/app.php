@@ -11,6 +11,7 @@ use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\StaffStayInPanel;
 use App\Http\Middleware\TouchLastSeen;
 use App\Http\Middleware\TrustProxies;
+use App\Support\Translations;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -56,6 +57,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->render(fn (Throwable $e, Request $request) => FriendlyErrors::render($e, $request));
+        // pages (not JSON, not the admin panel): our error page instead of the framework's white one; while
+        // debugging, a crash still shows the details
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
             $status = $response->getStatusCode();
             $page = in_array($status, [403, 404], true) || (in_array($status, [500, 503], true) && ! config('app.debug'));
@@ -64,6 +68,10 @@ return Application::configure(basePath: dirname(__DIR__))
             if (! $page || $request->expectsJson() || $admin) {
                 return $response;
             }
+
+            // the error can come before SetLocale and HandleInertiaRequests ran (route bindings)
+            app()->setLocale(SetLocale::detect($request));
+            Inertia::share(['locale' => app()->getLocale(), 'langVersion' => app(Translations::class)->version()]);
 
             return Inertia::render('Error', ['status' => $status])->toResponse($request)->setStatusCode($status);
         });

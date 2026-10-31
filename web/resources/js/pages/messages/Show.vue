@@ -846,7 +846,7 @@ onBeforeUnmount(() => {
 .tick.seen { color: var(--accent-2); }
 .chat { max-width: 820px; width: 100%; margin: 12px auto 0; display: flex; flex-direction: column; height: calc(100dvh - var(--app-top, 64px) - 24px); min-height: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
 .chat.inpanel { margin-top: 0; height: calc(100dvh - 120px); }
-@media (max-width: 900px) { .chat.inpanel { height: calc(100dvh - 170px); margin: 0; } }
+@media (max-width: 900px) { .chat.inpanel { height: calc(100dvh - 170px - var(--sat)); margin: 0; } }
 .chead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2); min-width: 0; }
 .back { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); flex: none; }
 .back:hover { background: var(--surface-2); color: var(--ink); }
@@ -1003,11 +1003,14 @@ onBeforeUnmount(() => {
 @media (max-width: 900px) {
     .chat { flex: 1 1 auto; height: auto; min-height: 0; margin: 0 -20px; width: auto; max-width: none; border-radius: 0; border: 0; }
     .chead { padding-top: calc(10px + env(safe-area-inset-top)); }
+    /* owner panel: the owner top bar already keeps the status bar free */
+    .chat.inpanel .chead { padding-top: 10px; }
 }
 @media (max-width: 600px) {
     .chat { margin: 0 -16px; }
     .hide-sm { display: none; }
     .chead { padding: calc(8px + env(safe-area-inset-top)) 10px 8px; gap: 8px; }
+    .chat.inpanel .chead { padding-top: 8px; }
     .cbody { padding: 10px 10px 6px; }
     .mcol { max-width: 84%; }
 }

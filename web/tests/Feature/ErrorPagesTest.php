@@ -3,33 +3,39 @@
 use App\Models\User;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Route;
+use Inertia\Testing\AssertableInertia as Assert;
 
-// 404 and 419 never show Laravel's bare pages, and answer in the visitor's language (App\Exceptions\FriendlyErrors).
+// 404 and 419 never show Laravel's bare pages (a page load: our Error page), and answer in the visitor's language (App\Exceptions\FriendlyErrors).
 // Each check starts its last request in the default language, as a fresh request on a real server does.
 
 // ---------- 404 ----------
 
-it('shows a 404 page in the browser\'s language for an address that does not exist', function () {
+it('shows our error page in the browser\'s language for an address that does not exist', function () {
     app()->setLocale('hy');
     $this->get('/no-such-page', ['Accept-Language' => 'ru'])->assertNotFound()
-        ->assertSee('<html lang="ru">', false)->assertSee('Страница не найдена')->assertDontSee('Not Found');
+        ->assertInertia(fn (Assert $p) => $p->component('Error')->where('status', 404)->where('locale', 'ru'));
 });
 
 it('uses the account\'s language, also for a record that is gone', function () {
     $this->actingAs(User::factory()->create(['locale' => 'en', 'locale_chosen_at' => now()]));
-    app()->setLocale('hy');
-    $this->get('/no-such-page')->assertNotFound()->assertSee('Page not found');
     // the route binding fails before the language middleware runs
     app()->setLocale('hy');
-    $this->get('/games/999999')->assertNotFound()->assertSee('<html lang="en">', false)->assertSee('Page not found');
+    $this->get('/games/999999')->assertNotFound()
+        ->assertInertia(fn (Assert $p) => $p->component('Error')->where('status', 404)->where('locale', 'en')->has('langVersion'));
 });
 
-it('opens a missing page as a page from inside the app, and answers JSON with a message', function () {
+it('opens a missing page inside the app as our error page, and answers JSON with a message', function () {
     $this->actingAs(User::factory()->create(['locale' => 'en', 'locale_chosen_at' => now()]));
-    // an Inertia link: a full visit to the address (not Inertia's pop-up with the HTML)
-    $this->get('/games/999999', ['X-Inertia' => 'true'])->assertStatus(409)->assertHeader('X-Inertia-Location', url('/games/999999'));
+    $this->get('/games/999999', ['X-Inertia' => 'true'])->assertNotFound()->assertJsonPath('component', 'Error');
     app()->setLocale('hy');
     $this->getJson('/games/999999')->assertNotFound()->assertJson(['message' => trans('common.not_found', [], 'en')]);
+});
+
+it('keeps a form sent to a record that is gone on its page, with a toast', function () {
+    $this->actingAs(User::factory()->create(['locale' => 'en', 'locale_chosen_at' => now()]));
+    app()->setLocale('hy');
+    $this->from('/friends')->delete('/games/999999', [], ['X-Inertia' => 'true'])
+        ->assertStatus(303)->assertRedirect('/friends')->assertSessionHasErrors(['error' => trans('common.not_found', [], 'en')]);
 });
 
 // ---------- 419 (a form open too long) ----------

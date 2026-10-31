@@ -37,7 +37,7 @@
 @media (max-width: 900px) {
   .oapp { padding-left: 0; }
   .oapp .oside { display: none; }
-  .oapp .otop { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 40; padding: 10px 16px; background: rgba(10, 13, 11, 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+  .oapp .otop { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 40; padding: calc(10px + var(--sat)) 16px 10px; background: rgba(10, 13, 11, 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
   .oapp .otop .logo-mark { flex: none; }
   .oapp .otop .vsel { flex: 1; min-width: 0; padding: 8px 28px 8px 10px; font-size: 13px; }
   .oapp .otop .lang button { padding: 5px 7px; }
@@ -125,7 +125,7 @@
 .oapp .dchip .dp { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); margin-top: 2px; }
 .oapp .dchip[aria-pressed="true"] .dp { background: #a46a00; }
 .oapp .datebar input[type="date"] { width: auto; padding: 8px 10px; }
-.oapp .sched-wrap { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: auto; max-height: calc(100vh - 250px); min-height: 380px; position: relative; }
+.oapp .sched-wrap { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: auto; max-height: calc(100vh - 250px - var(--sat)); min-height: 380px; position: relative; }
 .oapp .sched { display: grid; grid-template-columns: 58px minmax(240px, 1fr) minmax(240px, 1fr); min-width: 540px; position: relative; }
 .oapp .sched .colh { position: sticky; top: 0; z-index: 6; background: rgba(20, 25, 21, 0.96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line-2); padding: 12px 14px; display: flex; align-items: center; gap: 10px; min-width: 0; }
 .oapp .sched .colh:first-child { left: 0; z-index: 7; }
@@ -423,7 +423,7 @@
   .oapp .datebar .chips { order: 0; flex-basis: auto; }
   .oapp .nowbtn { padding: 7px 11px; }
   .oapp .sched.one { grid-template-columns: 50px minmax(0, 1fr) !important; }
-  .oapp .sched-wrap { max-height: calc(100vh - 230px); }
+  .oapp .sched-wrap { max-height: calc(100vh - 230px - var(--sat)); }
   .oapp .blk .ba button span { display: inline; }
   .oapp .blk .ba button { padding: 6px 10px; }
   .oapp .week.one { grid-template-columns: 84px 1fr !important; }

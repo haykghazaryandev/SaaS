@@ -17,7 +17,7 @@ import { Link } from '@inertiajs/vue3';
 </template>
 
 <style scoped>
-.auth-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 40px; }
+.auth-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: calc(20px + var(--sat)) 16px calc(40px + var(--sab)); }
 .auth-top { width: min(440px, 100%); display: flex; justify-content: space-between; align-items: center; margin-bottom: 36px; }
 .auth-card { width: min(440px, 100%); padding: 26px; }
 </style>

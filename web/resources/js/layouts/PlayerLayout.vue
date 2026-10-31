@@ -12,7 +12,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue';
  * the footer is shown to guests only (G7).
  *
  * CSS variables set on .papp for pages that size themselves to the screen:
- *   --app-top     height taken by the header (64px, or 0px in fullscreen on phones)
+ *   --app-top     height taken by the header (64px + the iPhone status bar, or 0px in fullscreen on phones)
  *   --app-bottom  height taken by the tab bar (76px + safe area on phones when it is shown, else 0px)
  *   e.g. `height: calc(100dvh - var(--app-top) - var(--app-bottom))`
  */
@@ -207,7 +207,7 @@ watch(() => page.url, () => (menu.value = false));
 .phonebar small { color: var(--muted); }
 .phonebar .go { margin-left: auto; font-weight: 800; white-space: nowrap; }
 @media (max-width: 560px) { .phonebar { flex-wrap: wrap; } .phonebar .go { margin-left: 0; } }
-.papp { --app-top: 64px; --app-bottom: 0px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.papp { --app-top: calc(64px + var(--sat)); --app-bottom: 0px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .app-main { flex: 1 0 auto; width: 100%; padding-bottom: 40px; }
 .papp.guest .app-main { padding-bottom: 0; }
 @media (max-width: 900px) {

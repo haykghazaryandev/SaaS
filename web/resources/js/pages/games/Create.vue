@@ -301,5 +301,5 @@ textarea.input { resize: vertical; min-height: 64px; }
 .flist .nm small { display: block; color: var(--faint); font-weight: 600; font-size: 12px; }
 .flist .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; color: transparent; flex: none; }
 .flist label.on .tick { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-@media (min-width: 861px) { .inv { position: sticky; top: 80px; } }
+@media (min-width: 861px) { .inv { position: sticky; top: calc(80px + var(--sat)); } }
 </style>

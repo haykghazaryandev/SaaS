@@ -102,6 +102,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onDoc));
 .ritem.train { box-shadow: inset 3px 0 0 #ff7ad9; }
 .rns { margin-left: 6px; font-size: 11px; font-weight: 800; color: var(--hot); }
 .racts { display: flex; gap: 6px; }
-@media (max-width: 600px) { .rpanel { position: fixed; left: 12px; right: 12px; top: 72px; width: auto; } }
+@media (max-width: 600px) { .rpanel { position: fixed; left: 12px; right: 12px; top: calc(72px + var(--sat)); width: auto; } }
 .rnone { color: var(--faint); text-align: center; font-size: 13px; margin: 18px 0; }
 </style>
