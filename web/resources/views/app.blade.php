@@ -16,6 +16,17 @@
         <meta name="apple-mobile-web-app-title" content="ZoneSpot">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Armenian:wght@400;500;600;700&display=swap">
+        {{-- the theme picked on this device (Profile: Dark / Light / Auto = the phone's), set before the page paints --}}
+        <script>
+            try {
+                var t = localStorage.getItem('zs.theme') || 'dark';
+                if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                if (t === 'light') {
+                    document.documentElement.dataset.theme = 'light';
+                    document.querySelector('meta[name=theme-color]').setAttribute('content', '#f6f8f3');
+                }
+            } catch (e) {}
+        </script>
         {{-- Telegram Mini App: Telegram opens us with #tgWebAppData…; only then load its script (before the app starts) --}}
         <script>
             try {

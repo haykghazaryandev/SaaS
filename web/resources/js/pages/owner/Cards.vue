@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import QrScanner from '@/components/owner/QrScanner.vue';
@@ -56,7 +57,7 @@ const submitAdd = () => add.post(route('owner.cards.store'), { preserveScroll: t
                     <span v-if="c.cashback" class="pill green">{{ c.cashback }}%</span>
                     <b class="bal">{{ amd(c.balance) }}</b>
                 </Link>
-                <p v-if="!cards.length" class="faint" style="margin: 14px 0 4px">{{ q ? $t('owner.schedule.none') : $t('owner.club.no_cards') }}</p>
+                <EmptyState v-if="!cards.length" compact icon="wallet" :title="q ? $t('owner.schedule.none') : $t('owner.empty.cards')" :text="q ? undefined : $t('owner.club.no_cards')" />
             </div>
         </section>
 

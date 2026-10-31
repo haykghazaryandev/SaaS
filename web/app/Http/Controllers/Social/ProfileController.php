@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Social;
 
 use App\Domain\Chat\Chat;
+use App\Domain\Club\Ranking;
 use App\Domain\Club\Ratings;
 use App\Domain\Social\Friends;
 use App\Enums\GamePlayerStatus;
+use App\Enums\Sport;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PlayerCards;
+use App\Models\SportRating;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Support\Phone;
@@ -45,11 +48,26 @@ class ProfileController extends Controller
                 'friends' => count($player->friendIds()),
                 // ratings per sport, set by the clubs (🏓 ping-pong apart from ⚽ football)
                 'ratings' => Ratings::of($player),
+                // ping-pong: tournament matches (scores, wins / losses, titles) and the place in the home club's ranking
+                'history' => app(Ranking::class)->history($player),
+                'rank' => $this->homeRank($player),
             ],
             'hidden' => $hidden,
             'blockedByMe' => $blockedByMe,
             'canMessage' => ! $hidden && app(Chat::class)->canMessage($me, $player),
         ]);
+    }
+
+    /** Where the player stands in the ranking of the club that set their ping-pong rating. */
+    private function homeRank(User $player): ?array
+    {
+        $r = SportRating::where('user_id', $player->id)->where('sport', Sport::Pingpong->value)->whereNotNull('rating')->with('venue')->first();
+        if (! $r?->venue || ! $r->venue->hasFeature('rating')) {
+            return null;
+        }
+        $row = Ranking::placeOf(app(Ranking::class)->club($r->venue), $player->id);
+
+        return $row ? ['rank' => $row['rank'], 'club' => $r->venue->name, 'slug' => $r->venue->slug] : null;
     }
 
     public function edit(Request $request)

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import Avatar from '@/components/Avatar.vue';
 import Icon from '@/components/Icon.vue';
 import RequestChips from '@/components/owner/RequestChips.vue';
@@ -88,10 +89,7 @@ const conflictText = (c: RequestRow['conflicts'][number]) =>
                     </div>
                 </div>
             </section>
-            <div v-if="!shown.length" class="card panel empty">
-                <Icon name="check" size="lg" />
-                <p style="margin: 8px 0 0">{{ $t('owner.dashboard.no_requests') }}</p>
-            </div>
+            <EmptyState v-if="!shown.length" icon="bell" :title="$t('owner.empty.requests')" :text="$t('owner.empty.requests_text')" />
         </div>
     </OwnerLayout>
 </template>

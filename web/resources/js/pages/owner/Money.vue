@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import Pager from '@/components/Pager.vue';
 import { useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
@@ -94,7 +95,7 @@ function go(change: Record<string, string | null>) {
                 >
                 <span class="mono amt">{{ amd(r.amount) }}<small class="faint"> · {{ $t('owner.club.m_' + r.method) }}</small></span>
             </div>
-            <p v-if="!payments.data.length" class="faint" style="margin: 4px 0">{{ $t('owner.club.no_payments') }}</p>
+            <EmptyState v-if="!payments.data.length" compact icon="chart" :title="$t('owner.club.no_payments')" />
             <Pager :page="payments.page" :pages="payments.pages" :total="payments.total" />
         </section>
     </OwnerLayout>

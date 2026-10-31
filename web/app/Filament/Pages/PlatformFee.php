@@ -3,11 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Domain\Club\Commission;
+use App\Domain\Club\FeePayments;
 use App\Enums\Sport;
 use App\Models\Venue;
 use App\Support\LocalTime;
 use BackedEnum;
 use Carbon\CarbonImmutable;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 
@@ -68,6 +70,19 @@ class PlatformFee extends Page
         $this->day = $next->toDateString();
     }
 
+    /** Month view: the place paid ZoneSpot's fee for this month (or the mark is taken back). */
+    public function markPaid(int $venueId): void
+    {
+        $venue = Venue::findOrFail($venueId);
+        app(FeePayments::class)->markPaid($venue, $this->anchor(), auth()->user());
+        Notification::make()->title(__('admin.fee.marked_paid', ['name' => $venue->name]))->success()->send();
+    }
+
+    public function unmarkPaid(int $venueId): void
+    {
+        app(FeePayments::class)->unmark(Venue::findOrFail($venueId), $this->anchor());
+    }
+
     private function anchor(): CarbonImmutable
     {
         return LocalTime::day($this->day ?: LocalTime::now()->toDateString());
@@ -80,10 +95,14 @@ class PlatformFee extends Page
             ->filter(fn (Venue $v) => $this->sport === '' || collect($v->sports())->contains(fn ($s) => $s->value === $this->sport))->values();
         $data = app(Commission::class)->forVenues($venues, $from, $to);
         $sports = $venues->mapWithKeys(fn (Venue $v) => [$v->id => collect($v->sports())->map->icon()->implode(' ')]);
+        // a month: who paid it already
+        $paid = $this->period === 'month' ? app(FeePayments::class)->forMonth($venues->pluck('id')->all(), $this->anchor()) : collect();
 
         return [
             'rows' => collect($data['venues'])->sortByDesc('fee')->values()->all(),
             'base' => $data['base'], 'fee' => $data['fee'], 'sports' => $sports,
+            'paid' => $paid->map(fn ($p) => ['at' => $p->paid_at->setTimezone(LocalTime::tz())->format('d.m.Y'), 'amount' => $p->amount])->all(),
+            'paidTotal' => (int) $paid->sum('amount'),
             'label' => $this->period === 'day' ? $from->format('d.m.Y') : ($this->period === 'week' ? $from->format('d.m').' – '.$to->subDay()->format('d.m.Y') : $from->translatedFormat('F Y')),
             'sportOptions' => collect(Sport::cases())->mapWithKeys(fn ($s) => [$s->value => $s->icon().' '.$s->label()])->all(),
         ];

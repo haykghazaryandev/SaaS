@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Player;
 
 use App\Domain\Club\Cards;
+use App\Domain\Club\Ranking;
 use App\Domain\Club\Tournaments;
 use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
@@ -11,6 +12,7 @@ use App\Models\Booking;
 use App\Models\Product;
 use App\Models\SlotAlert;
 use App\Models\Tournament;
+use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
 use App\Support\LocalTime;
@@ -155,6 +157,25 @@ class PlaceController extends Controller
             })->values()->all();
     }
 
+    private function rankingTop(Venue $venue, ?User $user): array
+    {
+        $rows = app(Ranking::class)->club($venue);
+
+        return ['top' => $rows->take(5)->values()->all(), 'total' => $rows->count(), 'me' => $user ? Ranking::placeOf($rows, $user->id) : null];
+    }
+
+    /** The club's whole ranking (its own page, from the place page's "Ranking"). */
+    public function ranking(Request $request, Venue $venue)
+    {
+        abort_unless($venue->status === 'active' && $venue->hasFeature('rating'), 404);
+        $rows = app(Ranking::class)->club($venue);
+
+        return Inertia::render('player/Ranking', [
+            'title' => $venue->name, 'back' => route('places.show', $venue->slug), 'rows' => $rows->all(),
+            'me' => $request->user() ? Ranking::placeOf($rows, $request->user()->id) : null,
+        ]);
+    }
+
     /** Shop, open tournaments and "my card" (with its cashback level) for the place page. */
     private function club(Request $request, Venue $venue): array
     {
@@ -167,6 +188,8 @@ class PlaceController extends Controller
             'products' => $venue->hasFeature('shop') ? Product::where('venue_id', $venue->id)->where('active', true)->orderBy('sort')->orderBy('name')->get()
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'description' => $p->description, 'price' => $p->price, 'final' => $p->finalPrice(),
                     'discount_pct' => $p->discount_pct, 'in_stock' => $p->in_stock, 'photo' => $p->photoUrl()])->values()->all() : [],
+            // the club's ranking (ping-pong: the rating the club sets): the top 5 and where I am
+            'ranking' => $venue->hasFeature('rating') ? $this->rankingTop($venue, $user) : null,
             'tournaments' => $venue->hasFeature('tournaments') ? Tournament::where('venue_id', $venue->id)->whereNull('parent_id')->with('divisions')->where('starts_at', '>', now()->subDays(7))->where(fn ($q) => $q->where('status', '!=', 'done')->orWhere('updated_at', '>', now()->subDays(7)))
                 ->orderBy('starts_at')->limit(8)->get()->map(fn ($t) => ['code' => $t->code, 'title' => $t->title, 'phase' => Tournaments::phase($t),
                     'when' => $t->starts_at->setTimezone(LocalTime::tz())->format('d.m H:i'), 'from' => (int) collect($t->options)->min('price'), 'divisions' => $t->divisions->count()])->values()->all() : [],

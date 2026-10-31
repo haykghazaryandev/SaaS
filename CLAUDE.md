@@ -77,6 +77,9 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
 - Football has no rating (`Sport::rated()`) and no tournaments yet (`Sport::soloTournaments()`; team ones to come).
   On local / staging `FootballClubSeeder` fills football places with a shop, training prices and kids' trainings
   (Masis: prices by length).
+- Ping-pong ranking (`Domain/Club/Ranking`): by the rating each club sets; a club's (place page + /places/{slug}/ranking),
+  all clubs (sport page Ranking tab), a player's tournament matches on their profile. Admin → ZoneSpot fee: a month can
+  be marked paid (`fee_payments`). Light theme: html[data-theme=light] (Profile → Look, per device, `lib/theme.ts`).
 - Roles: the owner (everything) and staff, added by the owner on Owner → Team. Owner → Settings → Menus
   (`Domain/Venues/Menus`, `venues.menus`) sets which menus each panel shows and staff's levels (Schedule view / edit,
   Shop sell / edit, Tournaments run / create, Money today / all; by default staff get the daily work without Money).

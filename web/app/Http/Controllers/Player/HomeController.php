@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Player;
 
+use App\Domain\Club\Ranking;
 use App\Domain\Club\Tournaments;
 use App\Domain\Venues\Availability;
 use App\Enums\Sport;
@@ -90,7 +91,10 @@ class HomeController extends Controller
             'tournaments' => $tournaments,
             'openGames' => $games,
             'games' => $openGames->map(fn (Game $g) => app(PlayerGames::class)->card($g, $request->user()))->values(),
-            'tab' => in_array($request->query('tab'), ['book', 'tournaments', 'games'], true) ? $request->query('tab') : 'book',
+            'tab' => in_array($request->query('tab'), ['book', 'tournaments', 'games', ...($sport->rated() ? ['ranking'] : [])], true) ? $request->query('tab') : 'book',
+            // a sport with ratings (ping-pong): the Ranking tab, all clubs; loaded when the tab opens
+            'rated' => $sport->rated(),
+            'ranking' => Inertia::optional(fn () => $sport->rated() ? app(Ranking::class)->all($sport)->all() : []),
             'filters' => ['sport' => $sport->value, 'date' => $day->toDateString(), 'time' => $time, 'size' => $size, 'district' => $district],
             // the sport picker: visible sports that have at least one place
             'sports' => $sportTabs,

@@ -468,3 +468,31 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 @keyframes bb-install-glow { 50% { opacity: 1; } }
 /* one sweep in the first part, then a long rest */
 @keyframes bb-install-shine { 0% { transform: translateX(-100%); } 20%, 100% { transform: translateX(100%); } }
+
+/* ---------- light theme (Profile → Dark / Light / Auto; html[data-theme="light"]) ----------
+   White cards on a light green-grey; the lime stays on the buttons (--grad), a darker green for text, chips and lines
+   (lime text is unreadable on white). Ping-pong pages: a darker orange. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8f3; --bg-2: #eef2ea; --surface: #ffffff; --surface-2: #eef2ea; --surface-3: #e2e8dc;
+  --ink: #141a15; --muted: #556456; --faint: #84918a; --line: rgba(20, 40, 20, 0.09); --line-2: rgba(20, 40, 20, 0.16);
+  --accent: #4e8a00; --accent-2: #138a55; --on-accent: #0d1404;
+  --blue: #0a7fc0; --blue-soft: rgba(10, 127, 192, 0.12);
+  --free: #138a55; --free-soft: rgba(19, 138, 85, 0.12);
+  --busy: #d5dbd0; --busy-ink: #7c877d;
+  --you: #0a7fc0; --you-soft: rgba(10, 127, 192, 0.12);
+  --warn: #b26a00; --warn-soft: rgba(178, 106, 0, 0.12);
+  --hot: #c62f2f; --hot-soft: rgba(198, 47, 47, 0.1);
+  --st-pending: #b26a00; --st-pending-soft: rgba(178, 106, 0, 0.12);
+  --st-confirmed: #138a55; --st-confirmed-soft: rgba(19, 138, 85, 0.12);
+  --st-manual: #6b4fd1; --st-manual-soft: rgba(107, 79, 209, 0.12);
+  --st-off: #7c877d; --st-off-soft: rgba(124, 135, 125, 0.14);
+  --glass: rgba(255, 255, 255, 0.78);
+  --shadow: 0 18px 40px -22px rgba(20, 40, 20, 0.35);
+}
+:root[data-theme="light"] { --grad-text: linear-gradient(135deg, #5a9a00 0%, #138a55 100%); }
+:root[data-theme="light"][data-sport="pingpong"] { --accent: #c25e00; --accent-2: #b07a00; --grad-text: linear-gradient(135deg, #d27a00 0%, #c2410c 100%); }
+:root[data-theme="light"] body { background-image: radial-gradient(900px 520px at 88% -12%, rgba(120, 190, 0, 0.08), transparent 60%), radial-gradient(700px 520px at -10% 8%, rgba(10, 127, 192, 0.05), transparent 60%); }
+:root[data-theme="light"] .top { background: rgba(246, 248, 243, 0.85); }
+:root[data-theme="light"] .tabbar { background: rgba(255, 255, 255, 0.96); box-shadow: 0 14px 34px -14px rgba(20, 40, 20, 0.35); }
+:root[data-theme="light"] .scrim { background: rgba(20, 30, 20, 0.35); }

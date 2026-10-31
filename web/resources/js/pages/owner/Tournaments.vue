@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
 import Icon from '@/components/Icon.vue';
 import { useMay, useOwner } from '@/composables/useOwner';
@@ -106,7 +107,14 @@ const canEdit = useMay()('tournaments', 'create');
                 </div>
             </div>
         </div>
-        <p v-if="!tournaments.length" class="faint">{{ $t('owner.club.no_tournaments') }}</p>
+        <EmptyState
+            v-if="!tournaments.length"
+            icon="trophy"
+            :title="$t('owner.club.no_tournaments')"
+            :text="$t('owner.empty.tournaments_text')"
+            :href="canEdit ? route('owner.tournaments.create') : undefined"
+            :action="canEdit ? $t('owner.club.new_tournament') : undefined"
+        />
     </OwnerLayout>
 </template>
 

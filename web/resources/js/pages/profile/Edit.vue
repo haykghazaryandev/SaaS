@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { setTheme, themeChoice } from '@/lib/theme';
 import Icon from '@/components/Icon.vue';
 import Avatar from '@/components/Avatar.vue';
 import AvatarCropper from '@/components/AvatarCropper.vue';
@@ -221,6 +222,17 @@ function unblock(p: PlayerCard) {
             </aside>
         </div>
 
+        <!-- the look on this device: dark, light, or as the phone is set (Auto) -->
+        <section class="card pad themebox" data-test="theme">
+            <h2>{{ $t('profile.theme.title') }}</h2>
+            <p class="muted small">{{ $t('profile.theme.sub') }}</p>
+            <div class="seg" role="group" :aria-label="$t('profile.theme.title')">
+                <button v-for="t in ['dark', 'light', 'auto'] as const" :key="t" type="button" :aria-pressed="themeChoice === t" :data-test="'theme-' + t" @click="setTheme(t)">
+                    {{ $t('profile.theme.' + t) }}
+                </button>
+            </div>
+        </section>
+
         <!-- notifications: push on this device, what comes by Telegram / push (per kind), and the sound in the app; each switch saves at once -->
         <section class="card pad notif">
             <h2>{{ $t('profile.notifications.title') }}</h2>
@@ -321,4 +333,6 @@ small { font-size: 12px; }
 .phacts label.btn { cursor: pointer; }
 .emline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; }
 .emline .addr { word-break: break-all; color: var(--ink); }
+.themebox { margin-top: 16px; }
+.themebox .seg { max-width: 420px; }
 </style>

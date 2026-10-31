@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Owner\Club;
 
 use App\Domain\Club\Commission;
+use App\Domain\Club\FeePayments;
 use App\Domain\Club\Report;
 use App\Domain\Venues\Menus;
 use App\Http\Controllers\Owner\OwnerController;
+use App\Models\FeePayment;
+use App\Support\LocalTime;
 use App\Support\Paged;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -63,6 +66,10 @@ class MoneyController extends OwnerController
             'pct' => $pct, 'period' => $period, 'from' => $from->toDateString(), 'to' => $to->subDay()->toDateString(),
             'base' => $r['base'], 'fee' => $r['fee'],
             'kinds' => collect($kinds)->map(fn ($base, $k) => ['kind' => $k, 'base' => $base, 'fee' => Commission::fee($base, $pct)])->values(),
+            // a month the admin marked as paid to ZoneSpot
+            'paidOn' => in_array($period, ['month', 'prev_month'], true)
+                ? FeePayment::where('venue_id', $venue->id)->whereDate('month', FeePayments::monthOf($from))->first()?->paid_at?->setTimezone(LocalTime::tz())->format('d.m.Y')
+                : null,
         ]);
     }
 }

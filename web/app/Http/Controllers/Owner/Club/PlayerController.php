@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Owner\Club;
 
 use App\Domain\Chat\Chat;
 use App\Domain\Club\Cards;
+use App\Domain\Club\Ranking;
 use App\Domain\Club\Ratings;
 use App\Domain\Social\SocialException;
 use App\Enums\Sport;
@@ -12,7 +13,6 @@ use App\Http\Controllers\Owner\OwnerController;
 use App\Models\Booking;
 use App\Models\RatingChange;
 use App\Models\SportRating;
-use App\Models\TournamentEntry;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueCard;
@@ -115,10 +115,7 @@ class PlayerController extends OwnerController
     /** Everybody who played at the place: bookings (not just requests), cards, tournament entries. */
     public static function playerIds(Venue $venue): array
     {
-        return Booking::where('venue_id', $venue->id)->whereNotNull('user_id')->whereIn('status', ['accepted', 'completed', 'no_show'])->distinct()->pluck('user_id')
-            ->merge(VenueCard::where('venue_id', $venue->id)->pluck('user_id'))
-            ->merge(TournamentEntry::whereNotNull('user_id')->whereHas('tournament', fn ($t) => $t->where('venue_id', $venue->id))->pluck('user_id'))
-            ->unique()->map(fn ($id) => (int) $id)->values()->all();
+        return Ranking::playersOf($venue);
     }
 
     private function sport(Venue $venue): Sport

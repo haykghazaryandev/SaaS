@@ -11,6 +11,8 @@ import { router } from '@inertiajs/vue3';
 // are not counted.
 type Period = 'today' | 'week' | 'prev_week' | 'month' | 'prev_month';
 const props = defineProps<{
+    /** the admin marked this month as paid to ZoneSpot (dd.mm.yyyy) */
+    paidOn?: string | null;
     pct: number;
     period: Period;
     from: string;
@@ -44,6 +46,7 @@ const go = (p: Period) => router.get(route('owner.fee'), { period: p }, { preser
                 <div>
                     <small>{{ $t('owner.fee.to_give') }}</small><span class="big">{{ amd(fee) }}</span>
                 </div>
+                <span v-if="paidOn" class="paidm" data-test="fee-paid">✓ {{ $t('owner.fee.paid_on', { d: paidOn }) }}</span>
                 <div class="r">
                     {{ $t('owner.fee.taken') }}<b>{{ amd(base) }}</b>ZoneSpot {{ pctText() }}%
                 </div>
@@ -94,4 +97,5 @@ const go = (p: Period) => router.get(route('owner.fee'), { period: p }, { preser
     .kbase { grid-column: 2; }
     .share { grid-column: 1 / -1; margin-top: 8px; }
 }
+.paidm { display: inline-flex; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 800; font-size: 13px; }
 </style>

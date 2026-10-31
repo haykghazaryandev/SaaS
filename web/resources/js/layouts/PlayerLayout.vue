@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PageSkeleton from '@/components/PageSkeleton.vue';
+import { useNavLoading } from '@/composables/useNavLoading';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 /**
  * Player web layout: sticky header (logo, nav, bell, account menu), the page, and the bottom tab bar on phones.
@@ -119,6 +121,7 @@ onBeforeUnmount(() => {
     document.removeEventListener('keydown', onKey);
 });
 watch(() => page.url, () => (menu.value = false));
+const navLoading = useNavLoading();
 </script>
 
 <template>
@@ -189,7 +192,9 @@ watch(() => page.url, () => (menu.value = false));
                     ><b>{{ $t('profile.email.bar') }}</b> <small>{{ $t('profile.email.bar_hint') }}</small></span
                 ><span class="go">{{ $t('profile.email.confirm') }} →</span>
             </Link>
-            <slot />
+            <!-- a page that takes a moment to open: grey placeholders instead of the old page -->
+            <PageSkeleton v-if="navLoading" />
+            <slot v-else />
         </main>
         <footer v-if="!user" class="foot">
             <div class="wrap">

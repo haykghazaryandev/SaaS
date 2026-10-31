@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import CashbackLevel, { type Level } from '@/components/club/CashbackLevel.vue';
 import Icon from '@/components/Icon.vue';
 import { SPORT_ICON } from '@/composables/usePlayer';
@@ -72,7 +73,7 @@ const sign = (n: number) => (n > 0 ? '+' : '−') + amd(Math.abs(n));
                     <Link class="btn ghost sm" :href="route('places.show', c.venue.slug)"><Icon name="pin" size="sm" />{{ c.venue.name }}</Link>
                 </div>
             </article>
-            <div v-if="!cards.length" class="card pad empty">{{ $t('club.no_cards') }}</div>
+            <EmptyState v-if="!cards.length" icon="wallet" :title="$t('owner.empty.cards')" :text="$t('club.no_cards')" />
         </div>
 
         <!-- full screen QR for the desk scanner -->

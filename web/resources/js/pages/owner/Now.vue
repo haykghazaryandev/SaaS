@@ -282,7 +282,7 @@ watch(upIds, (ids) => {
                     </div>
                     <div class="a-big">
                         <template v-if="stateOf(c) === 'up'"><b>{{ $t('owner.now.chip_up') }}</b></template>
-                        <template v-else-if="stateOf(c) === 'topay'"><b class="money">{{ amd(c.game.bill.total) }}</b><span>{{ $t('owner.now.to_pay') }}</span></template>
+                        <template v-else-if="stateOf(c) === 'topay'"><b class="money">{{ amd(c.game.bill.due) }}</b><span>{{ $t('owner.now.to_pay') }}</span></template>
                         <template v-else-if="c.game.openEnd"><b>{{ minutesPlayed(c) }}</b><span>{{ $t('owner.now.min_played') }}</span></template>
                         <template v-else><b>{{ minutesLeft(c) }}</b><span>{{ $t('owner.now.min_left') }}</span></template>
                     </div>

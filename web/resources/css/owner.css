@@ -588,3 +588,8 @@
 .oapp .ptrain-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .oapp .tlen-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) 36px; gap: 8px; align-items: center; margin-bottom: 6px; }
 .oapp .more-admin { display: flex; align-items: center; gap: 12px; padding: 13px 12px; margin-top: 8px; border-top: 1px solid var(--line); font-weight: 700; color: var(--ink); text-decoration: none; }
+
+/* light theme: the panel's own bars (see bookball.css) */
+:root[data-theme="light"] .oapp .oside { background: rgba(255, 255, 255, 0.92); }
+:root[data-theme="light"] .oapp .otop { background: rgba(246, 248, 243, 0.9); }
+:root[data-theme="light"] .oapp .sched .colh, :root[data-theme="light"] .oapp .week .wh { background: rgba(255, 255, 255, 0.96); }

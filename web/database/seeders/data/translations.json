@@ -354,6 +354,21 @@
         "hy": "Խաղացված ամրագրումներ",
         "ru": "Сыгранные брони"
     },
+    "admin.fee.mark_ask": {
+        "en": ":name paid :a for this month?",
+        "hy": ":name-ը վճարե՞լ է :a այս ամսվա համար",
+        "ru": ":name оплатил :a за этот месяц?"
+    },
+    "admin.fee.mark_paid": {
+        "en": "Mark paid",
+        "hy": "Նշել վճարված",
+        "ru": "Отметить оплату"
+    },
+    "admin.fee.marked_paid": {
+        "en": ":name: marked as paid",
+        "hy": ":name՝ նշված է որպես վճարված",
+        "ru": ":name: отмечено как оплачено"
+    },
     "admin.fee.month": {
         "en": "Month",
         "hy": "Ամիս",
@@ -373,6 +388,31 @@
         "en": "Counted: bookings, trainings and tournament fees (card or cash, refunds taken off). Not counted: shop sales and card top-ups. A place that took no money in the app in the period (no desk, or the desk not used) counts its played bookings at the booking price, on the day played. The % is set on each place.",
         "hy": "Հաշվվում են՝ ամրագրումները, մարզումները և մրցաշարային վճարները (քարտով կամ կանխիկ, վերադարձները հանված)։ Չեն հաշվվում՝ խանութի վաճառքը և քարտերի համալրումները։ Եթե վայրը տվյալ ժամանակահատվածում հավելվածում գումար չի ընդունել (դրամարկղ չկա կամ չի օգտագործվում), հաշվվում են խաղացված ամրագրումները՝ ամրագրման գնով, խաղի օրով։ Տոկոսը սահմանվում է յուրաքանչյուր վայրի համար։",
         "ru": "Считаются: брони, тренировки и взносы за турниры (картой или наличными, без возвратов). Не считаются: продажи магазина и пополнения карт. Если место за период не принимало деньги в приложении (нет стойки или она не используется), считаются сыгранные брони по цене брони, в день игры. Процент задаётся для каждого места."
+    },
+    "admin.fee.paid_amount": {
+        "en": "(:a then)",
+        "hy": "(այդ պահին՝ :a)",
+        "ru": "(тогда :a)"
+    },
+    "admin.fee.paid_col": {
+        "en": "Paid",
+        "hy": "Վճարված",
+        "ru": "Оплата"
+    },
+    "admin.fee.paid_on": {
+        "en": "Paid :d",
+        "hy": "Վճարված է :d",
+        "ru": "Оплачено :d"
+    },
+    "admin.fee.paid_places": {
+        "en": ":n of :of places paid",
+        "hy": ":of վայրից վճարել է :n-ը",
+        "ru": "Оплатили :n из :of мест"
+    },
+    "admin.fee.paid_total": {
+        "en": "Paid to ZoneSpot",
+        "hy": "Վճարված է ZoneSpot-ին",
+        "ru": "Оплачено ZoneSpot"
     },
     "admin.fee.pct": {
         "en": "ZoneSpot fee, %",
@@ -413,6 +453,16 @@
         "en": "Fee to receive",
         "hy": "Ստանալիք վճար",
         "ru": "Комиссия к получению"
+    },
+    "admin.fee.unmark": {
+        "en": "Undo",
+        "hy": "Չեղարկել",
+        "ru": "Отменить"
+    },
+    "admin.fee.unmark_ask": {
+        "en": "Take the paid mark back?",
+        "hy": "Հանե՞լ վճարված նշումը",
+        "ru": "Снять отметку об оплате?"
     },
     "admin.fee.week": {
         "en": "Week",
@@ -6069,6 +6119,36 @@
         "hy": "Բացել Զրույցներում",
         "ru": "Открыть в Сообщениях"
     },
+    "owner.empty.cards": {
+        "en": "No cards yet",
+        "hy": "Քարտեր դեռ չկան",
+        "ru": "Карт пока нет"
+    },
+    "owner.empty.products_text": {
+        "en": "Add drinks and snacks: staff sell them on Now (+ Item) or here.",
+        "hy": "Ավելացրեք ըմպելիքներ և նախուտեստներ․ աշխատակիցները կվաճառեն «Հիմա» էջում (+ Ապրանք) կամ այստեղ։",
+        "ru": "Добавьте напитки и закуски: сотрудники продают их на «Сейчас» (+ Товар) или здесь."
+    },
+    "owner.empty.requests": {
+        "en": "No requests waiting",
+        "hy": "Սպասող հայտեր չկան",
+        "ru": "Нет заявок"
+    },
+    "owner.empty.requests_text": {
+        "en": "New booking requests from players show up here, with a sound.",
+        "hy": "Խաղացողների նոր հայտերը կհայտնվեն այստեղ՝ ձայնային ազդանշանով։",
+        "ru": "Новые заявки игроков появятся здесь, со звуком."
+    },
+    "owner.empty.sales_text": {
+        "en": "Sales show up here as soon as something is sold.",
+        "hy": "Վաճառքները կհայտնվեն այստեղ, հենց ինչ-որ բան վաճառվի։",
+        "ru": "Продажи появятся здесь, как только что-то продадут."
+    },
+    "owner.empty.tournaments_text": {
+        "en": "Create one and share its link: players register themselves.",
+        "hy": "Ստեղծեք և կիսվեք հղումով․ խաղացողները կգրանցվեն իրենք։",
+        "ru": "Создайте турнир и поделитесь ссылкой: игроки зарегистрируются сами."
+    },
     "owner.error.generic": {
         "en": "Something went wrong. Try again.",
         "hy": "Ինչ-որ բան այն չէ։ Փորձեք կրկին։",
@@ -6128,6 +6208,11 @@
         "en": "This week",
         "hy": "Այս շաբաթ",
         "ru": "Эта неделя"
+    },
+    "owner.fee.paid_on": {
+        "en": "Paid to ZoneSpot on :d",
+        "hy": "Վճարված է ZoneSpot-ին :d",
+        "ru": "Оплачено ZoneSpot :d"
     },
     "owner.fee.prev_month": {
         "en": "Last month",
@@ -8209,6 +8294,46 @@
         "hy": "Տրիբունա",
         "ru": "Трибуна"
     },
+    "player.empty.games": {
+        "en": "No open games",
+        "hy": "Բաց խաղեր չկան",
+        "ru": "Открытых игр нет"
+    },
+    "player.history.l": {
+        "en": "L",
+        "hy": "Պ",
+        "ru": "Пр"
+    },
+    "player.history.matches": {
+        "en": "matches",
+        "hy": "խաղ",
+        "ru": "матчей"
+    },
+    "player.history.title": {
+        "en": "Tournament matches",
+        "hy": "Մրցաշարային խաղեր",
+        "ru": "Матчи турниров"
+    },
+    "player.history.titles": {
+        "en": "titles",
+        "hy": "տիտղոս",
+        "ru": "титулы"
+    },
+    "player.history.vs": {
+        "en": "vs :name",
+        "hy": "ընդդեմ :name",
+        "ru": "против :name"
+    },
+    "player.history.w": {
+        "en": "W",
+        "hy": "Հ",
+        "ru": "П"
+    },
+    "player.history.won_lost": {
+        "en": "won–lost",
+        "hy": "հաղթանակ–պարտություն",
+        "ru": "победы–поражения"
+    },
     "player.home.all_games": {
         "en": "All games",
         "hy": "Բոլոր խաղերը",
@@ -8954,6 +9079,51 @@
         "hy": "Ձերը՝",
         "ru": "Ваши:"
     },
+    "player.ranking.all": {
+        "en": "Whole ranking (:n)",
+        "hy": "Ամբողջ աղյուսակը (:n)",
+        "ru": "Весь рейтинг (:n)"
+    },
+    "player.ranking.all_clubs": {
+        "en": "All clubs",
+        "hy": "Բոլոր ակումբները",
+        "ru": "Все клубы"
+    },
+    "player.ranking.club_sub": {
+        "en": ":club · :n players, by the rating the club sets",
+        "hy": ":club · :n խաղացող՝ ակումբի սահմանած վարկանիշով",
+        "ru": ":club · :n игроков, по рейтингу, который ставит клуб"
+    },
+    "player.ranking.empty_text": {
+        "en": "Clubs set their players' ratings; the ranking shows them here.",
+        "hy": "Ակումբները սահմանում են իրենց խաղացողների վարկանիշը․ աղյուսակը կհայտնվի այստեղ։",
+        "ru": "Клубы ставят рейтинг своим игрокам — таблица появится здесь."
+    },
+    "player.ranking.empty_title": {
+        "en": "No ratings yet",
+        "hy": "Վարկանիշներ դեռ չկան",
+        "ru": "Рейтингов пока нет"
+    },
+    "player.ranking.my_place": {
+        "en": "You are #:n · :r",
+        "hy": "Դուք #:n-րդն եք · :r",
+        "ru": "Вы на :n-м месте · :r"
+    },
+    "player.ranking.tab": {
+        "en": "Ranking",
+        "hy": "Վարկանիշ",
+        "ru": "Рейтинг"
+    },
+    "player.ranking.title": {
+        "en": "Ranking",
+        "hy": "Վարկանիշային աղյուսակ",
+        "ru": "Рейтинг"
+    },
+    "player.ranking.you": {
+        "en": "You · :name",
+        "hy": "Դուք · :name",
+        "ru": "Вы · :name"
+    },
     "player.rating.again": {
         "en": "Book this place again",
         "hy": "Կրկին ամրագրել այս վայրը",
@@ -9663,6 +9833,31 @@
         "en": "Telegram is connected: codes and notifications come there.",
         "hy": "Telegram-ը միացված է․ կոդերն ու ծանուցումները գալիս են այնտեղ։",
         "ru": "Telegram подключён: коды и уведомления приходят туда."
+    },
+    "profile.theme.auto": {
+        "en": "Auto",
+        "hy": "Ավտո",
+        "ru": "Авто"
+    },
+    "profile.theme.dark": {
+        "en": "Dark",
+        "hy": "Մուգ",
+        "ru": "Тёмная"
+    },
+    "profile.theme.light": {
+        "en": "Light",
+        "hy": "Բաց",
+        "ru": "Светлая"
+    },
+    "profile.theme.sub": {
+        "en": "On this device. Auto follows your phone's setting.",
+        "hy": "Այս սարքում։ «Ավտո»-ն հետևում է հեռախոսի կարգավորմանը։",
+        "ru": "На этом устройстве. «Авто» — как настроен телефон."
+    },
+    "profile.theme.title": {
+        "en": "Look",
+        "hy": "Տեսք",
+        "ru": "Оформление"
     },
     "profile.title": {
         "en": "My profile",

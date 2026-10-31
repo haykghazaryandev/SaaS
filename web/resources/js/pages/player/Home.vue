@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import RankList, { type RankRow } from '@/components/player/RankList.vue';
+import PageSkeleton from '@/components/PageSkeleton.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import Icon from '@/components/Icon.vue';
 import CourtSvg from '@/components/player/CourtSvg.vue';
 import { social } from '@/composables/useSocial';
@@ -40,10 +43,14 @@ const props = defineProps<{
     tournaments?: { code: string; title: string; venue: string; when: string; from: number; phase: Phase; divisions: number }[];
     openGames?: number | null;
     games?: GameCardT[];
-    tab?: 'book' | 'tournaments' | 'games';
+    tab?: 'book' | 'tournaments' | 'games' | 'ranking';
+    /** a sport with ratings (ping-pong): the Ranking tab; its list comes when the tab opens */
+    rated?: boolean;
+    ranking?: RankRow[];
 }>();
 // the sport page's sections: fixed tabs under the title; one shows below (the tab is kept in the address)
-const tab = ref<'book' | 'tournaments' | 'games'>(props.tab ?? 'book');
+type Tab = 'book' | 'tournaments' | 'games' | 'ranking';
+const tab = ref<Tab>(props.tab ?? 'book');
 const { user } = useShared();
 // tournaments: Live · Open · Finished — on Live when something is on, else Open, else Finished
 type TGroup = 'live' | 'open' | 'done';
@@ -61,8 +68,9 @@ useLive(
     },
 );
 const tShown = computed(() => (props.tournaments ?? []).filter((t) => groupOf(t.phase) === tGroup.value));
-function pickTab(t: 'book' | 'tournaments' | 'games') {
+function pickTab(t: Tab) {
     tab.value = t;
+    if (t === 'ranking' && !props.ranking) router.reload({ only: ['ranking'] });
     const u = new URL(window.location.href);
     if (t === 'book') u.searchParams.delete('tab');
     else u.searchParams.set('tab', t);
@@ -70,6 +78,11 @@ function pickTab(t: 'book' | 'tournaments' | 'games') {
 }
 
 const sport = computed(() => props.filters.sport || props.sports[0]?.key || 'football');
+// Ranking: all clubs, or one club (the club that set the rating)
+const rankClub = ref<number | null>(null);
+const rankClubs = computed(() => [...new Map((props.ranking ?? []).filter((r) => r.club).map((r) => [r.club!.id, r.club!])).values()]);
+const rankRows = computed(() => (props.ranking ?? []).filter((r) => rankClub.value === null || r.club?.id === rankClub.value));
+if (props.tab === 'ranking' && !props.ranking) router.reload({ only: ['ranking'] });
 const isFootball = computed(() => sport.value === 'football');
 useSportTheme(() => (props.pick ? null : sport.value));
 const f = reactive({ district: props.filters.district ?? '', time: props.filters.time ?? '' });
@@ -163,9 +176,23 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                 <button type="button" role="tab" :aria-selected="tab === 'games'" data-test="tab-games" @click="pickTab('games')">
                     <Icon name="ball" size="sm" />{{ $t('common.games') }}<span v-if="openGames" class="n">{{ openGames }}</span>
                 </button>
+                <button v-if="rated" type="button" role="tab" :aria-selected="tab === 'ranking'" data-test="tab-ranking" @click="pickTab('ranking')">
+                    <Icon name="medal" size="sm" />{{ $t('player.ranking.tab') }}
+                </button>
             </nav>
 
-            <section v-if="tab === 'tournaments'" class="section tabsec">
+            <!-- the ranking of all clubs (the rating each club sets); a club chip shows one club -->
+            <section v-if="tab === 'ranking'" class="section tabsec" data-test="ranking-tab">
+                <div v-if="rankClubs.length > 1" class="chips tfilter">
+                    <button type="button" class="chip" :aria-pressed="rankClub === null" @click="rankClub = null">{{ $t('player.ranking.all_clubs') }}</button>
+                    <button v-for="c in rankClubs" :key="c.id" type="button" class="chip" :aria-pressed="rankClub === c.id" @click="rankClub = c.id">{{ c.name }}</button>
+                </div>
+                <PageSkeleton v-if="!ranking" :cards="2" />
+                <RankList v-else-if="rankRows.length" :rows="rankRows" :me="user?.id" podium show-club />
+                <EmptyState v-else icon="medal" :title="$t('player.ranking.empty_title')" :text="$t('player.ranking.empty_text')" />
+            </section>
+
+            <section v-else-if="tab === 'tournaments'" class="section tabsec">
                 <Link v-if="user && social.counts.tournaments" class="mylink" :href="route('me.tournaments')" data-test="my-tournaments"
                     ><Icon name="trophy" size="sm" />{{ $t('club.mine.title') }} <span class="faint">{{ social.counts.tournaments }}</span><Icon name="arrow" size="sm"
                 /></Link>
@@ -196,7 +223,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                         <span v-if="t.phase === 'registration'" class="pill">{{ t.from ? $t('common.from_lower') + ' ' + amd(t.from) : $t('club.free') }}</span>
                     </Link>
                 </div>
-                <div v-else class="empty">{{ tournaments?.length ? $t('player.home.t_none_' + tGroup) : $t('player.home.no_tournaments') }}</div>
+                <EmptyState v-else compact icon="trophy" :title="tournaments?.length ? $t('player.home.t_none_' + tGroup) : $t('player.home.no_tournaments')" />
             </section>
 
             <section v-else-if="tab === 'games'" class="section tabsec">
@@ -210,7 +237,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
                 <div v-if="games?.length" class="glist">
                     <GameCard v-for="g in games" :key="g.id" :game="g" :invite="g.me === 'invited'" />
                 </div>
-                <div v-else class="empty">{{ $t('player.home.no_games') }}</div>
+                <EmptyState v-else icon="ball" :title="$t('player.empty.games')" :text="$t('player.home.no_games')" :href="route('games.create', { sport })" :action="$t('common.create_game')" />
             </section>
 
             <section v-else id="venues" class="section tabsec">
@@ -316,7 +343,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .intro-art { position: relative; width: min(300px, 70vw); aspect-ratio: 1; overflow: hidden; background: var(--grad); mix-blend-mode: screen; opacity: 0; transition: opacity .6s; mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent), linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent); mask-composite: intersect; }
 .intro-art.ready { opacity: 1; }
 .intro-art video { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.15); filter: invert(1) grayscale(1) contrast(1.15); mix-blend-mode: multiply; }
-.intro-name { margin: 0; font-size: clamp(40px, 9vw, 68px); letter-spacing: -0.03em; line-height: 1; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.intro-name { margin: 0; font-size: clamp(40px, 9vw, 68px); letter-spacing: -0.03em; line-height: 1; background: var(--grad-text, var(--grad)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ptiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; text-align: left; }
 .ptile { position: relative; overflow: hidden; display: flex; align-items: flex-end; gap: 12px; min-height: 190px; padding: 18px; border-radius: 24px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); transition: transform .18s, border-color .18s; }
 .ptile:hover { transform: translateY(-2px); border-color: var(--accent); }
@@ -332,7 +359,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 .ptile.pingpong:hover { border-color: var(--field-table); }
 .shead { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
 .shead h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); }
-.shead h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.shead h1 em { font-style: normal; background: var(--grad-text, var(--grad)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .allsports { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; align-self: flex-start; }
 .allsports:hover { color: var(--accent); }
 .stabs { position: sticky; top: calc(64px + var(--sat)); z-index: 20; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin-top: 16px; padding: 4px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }

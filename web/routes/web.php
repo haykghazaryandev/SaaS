@@ -22,6 +22,7 @@ Route::get('lang/{locale}.json', LangController::class)->where('locale', '[a-z]{
 Route::get('/', HomeController::class)->name('home');
 Route::get('places/{venue:slug}', [PlaceController::class, 'show'])->name('places.show');
 Route::get('places/{venue:slug}/slots', [PlaceController::class, 'slots'])->name('places.slots');
+Route::get('places/{venue:slug}/ranking', [PlaceController::class, 'ranking'])->name('places.ranking');
 // booking requests: logged in, or a guest with name + phone + code (the code step logs the guest in)
 Route::post('bookings', [BookingController::class, 'store'])->middleware('throttle:30,10')->name('bookings.store');
 Route::middleware('auth')->group(function () {

@@ -19,4 +19,10 @@ class SportRating extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /** The club that set the rating. */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
+    }
 }

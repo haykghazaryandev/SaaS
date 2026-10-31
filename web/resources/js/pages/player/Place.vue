@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RankList, { type RankRow } from '@/components/player/RankList.vue';
 import { ask } from '@/composables/useConfirm';
 import PlaceMap from '@/components/PlaceMap.vue';
 import TelegramLogin from '@/components/TelegramLogin.vue';
@@ -62,6 +63,8 @@ const props = defineProps<{
     features?: string[];
     /** the club parts: my card here (null: no cards; false: not made yet), trainings, shop, open tournaments */
     club?: {
+        /** the club's ranking (ping-pong): the top 5, how many, and where I am */
+        ranking: { top: RankRow[]; total: number; me: RankRow | null } | null;
         card: { balance: number; cashback: number } | false | null;
         products: { id: number; name: string; description: string | null; price: number; final: number; discount_pct: number; in_stock: boolean; photo: string | null }[];
         tournaments: { code: string; title: string; when: string; from: number; phase: Phase; divisions: number }[];
@@ -827,7 +830,7 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
             </div>
 
             <!-- the club: my card (QR), trainings, shop, tournaments: only what the place switched on -->
-            <section v-if="club && (club.card !== null || club.products.length || club.tournaments.length)" class="section clubs">
+            <section v-if="club && (club.card !== null || club.products.length || club.tournaments.length || club.ranking?.total)" class="section clubs">
                 <div v-if="club.card !== null" class="card pad mycard">
                     <Icon name="qr" size="lg" />
                     <span class="mc">
@@ -838,6 +841,14 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
                     <Link v-if="club.card" class="btn sm" :href="route('me.cards', { venue: venue.slug })">{{ $t('club.show_qr') }}</Link>
                     <button v-else-if="user" type="button" class="btn sm" data-test="get-card" @click="getCard">{{ $t('club.get_card') }}</button>
                     <Link v-else class="btn sm" :href="route('login')">{{ $t('club.get_card') }}</Link>
+                </div>
+
+                <!-- the club's ranking: the top 5 (podium), where I am, the whole list on its own page -->
+                <div v-if="club.ranking?.total" class="card pad" data-test="place-ranking">
+                    <h2 class="infoh">{{ $t('player.ranking.title') }}</h2>
+                    <RankList :rows="club.ranking.top" :me="club.ranking.me?.id" podium />
+                    <p v-if="club.ranking.me && club.ranking.me.rank > 5" class="myrank">{{ $t('player.ranking.my_place', { n: club.ranking.me.rank, r: club.ranking.me.rating }) }}</p>
+                    <Link class="btn ghost sm block" style="margin-top: 10px" :href="route('places.ranking', venue.slug)">{{ $t('player.ranking.all', { n: club.ranking.total }) }}</Link>
                 </div>
 
                 <div v-if="club.tournaments.length" class="card pad">
@@ -1231,4 +1242,5 @@ const homeUrl = computed(() => route('home', date.value !== today.value ? { date
 .tg-box { margin: -4px 0 12px; }
 .tg-box :deep(.tg-connect) { padding: 0 !important; }
 .tg-box :deep(.btn) { width: 100%; background: var(--blue); color: #04121b; }
+.myrank { margin: 8px 0 0; color: var(--accent); font-weight: 800; font-size: 13.5px; }
 </style>

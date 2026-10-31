@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import Pager from '@/components/Pager.vue';
 import Icon from '@/components/Icon.vue';
 import { ask } from '@/composables/useConfirm';
@@ -127,7 +128,9 @@ async function sell(id: number) {
                 </div>
             </article>
         </div>
-        <p v-if="!products.length" class="faint">{{ $t('owner.club.no_products') }}</p>
+        <EmptyState v-if="!products.length" icon="cube" :title="$t('owner.club.no_products')" :text="$t('owner.empty.products_text')">
+            <button v-if="canEdit" type="button" class="btn sm" @click="edit()"><Icon name="plus" size="sm" />{{ $t('owner.club.new_product') }}</button>
+        </EmptyState>
 
         <section class="card panel" data-test="sales">
             <div class="sec-h"><h2>{{ $t('owner.club.sales') }}</h2></div>
@@ -146,7 +149,7 @@ async function sell(id: number) {
                 <span class="mono faint">{{ s.at }}</span><span class="w">{{ s.what }}<small v-if="s.who"> · {{ s.who }}</small></span
                 ><span class="mono">{{ amd(s.amount ?? 0) }} · {{ $t('owner.club.m_' + s.method) }}</span>
             </div>
-            <p v-if="!sales.data.length" class="faint" style="margin: 4px 0">{{ $t('owner.money.no_sales') }}</p>
+            <EmptyState v-if="!sales.data.length" compact icon="chart" :title="$t('owner.money.no_sales')" :text="$t('owner.empty.sales_text')" />
             <Pager :page="sales.page" :pages="sales.pages" :total="sales.total" :only="['sales', 'salesFilter']" />
         </section>
     </OwnerLayout>

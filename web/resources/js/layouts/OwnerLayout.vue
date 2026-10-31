@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PageSkeleton from '@/components/PageSkeleton.vue';
+import { useNavLoading } from '@/composables/useNavLoading';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ChatDock from '@/components/owner/ChatDock.vue';
 import RequestsBell from '@/components/owner/RequestsBell.vue';
@@ -132,6 +134,7 @@ watch(
         if (old !== undefined && n > old && (user.value as { sound?: boolean } | null)?.sound !== false) ping();
     },
 );
+const navLoading = useNavLoading();
 </script>
 
 <template>
@@ -188,7 +191,9 @@ watch(
         <main class="omain">
             <!-- computers: the requests waiting for an answer, top right of the page -->
             <div v-if="may('requests')" class="obell"><RequestsBell /></div>
-            <slot />
+            <!-- a page that takes a moment to open: grey placeholders instead of the old page -->
+            <PageSkeleton v-if="navLoading" />
+            <slot v-else />
         </main>
         <button v-if="props.newBooking" type="button" class="ofab" data-test="fab" :aria-label="$t('common.new_booking')" :title="$t('common.new_booking')" @click="openForm(props.newBooking)">
             <Icon name="plus" /><span>{{ $t('common.new_booking') }}</span>

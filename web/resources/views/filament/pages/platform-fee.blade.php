@@ -31,6 +31,14 @@
             <div style="font-size:13px;opacity:.7">{{ __('admin.fee.total_base') }}</div>
             <div style="font-size:28px;font-weight:800">{{ $amd($base) }}</div>
         </x-filament::section>
+        @if ($period === 'month')
+            {{-- a month: how much of it the places paid ZoneSpot already --}}
+            <x-filament::section>
+                <div style="font-size:13px;opacity:.7">{{ __('admin.fee.paid_total') }}</div>
+                <div style="font-size:28px;font-weight:800">{{ $amd($paidTotal) }}</div>
+                <div style="font-size:12.5px;opacity:.7">{{ __('admin.fee.paid_places', ['n' => count($paid), 'of' => count(array_filter($rows, fn ($r) => $r['fee'] > 0))]) }}</div>
+            </x-filament::section>
+        @endif
     </div>
 
     <x-filament::section>
@@ -46,6 +54,9 @@
                         <th style="padding:8px;text-align:right">{{ __('admin.fee.kind_unpaid') }}</th>
                         <th style="padding:8px;text-align:right">{{ __('admin.fee.base') }}</th>
                         <th style="padding:8px;text-align:right">{{ __('admin.fee.fee') }}</th>
+                        @if ($period === 'month')
+                            <th style="padding:8px;text-align:right">{{ __('admin.fee.paid_col') }}</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -58,9 +69,24 @@
                             @endforeach
                             <td style="padding:10px 8px;text-align:right;font-variant-numeric:tabular-nums">{{ $amd($r['base']) }}</td>
                             <td style="padding:10px 8px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums">{{ $amd($r['fee']) }}</td>
+                            @if ($period === 'month')
+                                <td style="padding:10px 8px;text-align:right;white-space:nowrap">
+                                    @if (isset($paid[$r['id']]))
+                                        <span style="color:rgb(22 163 74);font-weight:800">✓ {{ __('admin.fee.paid_on', ['d' => $paid[$r['id']]['at']]) }}</span>
+                                        @if ($paid[$r['id']]['amount'] !== $r['fee'])
+                                            <div style="font-size:11.5px;opacity:.7">{{ __('admin.fee.paid_amount', ['a' => $amd($paid[$r['id']]['amount'])]) }}</div>
+                                        @endif
+                                        <x-filament::link tag="button" size="sm" color="gray" wire:click="unmarkPaid({{ $r['id'] }})" wire:confirm="{{ __('admin.fee.unmark_ask') }}">{{ __('admin.fee.unmark') }}</x-filament::link>
+                                    @elseif ($r['fee'] > 0)
+                                        <x-filament::button size="xs" wire:click="markPaid({{ $r['id'] }})" wire:confirm="{{ __('admin.fee.mark_ask', ['name' => $r['name'], 'a' => $amd($r['fee'])]) }}">{{ __('admin.fee.mark_paid') }}</x-filament::button>
+                                    @else
+                                        <span style="opacity:.35">—</span>
+                                    @endif
+                                </td>
+                            @endif
                         </tr>
                     @empty
-                        <tr><td colspan="8" style="padding:14px 8px;opacity:.6">{{ __('admin.fee.none') }}</td></tr>
+                        <tr><td colspan="9" style="padding:14px 8px;opacity:.6">{{ __('admin.fee.none') }}</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
