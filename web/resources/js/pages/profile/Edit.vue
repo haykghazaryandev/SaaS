@@ -2,6 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import Avatar from '@/components/Avatar.vue';
 import AvatarCropper from '@/components/AvatarCropper.vue';
+import PushSwitch from '@/components/PushSwitch.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { useShared } from '@/composables/useShared';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
@@ -43,6 +44,7 @@ const props = defineProps<{
     };
     options: { positions: string[]; districts: string[]; locales: string[] };
     notify: Record<string, boolean>;
+    pushEndpoints: string[];
     blocked: PlayerCard[];
 }>();
 
@@ -50,6 +52,13 @@ const { user } = useShared();
 
 // ---------- notifications ----------
 const notifs = reactive({ ...props.notify });
+// push on this device or another one: the kinds below also choose what comes by push
+const pushOn = ref(false);
+const anyPush = computed(() => pushOn.value || props.pushEndpoints.length > 0);
+function pushChanged(on: boolean, tapped: boolean) {
+    pushOn.value = on;
+    if (tapped) router.reload({ only: ['pushEndpoints'] });
+}
 const notifKeys = computed(() => ['bookings', 'games', 'friends', 'chats', 'alerts', ...(user.value?.isOwner ? ['requests'] : []), 'sound']);
 function setNotif(key: string, on: boolean) {
     notifs[key] = on;
@@ -212,13 +221,16 @@ function unblock(p: PlayerCard) {
             </aside>
         </div>
 
-        <!-- notifications: what comes by Telegram (per kind), and the sound in the app; each switch saves at once -->
+        <!-- notifications: push on this device, what comes by Telegram / push (per kind), and the sound in the app; each switch saves at once -->
         <section class="card pad notif">
             <h2>{{ $t('profile.notifications.title') }}</h2>
-            <p class="muted small">{{ profile.telegram ? $t('profile.notifications.sub') : $t('profile.notifications.no_telegram') }}</p>
+            <p class="muted small">
+                {{ profile.telegram ? $t('profile.notifications.sub') : anyPush ? $t('profile.notifications.sub_device') : $t('profile.notifications.no_telegram') }}
+            </p>
+            <PushSwitch :endpoints="pushEndpoints" @change="pushChanged" />
             <label v-for="k in notifKeys" :key="k" class="sw">
                 <span><b>{{ $t(`profile.notifications.${k}`) }}</b><small class="muted">{{ $t(`profile.notifications.${k}_help`) }}</small></span>
-                <input type="checkbox" role="switch" :checked="notifs[k]" :disabled="!profile.telegram && k !== 'sound'" @change="setNotif(k, ($event.target as HTMLInputElement).checked)" />
+                <input type="checkbox" role="switch" :checked="notifs[k]" :disabled="!profile.telegram && !anyPush && k !== 'sound'" @change="setNotif(k, ($event.target as HTMLInputElement).checked)" />
             </label>
         </section>
 

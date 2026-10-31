@@ -2,16 +2,19 @@
 
 namespace App\Notifications;
 
+use App\Domain\Notifications\PushNotifications;
 use App\Domain\Notifications\TelegramChannel;
 use App\Domain\Notifications\TelegramMessage;
+use App\Domain\Notifications\WebPushChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * A social / game notification: saved for the in-app bell (database), pushed live (Reverb broadcast)
- * and, for the important types, sent by Telegram.
+ * and, for the important types, sent by Telegram and by Web Push (the installed app, PushNotifications).
  *
  * $type examples: friend_request, friend_accepted, game_invite, game_opened, game_joined, game_full,
  * game_left, game_removed, game_cancelled, game_booking_requested, game_booked, game_booking_declined.
@@ -22,7 +25,7 @@ class Notice extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /** Types that also go to Telegram (people connected the bot to hear about these). */
+    /** Types that also go to Telegram and Web Push (people connected the bot / the app to hear about these). */
     public const TELEGRAM = ['slot_free', 'friend_request', 'friend_accepted', 'game_invite', 'game_opened', 'game_joined', 'game_full', 'game_expired',
         'game_booked', 'game_booking_declined', 'game_cancelled', 'game_removed',
         'booking_reminder_day', 'booking_reminder_hour', 'booking_team_invite', 'booking_team_joined', 'booking_team_declined',
@@ -32,7 +35,7 @@ class Notice extends Notification implements ShouldQueue
         'card_created', 'card_topup', 'card_paid', 'card_level',
         'tournament_accepted', 'tournament_accepted_fee', 'tournament_declined', 'tournament_news', 'tournament_unpaid', 'tournament_draw', 'tournament_bye', 'tournament_result', 'tournament_champion', 'tournament_removed', 'tournament_cancelled', 'chat_mention'];
 
-    /** Categories that always go by Telegram (if switched on), even while the person uses the app: they matter. */
+    /** Categories that always go by Telegram / push (if switched on), even while the person uses the app: they matter. */
     private const ALWAYS = ['bookings', 'requests', 'alerts'];
 
     /**
@@ -44,15 +47,19 @@ class Notice extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         $via = ['database', 'broadcast'];
+        if (! in_array($this->type, self::TELEGRAM, true)) {
+            return $via;
+        }
         $cat = $this->category();
-        if (in_array($this->type, self::TELEGRAM, true) && $notifiable->telegram_chat_id
-            && (! method_exists($notifiable, 'wantsTelegram') || $notifiable->wantsTelegram($cat))
-            // social news (friends, games) only when the app is not open: in the app the bell and the toast show it
-            && (in_array($cat, self::ALWAYS, true) || ! method_exists($notifiable, 'isActiveNow') || ! $notifiable->isActiveNow())) {
-            $via[] = TelegramChannel::class;
+        $telegram = $notifiable->telegram_chat_id && (! method_exists($notifiable, 'wantsTelegram') || $notifiable->wantsTelegram($cat));
+        $push = PushNotifications::reaches($notifiable, $cat);
+        // social news (friends, games) only when the app is not open: in the app the bell and the toast show it
+        if ((! $telegram && ! $push)
+            || (! in_array($cat, self::ALWAYS, true) && method_exists($notifiable, 'isActiveNow') && $notifiable->isActiveNow())) {
+            return $via;
         }
 
-        return $via;
+        return [...$via, ...($telegram ? [TelegramChannel::class] : []), ...($push ? [WebPushChannel::class] : [])];
     }
 
     /** bookings | requests (for the place's staff) | games | friends | chats | alerts */
@@ -99,5 +106,13 @@ class Notice extends Notification implements ShouldQueue
         $url = 'app:'.$this->link;
 
         return new TelegramMessage('notice.'.$this->type, $text, [...$rows, [[__('telegram.button.open', [], $locale), $url]]]);
+    }
+
+    public function toWebPush(object $notifiable): WebPushMessage
+    {
+        $text = __('notice.'.$this->type, array_map(fn ($v) => e((string) $v), $this->params), $notifiable->preferredLocale());
+
+        // repeats of the same news about the same page replace each other on the phone
+        return PushNotifications::message($text, $this->link, 'notice:'.$this->type.':'.substr(md5((string) $this->link), 0, 8));
     }
 }

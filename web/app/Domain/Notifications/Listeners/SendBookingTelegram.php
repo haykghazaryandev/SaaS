@@ -10,7 +10,7 @@ use App\Support\LocalTime;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * BookingChanged → who is told, by Telegram and in the app (bell + live toast):
+ * BookingChanged → who is told, by Telegram / Web Push (BookingNotification::via) and in the app (bell + live toast):
  * - the player: requested, accepted (with the code), declined, changed (time/field/price), cancelled by the place or the system, expired
  * - owners and staff of the place: a new request (with Accept / Decline buttons), the player cancelled
  */
@@ -29,7 +29,7 @@ class SendBookingTelegram
         $toPlayer = in_array($type, self::PLAYER, true)
             && ! ($type === 'cancelled' && $cancelledBy === 'player')
             && ! ($type === 'changed' && ! array_intersect(array_keys($event->changes), self::PLAYER_CHANGE_KEYS));
-        if ($toPlayer && $b->user?->telegram_chat_id) {
+        if ($toPlayer && $b->user) {
             $b->user->notify(new BookingNotification($b, $type, 'player', $event->changes));
         }
         // in the app: the answer of the place (not the player's own "request sent")
@@ -46,7 +46,6 @@ class SendBookingTelegram
         if ($toOwners) {
             $staff = User::query()
                 ->whereIn('id', fn ($q) => $q->select('user_id')->from('venue_users')->where('venue_id', $b->venue_id))
-                ->whereNotNull('telegram_chat_id')
                 ->when($event->actor, fn ($q) => $q->where('id', '!=', $event->actor->id))
                 ->get();
             Notification::send($staff, new BookingNotification($b, $type, 'owner'));

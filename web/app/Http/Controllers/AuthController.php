@@ -10,6 +10,7 @@ use App\Domain\Auth\PasswordLogin;
 use App\Domain\Auth\PhoneCodes;
 use App\Domain\Auth\TelegramLoginFlow;
 use App\Domain\Auth\TelegramWebApp;
+use App\Domain\Notifications\PushNotifications;
 use App\Domain\Notifications\TelegramBot;
 use App\Models\TelegramLogin;
 use App\Models\User;
@@ -413,6 +414,11 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        // this device stops getting the person's push notifications (the endpoint from lib/push.ts, or the one saved at subscribe)
+        $endpoint = $request->input('push_endpoint') ?: $request->session()->get('push_endpoint');
+        if ($request->user() && is_string($endpoint)) {
+            app(PushNotifications::class)->unsubscribe($request->user(), $endpoint);
+        }
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

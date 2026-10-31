@@ -5,6 +5,7 @@ import { social } from '@/composables/useSocial';
 import { amd, hhmm, useShared } from '@/composables/useShared';
 import { SIZE_COLOR, courtShort, dateLong, dur, nextLabel, pitchColor, wdName } from '@/composables/usePlayer';
 import TournamentPhase, { type Phase } from '@/components/club/TournamentPhase.vue';
+import InstallBanner from '@/components/pwa/InstallBanner.vue';
 import PlayerLayout from '@/layouts/PlayerLayout.vue';
 import { useLive } from '@/lib/echo';
 import { useSportTheme } from '@/lib/sport';
@@ -119,6 +120,7 @@ const whenOf = (iso: string) => `${dateLong(iso.slice(0, 10))} · ${iso.slice(11
 <template>
     <PlayerLayout>
         <Head :title="$t('player.home.pick_title')" />
+        <InstallBanner />
 
         <!-- 1. what do you play? -->
         <section v-if="pick" class="pick">

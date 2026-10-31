@@ -20,6 +20,7 @@
 .oapp .oside-foot .lang { align-self: flex-start; }
 .oapp .olink { display: flex; gap: 8px; align-items: center; color: var(--muted); font-weight: 700; font-size: 13px; }
 .oapp .olink:hover { color: var(--accent); }
+.oapp button.olink { padding: 0; border: 0; background: none; font: inherit; font-weight: 700; font-size: 13px; text-align: left; cursor: pointer; }
 .oapp .ome { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 .oapp .ome > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; font-size: 13px; line-height: 1.3; }
 .oapp .ome small { color: var(--faint); font-family: var(--mono); font-size: 11px; }
@@ -551,7 +552,8 @@
 .oapp .tabbar button[aria-current="page"] { background: rgba(200, 255, 61, 0.08); color: var(--accent); }
 .oapp .tabbar .tb-scan .tb-ico { color: var(--accent); }
 .oapp .moremenu { display: flex; flex-direction: column; gap: 4px; }
-.oapp .moremenu a { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 12px; font-weight: 700; color: var(--ink); }
+.oapp .moremenu a, .oapp .moremenu button { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 12px; font-weight: 700; color: var(--ink); }
+.oapp .moremenu button { width: 100%; border: 0; background: none; font: inherit; font-weight: 700; text-align: left; }
 .oapp .moremenu a[aria-current="page"] { background: var(--surface-2); color: var(--accent); }
 .oapp .backlink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 700; font-size: 14px; margin: 4px 0 12px; }
 .oapp .backlink:hover { color: var(--accent); }

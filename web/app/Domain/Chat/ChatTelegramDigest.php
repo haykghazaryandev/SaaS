@@ -2,6 +2,8 @@
 
 namespace App\Domain\Chat;
 
+use App\Domain\Notifications\PushNotice;
+use App\Domain\Notifications\PushNotifications;
 use App\Domain\Notifications\TelegramBot;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
@@ -9,13 +11,15 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * A new chat message: the bot tells, right away, the members who don't have Bookball open
- * ("💬 Aram: Who brings the ball? (+3 more)", with a button that opens the chat in the Mini App).
+ * ("💬 Aram: Who brings the ball? (+3 more)", with a button that opens the chat in the Mini App);
+ * the same text goes by Web Push to their devices with "Notifications on this device" on (one per chat on the phone).
  * People with the app open see it live (no Telegram); muted chats and switched-off chat notifications are skipped.
  * A busy chat: within 30 s of a Telegram message about it, new ones are collected into one follow-up 30 s later.
  */
@@ -44,9 +48,14 @@ class ChatTelegramDigest implements ShouldQueue
             ->where('user_id', '!=', $m->user_id)->get();
         foreach ($members as $p) {
             $u = $p->user;
-            if (! $u?->telegram_chat_id || ! $u->wantsTelegram('chats') || ($p->muted_until && $p->muted_until->isFuture())
+            if (! $u || ($p->muted_until && $p->muted_until->isFuture())
                 || ($p->last_read_message_id && $p->last_read_message_id >= $m->id)
                 || $u->isActiveNow()) {   // the app is open: they see it live
+                continue;
+            }
+            $telegram = $u->telegram_chat_id && $u->wantsTelegram('chats');
+            $push = PushNotifications::reaches($u, 'chats');   // a query: after the cheap checks
+            if (! $telegram && ! $push) {
                 continue;
             }
             if ($p->notified_at && $p->notified_at->greaterThan(now()->subSeconds(self::GROUP_SECONDS))) {
@@ -66,14 +75,23 @@ class ChatTelegramDigest implements ShouldQueue
             $text = __($c->type === 'game' ? 'telegram.chat.game' : 'telegram.chat.direct', $params, $locale)
                 .($unread > 1 ? "\n".__('telegram.chat.more', ['n' => $unread - 1], $locale) : '');
             $p->forceFill(['notified_at' => now()])->save();
-            try {
-                $bot->sendMessage($u->telegram_chat_id, $text, [[[__('telegram.button.open_chat', [], $locale), 'app:/messages/'.$c->id]]]);
-            } catch (Throwable $e) {
-                Log::warning('chat telegram digest failed', ['user' => $u->id, 'error' => $e->getMessage()]);   // blocked the bot etc.
+            if ($telegram) {
+                try {
+                    $bot->sendMessage($u->telegram_chat_id, $text, [[[__('telegram.button.open_chat', [], $locale), 'app:/messages/'.$c->id]]]);
+                } catch (Throwable $e) {
+                    Log::warning('chat telegram digest failed', ['user' => $u->id, 'error' => $e->getMessage()]);   // blocked the bot etc.
+                }
+            }
+            if ($push) {
+                try {
+                    $u->notifyNow(new PushNotice(PushNotifications::message($text, '/messages/'.$c->id, 'chat:'.$c->id)));
+                } catch (Throwable $e) {
+                    Log::warning('chat push failed', ['user' => $u->id, 'error' => $e->getMessage()]);
+                }
             }
         }
         // one follow-up per chat for the collected messages
-        if ($collect && \Illuminate\Support\Facades\Cache::add('chat-digest:'.$c->id, 1, self::GROUP_SECONDS + 5)) {
+        if ($collect && Cache::add('chat-digest:'.$c->id, 1, self::GROUP_SECONDS + 5)) {
             self::dispatch($m->id, true)->delay(now()->addSeconds(self::GROUP_SECONDS));
         }
     }

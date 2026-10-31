@@ -455,3 +455,16 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 /* a training (not a plain game): its own colour everywhere a booking shows */
 .tchip { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(255, 122, 217, 0.16); color: #ff9be3; white-space: nowrap; }
 .tchip.sm { padding: 1px 8px; margin-right: 6px; font-size: 12px; }
+
+/* "Install app": the install banner's accent look, also on its menu items (.install-item in the account menu, the owner's More sheet and sidebar).
+   The border is an inset shadow and the glow / shine are pseudo-elements, so nothing moves. Keyframes shared with InstallBanner.vue. */
+.menu > .install-item, .oapp .moremenu > .install-item, .oapp .oside-foot > .install-item { position: relative; overflow: hidden; color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+.menu > .install-item:hover, .oapp .moremenu > .install-item:hover, .oapp .oside-foot > .install-item:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.oapp .oside-foot > .install-item { margin: 0 -10px; padding: 8px 10px; border-radius: 10px; }
+@media (prefers-reduced-motion: no-preference) {
+  .install-item::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 0 18px color-mix(in srgb, var(--accent) 28%, transparent); opacity: 0; animation: bb-install-glow 1.5s ease-in-out 0.2s 3; }
+  .install-item::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.14) 50%, transparent 65%); transform: translateX(-100%); animation: bb-install-shine 6s ease-in-out 1s infinite; }
+}
+@keyframes bb-install-glow { 50% { opacity: 1; } }
+/* one sweep in the first part, then a long rest */
+@keyframes bb-install-shine { 0% { transform: translateX(-100%); } 20%, 100% { transform: translateX(100%); } }

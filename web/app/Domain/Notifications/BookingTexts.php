@@ -31,9 +31,9 @@ class BookingTexts
     }
 
     /** Message for owners/staff: requested (with Accept / Decline buttons) | cancelled (by the player) */
-    public static function owner(Booking $b, string $type): TelegramMessage
+    public static function owner(Booking $b, string $type, bool $phone = true): TelegramMessage
     {
-        $text = __('telegram.owner.'.$type, ['venue' => e($b->venue->name)])."\n\n".self::details($b)."\n".self::contact($b);
+        $text = __('telegram.owner.'.$type, ['venue' => e($b->venue->name)])."\n\n".self::details($b)."\n".self::contact($b, $phone);
         if ($b->note_player) {
             $text .= "\n💬 ".e($b->note_player);
         }
@@ -65,9 +65,10 @@ class BookingTexts
         ]);
     }
 
-    public static function contact(Booking $b): string
+    /** $phone false: push notifications, shown on the lock screen */
+    public static function contact(Booking $b, bool $phone = true): string
     {
-        return '👤 '.e($b->team_name ? $b->contact_name.' ('.$b->team_name.')' : $b->contact_name).($b->contact_phone ? ' · '.Phone::format($b->contact_phone) : '');
+        return '👤 '.e($b->team_name ? $b->contact_name.' ('.$b->team_name.')' : $b->contact_name).($phone && $b->contact_phone ? ' · '.Phone::format($b->contact_phone) : '');
     }
 
     public static function field(FieldSize $size): string

@@ -84,6 +84,18 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         return $this->hasMany(GamePlayer::class);
     }
 
+    /** Browsers / phones with "Notifications on this device" on (Web Push). */
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
+    /** Where the Web Push channel sends (a query, not the relation: lazy loading is off in dev and the job gets a fresh model). */
+    public function routeNotificationForWebPush()
+    {
+        return $this->pushSubscriptions()->get();
+    }
+
     /** Accepted friends (both directions). */
     public function friendIds(): array
     {
@@ -109,7 +121,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
         }
     }
 
-    /** Telegram message categories a person can switch off (Profile → Notifications); all on by default. */
+    /** Message categories (Telegram and Web Push) a person can switch off (Profile → Notifications); all on by default. */
     public const NOTIFY_CATEGORIES = ['bookings', 'games', 'friends', 'chats', 'alerts', 'requests'];
 
     public function wantsTelegram(string $category): bool

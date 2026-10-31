@@ -27,6 +27,9 @@
         <!-- tests never talk to the real bot (.env.example holds the team token) -->
         <env name="TELEGRAM_BOT_TOKEN" value="" force="true"/>
         <env name="TELEGRAM_GATEWAY_TOKEN" value="" force="true"/>
+        <!-- Web Push off unless a test sets keys -->
+        <env name="VAPID_PUBLIC_KEY" value="" force="true"/>
+        <env name="VAPID_PRIVATE_KEY" value="" force="true"/>
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="bookball_test"/>
         <env name="MAIL_MAILER" value="array"/>

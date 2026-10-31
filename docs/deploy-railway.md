@@ -75,6 +75,7 @@ railway login
    | `REVERB_HOST` | `<web domain>` without scheme |
    | `VITE_REVERB_APP_KEY` (web only) | same as `REVERB_APP_KEY` |
    | `VITE_REVERB_HOST` (web only) | same as `REVERB_HOST` |
+   | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push keys, see "Web Push" below; may be empty (push off) |
    | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (web only) | Google OAuth client ("Web application"); its redirect URI is `https://<web domain>/login/google/callback`. Empty hides the Google button |
 
    Saving variables triggers a redeploy, so after the last one Railway rebuilds with everything set.
@@ -167,6 +168,21 @@ today). Set on staging since 2026-10-31.
   without PHP; private channels still need `/broadcasting/auth`, which is blocked.
 - A VPN or proxy outside the allowed countries is blocked, like any foreign address.
 - Turning it off: delete the variable (or set it empty) and redeploy.
+
+## Web Push
+
+"Notifications on this device" (Profile → Notifications, owner Settings) sends the same news as Telegram to the
+installed app and desktop browsers (`App\Domain\Notifications\PushNotifications`, package
+`laravel-notification-channels/webpush`). Off while the keys are empty: nothing is sent and the switch is hidden.
+
+- Generate one key pair per environment, anywhere: `php artisan webpush:vapid --show`.
+- Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:you@example.com` or the `APP_URL`) on
+  **web and worker** at least (web gives the public key to the browser, the worker signs and sends; the IaC keeps
+  them on all four services). Same values on every service, e.g. on worker `VAPID_PRIVATE_KEY=${{web.VAPID_PRIVATE_KEY}}`.
+- Never rotate them casually: devices subscribed with the old public key stop receiving until the person switches
+  the device on again.
+- iPhone / iPad: only in the installed app (Add to Home Screen, iOS 16.4+). Push services answering 404 / 410 delete the
+  device's row (`push_subscriptions`).
 
 ## Known trade-offs
 

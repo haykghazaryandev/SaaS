@@ -11,9 +11,11 @@ import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import Logo from '@/components/Logo.vue';
 import OwnerSheets from '@/components/owner/OwnerSheets.vue';
+import InstallSheet from '@/components/pwa/InstallSheet.vue';
 import { decisions, openForm, sheets, useMay, useOwner, type FormOpts, type MenuKey } from '@/composables/useOwner';
 import { useShared } from '@/composables/useShared';
 import { useLive } from '@/lib/echo';
+import { installable, promptInstall } from '@/lib/pwa';
 import { Head, Link, router } from '@inertiajs/vue3';
 import QrScanner from '@/components/owner/QrScanner.vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -158,6 +160,7 @@ watch(
                 <Link class="olink" :href="route('me.profile')"><Icon name="user" size="sm" />{{ $t('profile.title') }}</Link>
                 <!-- admins: their panel -->
                 <a v-if="user?.isAdmin" class="olink" href="/admin"><Icon name="settings" size="sm" />{{ $t('switch.admin') }}</a>
+                <button v-if="installable()" type="button" class="olink install-item" data-test="install-app" @click="promptInstall"><Icon name="install" size="sm" />{{ $t('pwa.install.button') }}</button>
                 <div class="ome">
                     <Avatar :id="user?.id" :name="user?.name" :src="user?.avatar" size="sm" />
                     <span
@@ -213,12 +216,16 @@ watch(
                     </Link>
                     <!-- the account -->
                     <Link :href="route('me.profile')"><Icon name="user" /><span>{{ $t('profile.title') }}</span></Link>
+                    <button v-if="installable()" type="button" class="install-item" data-test="install-app-more" @click="(moreOpen = false), promptInstall()">
+                        <Icon name="install" /><span>{{ $t('pwa.install.button') }}</span>
+                    </button>
                 </nav>
                 <a v-if="user?.isAdmin" class="more-admin" href="/admin"><Icon name="settings" /><span>{{ $t('switch.admin') }}</span></a>
             </div>
         </div>
         <QrScanner v-if="scanOpen" @close="scanOpen = false" />
         <OwnerSheets />
+        <InstallSheet />
         <Flash />
         <ConfirmDialog />
         <!-- computers: the mini chat at the bottom right (answer players while booking) -->

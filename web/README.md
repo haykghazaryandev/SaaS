@@ -84,8 +84,10 @@ composer run dev     # app :8000 + queue + Reverb :8080 + logs + Vite
 ## Installable web app ("Add to Home Screen")
 The site installs on the phone as an app icon that opens full screen (the cheap step before the React Native app):
 `public/manifest.webmanifest`, the head tags in `resources/views/app.blade.php`, and `public/sw.js`, registered by
-`resources/js/lib/pwa.ts` (not inside Telegram). The worker caches nothing on purpose, so a deploy is live at once; offline
-and push are not part of this. The icons (`public/icons/*`, `public/favicon.*`) are rendered from `resources/icons/icon.svg`
+`resources/js/lib/pwa.ts` (not inside Telegram). The worker caches nothing on purpose, so a deploy is live at once; there is no
+offline mode. It also shows **Web Push**: "Notifications on this device" (`resources/js/lib/push.ts`, `components/PushSwitch.vue`)
+gets the same news, people and switches as Telegram (`Domain/Notifications/PushNotifications`, `push_subscriptions`);
+off without `VAPID_*` keys (see docs/deploy-railway.md "Web Push"). The icons (`public/icons/*`, `public/favicon.*`) are rendered from `resources/icons/icon.svg`
 with `npm run icons` (edit the SVG, run it, commit the files). iOS has no install prompt: Share → "Add to Home Screen".
 
 ## Design system

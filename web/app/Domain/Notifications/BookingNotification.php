@@ -7,9 +7,10 @@ use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
- * A booking update sent to one person by Telegram (one queued job per message).
+ * A booking update sent to one person by Telegram and / or Web Push (one queued job per channel).
  * $audience: player (the person who booked) | owner (owners and staff of the place).
  * Texts are rendered when the job runs, in the recipient's language (User::preferredLocale).
  */
@@ -36,8 +37,16 @@ class BookingNotification extends Notification implements ShouldQueue
     {
         // switched off in Profile → Notifications: "My bookings" for players, "Requests for my place" for staff
         $category = $this->audience === 'owner' ? 'requests' : 'bookings';
+        $via = [];
+        if (($notifiable->telegram_chat_id ?? null) && (! method_exists($notifiable, 'wantsTelegram') || $notifiable->wantsTelegram($category))) {
+            $via[] = TelegramChannel::class;
+        }
+        // not the player's own "request sent": they are in the app, it was their tap
+        if (! ($this->audience === 'player' && $this->type === 'requested') && PushNotifications::reaches($notifiable, $category)) {
+            $via[] = WebPushChannel::class;
+        }
 
-        return ! method_exists($notifiable, 'wantsTelegram') || $notifiable->wantsTelegram($category) ? [TelegramChannel::class] : [];
+        return $via;
     }
 
     public function toTelegram(object $notifiable): ?TelegramMessage
@@ -51,5 +60,14 @@ class BookingNotification extends Notification implements ShouldQueue
         [$label, $path] = $this->audience === 'owner' ? ['telegram.button.schedule', '/owner'] : ['telegram.button.my_bookings', '/me/bookings'];
 
         return new TelegramMessage($message->type, $message->text, [...$message->buttons, [[__($label), 'app:'.$path]]]);
+    }
+
+    public function toWebPush(object $notifiable): WebPushMessage
+    {
+        $b = $this->booking->loadMissing('venue', 'field');
+        // no phone number on the lock screen (Telegram keeps it)
+        $message = $this->audience === 'owner' ? BookingTexts::owner($b, $this->type, false) : BookingTexts::player($b, $this->type, $this->changes);
+
+        return PushNotifications::message($message->text, $this->audience === 'owner' ? '/owner' : '/me/bookings', 'booking:'.$b->id.':'.$this->audience);
     }
 }

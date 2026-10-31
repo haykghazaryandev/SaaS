@@ -60,6 +60,12 @@ export default defineRailway((ctx) => {
     TELEGRAM_WEBHOOK_SECRET: preserve(),
     ADMIN_PHONE: preserve(), // used by db:seed only
 
+    // Web Push ("Notifications on this device"): php artisan webpush:vapid --show. Empty = push off.
+    // web shares the public key with the browser; worker signs and sends. Same pair on all services, never changed.
+    VAPID_PUBLIC_KEY: preserve(),
+    VAPID_PRIVATE_KEY: preserve(),
+    VAPID_SUBJECT: preserve(), // mailto:you@example.com or the APP_URL
+
     // Real time (chat, live schedule): Reverb. The web service proxies /app and /apps to the
     // reverb service (docker/Caddyfile), so REVERB_HOST is the WEB domain, not a reverb domain.
     BROADCAST_CONNECTION: "reverb",

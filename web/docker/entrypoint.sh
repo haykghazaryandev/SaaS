@@ -20,17 +20,7 @@ fi
 # Storage symlink for public uploads (public/storage -> storage/app/public).
 [ -L public/storage ] || php artisan storage:link --force >/dev/null 2>&1 || true
 
-# Settings file for this environment (e.g. .env.staging), chosen by Railway's environment name
-# (set by Railway itself) or APP_ENV. Railway variables still win over the file.
-ENV_NAME="${RAILWAY_ENVIRONMENT_NAME:-$APP_ENV}"
-if [ ! -f .env ] && [ -n "$ENV_NAME" ] && [ -f ".env.$ENV_NAME" ]; then
-    cp ".env.$ENV_NAME" .env
-    echo "Settings file: .env.$ENV_NAME"
-else
-    echo "Settings file: none for '$ENV_NAME' (only Railway variables)"
-fi
-
-# Config from Railway variables (and the settings file above).
+# Config from Railway variables.
 # View/event caches are built into the image (Dockerfile); config and routes depend on env.
 php artisan config:cache
 # routes after config: Livewire's endpoint (/livewire-<hash>, the admin panel) is derived from APP_KEY

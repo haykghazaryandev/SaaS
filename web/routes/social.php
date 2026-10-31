@@ -5,7 +5,9 @@ use App\Http\Controllers\Social\EmailController;
 use App\Http\Controllers\Social\FriendsController;
 use App\Http\Controllers\Social\NotificationController;
 use App\Http\Controllers\Social\ProfileController;
+use App\Http\Controllers\Social\PushController;
 use App\Http\Controllers\Social\SafetyController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 // social pages of the player web (see README): friends, profiles, blocking / reports, the notification bell
@@ -14,6 +16,10 @@ use Illuminate\Support\Facades\Route;
 
 // profile photos (stored in the database, see AvatarPhoto)
 Route::get('avatars/{file}', [AvatarController::class, 'show'])->where('file', '[0-9]+-[A-Za-z0-9]+\.webp')->name('avatars.show');
+
+// the service worker renews a replaced push subscription: it has no CSRF token (the old endpoint is the proof)
+Route::post('push/renew', [PushController::class, 'renew'])->withoutMiddleware([ValidateCsrfToken::class])
+    ->middleware('throttle:10,1')->name('push.renew');
 
 Route::middleware('auth')->group(function () {
     Route::get('friends', [FriendsController::class, 'index'])->name('friends.index');
@@ -30,6 +36,9 @@ Route::middleware('auth')->group(function () {
     Route::get('me/profile', [ProfileController::class, 'edit'])->name('me.profile');
     Route::patch('me/profile', [ProfileController::class, 'update'])->name('me.profile.update');
     Route::patch('me/notifications', [ProfileController::class, 'notifications'])->middleware('throttle:60,1')->name('me.notifications');
+    // "Notifications on this device" (Web Push)
+    Route::post('me/push', [PushController::class, 'subscribe'])->middleware('throttle:20,1')->name('me.push.subscribe');
+    Route::delete('me/push', [PushController::class, 'unsubscribe'])->middleware('throttle:20,1')->name('me.push.unsubscribe');
 
     Route::get('notifications', [NotificationController::class, 'index'])->middleware('throttle:120,1')->name('notifications.index');
     Route::post('notifications/read', [NotificationController::class, 'read'])->middleware('throttle:120,1')->name('notifications.read');

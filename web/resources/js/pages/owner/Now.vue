@@ -5,6 +5,7 @@ import ShopSheet from '@/components/owner/ShopSheet.vue';
 import { ask } from '@/composables/useConfirm';
 import { dur, openForm, useOwner } from '@/composables/useOwner';
 import { amd } from '@/composables/useShared';
+import InstallBanner from '@/components/pwa/InstallBanner.vue';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { trans } from '@/lib/i18n';
 import { router, usePoll } from '@inertiajs/vue3';
@@ -239,6 +240,7 @@ watch(upIds, (ids) => {
 
 <template>
     <OwnerLayout :title="$t('owner.nav.now')">
+        <InstallBanner />
         <div class="phead">
             <div>
                 <div class="kicker">{{ owner.venue.name }} · {{ hm(nowTs) }}</div>

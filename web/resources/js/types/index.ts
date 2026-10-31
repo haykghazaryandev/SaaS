@@ -27,6 +27,8 @@ export interface SharedData {
     counts?: SocialCounts | null;
     /** the sport chosen on the home page (null on "What do you play?") */
     sport?: string | null;
+    /** Web Push VAPID public key (null = push is off on the server) */
+    pushKey?: string | null;
     [key: string]: unknown;
 }
 

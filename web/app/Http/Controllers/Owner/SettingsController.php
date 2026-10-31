@@ -55,6 +55,8 @@ class SettingsController extends OwnerController
 
         return Inertia::render('owner/Settings', [
             'canEdit' => $this->isOwner($request),
+            // Web Push devices of this person ("Notifications on this device")
+            'pushEndpoints' => fn () => $request->user()->pushSubscriptions()->pluck('endpoint'),
             'place' => [
                 'name' => $venue->name,
                 'address' => $venue->tr('address'),

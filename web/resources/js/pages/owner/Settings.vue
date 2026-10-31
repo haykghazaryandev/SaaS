@@ -2,6 +2,7 @@
 import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import MenusSettings from '@/components/owner/MenusSettings.vue';
+import PushSwitch from '@/components/PushSwitch.vue';
 import TelegramConnect from '@/components/TelegramConnect.vue';
 import { ask } from '@/composables/useConfirm';
 import { fdate, useOwner } from '@/composables/useOwner';
@@ -62,6 +63,7 @@ const props = defineProps<{
     hours: HourRow[];
     rules: { min_notice_min: number; request_expire_min: number; auto_accept_regulars: boolean; late_grace_min: number; cashback_tiers: Tier[] };
     closures: ClosureRow[];
+    pushEndpoints: string[];
 }>();
 const owner = useOwner();
 const { user } = useShared();
@@ -593,6 +595,8 @@ const fmtRange = (c: ClosureRow) =>
                         <p class="muted" style="font-size: 13px; margin: 0 0 12px">{{ $t('owner.settings.telegram_note') }}</p>
                         <TelegramConnect v-if="!user?.telegram" compact />
                         <div v-else class="tg-hint"><Icon name="check" size="sm" />{{ $t('owner.settings.telegram_on') }}</div>
+                        <!-- new requests also by push to this phone / computer -->
+                        <PushSwitch :endpoints="pushEndpoints" />
                     </section>
 
                     <section id="s-hours" class="card panel">

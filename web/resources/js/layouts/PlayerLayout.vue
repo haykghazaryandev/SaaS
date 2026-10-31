@@ -21,9 +21,11 @@ import Flash from '@/components/Flash.vue';
 import Icon from '@/components/Icon.vue';
 import LangSwitch from '@/components/LangSwitch.vue';
 import Logo from '@/components/Logo.vue';
+import InstallSheet from '@/components/pwa/InstallSheet.vue';
 import NotifyBell from '@/components/social/NotifyBell.vue';
 import { useShared } from '@/composables/useShared';
 import { setCounts, social, startLive } from '@/composables/useSocial';
+import { installable, promptInstall } from '@/lib/pwa';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -158,6 +160,9 @@ watch(() => page.url, () => (menu.value = false));
                                 <Link v-if="!user.registered" role="menuitem" :href="route('welcome')"><Icon name="check" size="sm" />{{ $t('player.my_bookings.finish_profile') }}</Link>
                                 <Link v-if="user.isOwner" role="menuitem" :href="route('owner.start')"><Icon name="chart" size="sm" />{{ $t('nav.owner') }}</Link>
                                 <a v-if="user.isAdmin" role="menuitem" href="/admin"><Icon name="settings" size="sm" />{{ $t('switch.admin') }}</a>
+                                <button v-if="installable()" type="button" role="menuitem" class="install-item" data-test="install-app" @click="(menu = false), promptInstall()">
+                                    <Icon name="install" size="sm" />{{ $t('pwa.install.button') }}
+                                </button>
                                 <hr />
                                 <Link role="menuitem" :href="route('logout')" method="post" as="button" class="out"><Icon name="logout" size="sm" />{{ $t('common.log_out') }}</Link>
                             </div>
@@ -200,6 +205,7 @@ watch(() => page.url, () => (menu.value = false));
     </div>
     <Flash />
     <ConfirmDialog />
+    <InstallSheet />
 </template>
 
 <style scoped>
