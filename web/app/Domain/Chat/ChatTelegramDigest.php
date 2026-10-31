@@ -84,7 +84,7 @@ class ChatTelegramDigest implements ShouldQueue
             }
             if ($push) {
                 try {
-                    $u->notifyNow(new PushNotice(PushNotifications::message($text, '/messages/'.$c->id, 'chat:'.$c->id)));
+                    $u->notifyNow(new PushNotice(PushNotifications::message($text, '/messages/'.$c->id, 'chat:'.$c->id, badge: PushNotifications::badgeFor($u))));
                 } catch (Throwable $e) {
                     Log::warning('chat push failed', ['user' => $u->id, 'error' => $e->getMessage()]);
                 }

@@ -25,8 +25,23 @@ self.addEventListener('push', (e) => {
         renotify: Boolean(p.tag && p.renotify),
         data: { url: (p.data && p.data.url) || '/' },
     };
-    e.waitUntil(self.registration.showNotification(p.title || 'ZoneSpot', options));
+    e.waitUntil(
+        Promise.all([
+            self.registration.showNotification(p.title || 'ZoneSpot', options),
+            // the number on the app icon (installed app: iPhone Home Screen, desktop Chrome / Edge)
+            setBadge(p.data && p.data.badge),
+        ]),
+    );
 });
+
+function setBadge(n) {
+    try {
+        if (typeof n !== 'number' || !self.navigator.setAppBadge) return Promise.resolve();
+        return n > 0 ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge();
+    } catch {
+        return Promise.resolve();
+    }
+}
 
 // a tap: an open app window goes to the page (focused), otherwise a new window opens it
 self.addEventListener('notificationclick', (e) => {

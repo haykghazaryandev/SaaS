@@ -593,3 +593,10 @@
 :root[data-theme="light"] .oapp .oside { background: rgba(255, 255, 255, 0.92); }
 :root[data-theme="light"] .oapp .otop { background: rgba(246, 248, 243, 0.9); }
 :root[data-theme="light"] .oapp .sched .colh, :root[data-theme="light"] .oapp .week .wh { background: rgba(255, 255, 255, 0.96); }
+
+/* phones: the strip behind the status bar is solid (see bookball.css); the keyboard hides the bottom tabs */
+@media (max-width: 900px) {
+  .oapp .otop { background: linear-gradient(to bottom, var(--statusbar) var(--sat), rgba(10, 13, 11, 0.94) var(--sat)); }
+  :root[data-theme="light"] .oapp .otop { background: linear-gradient(to bottom, var(--statusbar) var(--sat), rgba(246, 248, 243, 0.95) var(--sat)); }
+}
+html.kb-open .oapp .tabbar, html.kb-open .oapp .ofab { display: none !important; }

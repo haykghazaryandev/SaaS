@@ -2,6 +2,8 @@
 
 namespace App\Domain\Notifications;
 
+use App\Domain\Chat\Chat;
+use App\Models\Booking;
 use App\Models\PushSubscription;
 use App\Models\User;
 use GuzzleHttp\Client;
@@ -98,7 +100,22 @@ class PushNotifications
      * The payload sw.js shows. $text may be Telegram HTML (tags are dropped, &amp; etc. decoded);
      * $tag: a newer notification with the same tag replaces the older one (e.g. one per chat).
      */
-    public static function message(string $text, ?string $link, string $tag, ?string $title = null): WebPushMessage
+    /**
+     * The number on the app icon (like a messenger): unread notices + unread chat messages (muted chats left out),
+     * and for people who run a place, the requests waiting for an answer. The same number the app sets while open.
+     */
+    public static function badgeFor(User $u): int
+    {
+        $n = $u->unreadNotifications()->count() + app(Chat::class)->unreadLoud($u);
+        $venues = $u->venues()->pluck('venues.id');
+        if ($venues->isNotEmpty()) {
+            $n += Booking::whereIn('venue_id', $venues)->where('status', 'pending')->where('starts_at', '>', now())->count();
+        }
+
+        return $n;
+    }
+
+    public static function message(string $text, ?string $link, string $tag, ?string $title = null, ?int $badge = null): WebPushMessage
     {
         return (new WebPushMessage)
             ->title($title !== null ? self::plain($title) : __('brand'))
@@ -106,7 +123,8 @@ class PushNotifications
             ->icon('/icons/icon-192.png')
             ->tag($tag)
             ->renotify()
-            ->data(['url' => self::url($link)])
+            // the app icon's number after this news (the service worker sets it, the app closed too)
+            ->data(['url' => self::url($link), ...($badge !== null ? ['badge' => $badge] : [])])
             // a day: later than that the news is stale
             ->options(['TTL' => 86400, 'urgency' => 'high']);
     }

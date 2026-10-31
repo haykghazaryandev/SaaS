@@ -68,6 +68,7 @@ class BookingNotification extends Notification implements ShouldQueue
         // no phone number on the lock screen (Telegram keeps it)
         $message = $this->audience === 'owner' ? BookingTexts::owner($b, $this->type, false) : BookingTexts::player($b, $this->type, $this->changes);
 
-        return PushNotifications::message($message->text, $this->audience === 'owner' ? '/owner' : '/me/bookings', 'booking:'.$b->id.':'.$this->audience);
+        return PushNotifications::message($message->text, $this->audience === 'owner' ? '/owner' : '/me/bookings', 'booking:'.$b->id.':'.$this->audience,
+            badge: $notifiable instanceof User ? PushNotifications::badgeFor($notifiable) : null);
     }
 }

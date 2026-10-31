@@ -496,3 +496,20 @@ html:has(.scrim), html:has(.scrim) body { overflow: hidden; }
 :root[data-theme="light"] .top { background: rgba(246, 248, 243, 0.85); }
 :root[data-theme="light"] .tabbar { background: rgba(255, 255, 255, 0.96); box-shadow: 0 14px 34px -14px rgba(20, 40, 20, 0.35); }
 :root[data-theme="light"] .scrim { background: rgba(20, 30, 20, 0.35); }
+
+/* ---------- phones: the keyboard and the status bar (installed app above all) ----------
+   Keyboard open (lib/device.ts → html.kb-open): the home indicator is under the keyboard, so no bottom safe area is
+   kept, the tab bar hides, and full-height screens (the chat) use the height still visible (--vvh). */
+html.kb-open { --sab: 0px; --tab-gap: 0px; }
+html.kb-open .tabbar { display: none !important; }
+html.kb-open body:has(.tabbar) { padding-bottom: 0; }
+html.kb-open .papp.with-tabbar { --app-bottom: 0px; }
+/* full-screen pages on phones (the chat: PlayerLayout .papp.fs) take exactly the height still visible above the
+   keyboard: no empty band on iPhone */
+html.kb-open .papp.fs { height: var(--vvh, 100dvh); }
+html.kb-open .chat.inpanel { height: calc(var(--vvh, 100dvh) - 70px - var(--sat)); }
+/* the strip behind the status bar (time, battery, the Dynamic Island) is solid: the page never shows through it
+   blurred. Dark in both themes: in the installed app iPhone draws the time in white. */
+:root { --statusbar: #0a0d0b; }
+.top { background: linear-gradient(to bottom, var(--statusbar) var(--sat), rgba(10, 13, 11, 0.93) var(--sat)); }
+:root[data-theme="light"] .top { background: linear-gradient(to bottom, var(--statusbar) var(--sat), rgba(246, 248, 243, 0.94) var(--sat)); }

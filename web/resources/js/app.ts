@@ -12,6 +12,7 @@ import { i18n, loadTexts } from './lib/i18n';
 import { installPush } from './lib/push';
 import { installPwa } from './lib/pwa';
 import { watchSystemTheme } from './lib/theme';
+import { installAppBadge, watchKeyboard } from './lib/device';
 import { installSheetSwipe } from './lib/sheetSwipe';
 import { unlockSound } from './lib/sound';
 
@@ -28,6 +29,8 @@ installSheetSwipe(); // bottom sheets close with a downward swipe on phones
 installPwa(); // the phone may offer "Add to Home Screen" (app icon, full screen)
 installPush(); // logging out stops this device's push notifications
 watchSystemTheme(); // Auto theme: follow the phone when it switches between dark and light
+installAppBadge(); // the installed app's icon number (unread notices, chats, requests waiting)
+watchKeyboard(); // the phone keyboard: no gap above it, no tab bar over it
 unlockSound(); // phones allow the notification sound only after the first tap
 
 // Fresh pages: something changed (booked, withdrew, accepted, joined…) → forget the preloaded pages, so the next page

@@ -6,6 +6,7 @@ use App\Domain\Notifications\PushNotifications;
 use App\Domain\Notifications\TelegramChannel;
 use App\Domain\Notifications\TelegramMessage;
 use App\Domain\Notifications\WebPushChannel;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
@@ -113,6 +114,7 @@ class Notice extends Notification implements ShouldQueue
         $text = __('notice.'.$this->type, array_map(fn ($v) => e((string) $v), $this->params), $notifiable->preferredLocale());
 
         // repeats of the same news about the same page replace each other on the phone
-        return PushNotifications::message($text, $this->link, 'notice:'.$this->type.':'.substr(md5((string) $this->link), 0, 8));
+        return PushNotifications::message($text, $this->link, 'notice:'.$this->type.':'.substr(md5((string) $this->link), 0, 8),
+            badge: $notifiable instanceof User ? PushNotifications::badgeFor($notifiable) : null);
     }
 }

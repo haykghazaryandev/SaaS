@@ -46,6 +46,8 @@ class HandleInertiaRequests extends Middleware
             ],
             // header badges: unread notifications, unread chat messages, friend requests waiting (lazy: only computed when sent)
             'counts' => fn () => $user ? app(SocialCounts::class)->for($user) : null,
+            // the number on the installed app's icon (also set by push while the app is closed)
+            'appBadge' => fn () => $user ? PushNotifications::badgeFor($user) : null,
             // Web Push (VAPID public key) for "Notifications on this device"; null = push is off, the switch is hidden
             'pushKey' => fn () => $user ? PushNotifications::publicKey() : null,
             // the sport the player chose on the home page (null on "What do you play?"): the menu shows its games

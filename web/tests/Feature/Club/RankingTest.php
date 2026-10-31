@@ -2,8 +2,10 @@
 
 use App\Domain\Club\FeePayments;
 use App\Domain\Club\Ranking;
+use App\Domain\Notifications\PushNotifications;
 use App\Domain\Social\Friends;
 use App\Filament\Resources\Reports\ReportResource;
+use App\Models\Booking;
 use App\Models\SportRating;
 use App\Models\Tournament;
 use App\Models\TournamentEntry;
@@ -65,4 +67,14 @@ it('shows tournament medals on the profile', function () {
         TournamentEntry::create(['tournament_id' => $t->id, 'user_id' => $this->a->id, 'first_name' => 'Aram', 'last_name' => 'P', 'phone' => '+3749300090'.$i, 'option' => 0, 'status' => 'accepted', 'place' => $place]);
     }
     $this->actingAs($this->b)->get('/u/'.$this->a->id)->assertInertia(fn (Assert $p) => $p->where('player.medals', [1 => 2, 3 => 1]));
+});
+
+it('gives the app icon a number: unread notices and chats, and requests waiting for the people of a place', function () {
+    $player = User::factory()->create();
+    $booking = Booking::create(['code' => 'BB-BDG1', 'venue_id' => $this->club->id, 'field_id' => $this->club->fields->first()->id, 'user_id' => $player->id,
+        'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour(), 'status' => 'pending', 'source' => 'player', 'contact_name' => 'P', 'price' => 1000]);
+    expect(PushNotifications::badgeFor($this->owner))->toBe(1);
+    $msg = PushNotifications::message('Hi', '/owner', 'tag', badge: 1)->toArray();
+    expect($msg['data']['badge'])->toBe(1);
+    $this->actingAs($this->owner)->withSession(['venue_id' => $this->club->id])->get('/owner/schedule')->assertInertia(fn (Assert $p) => $p->where('appBadge', 1));
 });
