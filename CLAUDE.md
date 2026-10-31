@@ -70,6 +70,9 @@ Live chat: `93000100` in a normal window and `93000101` in an incognito window, 
 - `ADMIN_PHONE` may list several numbers (commas). On local / staging each admin owns demo places
   (first: Zangak + Pingpong.land, second: Masis + Spin Club, then Davtashen + Smash Club …); a place has one owner, the
   others who ran it become staff. `php artisan club:demo-now` puts test games on the tables.
+- Football has no rating (`Sport::rated()`; `hasFeature('rating')` is false without a rated sport). On local / staging
+  `FootballClubSeeder` gives Zangak, Masis (prices by length) and Davtashen the desk, cards, shop, trainings and money;
+  football tournaments (teams) are not built yet.
 - Roles: the owner (everything) and staff, added by the owner on Owner → Team. Owner → Settings → Menus
   (`Domain/Venues/Menus`, `venues.menus`) sets which menus each panel shows and staff's levels (Schedule view / edit,
   Shop sell / edit, Tournaments run / create, Money today / all; by default staff get the daily work without Money).

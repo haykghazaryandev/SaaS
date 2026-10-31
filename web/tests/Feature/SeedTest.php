@@ -5,10 +5,13 @@ use App\Models\Conversation;
 use App\Models\Friendship;
 use App\Models\Game;
 use App\Models\OpeningHour;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\AdminSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\FootballClubSeeder;
+use Database\Seeders\VenueSeeder;
 
 it('seeds again without losing or doubling anything', function () {
     $this->seed(DatabaseSeeder::class);
@@ -64,4 +67,18 @@ it('makes every ADMIN_PHONE number an admin; on staging each owns their own foot
 it('reads ADMIN_PHONE with commas, semicolons or new lines between the numbers', function () {
     config(['app.admin_phone' => "+374 99 000 001;099 000 002\n+37499000003, "]);
     expect(AdminSeeder::phones())->toBe(['+37499000001', '+37499000002', '+37499000003']);
+});
+
+it('gives three football places the club tools (desk, cards, shop, trainings, money) but no rating or tournaments', function () {
+    $this->seed([VenueSeeder::class, FootballClubSeeder::class]);
+    foreach (FootballClubSeeder::PLACES as $slug) {
+        $v = Venue::where('slug', $slug)->first();
+        expect($v->featureList())->toContain('wallet', 'shop', 'trainings', 'money')->not->toContain('rating', 'tournaments')
+            ->and(Product::where('venue_id', $v->id)->count())->toBe(4)
+            ->and($v->trainingPrice('small'))->toBe(12000);
+    }
+    expect(Venue::where('slug', 'masis')->first()->lengthPrices('small'))->toHaveCount(3);
+    // again: nothing doubled
+    $this->seed(FootballClubSeeder::class);
+    expect(Product::count())->toBe(12);
 });

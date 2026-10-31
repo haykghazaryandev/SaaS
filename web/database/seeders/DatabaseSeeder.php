@@ -20,6 +20,6 @@ class DatabaseSeeder extends Seeder
 
             return;
         }
-        $this->call([VenueSeeder::class, AdminSeeder::class, DemoSeeder::class, SocialSeeder::class, PingpongSeeder::class, TournamentDemoSeeder::class, RequestCasesSeeder::class]);
+        $this->call([VenueSeeder::class, AdminSeeder::class, DemoSeeder::class, SocialSeeder::class, PingpongSeeder::class, FootballClubSeeder::class, TournamentDemoSeeder::class, RequestCasesSeeder::class]);
     }
 }
